@@ -1,0 +1,97 @@
+# centy-daemon
+
+A gRPC daemon service for [Centy](https://github.com/tupe12334/centy-cli) - a local-first issue and documentation tracker.
+
+## Overview
+
+centy-daemon manages `.centy` folder operations, providing a backend service for:
+
+- Initializing and reconciling `.centy` project folders
+- Creating and managing issues with metadata
+- Tracking managed files with SHA-256 integrity hashes
+- Configuration management for custom fields and defaults
+
+## Requirements
+
+- Rust 1.70+ (2021 edition)
+- Protocol Buffers compiler (`protoc`)
+
+## Installation
+
+```bash
+git clone https://github.com/tupe12334/centy-daemon.git
+cd centy-daemon
+cargo build --release
+```
+
+## Usage
+
+### Start the daemon
+
+```bash
+# Default address: 127.0.0.1:50051
+cargo run --release
+
+# Custom address
+CENTY_DAEMON_ADDR=127.0.0.1:50052 cargo run --release
+```
+
+### gRPC API
+
+The daemon exposes the `CentyDaemon` service with the following RPCs:
+
+| RPC | Description |
+|-----|-------------|
+| `Init` | Initialize a `.centy` folder in a project directory |
+| `GetReconciliationPlan` | Preview changes without executing |
+| `ExecuteReconciliation` | Apply reconciliation with user decisions |
+| `CreateIssue` | Create a new issue with title, description, and metadata |
+| `GetNextIssueNumber` | Get the next sequential issue number |
+| `GetManifest` | Read the project manifest |
+| `GetConfig` | Read project configuration |
+| `IsInitialized` | Check if centy is initialized in a directory |
+
+See [`proto/centy.proto`](proto/centy.proto) for the full API specification.
+
+## Project Structure
+
+```
+.centy/                     # Created in your project root
+├── .centy-manifest.json    # Tracks managed files with hashes
+├── config.json             # Custom fields and defaults
+├── README.md               # Project README
+├── issues/                 # Issue storage
+│   └── 0001/
+│       ├── issue.md        # Issue content
+│       ├── metadata.json   # Status, priority, timestamps
+│       └── assets/         # Attachments
+├── docs/                   # Documentation
+└── assets/                 # Shared assets
+```
+
+## Development
+
+```bash
+# Check compilation
+cargo check
+
+# Run tests
+cargo test
+
+# Build debug
+cargo build
+
+# Build release
+cargo build --release
+```
+
+## Architecture
+
+- **Tonic** - gRPC server framework
+- **Tokio** - Async runtime
+- **Prost** - Protocol Buffers code generation
+- **Serde** - JSON serialization for manifests and metadata
+
+## License
+
+MIT
