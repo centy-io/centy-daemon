@@ -53,6 +53,20 @@ The daemon exposes the `CentyDaemon` service with the following RPCs:
 
 See [`proto/centy.proto`](proto/centy.proto) for the full API specification.
 
+### Testing with grpcui
+
+[grpcui](https://github.com/fullstorydev/grpcui) provides a web-based UI for interacting with the gRPC API.
+
+```bash
+# Install grpcui
+go install github.com/fullstorydev/grpcui/cmd/grpcui@latest
+
+# Start the daemon first, then launch grpcui
+grpcui -plaintext 127.0.0.1:50051
+```
+
+This opens a browser with an interactive interface to call any RPC method.
+
 ## Project Structure
 
 ```
