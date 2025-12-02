@@ -38,6 +38,12 @@ CENTY_DAEMON_ADDR=127.0.0.1:50052 cargo run --release
 
 ### gRPC API
 
+The daemon supports both **native gRPC** (HTTP/2) and **gRPC-Web** (HTTP/1.1), making it compatible with:
+- Native gRPC clients (CLI tools, backend services)
+- Browser-based applications (via gRPC-Web/Connect)
+
+CORS is enabled for localhost origins in development mode.
+
 The daemon exposes the `CentyDaemon` service with the following RPCs:
 
 | RPC | Description |
@@ -83,28 +89,9 @@ This opens a browser with an interactive interface to call any RPC method.
 └── assets/                 # Shared assets
 ```
 
-## Development
+## Contributing
 
-```bash
-# Check compilation
-cargo check
-
-# Run tests
-cargo test
-
-# Build debug
-cargo build
-
-# Build release
-cargo build --release
-```
-
-## Architecture
-
-- **Tonic** - gRPC server framework
-- **Tokio** - Async runtime
-- **Prost** - Protocol Buffers code generation
-- **Serde** - JSON serialization for manifests and metadata
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and contribution guidelines.
 
 ## License
 
