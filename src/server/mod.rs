@@ -5,6 +5,9 @@ use crate::docs::{
 use crate::issue::{
     create_issue, delete_issue, get_issue, get_issue_by_display_number, list_issues, priority_label, update_issue,
     CreateIssueOptions, UpdateIssueOptions,
+    // Asset imports
+    add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
+    AssetInfo, AssetScope,
 };
 use crate::manifest::{read_manifest, ManagedFileType as InternalFileType};
 use crate::reconciliation::{
@@ -495,6 +498,156 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    // ============ Asset RPCs ============
+
+    async fn add_asset(
+        &self,
+        request: Request<AddAssetRequest>,
+    ) -> Result<Response<AddAssetResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let scope = if req.is_shared {
+            AssetScope::Shared
+        } else {
+            AssetScope::IssueSpecific
+        };
+
+        let issue_id = if req.issue_id.is_empty() {
+            None
+        } else {
+            Some(req.issue_id.as_str())
+        };
+
+        match add_asset(project_path, issue_id, req.data, &req.filename, scope).await {
+            Ok(result) => {
+                // Re-read manifest for response
+                let manifest = read_manifest(project_path).await.ok().flatten();
+                Ok(Response::new(AddAssetResponse {
+                    success: true,
+                    error: String::new(),
+                    asset: Some(asset_info_to_proto(&result.asset)),
+                    path: result.path,
+                    manifest: manifest.map(|m| manifest_to_proto(&m)),
+                }))
+            }
+            Err(e) => Ok(Response::new(AddAssetResponse {
+                success: false,
+                error: e.to_string(),
+                asset: None,
+                path: String::new(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn list_assets(
+        &self,
+        request: Request<ListAssetsRequest>,
+    ) -> Result<Response<ListAssetsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match list_assets(project_path, &req.issue_id, req.include_shared).await {
+            Ok(assets) => {
+                let total_count = assets.len() as i32;
+                Ok(Response::new(ListAssetsResponse {
+                    assets: assets.iter().map(asset_info_to_proto).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_asset(
+        &self,
+        request: Request<GetAssetRequest>,
+    ) -> Result<Response<GetAssetResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let issue_id = if req.issue_id.is_empty() {
+            None
+        } else {
+            Some(req.issue_id.as_str())
+        };
+
+        match get_asset(project_path, issue_id, &req.filename, req.is_shared).await {
+            Ok((data, asset_info)) => Ok(Response::new(GetAssetResponse {
+                success: true,
+                error: String::new(),
+                data,
+                asset: Some(asset_info_to_proto(&asset_info)),
+            })),
+            Err(e) => Ok(Response::new(GetAssetResponse {
+                success: false,
+                error: e.to_string(),
+                data: vec![],
+                asset: None,
+            })),
+        }
+    }
+
+    async fn delete_asset(
+        &self,
+        request: Request<DeleteAssetRequest>,
+    ) -> Result<Response<DeleteAssetResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let issue_id = if req.issue_id.is_empty() {
+            None
+        } else {
+            Some(req.issue_id.as_str())
+        };
+
+        match delete_asset_fn(project_path, issue_id, &req.filename, req.is_shared).await {
+            Ok(result) => {
+                // Re-read manifest for response
+                let manifest = read_manifest(project_path).await.ok().flatten();
+                Ok(Response::new(DeleteAssetResponse {
+                    success: true,
+                    error: String::new(),
+                    filename: result.filename,
+                    was_shared: result.was_shared,
+                    manifest: manifest.map(|m| manifest_to_proto(&m)),
+                }))
+            }
+            Err(e) => Ok(Response::new(DeleteAssetResponse {
+                success: false,
+                error: e.to_string(),
+                filename: String::new(),
+                was_shared: false,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn list_shared_assets(
+        &self,
+        request: Request<ListSharedAssetsRequest>,
+    ) -> Result<Response<ListAssetsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match list_shared_assets(project_path).await {
+            Ok(assets) => {
+                let total_count = assets.len() as i32;
+                Ok(Response::new(ListAssetsResponse {
+                    assets: assets.iter().map(asset_info_to_proto).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
     // ============ Project Registry RPCs ============
 
     async fn list_projects(
@@ -686,5 +839,16 @@ fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
         doc_count: info.doc_count,
         initialized: info.initialized,
         name: info.name.clone().unwrap_or_default(),
+    }
+}
+
+fn asset_info_to_proto(asset: &AssetInfo) -> Asset {
+    Asset {
+        filename: asset.filename.clone(),
+        hash: asset.hash.clone(),
+        size: asset.size,
+        mime_type: asset.mime_type.clone(),
+        is_shared: asset.is_shared,
+        created_at: asset.created_at.clone(),
     }
 }

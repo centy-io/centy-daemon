@@ -60,6 +60,23 @@ service CentyDaemon {
   // Delete a doc
   rpc DeleteDoc(DeleteDocRequest) returns (DeleteDocResponse);
 
+  // ============ Asset RPCs ============
+
+  // Add an asset to an issue or as a shared asset
+  rpc AddAsset(AddAssetRequest) returns (AddAssetResponse);
+
+  // List assets for an issue (optionally including shared assets)
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+
+  // Get a specific asset's data
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+
+  // Delete an asset
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
+
+  // List all shared assets
+  rpc ListSharedAssets(ListSharedAssetsRequest) returns (ListAssetsResponse);
+
   // ============ Project Registry RPCs ============
 
   // List all tracked projects
@@ -398,6 +415,78 @@ message DeleteDocResponse {
   bool success = 1;
   string error = 2;
   Manifest manifest = 3;
+}
+
+// ============ Asset Messages ============
+
+// Asset represents file metadata
+message Asset {
+  string filename = 1;            // Original filename
+  string hash = 2;                // SHA-256 hash
+  uint64 size = 3;                // File size in bytes
+  string mime_type = 4;           // MIME type (e.g., "image/png")
+  bool is_shared = 5;             // Whether this is a shared asset
+  string created_at = 6;          // ISO timestamp
+}
+
+message AddAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Filename to save as
+  bytes data = 4;                 // Binary file data
+  bool is_shared = 5;             // If true, store as shared asset (default: false)
+}
+
+message AddAssetResponse {
+  bool success = 1;
+  string error = 2;
+  Asset asset = 3;                // The created asset info
+  string path = 4;                // Full path to the asset file
+  Manifest manifest = 5;
+}
+
+message ListAssetsRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID to list assets for
+  bool include_shared = 3;        // Include shared assets in result (default: false)
+}
+
+message ListAssetsResponse {
+  repeated Asset assets = 1;
+  int32 total_count = 2;
+}
+
+message GetAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Asset filename
+  bool is_shared = 4;             // Whether to look for a shared asset
+}
+
+message GetAssetResponse {
+  bool success = 1;
+  string error = 2;
+  bytes data = 3;                 // Binary file data
+  Asset asset = 4;                // Asset metadata
+}
+
+message DeleteAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Asset filename
+  bool is_shared = 4;             // Whether to delete a shared asset
+}
+
+message DeleteAssetResponse {
+  bool success = 1;
+  string error = 2;
+  string filename = 3;            // Deleted filename
+  bool was_shared = 4;            // Whether it was a shared asset
+  Manifest manifest = 5;
+}
+
+message ListSharedAssetsRequest {
+  string project_path = 1;
 }
 
 // ============ Project Registry Messages ============

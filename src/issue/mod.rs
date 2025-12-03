@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod create;
 pub mod crud;
 pub mod id;
@@ -20,3 +21,7 @@ pub use priority::{
 };
 pub use reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
 pub use status::validate_status;
+pub use assets::{
+    add_asset, delete_asset, get_asset, list_assets, list_shared_assets,
+    AddAssetResult, AssetError, AssetInfo, AssetScope, DeleteAssetResult,
+};
