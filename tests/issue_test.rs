@@ -447,7 +447,7 @@ async fn test_delete_issue_success() {
     init_centy_project(project_path).await;
 
     // Create issue
-    create_issue(
+    let created = create_issue(
         project_path,
         CreateIssueOptions {
             title: "To Delete".to_string(),
@@ -458,11 +458,11 @@ async fn test_delete_issue_success() {
     .unwrap();
 
     // Verify it exists
-    let issue_path = project_path.join(".centy/issues/0001");
+    let issue_path = project_path.join(format!(".centy/issues/{}", created.id));
     assert!(issue_path.exists());
 
     // Delete it
-    delete_issue(project_path, "0001")
+    delete_issue(project_path, &created.id)
         .await
         .expect("Should delete");
 
@@ -482,7 +482,7 @@ async fn test_delete_issue_removes_from_manifest() {
     init_centy_project(project_path).await;
 
     // Create issue
-    create_issue(
+    let created = create_issue(
         project_path,
         CreateIssueOptions {
             title: "Test".to_string(),
@@ -497,22 +497,23 @@ async fn test_delete_issue_removes_from_manifest() {
         .await
         .unwrap()
         .unwrap();
+    let issue_prefix = format!("issues/{}", created.id);
     let issue_files: Vec<_> = manifest
         .managed_files
         .iter()
-        .filter(|f| f.path.starts_with("issues/0001"))
+        .filter(|f| f.path.starts_with(&issue_prefix))
         .collect();
     assert!(!issue_files.is_empty(), "Issue should be in manifest");
 
     // Delete issue
-    let result = delete_issue(project_path, "0001").await.unwrap();
+    let result = delete_issue(project_path, &created.id).await.unwrap();
 
     // Verify removed from manifest
     let issue_files: Vec<_> = result
         .manifest
         .managed_files
         .iter()
-        .filter(|f| f.path.starts_with("issues/0001"))
+        .filter(|f| f.path.starts_with(&issue_prefix))
         .collect();
     assert!(issue_files.is_empty(), "Issue should be removed from manifest");
 }
@@ -544,7 +545,7 @@ async fn test_issue_with_custom_fields() {
     custom_fields.insert("assignee".to_string(), "alice".to_string());
     custom_fields.insert("component".to_string(), "backend".to_string());
 
-    create_issue(
+    let created = create_issue(
         project_path,
         CreateIssueOptions {
             title: "Custom Fields Test".to_string(),
@@ -556,7 +557,7 @@ async fn test_issue_with_custom_fields() {
     .unwrap();
 
     // Get and verify
-    let issue = get_issue(project_path, "0001").await.unwrap();
+    let issue = get_issue(project_path, &created.id).await.unwrap();
     assert_eq!(
         issue.metadata.custom_fields.get("assignee"),
         Some(&"alice".to_string())
@@ -578,7 +579,7 @@ async fn test_update_issue_custom_fields() {
     let mut initial_fields = HashMap::new();
     initial_fields.insert("assignee".to_string(), "alice".to_string());
 
-    create_issue(
+    let created = create_issue(
         project_path,
         CreateIssueOptions {
             title: "Test".to_string(),
@@ -596,7 +597,7 @@ async fn test_update_issue_custom_fields() {
 
     let result = update_issue(
         project_path,
-        "0001",
+        &created.id,
         UpdateIssueOptions {
             custom_fields: new_fields,
             ..Default::default()
@@ -642,7 +643,7 @@ async fn test_update_issue_priority() {
     init_centy_project(project_path).await;
 
     // Create with low priority
-    create_issue(
+    let created = create_issue(
         project_path,
         CreateIssueOptions {
             title: "Test".to_string(),
@@ -656,7 +657,7 @@ async fn test_update_issue_priority() {
     // Update to high priority
     let result = update_issue(
         project_path,
-        "0001",
+        &created.id,
         UpdateIssueOptions {
             priority: Some(1), // high
             ..Default::default()
