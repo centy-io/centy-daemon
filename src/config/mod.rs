@@ -48,6 +48,21 @@ fn default_state() -> String {
     "open".to_string()
 }
 
+/// LLM configuration for automated issue management
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmConfig {
+    /// If true, LLM should auto-close issues after completing the work
+    #[serde(default)]
+    pub auto_close_on_complete: bool,
+    /// If true, LLM should update status to "in-progress" when starting work
+    #[serde(default)]
+    pub update_status_on_start: bool,
+    /// If true, LLM may directly edit metadata.json files. If false, use centy CLI
+    #[serde(default)]
+    pub allow_direct_edits: bool,
+}
+
 /// Centy configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,6 +87,9 @@ pub struct CentyConfig {
     /// Default state for new issues (default: "open")
     #[serde(default = "default_state")]
     pub default_state: String,
+    /// LLM configuration for automated issue management
+    #[serde(default)]
+    pub llm: LlmConfig,
 }
 
 impl CentyConfig {
@@ -92,6 +110,7 @@ impl Default for CentyConfig {
             defaults: HashMap::new(),
             allowed_states: default_allowed_states(),
             default_state: default_state(),
+            llm: LlmConfig::default(),
         }
     }
 }
