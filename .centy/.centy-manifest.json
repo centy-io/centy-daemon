@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "centyVersion": "0.1.0",
   "createdAt": "2025-12-02T20:02:39.156268+00:00",
-  "updatedAt": "2025-12-03T16:36:04.042213+00:00",
+  "updatedAt": "2025-12-03T18:19:56.503104+00:00",
   "managedFiles": [
     {
       "path": "README.md",
@@ -173,6 +173,202 @@
       "type": "file"
     },
     {
+      "path": "issues/2508102f-5f00-4310-97f9-c16618dfd559/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:14:25.691713+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/2508102f-5f00-4310-97f9-c16618dfd559/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:14:25.691720+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/2508102f-5f00-4310-97f9-c16618dfd559/issue.md",
+      "hash": "b0c9d2ab2b0def4f1f09d47af70612326c5f2c8f2e44dbf629259dff21a0cd46",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:14:25.691718+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/2508102f-5f00-4310-97f9-c16618dfd559/metadata.json",
+      "hash": "ddbd405917639558278d4a3733bf34ea5bdfb0ef4026dd3882509daf87adad28",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:14:25.691719+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/4b976122-c392-431b-921d-841db56f245f/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:49:38.281398+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/4b976122-c392-431b-921d-841db56f245f/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:49:38.281409+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/4b976122-c392-431b-921d-841db56f245f/issue.md",
+      "hash": "795c92287b949c57c0c9db4dc8bc2c0aef36c0857099263e076d1c6d1f33ae06",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:49:38.281404+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/4b976122-c392-431b-921d-841db56f245f/metadata.json",
+      "hash": "10f63c55f940cb9cbfeba9cff55cdb32cb547bf6effb56bf93b4d78dfba5da0b",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:49:38.281408+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/4ffcb749-0b7b-4e04-ab37-4047feff5df7/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:13:23.120173+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/4ffcb749-0b7b-4e04-ab37-4047feff5df7/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:13:23.120189+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/4ffcb749-0b7b-4e04-ab37-4047feff5df7/issue.md",
+      "hash": "d183c09e3a93b0756e6d7e77b5b4d4685cc3a301149074c679f522b8c476369d",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:13:23.120187+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/4ffcb749-0b7b-4e04-ab37-4047feff5df7/metadata.json",
+      "hash": "65fdc11a798194debeb7832e36acdacc1a981ba17f17cdb884d426eb8d2b1353",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:13:23.120188+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/949e2bca-0e32-4403-8238-a30ca495ebb6/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:16:47.308293+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/949e2bca-0e32-4403-8238-a30ca495ebb6/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:16:47.308338+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/949e2bca-0e32-4403-8238-a30ca495ebb6/issue.md",
+      "hash": "1e22ac6946a8e9adc4b262c0e5edc39ed5f71b294e17d5411858b98c0e698da6",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:16:47.308334+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/949e2bca-0e32-4403-8238-a30ca495ebb6/metadata.json",
+      "hash": "cab0efc2dd714d141d4be798aa4e00cb4485503dfe5e3c943a549132a8439eb5",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:16:47.308338+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/ad1f3597-9044-48ca-9160-c552130c4486/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:50:23.912196+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/ad1f3597-9044-48ca-9160-c552130c4486/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:50:23.912203+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/ad1f3597-9044-48ca-9160-c552130c4486/issue.md",
+      "hash": "36f6fc6b9399004a87e21ec43aa40cd9e3b718f38bfdc95f4f12e279289902de",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:50:23.912200+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/ad1f3597-9044-48ca-9160-c552130c4486/metadata.json",
+      "hash": "ae3e74e7a83b6692d80117240da225690bb7e310ef223db329769633322ad878",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T16:50:23.912202+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/d474feb5-e7c6-47de-933f-0252562b1fc2/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:18:36.731176+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/d474feb5-e7c6-47de-933f-0252562b1fc2/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:18:36.731183+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/d474feb5-e7c6-47de-933f-0252562b1fc2/issue.md",
+      "hash": "3168bd021587e5ce9e44cdda4a6b9925dfeb9d460913f93553d74d5f90775e59",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:18:36.731180+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/d474feb5-e7c6-47de-933f-0252562b1fc2/metadata.json",
+      "hash": "b4d09bc59081a339918cc0722beef2fdc6cabb6bb7464f30ebf375fd2d43b91a",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:18:36.731182+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/e92f62c8-13ad-425b-a669-27a944ae0dd9/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:19:34.023644+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/e92f62c8-13ad-425b-a669-27a944ae0dd9/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:19:34.023657+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/e92f62c8-13ad-425b-a669-27a944ae0dd9/issue.md",
+      "hash": "2f92d737dd04701764c763f785aed4dc046c3cf73de56dc508f596e0b34f3979",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:19:34.023652+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/e92f62c8-13ad-425b-a669-27a944ae0dd9/metadata.json",
+      "hash": "a5809d2614c7b41c4b5a144d2c015513f9199b5d2b1d96b5d6bf3c52119b350e",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T17:19:34.023656+00:00",
+      "type": "file"
+    },
+    {
       "path": "issues/f499a756-7c1e-45fb-9567-ad71b7a10919/",
       "hash": "",
       "version": "0.1.0",
@@ -198,6 +394,34 @@
       "hash": "81b4e6cd030964b6f5ed5383819e0b54ae5efcf55bd0ca2f224b1b6b3c0e766e",
       "version": "0.1.0",
       "createdAt": "2025-12-03T16:36:04.042213+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/f8b7fc77-bf74-4097-8599-3327419d5563/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T18:19:56.503088+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/f8b7fc77-bf74-4097-8599-3327419d5563/assets/",
+      "hash": "",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T18:19:56.503103+00:00",
+      "type": "directory"
+    },
+    {
+      "path": "issues/f8b7fc77-bf74-4097-8599-3327419d5563/issue.md",
+      "hash": "f80886c8019761622f34efbd92f5eaabbc18e2719bbdf73e510fe6d36343fbe3",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T18:19:56.503097+00:00",
+      "type": "file"
+    },
+    {
+      "path": "issues/f8b7fc77-bf74-4097-8599-3327419d5563/metadata.json",
+      "hash": "bc2ca625b62cdcea5413ea08cc4aceacec9763bab7377a0e2e853769abd1fec1",
+      "version": "0.1.0",
+      "createdAt": "2025-12-03T18:19:56.503102+00:00",
       "type": "file"
     },
     {
