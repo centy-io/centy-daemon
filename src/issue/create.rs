@@ -1,10 +1,9 @@
 use crate::config::read_config;
 use crate::manifest::{
-    add_file_to_manifest, create_managed_file, read_manifest, write_manifest, CentyManifest,
-    ManagedFileType,
+    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
 use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{compute_hash, get_centy_path};
+use crate::utils::get_centy_path;
 use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
@@ -187,48 +186,9 @@ pub async fn create_issue(
     fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
     fs::create_dir_all(&assets_path).await?;
 
-    // Update manifest
+    // Update manifest timestamp
     let mut manifest = manifest;
-    let base_path = format!("issues/{}/", issue_id);
-
-    // Add folder
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(base_path.clone(), String::new(), ManagedFileType::Directory),
-    );
-
-    // Add issue.md
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(
-            format!("{}issue.md", base_path),
-            compute_hash(&issue_md),
-            ManagedFileType::File,
-        ),
-    );
-
-    // Add metadata.json
-    let metadata_json = serde_json::to_string_pretty(&metadata)?;
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(
-            format!("{}metadata.json", base_path),
-            compute_hash(&metadata_json),
-            ManagedFileType::File,
-        ),
-    );
-
-    // Add assets folder
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(
-            format!("{}assets/", base_path),
-            String::new(),
-            ManagedFileType::Directory,
-        ),
-    );
-
-    // Write manifest
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let created_files = vec![

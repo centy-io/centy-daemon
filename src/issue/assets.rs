@@ -3,10 +3,8 @@
 //! Provides functionality to add, list, retrieve, and delete assets (images, videos, etc.)
 //! attached to issues. Assets can be either issue-specific or shared across all issues.
 
-use crate::manifest::{
-    add_file_to_manifest, create_managed_file, read_manifest, write_manifest, ManagedFileType,
-};
-use crate::utils::get_centy_path;
+use crate::manifest::{read_manifest, write_manifest, update_manifest_timestamp};
+use crate::utils::{get_centy_path, now_iso};
 use sha2::{Digest, Sha256};
 use std::path::Path;
 use thiserror::Error;
@@ -235,31 +233,18 @@ pub async fn add_asset(
     // Compute hash
     let hash = compute_binary_hash(&data);
     let size = data.len() as u64;
+    let created_at = now_iso();
 
     // Write the file
     fs::write(&asset_path, &data).await?;
 
-    // Update manifest
+    // Update manifest timestamp
     let mut manifest = manifest;
-    let manifest_path = format!("{}{}", manifest_base_path, sanitized_filename);
-
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(manifest_path.clone(), hash.clone(), ManagedFileType::File),
-    );
-
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    // Get creation timestamp from manifest entry
-    let created_at = manifest
-        .managed_files
-        .iter()
-        .find(|f| f.path == manifest_path)
-        .map(|f| f.created_at.clone())
-        .unwrap_or_default();
-
     let asset_info = AssetInfo {
-        filename: sanitized_filename,
+        filename: sanitized_filename.clone(),
         hash,
         size,
         mime_type,
@@ -269,7 +254,7 @@ pub async fn add_asset(
 
     Ok(AddAssetResult {
         asset: asset_info,
-        path: format!(".centy/{}", manifest_path),
+        path: format!(".centy/{}{}", manifest_base_path, sanitized_filename),
     })
 }
 
@@ -288,7 +273,7 @@ pub async fn list_assets(
     include_shared: bool,
 ) -> Result<Vec<AssetInfo>, AssetError> {
     // Check if centy is initialized
-    let manifest = read_manifest(project_path)
+    read_manifest(project_path)
         .await?
         .ok_or(AssetError::NotInitialized)?;
 
@@ -302,55 +287,76 @@ pub async fn list_assets(
 
     let mut assets = Vec::new();
 
-    // Get issue-specific assets
-    let issue_assets_prefix = format!("issues/{}/assets/", issue_id);
-    for managed_file in &manifest.managed_files {
-        if managed_file.path.starts_with(&issue_assets_prefix)
-            && managed_file.file_type == ManagedFileType::File
-        {
-            let filename = managed_file.path.strip_prefix(&issue_assets_prefix)
-                .unwrap_or(&managed_file.path)
-                .to_string();
+    // Get issue-specific assets by scanning the assets directory
+    let issue_assets_path = issue_path.join("assets");
+    if issue_assets_path.exists() {
+        let mut entries = fs::read_dir(&issue_assets_path).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                if let Some(filename) = entry.file_name().to_str() {
+                    let asset_path = entry.path();
+                    let data = fs::read(&asset_path).await?;
+                    let hash = compute_binary_hash(&data);
+                    let size = data.len() as u64;
+                    let mime_type = get_mime_type(filename)
+                        .unwrap_or_else(|| "application/octet-stream".to_string());
+                    let metadata = fs::metadata(&asset_path).await?;
+                    let created_at = metadata
+                        .created()
+                        .map(|t| {
+                            chrono::DateTime::<chrono::Utc>::from(t)
+                                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                                .to_string()
+                        })
+                        .unwrap_or_else(|_| now_iso());
 
-            let asset_path = centy_path.join("issues").join(issue_id).join("assets").join(&filename);
-            let size = fs::metadata(&asset_path).await.map(|m| m.len()).unwrap_or(0);
-            let mime_type = get_mime_type(&filename).unwrap_or_else(|| "application/octet-stream".to_string());
-
-            assets.push(AssetInfo {
-                filename,
-                hash: managed_file.hash.clone(),
-                size,
-                mime_type,
-                is_shared: false,
-                created_at: managed_file.created_at.clone(),
-            });
+                    assets.push(AssetInfo {
+                        filename: filename.to_string(),
+                        hash,
+                        size,
+                        mime_type,
+                        is_shared: false,
+                        created_at,
+                    });
+                }
+            }
         }
     }
 
     // Get shared assets if requested
     if include_shared {
-        let shared_assets_prefix = "assets/";
-        for managed_file in &manifest.managed_files {
-            if managed_file.path.starts_with(shared_assets_prefix)
-                && !managed_file.path.ends_with('/')
-                && managed_file.file_type == ManagedFileType::File
-            {
-                let filename = managed_file.path.strip_prefix(shared_assets_prefix)
-                    .unwrap_or(&managed_file.path)
-                    .to_string();
+        let shared_assets_path = centy_path.join("assets");
+        if shared_assets_path.exists() {
+            let mut entries = fs::read_dir(&shared_assets_path).await?;
+            while let Some(entry) = entries.next_entry().await? {
+                if entry.file_type().await?.is_file() {
+                    if let Some(filename) = entry.file_name().to_str() {
+                        let asset_path = entry.path();
+                        let data = fs::read(&asset_path).await?;
+                        let hash = compute_binary_hash(&data);
+                        let size = data.len() as u64;
+                        let mime_type = get_mime_type(filename)
+                            .unwrap_or_else(|| "application/octet-stream".to_string());
+                        let metadata = fs::metadata(&asset_path).await?;
+                        let created_at = metadata
+                            .created()
+                            .map(|t| {
+                                chrono::DateTime::<chrono::Utc>::from(t)
+                                    .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                                    .to_string()
+                            })
+                            .unwrap_or_else(|_| now_iso());
 
-                let asset_path = centy_path.join("assets").join(&filename);
-                let size = fs::metadata(&asset_path).await.map(|m| m.len()).unwrap_or(0);
-                let mime_type = get_mime_type(&filename).unwrap_or_else(|| "application/octet-stream".to_string());
-
-                assets.push(AssetInfo {
-                    filename,
-                    hash: managed_file.hash.clone(),
-                    size,
-                    mime_type,
-                    is_shared: true,
-                    created_at: managed_file.created_at.clone(),
-                });
+                        assets.push(AssetInfo {
+                            filename: filename.to_string(),
+                            hash,
+                            size,
+                            mime_type,
+                            is_shared: true,
+                            created_at,
+                        });
+                    }
+                }
             }
         }
     }
@@ -375,17 +381,15 @@ pub async fn get_asset(
     is_shared: bool,
 ) -> Result<(Vec<u8>, AssetInfo), AssetError> {
     // Check if centy is initialized
-    let manifest = read_manifest(project_path)
+    read_manifest(project_path)
         .await?
         .ok_or(AssetError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
     let sanitized_filename = sanitize_filename(filename)?;
 
-    let (asset_path, manifest_path) = if is_shared {
-        let path = centy_path.join("assets").join(&sanitized_filename);
-        let mpath = format!("assets/{}", sanitized_filename);
-        (path, mpath)
+    let asset_path = if is_shared {
+        centy_path.join("assets").join(&sanitized_filename)
     } else {
         let id = issue_id.ok_or_else(|| {
             AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
@@ -397,9 +401,7 @@ pub async fn get_asset(
             return Err(AssetError::IssueNotFound(id.to_string()));
         }
 
-        let path = issue_path.join("assets").join(&sanitized_filename);
-        let mpath = format!("issues/{}/assets/{}", id, sanitized_filename);
-        (path, mpath)
+        issue_path.join("assets").join(&sanitized_filename)
     };
 
     // Check if file exists
@@ -414,13 +416,16 @@ pub async fn get_asset(
     let mime_type = get_mime_type(&sanitized_filename)
         .unwrap_or_else(|| "application/octet-stream".to_string());
 
-    // Get created_at from manifest
-    let created_at = manifest
-        .managed_files
-        .iter()
-        .find(|f| f.path == manifest_path)
-        .map(|f| f.created_at.clone())
-        .unwrap_or_default();
+    // Get created_at from file metadata
+    let metadata = fs::metadata(&asset_path).await?;
+    let created_at = metadata
+        .created()
+        .map(|t| {
+            chrono::DateTime::<chrono::Utc>::from(t)
+                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                .to_string()
+        })
+        .unwrap_or_else(|_| now_iso());
 
     let asset_info = AssetInfo {
         filename: sanitized_filename,
@@ -451,17 +456,15 @@ pub async fn delete_asset(
     is_shared: bool,
 ) -> Result<DeleteAssetResult, AssetError> {
     // Check if centy is initialized
-    let manifest = read_manifest(project_path)
+    let mut manifest = read_manifest(project_path)
         .await?
         .ok_or(AssetError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
     let sanitized_filename = sanitize_filename(filename)?;
 
-    let (asset_path, manifest_path) = if is_shared {
-        let path = centy_path.join("assets").join(&sanitized_filename);
-        let mpath = format!("assets/{}", sanitized_filename);
-        (path, mpath)
+    let asset_path = if is_shared {
+        centy_path.join("assets").join(&sanitized_filename)
     } else {
         let id = issue_id.ok_or_else(|| {
             AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
@@ -473,9 +476,7 @@ pub async fn delete_asset(
             return Err(AssetError::IssueNotFound(id.to_string()));
         }
 
-        let path = issue_path.join("assets").join(&sanitized_filename);
-        let mpath = format!("issues/{}/assets/{}", id, sanitized_filename);
-        (path, mpath)
+        issue_path.join("assets").join(&sanitized_filename)
     };
 
     // Check if file exists
@@ -486,9 +487,8 @@ pub async fn delete_asset(
     // Delete the file
     fs::remove_file(&asset_path).await?;
 
-    // Update manifest
-    let mut manifest = manifest;
-    manifest.managed_files.retain(|f| f.path != manifest_path);
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteAssetResult {
@@ -506,36 +506,45 @@ pub async fn delete_asset(
 /// List of shared assets
 pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, AssetError> {
     // Check if centy is initialized
-    let manifest = read_manifest(project_path)
+    read_manifest(project_path)
         .await?
         .ok_or(AssetError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
     let mut assets = Vec::new();
 
-    let shared_assets_prefix = "assets/";
-    for managed_file in &manifest.managed_files {
-        if managed_file.path.starts_with(shared_assets_prefix)
-            && !managed_file.path.ends_with('/')
-            && managed_file.file_type == ManagedFileType::File
-        {
-            let filename = managed_file.path.strip_prefix(shared_assets_prefix)
-                .unwrap_or(&managed_file.path)
-                .to_string();
+    let shared_assets_path = centy_path.join("assets");
+    if shared_assets_path.exists() {
+        let mut entries = fs::read_dir(&shared_assets_path).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                if let Some(filename) = entry.file_name().to_str() {
+                    let asset_path = entry.path();
+                    let data = fs::read(&asset_path).await?;
+                    let hash = compute_binary_hash(&data);
+                    let size = data.len() as u64;
+                    let mime_type = get_mime_type(filename)
+                        .unwrap_or_else(|| "application/octet-stream".to_string());
+                    let metadata = fs::metadata(&asset_path).await?;
+                    let created_at = metadata
+                        .created()
+                        .map(|t| {
+                            chrono::DateTime::<chrono::Utc>::from(t)
+                                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                                .to_string()
+                        })
+                        .unwrap_or_else(|_| now_iso());
 
-            let asset_path = centy_path.join("assets").join(&filename);
-            let size = fs::metadata(&asset_path).await.map(|m| m.len()).unwrap_or(0);
-            let mime_type = get_mime_type(&filename)
-                .unwrap_or_else(|| "application/octet-stream".to_string());
-
-            assets.push(AssetInfo {
-                filename,
-                hash: managed_file.hash.clone(),
-                size,
-                mime_type,
-                is_shared: true,
-                created_at: managed_file.created_at.clone(),
-            });
+                    assets.push(AssetInfo {
+                        filename: filename.to_string(),
+                        hash,
+                        size,
+                        mime_type,
+                        is_shared: true,
+                        created_at,
+                    });
+                }
+            }
         }
     }
 

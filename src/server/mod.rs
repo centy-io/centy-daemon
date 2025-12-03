@@ -11,7 +11,7 @@ use crate::issue::{
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
 };
-use crate::manifest::{read_manifest, ManagedFileType as InternalFileType};
+use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
 use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
@@ -999,26 +999,12 @@ impl CentyDaemon for CentyDaemonService {
 
 // Helper functions for converting internal types to proto types
 
-fn manifest_to_proto(manifest: &crate::manifest::CentyManifest) -> Manifest {
+fn manifest_to_proto(manifest: &InternalManifest) -> Manifest {
     Manifest {
         schema_version: manifest.schema_version as i32,
         centy_version: manifest.centy_version.clone(),
         created_at: manifest.created_at.clone(),
         updated_at: manifest.updated_at.clone(),
-        managed_files: manifest
-            .managed_files
-            .iter()
-            .map(|f| ManagedFile {
-                path: f.path.clone(),
-                hash: f.hash.clone(),
-                version: f.version.clone(),
-                created_at: f.created_at.clone(),
-                file_type: match f.file_type {
-                    InternalFileType::File => FileType::File as i32,
-                    InternalFileType::Directory => FileType::Directory as i32,
-                },
-            })
-            .collect(),
     }
 }
 

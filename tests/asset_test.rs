@@ -700,17 +700,17 @@ async fn test_delete_asset_not_found() {
     assert!(matches!(result.unwrap_err(), AssetError::AssetNotFound(_)));
 }
 
-// ============ Manifest Integration Tests ============
+// ============ File System Integration Tests ============
 
 #[tokio::test]
-async fn test_add_asset_updates_manifest() {
+async fn test_add_asset_creates_file() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
     init_centy_project(project_path).await;
 
     // Add shared asset
-    add_asset(
+    let result = add_asset(
         project_path,
         None,
         create_test_png(),
@@ -720,24 +720,16 @@ async fn test_add_asset_updates_manifest() {
     .await
     .expect("Should add");
 
-    // Check manifest
-    let manifest = centy_daemon::manifest::read_manifest(project_path)
-        .await
-        .unwrap()
-        .unwrap();
+    // Verify file exists on disk
+    let asset_path = project_path.join(".centy").join("assets").join("tracked.png");
+    assert!(asset_path.exists(), "Asset file should exist on disk");
 
-    let asset_entry = manifest
-        .managed_files
-        .iter()
-        .find(|f| f.path == "assets/tracked.png");
-
-    assert!(asset_entry.is_some(), "Asset should be in manifest");
-    let entry = asset_entry.unwrap();
-    assert!(!entry.hash.is_empty(), "Asset should have a hash");
+    // Verify asset info has hash
+    assert!(!result.asset.hash.is_empty(), "Asset should have a hash");
 }
 
 #[tokio::test]
-async fn test_delete_asset_removes_from_manifest() {
+async fn test_delete_asset_removes_file() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -754,22 +746,15 @@ async fn test_delete_asset_removes_from_manifest() {
     .await
     .expect("Should add");
 
+    let asset_path = project_path.join(".centy").join("assets").join("temp.png");
+    assert!(asset_path.exists(), "Asset file should exist after creation");
+
     delete_asset(project_path, None, "temp.png", true)
         .await
         .expect("Should delete");
 
-    // Check manifest
-    let manifest = centy_daemon::manifest::read_manifest(project_path)
-        .await
-        .unwrap()
-        .unwrap();
-
-    let asset_entry = manifest
-        .managed_files
-        .iter()
-        .find(|f| f.path == "assets/temp.png");
-
-    assert!(asset_entry.is_none(), "Asset should not be in manifest");
+    // Verify file is removed from disk
+    assert!(!asset_path.exists(), "Asset file should not exist after deletion");
 }
 
 // ============ Edge Cases ============

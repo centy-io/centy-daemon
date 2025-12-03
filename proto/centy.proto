@@ -309,15 +309,6 @@ message Manifest {
   string centy_version = 2;
   string created_at = 3;
   string updated_at = 4;
-  repeated ManagedFile managed_files = 5;
-}
-
-message ManagedFile {
-  string path = 1;
-  string hash = 2;
-  string version = 3;
-  string created_at = 4;
-  FileType file_type = 5;
 }
 
 enum FileType {

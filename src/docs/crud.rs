@@ -1,9 +1,8 @@
 use crate::manifest::{
-    add_file_to_manifest, create_managed_file, read_manifest, write_manifest, CentyManifest,
-    ManagedFileType,
+    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{compute_hash, get_centy_path, now_iso};
+use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
@@ -174,13 +173,8 @@ pub async fn create_doc(
     // Write the doc file
     fs::write(&doc_path, &doc_content).await?;
 
-    // Update manifest
-    let relative_path = format!("docs/{}.md", slug);
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(relative_path.clone(), compute_hash(&doc_content), ManagedFileType::File),
-    );
-
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let created_file = format!(".centy/docs/{}.md", slug);
@@ -309,33 +303,16 @@ pub async fn update_doc(
         let new_path = docs_path.join(format!("{}.md", new_slug));
         fs::write(&new_path, &doc_content).await?;
 
-        // Update manifest - remove old entry
-        let old_path = format!("docs/{}.md", slug);
-        manifest.managed_files.retain(|f| f.path != old_path);
-
-        // Add new entry
-        let new_relative_path = format!("docs/{}.md", new_slug);
-        add_file_to_manifest(
-            &mut manifest,
-            create_managed_file(new_relative_path, compute_hash(&doc_content), ManagedFileType::File),
-        );
-
         new_slug.clone()
     } else {
         // Just update the existing file
         fs::write(&doc_path, &doc_content).await?;
 
-        // Update manifest hash
-        let relative_path = format!("docs/{}.md", slug);
-        add_file_to_manifest(
-            &mut manifest,
-            create_managed_file(relative_path, compute_hash(&doc_content), ManagedFileType::File),
-        );
-
         slug.to_string()
     };
 
-    manifest.updated_at = now_iso();
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let doc = Doc {
@@ -365,11 +342,8 @@ pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResu
     // Remove the file
     fs::remove_file(&doc_path).await?;
 
-    // Remove from manifest
-    let relative_path = format!("docs/{}.md", slug);
-    manifest.managed_files.retain(|f| f.path != relative_path);
-    manifest.updated_at = now_iso();
-
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteDocResult { manifest })

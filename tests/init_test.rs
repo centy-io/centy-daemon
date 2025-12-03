@@ -19,7 +19,7 @@ async fn test_init_creates_centy_folder() {
 }
 
 #[tokio::test]
-async fn test_init_creates_manifest_with_managed_files() {
+async fn test_init_creates_manifest_and_structure() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -34,14 +34,13 @@ async fn test_init_creates_manifest_with_managed_files() {
 
     assert_eq!(manifest.schema_version, 1);
     assert_eq!(manifest.centy_version, "0.1.0");
-    assert!(!manifest.managed_files.is_empty());
 
-    // Should have README.md and directories tracked
-    let paths: Vec<&str> = manifest.managed_files.iter().map(|f| f.path.as_str()).collect();
-    assert!(paths.contains(&"README.md"), "Should track README.md");
-    assert!(paths.contains(&"issues/"), "Should track issues/");
-    assert!(paths.contains(&"docs/"), "Should track docs/");
-    assert!(paths.contains(&"assets/"), "Should track assets/");
+    // Verify files and directories exist on disk
+    let centy_path = project_path.join(".centy");
+    assert!(centy_path.join("README.md").exists(), "Should create README.md");
+    assert!(centy_path.join("issues").is_dir(), "Should create issues/");
+    assert!(centy_path.join("docs").is_dir(), "Should create docs/");
+    assert!(centy_path.join("assets").is_dir(), "Should create assets/");
 }
 
 #[tokio::test]
@@ -106,15 +105,16 @@ async fn test_reconciliation_detects_deleted_files() {
     let readme_path = project_path.join(".centy").join("README.md");
     fs::remove_file(&readme_path).await.expect("Should delete README");
 
-    // Get plan - should detect deleted file
+    // Get plan - should detect deleted file needs creation
     let plan = build_reconciliation_plan(project_path)
         .await
         .expect("Should build plan");
 
-    let restore_paths: Vec<&str> = plan.to_restore.iter().map(|f| f.path.as_str()).collect();
+    // Without manifest-based file tracking, deleted files appear in to_create
+    let create_paths: Vec<&str> = plan.to_create.iter().map(|f| f.path.as_str()).collect();
     assert!(
-        restore_paths.contains(&"README.md"),
-        "Should detect README.md needs restoration"
+        create_paths.contains(&"README.md"),
+        "Should detect README.md needs to be created"
     );
 }
 
@@ -145,7 +145,7 @@ async fn test_reconciliation_detects_modified_files() {
 }
 
 #[tokio::test]
-async fn test_reconciliation_restore_with_decision() {
+async fn test_reconciliation_recreates_deleted_file() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -157,24 +157,22 @@ async fn test_reconciliation_restore_with_decision() {
     fs::remove_file(&readme_path).await.expect("Should delete");
     assert!(!readme_path.exists());
 
-    // Execute reconciliation with restore decision
-    let mut decisions = ReconciliationDecisions::default();
-    decisions.restore.insert("README.md".to_string());
-
+    // Execute reconciliation - deleted files are treated as new and created
+    let decisions = ReconciliationDecisions::default();
     let result = execute_reconciliation(project_path, decisions, false)
         .await
         .expect("Should reconcile");
 
-    // README should be restored
-    assert!(readme_path.exists(), "README should be restored");
+    // README should be recreated (in the created list, not restored)
+    assert!(readme_path.exists(), "README should be recreated");
     assert!(
-        result.restored.contains(&"README.md".to_string()),
-        "Should report README as restored"
+        result.created.contains(&"README.md".to_string()),
+        "Should report README as created"
     );
 }
 
 #[tokio::test]
-async fn test_reconciliation_force_mode() {
+async fn test_reconciliation_force_mode_recreates_missing() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -185,36 +183,39 @@ async fn test_reconciliation_force_mode() {
     let readme_path = project_path.join(".centy").join("README.md");
     fs::remove_file(&readme_path).await.expect("Should delete");
 
-    // Execute with force=true (should restore without explicit decision)
+    // Execute with force=true - missing files are created
     let decisions = ReconciliationDecisions::default();
     let result = execute_reconciliation(project_path, decisions, true)
         .await
         .expect("Should reconcile");
 
-    assert!(readme_path.exists(), "README should be restored in force mode");
-    assert!(result.restored.contains(&"README.md".to_string()));
+    assert!(readme_path.exists(), "README should be recreated in force mode");
+    assert!(result.created.contains(&"README.md".to_string()));
 }
 
 #[tokio::test]
-async fn test_reconciliation_skip_without_decision() {
+async fn test_reconciliation_skip_modified_without_decision() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
     // Initialize
     init_centy_project(project_path).await;
 
-    // Delete README
+    // Modify README (not delete - modified files require decision to reset)
     let readme_path = project_path.join(".centy").join("README.md");
-    fs::remove_file(&readme_path).await.expect("Should delete");
+    fs::write(&readme_path, "Modified content by user")
+        .await
+        .expect("Should write");
 
-    // Execute without decision and force=false
+    // Execute without reset decision
     let decisions = ReconciliationDecisions::default();
     let result = execute_reconciliation(project_path, decisions, false)
         .await
         .expect("Should reconcile");
 
-    // README should NOT be restored (skipped)
-    assert!(!readme_path.exists(), "README should remain deleted");
+    // README should remain modified (skipped reset)
+    let content = fs::read_to_string(&readme_path).await.expect("Should read");
+    assert_eq!(content, "Modified content by user", "README should remain modified");
     assert!(
         result.skipped.contains(&"README.md".to_string()),
         "Should report README as skipped"

@@ -475,7 +475,7 @@ async fn test_delete_issue_success() {
 }
 
 #[tokio::test]
-async fn test_delete_issue_removes_from_manifest() {
+async fn test_delete_issue_removes_files() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -492,30 +492,17 @@ async fn test_delete_issue_removes_from_manifest() {
     .await
     .unwrap();
 
-    // Verify issue is in manifest
-    let manifest = centy_daemon::manifest::read_manifest(project_path)
-        .await
-        .unwrap()
-        .unwrap();
-    let issue_prefix = format!("issues/{}", created.id);
-    let issue_files: Vec<_> = manifest
-        .managed_files
-        .iter()
-        .filter(|f| f.path.starts_with(&issue_prefix))
-        .collect();
-    assert!(!issue_files.is_empty(), "Issue should be in manifest");
+    // Verify issue directory exists
+    let issue_path = project_path.join(".centy").join("issues").join(&created.id);
+    assert!(issue_path.exists(), "Issue directory should exist after creation");
+    assert!(issue_path.join("issue.md").exists(), "Issue file should exist");
+    assert!(issue_path.join("metadata.json").exists(), "Metadata file should exist");
 
     // Delete issue
-    let result = delete_issue(project_path, &created.id).await.unwrap();
+    let _result = delete_issue(project_path, &created.id).await.unwrap();
 
-    // Verify removed from manifest
-    let issue_files: Vec<_> = result
-        .manifest
-        .managed_files
-        .iter()
-        .filter(|f| f.path.starts_with(&issue_prefix))
-        .collect();
-    assert!(issue_files.is_empty(), "Issue should be removed from manifest");
+    // Verify issue directory is removed
+    assert!(!issue_path.exists(), "Issue directory should be removed after deletion");
 }
 
 #[tokio::test]

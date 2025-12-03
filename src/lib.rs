@@ -22,7 +22,7 @@ pub use issue::{
     CreateIssueOptions, CreateIssueResult, DeleteIssueResult, Issue,
     IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
 };
-pub use manifest::{CentyManifest, ManagedFile, ManagedFileType};
+pub use manifest::{CentyManifest, ManagedFileType};
 pub use reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions, ReconciliationPlan,
     ReconciliationResult,

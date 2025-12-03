@@ -1,9 +1,8 @@
 use crate::config::read_config;
 use crate::manifest::{
-    add_file_to_manifest, create_managed_file, read_manifest, write_manifest, CentyManifest,
-    ManagedFileType,
+    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
-use crate::utils::{compute_hash, get_centy_path, now_iso};
+use crate::utils::{get_centy_path, now_iso};
 use super::id::is_valid_issue_folder;
 use super::metadata::IssueMetadata;
 use super::priority::{validate_priority, PriorityError};
@@ -296,28 +295,8 @@ pub async fn update_issue(
     fs::write(&issue_md_path, &issue_md).await?;
     fs::write(&metadata_path, serde_json::to_string_pretty(&updated_metadata)?).await?;
 
-    // Update manifest
-    let base_path = format!("issues/{}/", issue_number);
-
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(
-            format!("{}issue.md", base_path),
-            compute_hash(&issue_md),
-            ManagedFileType::File,
-        ),
-    );
-
-    let metadata_json = serde_json::to_string_pretty(&updated_metadata)?;
-    add_file_to_manifest(
-        &mut manifest,
-        create_managed_file(
-            format!("{}metadata.json", base_path),
-            compute_hash(&metadata_json),
-            ManagedFileType::File,
-        ),
-    );
-
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     #[allow(deprecated)]
@@ -359,11 +338,8 @@ pub async fn delete_issue(
     // Remove the issue directory
     fs::remove_dir_all(&issue_path).await?;
 
-    // Remove from manifest
-    let base_path = format!("issues/{}/", issue_number);
-    manifest.managed_files.retain(|f| !f.path.starts_with(&base_path));
-    manifest.updated_at = now_iso();
-
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteIssueResult { manifest })

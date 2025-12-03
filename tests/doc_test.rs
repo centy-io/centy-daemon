@@ -474,12 +474,12 @@ async fn test_delete_doc_not_found() {
 }
 
 #[tokio::test]
-async fn test_delete_doc_updates_manifest() {
+async fn test_delete_doc_removes_file() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let create_result = create_doc(
+    let _create_result = create_doc(
         project_path,
         CreateDocOptions {
             title: "Test Doc".to_string(),
@@ -491,21 +491,14 @@ async fn test_delete_doc_updates_manifest() {
     .await
     .unwrap();
 
-    // Manifest should contain the doc
-    assert!(create_result
-        .manifest
-        .managed_files
-        .iter()
-        .any(|f| f.path == "docs/test-doc.md"));
+    // Doc file should exist
+    let doc_path = project_path.join(".centy").join("docs").join("test-doc.md");
+    assert!(doc_path.exists(), "Doc file should exist after creation");
 
-    let delete_result = delete_doc(project_path, "test-doc").await.unwrap();
+    let _delete_result = delete_doc(project_path, "test-doc").await.unwrap();
 
-    // Manifest should NOT contain the doc
-    assert!(!delete_result
-        .manifest
-        .managed_files
-        .iter()
-        .any(|f| f.path == "docs/test-doc.md"));
+    // Doc file should be deleted
+    assert!(!doc_path.exists(), "Doc file should not exist after deletion");
 }
 
 // ============ Slug Generation Tests ============

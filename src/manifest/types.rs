@@ -7,20 +7,10 @@ pub struct CentyManifest {
     pub centy_version: String,
     pub created_at: String,
     pub updated_at: String,
-    pub managed_files: Vec<ManagedFile>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ManagedFile {
-    pub path: String,
-    pub hash: String,
-    pub version: String,
-    pub created_at: String,
-    #[serde(rename = "type")]
-    pub file_type: ManagedFileType,
-}
-
+/// Type of managed file (file or directory)
+/// Used for reconciliation and file type distinction
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ManagedFileType {

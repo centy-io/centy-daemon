@@ -1,4 +1,4 @@
-use crate::manifest::{read_manifest, find_managed_file, ManagedFileType};
+use crate::manifest::ManagedFileType;
 use crate::utils::{compute_file_hash, compute_hash, get_centy_path};
 use super::managed_files::get_managed_files;
 use std::collections::HashSet;
@@ -10,9 +10,6 @@ use walkdir::WalkDir;
 pub enum PlanError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-
-    #[error("Manifest error: {0}")]
-    ManifestError(#[from] crate::manifest::ManifestError),
 }
 
 /// Information about a file in the reconciliation plan
@@ -54,7 +51,6 @@ impl ReconciliationPlan {
 pub async fn build_reconciliation_plan(project_path: &Path) -> Result<ReconciliationPlan, PlanError> {
     let centy_path = get_centy_path(project_path);
     let managed_templates = get_managed_files();
-    let manifest = read_manifest(project_path).await?;
 
     let mut plan = ReconciliationPlan::default();
 
@@ -68,11 +64,6 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
     for (path, template) in &managed_templates {
         let full_path = centy_path.join(path.trim_end_matches('/'));
         let exists_on_disk = files_on_disk.contains(path);
-
-        // Check manifest for this file
-        let in_manifest = manifest
-            .as_ref()
-            .and_then(|m| find_managed_file(m, path));
 
         let file_info = FileInfo {
             path: path.clone(),
@@ -88,13 +79,8 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
         };
 
         if !exists_on_disk {
-            if in_manifest.is_some() {
-                // File was in manifest but deleted - can be restored
-                plan.to_restore.push(file_info);
-            } else {
-                // File never existed - needs to be created
-                plan.to_create.push(file_info);
-            }
+            // File doesn't exist - needs to be created
+            plan.to_create.push(file_info);
         } else {
             // File exists on disk
             match &template.file_type {
