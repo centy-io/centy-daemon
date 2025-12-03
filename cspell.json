@@ -1,4 +1,11 @@
 {
   "version": "0.2",
-  "words": ["centy", "chrono", "fullstorydev", "grpcui", "grpcurl", "nocapture", "parseable", "println", "prost", "protoc", "rustc", "serde", "thiserror", "walkdir", "tonic", "grpc", "USERPROFILE", "aarch64", "darwin", "msvc", "checksums", "softprops", "pwsh", "prerelease"]
+  "words": [
+    "centy", "chrono", "fullstorydev", "grpcui", "grpcurl", "nocapture",
+    "parseable", "println", "prost", "protoc", "rustc", "serde", "thiserror",
+    "walkdir", "tonic", "grpc", "USERPROFILE", "aarch64", "darwin", "msvc",
+    "checksums", "softprops", "pwsh", "prerelease",
+    "quicktime", "msvideo", "matroska", "rsplit", "mpath",
+    "IHDR", "IDAT", "IEND"
+  ]
 }
