@@ -1,0 +1,45 @@
+# Add UpdateConfig RPC and color support for states/priorities
+
+## Overview
+Add the ability to update project configuration via RPC, including color support for issue states and priority levels.
+
+## Changes Required
+
+### Proto Changes (`proto/centy.proto`)
+- Add `UpdateConfig` RPC
+- Add `UpdateConfigRequest` and `UpdateConfigResponse` messages
+- Add `state_colors` map to Config (state name → hex color)
+- Add `priority_colors` map to Config (priority level → hex color)
+- Add `LlmConfig` message with fields:
+  - `auto_close_on_complete`
+  - `update_status_on_start`
+  - `allow_direct_edits`
+
+### Rust Changes
+
+**`src/config/mod.rs`:**
+- Add `state_colors: HashMap<String, String>` to CentyConfig
+- Add `priority_colors: HashMap<String, String>` to CentyConfig
+
+**`src/server/mod.rs`:**
+- Implement `update_config` RPC handler
+- Add `proto_to_config` conversion function
+- Add `validate_config` function with rules:
+  - `default_state` must be in `allowed_states`
+  - `allowed_states` must not be empty
+  - `priority_levels` must be >= 1 and <= 10
+  - Custom field names must be unique
+  - Enum fields must have `enum_values`
+  - Colors must be valid hex format (#RRGGBB or #RGB)
+
+## Default Colors
+
+**State colors:**
+- `open` → `#10b981` (green)
+- `in-progress` → `#f59e0b` (amber)
+- `closed` → `#6b7280` (gray)
+
+**Priority colors (3 levels):**
+- `1` (High) → `#ef4444` (red)
+- `2` (Medium) → `#f59e0b` (amber)
+- `3` (Low) → `#10b981` (green)
