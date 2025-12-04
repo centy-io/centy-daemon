@@ -74,7 +74,7 @@ extended-description = """
 Centy Daemon is a local-first issue and documentation tracker service.
 It provides a gRPC API for managing issues and documentation within your projects.
 """
-depends = "$auto"
+depends = "libc6"
 section = "utils"
 priority = "optional"
 assets = [
@@ -82,8 +82,6 @@ assets = [
     ["packaging/linux/systemd/centy-daemon.service", "lib/systemd/system/", "644"],
     ["README.md", "usr/share/doc/centy-daemon/", "644"],
 ]
-maintainer-scripts = "packaging/linux/deb"
-systemd-units = { enable = false }
 
 # RPM package metadata (used by cargo-generate-rpm)
 [package.metadata.generate-rpm]

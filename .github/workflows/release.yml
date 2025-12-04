@@ -186,7 +186,7 @@ jobs:
 
       - name: Build .deb package
         run: |
-          cargo deb --no-build --target ${{ matrix.target }} \
+          cargo deb --no-build --no-strip --target ${{ matrix.target }} \
             --output ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.deb_arch }}.deb
 
       - name: Build .rpm package
