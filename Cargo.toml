@@ -90,20 +90,3 @@ assets = [
     { source = "packaging/linux/systemd/centy-daemon.service", dest = "/lib/systemd/system/centy-daemon.service", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/centy-daemon/README.md", mode = "644", doc = true },
 ]
-
-[package.metadata.generate-rpm.requires]
-systemd = "*"
-
-post_install_script = """
-systemctl daemon-reload
-echo "Centy daemon installed. To start: sudo systemctl start centy-daemon"
-"""
-
-pre_uninstall_script = """
-systemctl stop centy-daemon 2>/dev/null || true
-systemctl disable centy-daemon 2>/dev/null || true
-"""
-
-post_uninstall_script = """
-systemctl daemon-reload
-"""
