@@ -12,7 +12,7 @@ Thank you for your interest in contributing to centy-daemon! This document provi
 ### Setup
 
 ```bash
-git clone https://github.com/tupe12334/centy-daemon.git
+git clone https://github.com/centy-io/centy-daemon.git
 cd centy-daemon
 cargo build
 ```

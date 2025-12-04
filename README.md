@@ -1,6 +1,6 @@
 # centy-daemon
 
-A gRPC daemon service for [Centy](https://github.com/tupe12334/centy-cli) - a local-first issue and documentation tracker.
+A gRPC daemon service for [Centy](https://github.com/centy-io/centy-cli) - a local-first issue and documentation tracker.
 
 ## Overview
 
@@ -19,7 +19,7 @@ centy-daemon manages `.centy` folder operations, providing a backend service for
 ## Installation
 
 ```bash
-git clone https://github.com/tupe12334/centy-daemon.git
+git clone https://github.com/centy-io/centy-daemon.git
 cd centy-daemon
 cargo build --release
 ```
