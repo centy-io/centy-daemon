@@ -57,7 +57,7 @@ regex = "1"
 
 [build-dependencies]
 tonic-build = "0.12"
-protobuf-src = "2"
+prost-build = { version = "0.13", features = ["vendored"] }
 
 [dev-dependencies]
 tempfile = "3"

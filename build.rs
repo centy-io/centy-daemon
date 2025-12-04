@@ -1,7 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Bundle protoc so users don't need to install it separately
-    std::env::set_var("PROTOC", protobuf_src::protoc());
-
+    // prost-build with "vendored" feature provides protoc automatically
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR")?);
 
     tonic_build::configure()
