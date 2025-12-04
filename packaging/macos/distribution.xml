@@ -4,7 +4,7 @@
     <organization>com.centy</organization>
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
 
-    <options customize="allow" require-scripts="false" hostArchitectures="x86_64,arm64"/>
+    <options customize="never" require-scripts="false" hostArchitectures="x86_64,arm64"/>
 
     <welcome file="welcome.html"/>
     <license file="LICENSE"/>
@@ -12,31 +12,11 @@
 
     <choices-outline>
         <line choice="default"/>
-        <line choice="autostart"/>
     </choices-outline>
 
     <choice id="default" title="Centy Daemon" description="Install the Centy daemon service.">
         <pkg-ref id="com.centy.daemon.pkg"/>
     </choice>
 
-    <choice id="autostart" title="Start on Boot" description="Automatically start Centy daemon when your Mac starts up." start_selected="false">
-        <pkg-ref id="com.centy.daemon.autostart"/>
-    </choice>
-
     <pkg-ref id="com.centy.daemon.pkg" version="VERSION_PLACEHOLDER" onConclusion="none">centy-daemon-component.pkg</pkg-ref>
-
-    <pkg-ref id="com.centy.daemon.autostart" version="VERSION_PLACEHOLDER" onConclusion="none">
-        <bundle-version/>
-    </pkg-ref>
-
-    <script>
-        function autostart_selected() {
-            var choice = my.choice.identifier;
-            if (choice == "autostart" &amp;&amp; my.choice.selected) {
-                system.run("/bin/bash", "-c", "echo true > /tmp/centy-autostart");
-            } else if (choice == "autostart" &amp;&amp; !my.choice.selected) {
-                system.run("/bin/bash", "-c", "echo false > /tmp/centy-autostart");
-            }
-        }
-    </script>
 </installer-gui-script>

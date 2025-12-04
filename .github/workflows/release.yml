@@ -344,7 +344,6 @@ jobs:
             -define BinaryPath=staging `
             -define WinSWPath=staging `
             -define ConfigPath=staging `
-            -ext WixToolset.Util.wixext `
             -out "${{ env.BINARY_NAME }}-${{ github.ref_name }}-x86_64.msi"
 
       - name: Upload .msi artifact

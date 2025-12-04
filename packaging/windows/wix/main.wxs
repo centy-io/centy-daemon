@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
   <Package Name="Centy Daemon"
            Language="1033"
@@ -57,13 +56,7 @@
                         Type="ownProcess"
                         Start="demand"
                         ErrorControl="normal"
-                        Vital="yes">
-          <util:ServiceConfig FirstFailureActionType="restart"
-                              SecondFailureActionType="restart"
-                              ThirdFailureActionType="restart"
-                              RestartServiceDelayInSeconds="5"
-                              ResetPeriodInDays="1" />
-        </ServiceInstall>
+                        Vital="yes" />
 
         <ServiceControl Id="StartCentyDaemonService"
                         Name="centy-daemon"
