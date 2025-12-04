@@ -65,3 +65,48 @@ tempfile = "3"
 [[bin]]
 name = "centy-daemon"
 path = "src/main.rs"
+
+# Debian package metadata (used by cargo-deb)
+[package.metadata.deb]
+maintainer = "Centy Team"
+copyright = "2024 Centy Team"
+license-file = ["LICENSE", "0"]
+extended-description = """
+Centy Daemon is a local-first issue and documentation tracker service.
+It provides a gRPC API for managing issues and documentation within your projects.
+"""
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/centy-daemon", "usr/bin/", "755"],
+    ["packaging/linux/systemd/centy-daemon.service", "lib/systemd/system/", "644"],
+    ["README.md", "usr/share/doc/centy-daemon/", "644"],
+]
+maintainer-scripts = "packaging/linux/deb"
+systemd-units = { enable = false }
+
+# RPM package metadata (used by cargo-generate-rpm)
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/centy-daemon", dest = "/usr/bin/centy-daemon", mode = "755" },
+    { source = "packaging/linux/systemd/centy-daemon.service", dest = "/lib/systemd/system/centy-daemon.service", mode = "644" },
+    { source = "README.md", dest = "/usr/share/doc/centy-daemon/README.md", mode = "644", doc = true },
+]
+
+[package.metadata.generate-rpm.requires]
+systemd = "*"
+
+post_install_script = """
+systemctl daemon-reload
+echo "Centy daemon installed. To start: sudo systemctl start centy-daemon"
+"""
+
+pre_uninstall_script = """
+systemctl stop centy-daemon 2>/dev/null || true
+systemctl disable centy-daemon 2>/dev/null || true
+"""
+
+post_uninstall_script = """
+systemctl daemon-reload
+"""

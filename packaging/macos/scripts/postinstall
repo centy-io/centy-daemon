@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+# Create necessary directories
+mkdir -p /usr/local/var/lib/centy
+mkdir -p /usr/local/var/log
+
+# Copy launchd plist to system location
+cp /usr/local/share/centy/com.centy.daemon.plist /Library/LaunchDaemons/
+
+# Set proper permissions
+chmod 644 /Library/LaunchDaemons/com.centy.daemon.plist
+chown root:wheel /Library/LaunchDaemons/com.centy.daemon.plist
+
+# Check for autostart preference (set by installer choice)
+if [ -f /tmp/centy-autostart ]; then
+    AUTOSTART=$(cat /tmp/centy-autostart)
+    rm -f /tmp/centy-autostart
+
+    if [ "$AUTOSTART" = "true" ]; then
+        # Enable RunAtLoad in the plist
+        /usr/libexec/PlistBuddy -c "Set :RunAtLoad true" /Library/LaunchDaemons/com.centy.daemon.plist
+        # Load and start the service
+        launchctl load /Library/LaunchDaemons/com.centy.daemon.plist
+        echo "Centy daemon enabled and started."
+    fi
+else
+    echo "Centy daemon installed. To start manually:"
+    echo "  sudo launchctl load /Library/LaunchDaemons/com.centy.daemon.plist"
+    echo "To enable on boot, edit the plist and set RunAtLoad to true."
+fi
+
+exit 0

@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+# Stop existing service if running
+if launchctl list | grep -q "com.centy.daemon"; then
+    launchctl unload /Library/LaunchDaemons/com.centy.daemon.plist 2>/dev/null || true
+fi
+
+exit 0

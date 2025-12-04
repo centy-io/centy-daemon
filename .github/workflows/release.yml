@@ -89,16 +89,272 @@ jobs:
           cd target/${{ matrix.target }}/release
           Compress-Archive -Path "${{ env.BINARY_NAME }}.exe" -DestinationPath "../../../${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.target }}.zip"
 
-      - name: Upload artifact
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BINARY_NAME }}-${{ matrix.target }}
           path: ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
           retention-days: 1
 
+      # Upload build artifacts for packaging jobs
+      - name: Upload build directory (Linux x86_64)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux-x86_64
+          path: target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+          retention-days: 1
+
+      - name: Upload build directory (Linux aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux-aarch64
+          path: target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+          retention-days: 1
+
+      - name: Upload build directory (macOS x86_64)
+        if: matrix.target == 'x86_64-apple-darwin'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-macos-x86_64
+          path: target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+          retention-days: 1
+
+      - name: Upload build directory (macOS aarch64)
+        if: matrix.target == 'aarch64-apple-darwin'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-macos-aarch64
+          path: target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+          retention-days: 1
+
+      - name: Upload build directory (Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows-x86_64
+          path: target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}.exe
+          retention-days: 1
+
+  # ============================================================================
+  # Linux Packaging (.deb and .rpm)
+  # ============================================================================
+  package-linux:
+    name: Package Linux (${{ matrix.arch }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            target: x86_64-unknown-linux-gnu
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            deb_arch: arm64
+            rpm_arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install packaging tools
+        run: |
+          cargo install cargo-deb cargo-generate-rpm
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: build-linux-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/
+
+      - name: Set binary permissions
+        run: chmod +x target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+
+      - name: Build .deb package
+        run: |
+          cargo deb --no-build --target ${{ matrix.target }} \
+            --output ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.deb_arch }}.deb
+
+      - name: Build .rpm package
+        run: |
+          cargo generate-rpm --target ${{ matrix.target }} \
+            --output ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.rpm_arch }}.rpm
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-deb-${{ matrix.arch }}
+          path: ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.deb_arch }}.deb
+          retention-days: 1
+
+      - name: Upload .rpm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-rpm-${{ matrix.arch }}
+          path: ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.rpm_arch }}.rpm
+          retention-days: 1
+
+  # ============================================================================
+  # macOS Packaging (.pkg)
+  # ============================================================================
+  package-macos:
+    name: Package macOS (${{ matrix.arch }})
+    needs: build
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            target: x86_64-apple-darwin
+          - arch: aarch64
+            target: aarch64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: build-macos-${{ matrix.arch }}
+          path: staging/usr/local/bin/
+
+      - name: Set binary permissions
+        run: chmod +x staging/usr/local/bin/${{ env.BINARY_NAME }}
+
+      - name: Prepare package contents
+        run: |
+          # Create directories
+          mkdir -p staging/usr/local/share/centy
+          mkdir -p staging/Library/LaunchDaemons
+
+          # Copy launchd plist
+          cp packaging/macos/launchd/com.centy.daemon.plist staging/usr/local/share/centy/
+
+          # Create installer resources
+          mkdir -p resources
+          echo "<html><body><h1>Welcome to Centy Daemon</h1><p>This installer will install Centy Daemon on your Mac.</p></body></html>" > resources/welcome.html
+          echo "<html><body><h1>Installation Complete</h1><p>Centy Daemon has been installed.</p><p>To start: <code>sudo launchctl load /Library/LaunchDaemons/com.centy.daemon.plist</code></p></body></html>" > resources/conclusion.html
+
+          # Copy LICENSE if exists
+          if [ -f LICENSE ]; then
+            cp LICENSE resources/
+          else
+            echo "MIT License" > resources/LICENSE
+          fi
+
+      - name: Build component package
+        run: |
+          pkgbuild \
+            --root staging \
+            --identifier com.centy.daemon \
+            --version ${{ github.ref_name }} \
+            --scripts packaging/macos/scripts \
+            --install-location / \
+            centy-daemon-component.pkg
+
+      - name: Update distribution.xml version
+        run: |
+          sed -i '' "s/VERSION_PLACEHOLDER/${{ github.ref_name }}/g" packaging/macos/distribution.xml
+
+      - name: Build product package
+        run: |
+          productbuild \
+            --distribution packaging/macos/distribution.xml \
+            --resources resources \
+            --package-path . \
+            ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.arch }}.pkg
+
+      - name: Upload .pkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-pkg-${{ matrix.arch }}
+          path: ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.arch }}.pkg
+          retention-days: 1
+
+  # ============================================================================
+  # Windows Packaging (.msi)
+  # ============================================================================
+  package-windows:
+    name: Package Windows
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: build-windows-x86_64
+          path: staging/
+
+      - name: Download WinSW
+        shell: pwsh
+        run: |
+          $winsw_version = "v3.0.0-alpha.11"
+          $winsw_url = "https://github.com/winsw/winsw/releases/download/$winsw_version/WinSW-x64.exe"
+          Invoke-WebRequest -Uri $winsw_url -OutFile staging/WinSW.exe
+
+      - name: Prepare package contents
+        shell: pwsh
+        run: |
+          Copy-Item "packaging/windows/winsw/centy-daemon.xml" -Destination "staging/"
+
+          # Create LICENSE.rtf for WiX
+          $license = Get-Content -Path "LICENSE" -ErrorAction SilentlyContinue
+          if (-not $license) { $license = "MIT License" }
+          @"
+          {\rtf1\ansi\deff0
+          {\fonttbl{\f0 Courier;}}
+          \f0\fs20
+          $($license -replace "`n", "\par ")
+          }
+          "@ | Out-File -FilePath "staging/LICENSE.rtf" -Encoding ascii
+
+          # Create placeholder banner images
+          # In production, replace these with actual images
+          New-Item -ItemType File -Path "staging/banner.bmp" -Force
+          New-Item -ItemType File -Path "staging/dialog.bmp" -Force
+
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.0
+
+      - name: Build MSI package
+        shell: pwsh
+        run: |
+          # Use wix build command with v5
+          wix build packaging/windows/wix/main.wxs `
+            -d BinaryPath=staging `
+            -d WinSWPath=staging `
+            -d ConfigPath=staging `
+            -ext WixToolset.Util.wixext `
+            -ext WixToolset.UI.wixext `
+            -o "${{ env.BINARY_NAME }}-${{ github.ref_name }}-x86_64.msi"
+
+      - name: Upload .msi artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-msi
+          path: ${{ env.BINARY_NAME }}-${{ github.ref_name }}-x86_64.msi
+          retention-days: 1
+
+  # ============================================================================
+  # Create GitHub Release
+  # ============================================================================
   release:
     name: Create Release
-    needs: build
+    needs: [build, package-linux, package-macos, package-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,10 +365,17 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      - name: List artifacts
+        run: |
+          echo "=== All artifacts ==="
+          ls -la artifacts/
+
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum * > checksums-sha256.txt
+          # Generate checksums for all release files
+          sha256sum *.tar.gz *.zip *.deb *.rpm *.pkg *.msi 2>/dev/null > checksums-sha256.txt || true
+          echo "=== Checksums ==="
           cat checksums-sha256.txt
 
       - name: Create GitHub Release
@@ -121,7 +384,48 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### Quick Install (Binary)
+            Download the appropriate archive for your platform and extract the binary.
+
+            ### System Installer (Recommended)
+            For automatic service registration, use the platform-specific installers:
+
+            | Platform | Installer | Notes |
+            |----------|-----------|-------|
+            | **Debian/Ubuntu** | `.deb` | `sudo dpkg -i centy-daemon-*.deb` |
+            | **Fedora/RHEL** | `.rpm` | `sudo rpm -i centy-daemon-*.rpm` |
+            | **macOS** | `.pkg` | Double-click to install |
+            | **Windows** | `.msi` | Double-click to install |
+
+            ### Service Management
+
+            **Linux (systemd):**
+            ```bash
+            sudo systemctl start centy-daemon
+            sudo systemctl enable centy-daemon  # Enable on boot
+            ```
+
+            **macOS (launchd):**
+            ```bash
+            sudo launchctl load /Library/LaunchDaemons/com.centy.daemon.plist
+            ```
+
+            **Windows:**
+            ```powershell
+            sc start centy-daemon
+            sc config centy-daemon start=auto  # Enable on boot
+            ```
+
           files: |
-            artifacts/*
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/*.deb
+            artifacts/*.rpm
+            artifacts/*.pkg
+            artifacts/*.msi
+            artifacts/checksums-sha256.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,24 @@
+[Unit]
+Description=Centy Daemon - Local-first issue and documentation tracker
+Documentation=https://github.com/tupe12334/centy-daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/centy-daemon
+Restart=on-failure
+RestartSec=5
+Environment=CENTY_DAEMON_ADDR=127.0.0.1:50051
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/lib/centy
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

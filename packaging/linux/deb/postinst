@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+# Create data directory if it doesn't exist
+mkdir -p /var/lib/centy
+chmod 755 /var/lib/centy
+
+# Reload systemd to recognize new service
+systemctl daemon-reload
+
+# Check if CENTY_AUTOSTART environment variable is set
+# This can be set by the installer or manually by the user
+if [ "${CENTY_AUTOSTART:-}" = "true" ]; then
+    systemctl enable centy-daemon.service
+    systemctl start centy-daemon.service
+    echo "Centy daemon enabled and started."
+else
+    echo "Centy daemon installed. To start manually:"
+    echo "  sudo systemctl start centy-daemon"
+    echo "To enable on boot:"
+    echo "  sudo systemctl enable centy-daemon"
+fi
+
+exit 0

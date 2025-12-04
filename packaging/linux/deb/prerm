@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+# Stop the service if running
+if systemctl is-active --quiet centy-daemon.service; then
+    systemctl stop centy-daemon.service
+fi
+
+# Disable the service
+if systemctl is-enabled --quiet centy-daemon.service 2>/dev/null; then
+    systemctl disable centy-daemon.service
+fi
+
+exit 0

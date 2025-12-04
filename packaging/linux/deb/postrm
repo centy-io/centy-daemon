@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+# Reload systemd after removing service file
+systemctl daemon-reload
+
+# On purge, remove data directory
+if [ "$1" = "purge" ]; then
+    rm -rf /var/lib/centy
+fi
+
+exit 0
