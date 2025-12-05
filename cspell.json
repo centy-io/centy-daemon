@@ -17,6 +17,7 @@
     "IHDR",
     "INSTALLFOLDER",
     "INSTALLDIR",
+    "libc",
     "libexec",
     "matroska",
     "mpath",
