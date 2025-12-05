@@ -10,6 +10,7 @@ mod template;
 mod utils;
 mod version;
 
+use clap::Parser;
 use http::header::{ACCEPT, CONTENT_TYPE};
 use http::Method;
 use server::proto::centy_daemon_server::CentyDaemonServer;
@@ -22,6 +23,27 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 const DEFAULT_ADDR: &str = "127.0.0.1:50051";
+const DEFAULT_CORS_ORIGINS: &str = "http://localhost,https://localhost,http://127.0.0.1,https://127.0.0.1";
+
+/// Centy Daemon - Local-first issue and documentation tracker service
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Address to bind the server to
+    #[arg(short, long, env = "CENTY_DAEMON_ADDR", default_value = DEFAULT_ADDR)]
+    addr: String,
+
+    /// Comma-separated list of allowed CORS origins.
+    /// Use "*" to allow all origins (not recommended for production).
+    /// Example: --cors-origins=https://app.centy.io,http://localhost:5180
+    #[arg(
+        long,
+        env = "CENTY_CORS_ORIGINS",
+        default_value = DEFAULT_CORS_ORIGINS,
+        value_delimiter = ','
+    )]
+    cors_origins: Vec<String>,
+}
 
 // Include the file descriptor set for gRPC reflection
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("centy_descriptor");
@@ -34,10 +56,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // Parse address from environment or use default
-    let addr = std::env::var("CENTY_DAEMON_ADDR")
-        .unwrap_or_else(|_| DEFAULT_ADDR.to_string())
-        .parse()?;
+    // Parse CLI arguments
+    let args = Args::parse();
+
+    // Parse address
+    let addr = args.addr.parse()?;
+
+    // Process CORS origins
+    let cors_origins: Vec<String> = args
+        .cors_origins
+        .iter()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let allow_all_origins = cors_origins.iter().any(|o| o == "*");
+
+    info!(
+        "CORS origins: {}",
+        if allow_all_origins {
+            "*".to_string()
+        } else {
+            cors_origins.join(", ")
+        }
+    );
 
     // Create shutdown signal channel
     let (shutdown_tx, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
@@ -54,15 +96,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_v1()?;
 
     // Configure CORS for gRPC-Web
-    // In development, allow localhost origins. In production, configure appropriately.
     let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::predicate(|origin, _| {
-            // Allow localhost origins for development
+        .allow_origin(AllowOrigin::predicate(move |origin, _| {
+            if allow_all_origins {
+                return true;
+            }
+
             if let Ok(origin_str) = origin.to_str() {
-                origin_str.starts_with("http://localhost")
-                    || origin_str.starts_with("http://127.0.0.1")
-                    || origin_str.starts_with("https://localhost")
-                    || origin_str.starts_with("https://127.0.0.1")
+                cors_origins
+                    .iter()
+                    .any(|allowed| origin_str.starts_with(allowed))
             } else {
                 false
             }
