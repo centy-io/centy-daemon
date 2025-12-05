@@ -11,8 +11,8 @@ mod utils;
 mod version;
 
 use clap::Parser;
-use http::header::{ACCEPT, CONTENT_TYPE};
 use http::Method;
+use tower_http::cors::Any;
 use server::proto::centy_daemon_server::CentyDaemonServer;
 use server::{CentyDaemonService, ShutdownSignal};
 use std::sync::Arc;
@@ -121,18 +121,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }))
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([
-            ACCEPT,
-            CONTENT_TYPE,
-            "x-grpc-web".parse().unwrap(),
-            "x-user-agent".parse().unwrap(),
-            "grpc-timeout".parse().unwrap(),
-        ])
-        .expose_headers([
-            "grpc-status".parse().unwrap(),
-            "grpc-message".parse().unwrap(),
-            "grpc-status-details-bin".parse().unwrap(),
-        ]);
+        .allow_headers(Any)
+        .expose_headers(Any);
 
     info!("Starting Centy daemon on {} (gRPC + gRPC-Web)", addr);
 
