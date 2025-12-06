@@ -116,7 +116,7 @@ pub async fn enrich_project(path: &str, tracked: &TrackedProject) -> ProjectInfo
 }
 
 /// List all tracked projects, enriched with live data
-pub async fn list_projects(include_stale: bool) -> Result<Vec<ProjectInfo>, RegistryError> {
+pub async fn list_projects(include_stale: bool, include_uninitialized: bool) -> Result<Vec<ProjectInfo>, RegistryError> {
     let registry = read_registry().await?;
 
     let mut projects = Vec::new();
@@ -130,6 +130,12 @@ pub async fn list_projects(include_stale: bool) -> Result<Vec<ProjectInfo>, Regi
         }
 
         let info = enrich_project(path, tracked).await;
+
+        if !include_uninitialized && !info.initialized {
+            // Skip uninitialized projects
+            continue;
+        }
+
         projects.push(info);
     }
 

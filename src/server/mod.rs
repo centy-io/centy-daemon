@@ -736,7 +736,7 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<ListProjectsResponse>, Status> {
         let req = request.into_inner();
 
-        match list_projects(req.include_stale).await {
+        match list_projects(req.include_stale, req.include_uninitialized).await {
             Ok(projects) => {
                 let total_count = projects.len() as i32;
                 Ok(Response::new(ListProjectsResponse {

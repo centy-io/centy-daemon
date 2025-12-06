@@ -565,6 +565,7 @@ message ProjectInfo {
 
 message ListProjectsRequest {
   bool include_stale = 1;         // Include projects where path no longer exists
+  bool include_uninitialized = 2; // Include projects without .centy manifest
 }
 
 message ListProjectsResponse {
