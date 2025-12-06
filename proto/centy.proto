@@ -94,6 +94,9 @@ service CentyDaemon {
   // Get info about a specific project
   rpc GetProjectInfo(GetProjectInfoRequest) returns (GetProjectInfoResponse);
 
+  // Set project favorite status
+  rpc SetProjectFavorite(SetProjectFavoriteRequest) returns (SetProjectFavoriteResponse);
+
   // ============ Version RPCs ============
 
   // Get daemon version info
@@ -104,6 +107,29 @@ service CentyDaemon {
 
   // Update project to target version (runs migrations)
   rpc UpdateVersion(UpdateVersionRequest) returns (UpdateVersionResponse);
+
+  // ============ PR RPCs ============
+
+  // Create a new pull request
+  rpc CreatePr(CreatePrRequest) returns (CreatePrResponse);
+
+  // Get a single PR by ID (UUID)
+  rpc GetPr(GetPrRequest) returns (PullRequest);
+
+  // Get a single PR by display number (human-readable number like 1, 2, 3)
+  rpc GetPrByDisplayNumber(GetPrByDisplayNumberRequest) returns (PullRequest);
+
+  // List all PRs with optional filtering
+  rpc ListPrs(ListPrsRequest) returns (ListPrsResponse);
+
+  // Update an existing PR
+  rpc UpdatePr(UpdatePrRequest) returns (UpdatePrResponse);
+
+  // Delete a PR
+  rpc DeletePr(DeletePrRequest) returns (DeletePrResponse);
+
+  // Get the next PR number
+  rpc GetNextPrNumber(GetNextPrNumberRequest) returns (GetNextPrNumberResponse);
 
   // ============ Daemon Control RPCs ============
 
@@ -534,6 +560,7 @@ message ProjectInfo {
   uint32 doc_count = 5;           // Fetched live from .centy/docs/
   bool initialized = 6;           // Fetched live (manifest exists)
   string name = 7;                // Fetched live (directory name)
+  bool is_favorite = 8;           // User-marked favorite status
 }
 
 message ListProjectsRequest {
@@ -573,6 +600,17 @@ message GetProjectInfoResponse {
   ProjectInfo project = 2;
 }
 
+message SetProjectFavoriteRequest {
+  string project_path = 1;
+  bool is_favorite = 2;
+}
+
+message SetProjectFavoriteResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
 // ============ Version Messages ============
 
 message GetDaemonInfoRequest {}
@@ -580,6 +618,7 @@ message GetDaemonInfoRequest {}
 message DaemonInfo {
   string version = 1;                    // Current daemon version (e.g., "0.1.0")
   repeated string available_versions = 2; // All versions we can migrate to
+  string binary_path = 3;                // Absolute path to the running daemon binary
 }
 
 message GetProjectVersionRequest {
@@ -626,4 +665,137 @@ message RestartRequest {
 message RestartResponse {
   bool success = 1;
   string message = 2;
+}
+
+// ============ PR Messages ============
+
+message CreatePrRequest {
+  string project_path = 1;
+  string title = 2;
+  string description = 3;
+  string source_branch = 4;         // Source branch name (auto-detected if empty)
+  string target_branch = 5;         // Target branch name (default: "main")
+  repeated string linked_issues = 6; // Linked issue IDs or display numbers
+  repeated string reviewers = 7;     // Reviewer usernames/identifiers
+  int32 priority = 8;               // 1 = highest priority, 0 = use default
+  string status = 9;                // default: "draft"
+  map<string, string> custom_fields = 10;
+  string template = 11;             // Optional template name (without .md extension)
+}
+
+message CreatePrResponse {
+  bool success = 1;
+  string error = 2;
+
+  // The created PR ID (UUID)
+  string id = 3;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 4;
+
+  // Paths to created files
+  repeated string created_files = 5;
+
+  // The updated manifest
+  Manifest manifest = 6;
+
+  // Git info
+  string detected_source_branch = 7;  // The source branch that was used
+}
+
+message GetNextPrNumberRequest {
+  string project_path = 1;
+}
+
+message GetNextPrNumberResponse {
+  uint32 next_number = 1;
+}
+
+// PullRequest represents a full PR with all its data
+message PullRequest {
+  // UUID-based PR ID (folder name)
+  string id = 1;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 2;
+
+  string title = 3;
+  string description = 4;
+  PrMetadata metadata = 5;
+}
+
+message PrMetadata {
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 1;
+  string status = 2;                  // e.g., "draft", "open", "merged", "closed"
+  string source_branch = 3;
+  string target_branch = 4;
+  repeated string linked_issues = 5;
+  repeated string reviewers = 6;
+  int32 priority = 7;                 // 1 = highest priority, N = lowest
+  string priority_label = 8;          // Human-readable label (e.g., "high", "P1")
+  string created_at = 9;              // ISO timestamp
+  string updated_at = 10;             // ISO timestamp
+  string merged_at = 11;              // ISO timestamp (empty if not merged)
+  string closed_at = 12;              // ISO timestamp (empty if not closed)
+  map<string, string> custom_fields = 13;
+}
+
+message GetPrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID
+}
+
+message GetPrByDisplayNumberRequest {
+  string project_path = 1;
+  uint32 display_number = 2;          // Human-readable number (1, 2, 3...)
+}
+
+message ListPrsRequest {
+  string project_path = 1;
+
+  // Optional filters
+  string status = 2;                  // Filter by status (empty = all)
+  string source_branch = 3;           // Filter by source branch (empty = all)
+  string target_branch = 4;           // Filter by target branch (empty = all)
+  int32 priority = 5;                 // Filter by priority (0 = all)
+}
+
+message ListPrsResponse {
+  repeated PullRequest prs = 1;
+  int32 total_count = 2;
+}
+
+message UpdatePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+
+  // Fields to update (empty string = don't update, 0 = don't update priority)
+  string title = 3;
+  string description = 4;
+  string status = 5;
+  string source_branch = 6;
+  string target_branch = 7;
+  repeated string linked_issues = 8;
+  repeated string reviewers = 9;
+  int32 priority = 10;                // 0 = don't update, otherwise 1-N
+  map<string, string> custom_fields = 11;
+}
+
+message UpdatePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The updated PR
+  Manifest manifest = 4;
+}
+
+message DeletePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message DeletePrResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;              // Updated manifest after deletion
 }

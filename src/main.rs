@@ -3,6 +3,7 @@ mod docs;
 mod issue;
 mod manifest;
 mod migration;
+mod pr;
 mod reconciliation;
 mod registry;
 mod server;

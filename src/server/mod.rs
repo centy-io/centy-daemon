@@ -11,12 +11,17 @@ use crate::issue::{
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
 };
+use crate::pr::{
+    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
+    CreatePrOptions, UpdatePrOptions,
+};
 use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
 use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use crate::registry::{
-    get_project_info, list_projects, track_project_async, untrack_project, ProjectInfo,
+    get_project_info, list_projects, set_project_favorite, track_project_async, untrack_project,
+    ProjectInfo,
 };
 use crate::utils::get_centy_path;
 use std::path::{Path, PathBuf};
@@ -815,6 +820,26 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn set_project_favorite(
+        &self,
+        request: Request<SetProjectFavoriteRequest>,
+    ) -> Result<Response<SetProjectFavoriteResponse>, Status> {
+        let req = request.into_inner();
+
+        match set_project_favorite(&req.project_path, req.is_favorite).await {
+            Ok(info) => Ok(Response::new(SetProjectFavoriteResponse {
+                success: true,
+                error: String::new(),
+                project: Some(project_info_to_proto(&info)),
+            })),
+            Err(e) => Ok(Response::new(SetProjectFavoriteResponse {
+                success: false,
+                error: e.to_string(),
+                project: None,
+            })),
+        }
+    }
+
     // ============ Version RPCs ============
 
     async fn get_daemon_info(
@@ -823,10 +848,14 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<DaemonInfo>, Status> {
         let daemon_ver = daemon_version();
         let registry = create_registry();
+        let binary_path = std::env::current_exe()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
             version: daemon_ver.to_string(),
             available_versions: registry.available_versions(),
+            binary_path,
         }))
     }
 
@@ -1002,6 +1031,193 @@ impl CentyDaemon for CentyDaemonService {
             success: true,
             message,
         }))
+    }
+
+    // ============ PR RPCs ============
+
+    async fn create_pr(
+        &self,
+        request: Request<CreatePrRequest>,
+    ) -> Result<Response<CreatePrResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let options = CreatePrOptions {
+            title: req.title,
+            description: req.description,
+            source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
+            target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
+            linked_issues: req.linked_issues,
+            reviewers: req.reviewers,
+            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
+            status: if req.status.is_empty() { None } else { Some(req.status) },
+            custom_fields: req.custom_fields,
+            template: if req.template.is_empty() { None } else { Some(req.template) },
+        };
+
+        match create_pr(project_path, options).await {
+            Ok(result) => Ok(Response::new(CreatePrResponse {
+                success: true,
+                error: String::new(),
+                id: result.id,
+                display_number: result.display_number,
+                created_files: result.created_files,
+                manifest: Some(manifest_to_proto(&result.manifest)),
+                detected_source_branch: result.detected_source_branch,
+            })),
+            Err(e) => Ok(Response::new(CreatePrResponse {
+                success: false,
+                error: e.to_string(),
+                id: String::new(),
+                display_number: 0,
+                created_files: vec![],
+                manifest: None,
+                detected_source_branch: String::new(),
+            })),
+        }
+    }
+
+    async fn get_pr(
+        &self,
+        request: Request<GetPrRequest>,
+    ) -> Result<Response<PullRequest>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels (for label generation)
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+
+        match get_pr(project_path, &req.pr_id).await {
+            Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
+            Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn get_pr_by_display_number(
+        &self,
+        request: Request<GetPrByDisplayNumberRequest>,
+    ) -> Result<Response<PullRequest>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels (for label generation)
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+
+        match get_pr_by_display_number(project_path, req.display_number).await {
+            Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
+            Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn list_prs(
+        &self,
+        request: Request<ListPrsRequest>,
+    ) -> Result<Response<ListPrsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels (for label generation)
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+
+        let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
+        let source_filter = if req.source_branch.is_empty() { None } else { Some(req.source_branch.as_str()) };
+        let target_filter = if req.target_branch.is_empty() { None } else { Some(req.target_branch.as_str()) };
+        let priority_filter = if req.priority == 0 { None } else { Some(req.priority as u32) };
+
+        match list_prs(project_path, status_filter, source_filter, target_filter, priority_filter).await {
+            Ok(prs) => {
+                let total_count = prs.len() as i32;
+                Ok(Response::new(ListPrsResponse {
+                    prs: prs.into_iter().map(|p| pr_to_proto(&p, priority_levels)).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_pr(
+        &self,
+        request: Request<UpdatePrRequest>,
+    ) -> Result<Response<UpdatePrResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels (for label generation)
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+
+        let options = UpdatePrOptions {
+            title: if req.title.is_empty() { None } else { Some(req.title) },
+            description: if req.description.is_empty() { None } else { Some(req.description) },
+            status: if req.status.is_empty() { None } else { Some(req.status) },
+            source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
+            target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
+            linked_issues: if req.linked_issues.is_empty() { None } else { Some(req.linked_issues) },
+            reviewers: if req.reviewers.is_empty() { None } else { Some(req.reviewers) },
+            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
+            custom_fields: req.custom_fields,
+        };
+
+        match update_pr(project_path, &req.pr_id, options).await {
+            Ok(result) => Ok(Response::new(UpdatePrResponse {
+                success: true,
+                error: String::new(),
+                pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(UpdatePrResponse {
+                success: false,
+                error: e.to_string(),
+                pr: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn delete_pr(
+        &self,
+        request: Request<DeletePrRequest>,
+    ) -> Result<Response<DeletePrResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match delete_pr(project_path, &req.pr_id).await {
+            Ok(result) => Ok(Response::new(DeletePrResponse {
+                success: true,
+                error: String::new(),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(DeletePrResponse {
+                success: false,
+                error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn get_next_pr_number(
+        &self,
+        request: Request<GetNextPrNumberRequest>,
+    ) -> Result<Response<GetNextPrNumberResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+        let prs_path = get_centy_path(project_path).join("prs");
+
+        match crate::pr::reconcile::get_next_pr_display_number(&prs_path).await {
+            Ok(next_number) => Ok(Response::new(GetNextPrNumberResponse { next_number })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 }
 
@@ -1185,6 +1401,7 @@ fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
         doc_count: info.doc_count,
         initialized: info.initialized,
         name: info.name.clone().unwrap_or_default(),
+        is_favorite: info.is_favorite,
     }
 }
 
@@ -1196,5 +1413,29 @@ fn asset_info_to_proto(asset: &AssetInfo) -> Asset {
         mime_type: asset.mime_type.clone(),
         is_shared: asset.is_shared,
         created_at: asset.created_at.clone(),
+    }
+}
+
+fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest {
+    PullRequest {
+        id: pr.id.clone(),
+        display_number: pr.metadata.display_number,
+        title: pr.title.clone(),
+        description: pr.description.clone(),
+        metadata: Some(PrMetadata {
+            display_number: pr.metadata.display_number,
+            status: pr.metadata.status.clone(),
+            source_branch: pr.metadata.source_branch.clone(),
+            target_branch: pr.metadata.target_branch.clone(),
+            linked_issues: pr.metadata.linked_issues.clone(),
+            reviewers: pr.metadata.reviewers.clone(),
+            priority: pr.metadata.priority as i32,
+            priority_label: priority_label(pr.metadata.priority, priority_levels),
+            created_at: pr.metadata.created_at.clone(),
+            updated_at: pr.metadata.updated_at.clone(),
+            merged_at: pr.metadata.merged_at.clone(),
+            closed_at: pr.metadata.closed_at.clone(),
+            custom_fields: pr.metadata.custom_fields.clone(),
+        }),
     }
 }

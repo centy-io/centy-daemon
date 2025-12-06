@@ -3,6 +3,7 @@ pub mod docs;
 pub mod issue;
 pub mod manifest;
 pub mod migration;
+pub mod pr;
 pub mod reconciliation;
 pub mod registry;
 pub mod server;
@@ -21,6 +22,11 @@ pub use issue::{
     create_issue, delete_issue, get_issue, list_issues, update_issue,
     CreateIssueOptions, CreateIssueResult, DeleteIssueResult, Issue,
     IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
+};
+pub use pr::{
+    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
+    CreatePrOptions, CreatePrResult, DeletePrResult, PrMetadataFlat, PullRequest,
+    UpdatePrOptions, UpdatePrResult,
 };
 pub use manifest::{CentyManifest, ManagedFileType};
 pub use reconciliation::{
