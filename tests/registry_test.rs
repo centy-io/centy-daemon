@@ -24,7 +24,7 @@ async fn test_track_project_creates_entry() {
     track_project(&project_path).await.expect("Should track project");
 
     // Verify it's in the list (compare canonical paths)
-    let projects = list_projects(true).await.expect("Should list projects");
+    let projects = list_projects(true, true, true).await.expect("Should list projects");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Project should be in list"
@@ -101,7 +101,7 @@ async fn test_list_projects_excludes_stale_by_default() {
     track_project(&project_path).await.expect("Should track");
 
     // Should be in list (not stale)
-    let projects = list_projects(false).await.expect("Should list");
+    let projects = list_projects(false, true, true).await.expect("Should list");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Project should be in non-stale list"
@@ -111,14 +111,14 @@ async fn test_list_projects_excludes_stale_by_default() {
     drop(temp_dir);
 
     // Now with include_stale=false, it should be excluded
-    let projects = list_projects(false).await.expect("Should list");
+    let projects = list_projects(false, true, true).await.expect("Should list");
     assert!(
         !projects.iter().any(|p| p.path == canonical),
         "Stale project should be excluded"
     );
 
     // With include_stale=true, it should be included
-    let projects = list_projects(true).await.expect("Should list");
+    let projects = list_projects(true, true, true).await.expect("Should list");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Stale project should be included when requested"
@@ -232,7 +232,7 @@ async fn test_list_projects_sorted_by_last_accessed() {
     track_project(&path2).await.expect("Should track");
 
     // List should have path2 first (most recent)
-    let projects = list_projects(true).await.expect("Should list");
+    let projects = list_projects(true, true, true).await.expect("Should list");
 
     // Find indices
     let idx1 = projects.iter().position(|p| p.path == path1);
