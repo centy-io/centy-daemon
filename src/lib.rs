@@ -1,5 +1,6 @@
 pub mod config;
 pub mod docs;
+pub mod features;
 pub mod issue;
 pub mod manifest;
 pub mod migration;
@@ -17,6 +18,11 @@ pub use docs::{
     create_doc, delete_doc, get_doc, list_docs, update_doc,
     CreateDocOptions, CreateDocResult, DeleteDocResult, Doc, DocError, DocMetadata,
     UpdateDocOptions, UpdateDocResult,
+};
+pub use features::{
+    build_compacted_refs, generate_migration_frontmatter, get_compact, get_feature_status,
+    get_instruction, list_uncompacted_issues, mark_issues_compacted, save_migration, update_compact,
+    CompactedIssueRef, FeatureError, FeatureStatus, MigrationFrontmatter, DEFAULT_INSTRUCTION_CONTENT,
 };
 pub use issue::{
     create_issue, delete_issue, get_issue, list_issues, update_issue,

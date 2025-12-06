@@ -32,6 +32,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
             first_accessed: now.clone(),
             last_accessed: now.clone(),
             is_favorite: false,
+            is_archived: false,
         };
         registry.projects.insert(canonical_path, entry);
     }
@@ -112,11 +113,16 @@ pub async fn enrich_project(path: &str, tracked: &TrackedProject) -> ProjectInfo
         initialized,
         name,
         is_favorite: tracked.is_favorite,
+        is_archived: tracked.is_archived,
     }
 }
 
 /// List all tracked projects, enriched with live data
-pub async fn list_projects(include_stale: bool, include_uninitialized: bool) -> Result<Vec<ProjectInfo>, RegistryError> {
+pub async fn list_projects(
+    include_stale: bool,
+    include_uninitialized: bool,
+    include_archived: bool,
+) -> Result<Vec<ProjectInfo>, RegistryError> {
     let registry = read_registry().await?;
 
     let mut projects = Vec::new();
@@ -126,6 +132,11 @@ pub async fn list_projects(include_stale: bool, include_uninitialized: bool) -> 
 
         if !include_stale && !path_exists {
             // Skip stale (non-existent) projects
+            continue;
+        }
+
+        if !include_archived && tracked.is_archived {
+            // Skip archived projects
             continue;
         }
 
@@ -240,6 +251,45 @@ pub async fn set_project_favorite(
     // Now we can safely get the mutable entry
     let tracked = registry.projects.get_mut(&key).unwrap();
     tracked.is_favorite = is_favorite;
+    let tracked_clone = tracked.clone();
+
+    registry.updated_at = now_iso();
+    write_registry_unlocked(&registry).await?;
+
+    // Return enriched project info
+    Ok(enrich_project(&canonical_path, &tracked_clone).await)
+}
+
+/// Set the archived status for a project
+pub async fn set_project_archived(
+    project_path: &str,
+    is_archived: bool,
+) -> Result<ProjectInfo, RegistryError> {
+    let path = Path::new(project_path);
+
+    // Canonicalize path to ensure consistent keys
+    let canonical_path = path
+        .canonicalize()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| project_path.to_string());
+
+    // Lock the entire read-modify-write cycle
+    let _guard = get_lock().lock().await;
+
+    let mut registry = read_registry().await?;
+
+    // Determine which key to use (try canonical first, then original)
+    let key = if registry.projects.contains_key(&canonical_path) {
+        canonical_path.clone()
+    } else if registry.projects.contains_key(project_path) {
+        project_path.to_string()
+    } else {
+        return Err(RegistryError::ProjectNotFound(project_path.to_string()));
+    };
+
+    // Now we can safely get the mutable entry
+    let tracked = registry.projects.get_mut(&key).unwrap();
+    tracked.is_archived = is_archived;
     let tracked_clone = tracked.clone();
 
     registry.updated_at = now_iso();

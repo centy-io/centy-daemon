@@ -97,6 +97,9 @@ service CentyDaemon {
   // Set project favorite status
   rpc SetProjectFavorite(SetProjectFavoriteRequest) returns (SetProjectFavoriteResponse);
 
+  // Set project archived status
+  rpc SetProjectArchived(SetProjectArchivedRequest) returns (SetProjectArchivedResponse);
+
   // ============ Version RPCs ============
 
   // Get daemon version info
@@ -138,6 +141,29 @@ service CentyDaemon {
 
   // Restart the daemon
   rpc Restart(RestartRequest) returns (RestartResponse);
+
+  // ============ Features RPCs ============
+
+  // Get the status of the features system
+  rpc GetFeatureStatus(GetFeatureStatusRequest) returns (GetFeatureStatusResponse);
+
+  // List all uncompacted issues
+  rpc ListUncompactedIssues(ListUncompactedIssuesRequest) returns (ListUncompactedIssuesResponse);
+
+  // Get the instruction.md content
+  rpc GetInstruction(GetInstructionRequest) returns (GetInstructionResponse);
+
+  // Get the current compact.md content
+  rpc GetCompact(GetCompactRequest) returns (GetCompactResponse);
+
+  // Update the compact.md content
+  rpc UpdateCompact(UpdateCompactRequest) returns (UpdateCompactResponse);
+
+  // Save a new migration file
+  rpc SaveMigration(SaveMigrationRequest) returns (SaveMigrationResponse);
+
+  // Mark multiple issues as compacted
+  rpc MarkIssuesCompacted(MarkIssuesCompactedRequest) returns (MarkIssuesCompactedResponse);
 }
 
 // ============ Init Messages ============
@@ -269,6 +295,8 @@ message IssueMetadata {
   string updated_at = 5;          // ISO timestamp
   map<string, string> custom_fields = 6;
   string priority_label = 7;      // Human-readable label (e.g., "high", "P1")
+  bool compacted = 8;             // Whether issue has been compacted into features
+  string compacted_at = 9;        // ISO timestamp when compacted (empty if not)
 }
 
 message GetIssueRequest {
@@ -561,11 +589,13 @@ message ProjectInfo {
   bool initialized = 6;           // Fetched live (manifest exists)
   string name = 7;                // Fetched live (directory name)
   bool is_favorite = 8;           // User-marked favorite status
+  bool is_archived = 9;           // User-marked archived status
 }
 
 message ListProjectsRequest {
   bool include_stale = 1;         // Include projects where path no longer exists
   bool include_uninitialized = 2; // Include projects without .centy manifest
+  bool include_archived = 3;      // Include archived projects (default: false)
 }
 
 message ListProjectsResponse {
@@ -607,6 +637,17 @@ message SetProjectFavoriteRequest {
 }
 
 message SetProjectFavoriteResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectArchivedRequest {
+  string project_path = 1;
+  bool is_archived = 2;
+}
+
+message SetProjectArchivedResponse {
   bool success = 1;
   string error = 2;
   ProjectInfo project = 3;        // The updated project info
@@ -799,4 +840,77 @@ message DeletePrResponse {
   bool success = 1;
   string error = 2;
   Manifest manifest = 3;              // Updated manifest after deletion
+}
+
+// ============ Features Messages ============
+
+message GetFeatureStatusRequest {
+  string project_path = 1;
+}
+
+message GetFeatureStatusResponse {
+  bool initialized = 1;               // features/ folder exists
+  bool has_compact = 2;               // compact.md exists
+  bool has_instruction = 3;           // instruction.md exists
+  uint32 migration_count = 4;         // Number of migration files
+  uint32 uncompacted_count = 5;       // Number of uncompacted issues
+}
+
+message ListUncompactedIssuesRequest {
+  string project_path = 1;
+}
+
+message ListUncompactedIssuesResponse {
+  repeated Issue issues = 1;
+  int32 total_count = 2;
+}
+
+message GetInstructionRequest {
+  string project_path = 1;
+}
+
+message GetInstructionResponse {
+  string content = 1;                 // instruction.md content
+}
+
+message GetCompactRequest {
+  string project_path = 1;
+}
+
+message GetCompactResponse {
+  bool exists = 1;                    // Whether compact.md exists
+  string content = 2;                 // compact.md content (empty if not exists)
+}
+
+message UpdateCompactRequest {
+  string project_path = 1;
+  string content = 2;                 // New compact.md content
+}
+
+message UpdateCompactResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message SaveMigrationRequest {
+  string project_path = 1;
+  string content = 2;                 // Migration file content (markdown with YAML frontmatter)
+}
+
+message SaveMigrationResponse {
+  bool success = 1;
+  string error = 2;
+  string filename = 3;                // Created migration filename (e.g., "2025-12-06T19-30-00.md")
+  string path = 4;                    // Full relative path to migration file
+}
+
+message MarkIssuesCompactedRequest {
+  string project_path = 1;
+  repeated string issue_ids = 2;      // UUIDs of issues to mark as compacted
+}
+
+message MarkIssuesCompactedResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 marked_count = 3;            // Number of issues successfully marked
 }

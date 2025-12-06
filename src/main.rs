@@ -1,5 +1,6 @@
 mod config;
 mod docs;
+mod features;
 mod issue;
 mod manifest;
 mod migration;

@@ -67,6 +67,10 @@ pub struct IssueMetadataFlat {
     pub created_at: String,
     pub updated_at: String,
     pub custom_fields: HashMap<String, String>,
+    /// Whether this issue has been compacted into features
+    pub compacted: bool,
+    /// ISO timestamp when the issue was compacted
+    pub compacted_at: Option<String>,
 }
 
 /// Options for updating an issue
@@ -283,6 +287,8 @@ pub async fn update_issue(
             .iter()
             .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
             .collect(),
+        compacted: current.metadata.compacted,
+        compacted_at: current.metadata.compacted_at.clone(),
     };
 
     // Generate updated content
@@ -310,8 +316,10 @@ pub async fn update_issue(
             status: new_status,
             priority: new_priority,
             created_at: current.metadata.created_at,
-            updated_at: updated_metadata.updated_at,
+            updated_at: updated_metadata.updated_at.clone(),
             custom_fields: new_custom_fields,
+            compacted: current.metadata.compacted,
+            compacted_at: current.metadata.compacted_at,
         },
     };
 
@@ -391,6 +399,8 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
             created_at: metadata.created_at,
             updated_at: metadata.updated_at,
             custom_fields,
+            compacted: metadata.compacted,
+            compacted_at: metadata.compacted_at,
         },
     })
 }

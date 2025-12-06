@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Stored in registry file (minimal - only timestamps and favorite status)
+/// Stored in registry file (minimal - only timestamps and favorite/archived status)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackedProject {
@@ -9,6 +9,8 @@ pub struct TrackedProject {
     pub last_accessed: String,
     #[serde(default)]
     pub is_favorite: bool,
+    #[serde(default)]
+    pub is_archived: bool,
 }
 
 /// The global project registry stored in ~/.centy/projects.json
@@ -61,4 +63,7 @@ pub struct ProjectInfo {
 
     /// User-marked favorite status (stored in registry)
     pub is_favorite: bool,
+
+    /// User-marked archived status (stored in registry)
+    pub is_archived: bool,
 }

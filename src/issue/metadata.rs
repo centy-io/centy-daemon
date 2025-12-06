@@ -23,6 +23,12 @@ pub struct IssueMetadata {
     pub updated_at: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// Whether this issue has been compacted into features
+    #[serde(default)]
+    pub compacted: bool,
+    /// ISO timestamp when the issue was compacted
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compacted_at: Option<String>,
 }
 
 impl IssueMetadata {
@@ -40,6 +46,8 @@ impl IssueMetadata {
             created_at: now.clone(),
             updated_at: now,
             custom_fields,
+            compacted: false,
+            compacted_at: None,
         }
     }
 }

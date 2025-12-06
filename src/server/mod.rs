@@ -1,4 +1,8 @@
 use crate::config::{read_config, write_config, CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig};
+use crate::features::{
+    get_compact, get_feature_status, get_instruction, list_uncompacted_issues,
+    mark_issues_compacted, save_migration, update_compact,
+};
 use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::docs::{
@@ -20,8 +24,8 @@ use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use crate::registry::{
-    get_project_info, list_projects, set_project_favorite, track_project_async, untrack_project,
-    ProjectInfo,
+    get_project_info, list_projects, set_project_archived, set_project_favorite,
+    track_project_async, untrack_project, ProjectInfo,
 };
 use crate::utils::get_centy_path;
 use std::path::{Path, PathBuf};
@@ -736,7 +740,7 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<ListProjectsResponse>, Status> {
         let req = request.into_inner();
 
-        match list_projects(req.include_stale, req.include_uninitialized).await {
+        match list_projects(req.include_stale, req.include_uninitialized, req.include_archived).await {
             Ok(projects) => {
                 let total_count = projects.len() as i32;
                 Ok(Response::new(ListProjectsResponse {
@@ -833,6 +837,26 @@ impl CentyDaemon for CentyDaemonService {
                 project: Some(project_info_to_proto(&info)),
             })),
             Err(e) => Ok(Response::new(SetProjectFavoriteResponse {
+                success: false,
+                error: e.to_string(),
+                project: None,
+            })),
+        }
+    }
+
+    async fn set_project_archived(
+        &self,
+        request: Request<SetProjectArchivedRequest>,
+    ) -> Result<Response<SetProjectArchivedResponse>, Status> {
+        let req = request.into_inner();
+
+        match set_project_archived(&req.project_path, req.is_archived).await {
+            Ok(info) => Ok(Response::new(SetProjectArchivedResponse {
+                success: true,
+                error: String::new(),
+                project: Some(project_info_to_proto(&info)),
+            })),
+            Err(e) => Ok(Response::new(SetProjectArchivedResponse {
                 success: false,
                 error: e.to_string(),
                 project: None,
@@ -1219,6 +1243,149 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
+
+    // ============ Features RPCs ============
+
+    async fn get_feature_status(
+        &self,
+        request: Request<GetFeatureStatusRequest>,
+    ) -> Result<Response<GetFeatureStatusResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match get_feature_status(project_path).await {
+            Ok(status) => Ok(Response::new(GetFeatureStatusResponse {
+                initialized: status.initialized,
+                has_compact: status.has_compact,
+                has_instruction: status.has_instruction,
+                migration_count: status.migration_count,
+                uncompacted_count: status.uncompacted_count,
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn list_uncompacted_issues(
+        &self,
+        request: Request<ListUncompactedIssuesRequest>,
+    ) -> Result<Response<ListUncompactedIssuesResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels (for label generation)
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+
+        match list_uncompacted_issues(project_path).await {
+            Ok(issues) => {
+                let total_count = issues.len() as i32;
+                Ok(Response::new(ListUncompactedIssuesResponse {
+                    issues: issues.into_iter().map(|i| issue_to_proto(&i, priority_levels)).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_instruction(
+        &self,
+        request: Request<GetInstructionRequest>,
+    ) -> Result<Response<GetInstructionResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match get_instruction(project_path).await {
+            Ok(content) => Ok(Response::new(GetInstructionResponse { content })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_compact(
+        &self,
+        request: Request<GetCompactRequest>,
+    ) -> Result<Response<GetCompactResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match get_compact(project_path).await {
+            Ok(content) => Ok(Response::new(GetCompactResponse {
+                exists: content.is_some(),
+                content: content.unwrap_or_default(),
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_compact(
+        &self,
+        request: Request<UpdateCompactRequest>,
+    ) -> Result<Response<UpdateCompactResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match update_compact(project_path, &req.content).await {
+            Ok(()) => Ok(Response::new(UpdateCompactResponse {
+                success: true,
+                error: String::new(),
+            })),
+            Err(e) => Ok(Response::new(UpdateCompactResponse {
+                success: false,
+                error: e.to_string(),
+            })),
+        }
+    }
+
+    async fn save_migration(
+        &self,
+        request: Request<SaveMigrationRequest>,
+    ) -> Result<Response<SaveMigrationResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match save_migration(project_path, &req.content).await {
+            Ok((filename, path)) => Ok(Response::new(SaveMigrationResponse {
+                success: true,
+                error: String::new(),
+                filename,
+                path,
+            })),
+            Err(e) => Ok(Response::new(SaveMigrationResponse {
+                success: false,
+                error: e.to_string(),
+                filename: String::new(),
+                path: String::new(),
+            })),
+        }
+    }
+
+    async fn mark_issues_compacted(
+        &self,
+        request: Request<MarkIssuesCompactedRequest>,
+    ) -> Result<Response<MarkIssuesCompactedResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match mark_issues_compacted(project_path, &req.issue_ids).await {
+            Ok(marked_count) => Ok(Response::new(MarkIssuesCompactedResponse {
+                success: true,
+                error: String::new(),
+                marked_count,
+            })),
+            Err(e) => Ok(Response::new(MarkIssuesCompactedResponse {
+                success: false,
+                error: e.to_string(),
+                marked_count: 0,
+            })),
+        }
+    }
 }
 
 // Helper functions for converting internal types to proto types
@@ -1376,6 +1543,8 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             updated_at: issue.metadata.updated_at.clone(),
             custom_fields: issue.metadata.custom_fields.clone(),
             priority_label: priority_label(issue.metadata.priority, priority_levels),
+            compacted: issue.metadata.compacted,
+            compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
         }),
     }
 }
@@ -1402,6 +1571,7 @@ fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
         initialized: info.initialized,
         name: info.name.clone().unwrap_or_default(),
         is_favorite: info.is_favorite,
+        is_archived: info.is_archived,
     }
 }
 
