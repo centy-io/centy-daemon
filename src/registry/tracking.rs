@@ -24,13 +24,14 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     let now = now_iso();
 
     if let Some(entry) = registry.projects.get_mut(&canonical_path) {
-        // Update existing entry
+        // Update existing entry (preserve is_favorite)
         entry.last_accessed = now.clone();
     } else {
         // Create new entry
         let entry = TrackedProject {
             first_accessed: now.clone(),
             last_accessed: now.clone(),
+            is_favorite: false,
         };
         registry.projects.insert(canonical_path, entry);
     }
@@ -110,6 +111,7 @@ pub async fn enrich_project(path: &str, tracked: &TrackedProject) -> ProjectInfo
         doc_count,
         initialized,
         name,
+        is_favorite: tracked.is_favorite,
     }
 }
 
@@ -200,4 +202,43 @@ async fn count_md_files(path: &Path) -> Result<u32, std::io::Error> {
     }
 
     Ok(count)
+}
+
+/// Set the favorite status for a project
+pub async fn set_project_favorite(
+    project_path: &str,
+    is_favorite: bool,
+) -> Result<ProjectInfo, RegistryError> {
+    let path = Path::new(project_path);
+
+    // Canonicalize path to ensure consistent keys
+    let canonical_path = path
+        .canonicalize()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| project_path.to_string());
+
+    // Lock the entire read-modify-write cycle
+    let _guard = get_lock().lock().await;
+
+    let mut registry = read_registry().await?;
+
+    // Determine which key to use (try canonical first, then original)
+    let key = if registry.projects.contains_key(&canonical_path) {
+        canonical_path.clone()
+    } else if registry.projects.contains_key(project_path) {
+        project_path.to_string()
+    } else {
+        return Err(RegistryError::ProjectNotFound(project_path.to_string()));
+    };
+
+    // Now we can safely get the mutable entry
+    let tracked = registry.projects.get_mut(&key).unwrap();
+    tracked.is_favorite = is_favorite;
+    let tracked_clone = tracked.clone();
+
+    registry.updated_at = now_iso();
+    write_registry_unlocked(&registry).await?;
+
+    // Return enriched project info
+    Ok(enrich_project(&canonical_path, &tracked_clone).await)
 }

@@ -4,8 +4,8 @@ mod types;
 
 pub use storage::{get_registry_path, read_registry, write_registry};
 pub use tracking::{
-    enrich_project, get_project_info, list_projects, track_project, track_project_async,
-    untrack_project,
+    enrich_project, get_project_info, list_projects, set_project_favorite, track_project,
+    track_project_async, untrack_project,
 };
 pub use types::{ProjectInfo, ProjectRegistry, TrackedProject};
 

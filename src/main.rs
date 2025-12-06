@@ -24,7 +24,7 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 const DEFAULT_ADDR: &str = "127.0.0.1:50051";
-const DEFAULT_CORS_ORIGINS: &str = "http://localhost,https://localhost,http://127.0.0.1,https://127.0.0.1";
+const DEFAULT_CORS_ORIGINS: &str = "http://localhost,https://localhost,http://127.0.0.1,https://127.0.0.1,tauri://localhost,https://tauri.localhost";
 
 /// Centy Daemon - Local-first issue and documentation tracker service
 #[derive(Parser, Debug)]
