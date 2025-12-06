@@ -1,6 +1,6 @@
 [Unit]
 Description=Centy Daemon - Local-first issue and documentation tracker
-Documentation=https://github.com/tupe12334/centy-daemon
+Documentation=https://github.com/centy-io/centy-daemon
 After=network.target
 
 [Service]

@@ -1,3 +1,4 @@
+use crate::features::DEFAULT_INSTRUCTION_CONTENT;
 use crate::manifest::ManagedFileType;
 use std::collections::HashMap;
 
@@ -11,7 +12,7 @@ pub struct ManagedFileTemplate {
 /// Default README content
 const README_CONTENT: &str = r#"# Centy Project
 
-This folder is managed by [Centy](https://github.com/tupe12334/centy-cli).
+This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
 
 ## Important: LLM Instructions
 
@@ -45,7 +46,7 @@ View all issues in the `issues/` folder.
 /// Issues README content
 const ISSUES_README_CONTENT: &str = r#"# Issues
 
-This folder contains project issues managed by [Centy](https://github.com/tupe12334/centy-cli).
+This folder contains project issues managed by [Centy](https://github.com/centy-io/centy-cli).
 
 ## LLM Instructions
 
@@ -238,6 +239,31 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(TEMPLATES_README_CONTENT.to_string()),
+        },
+    );
+
+    // Features folder for LLM-driven feature compaction
+    files.insert(
+        "features/".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::Directory,
+            content: None,
+        },
+    );
+
+    files.insert(
+        "features/migrations/".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::Directory,
+            content: None,
+        },
+    );
+
+    files.insert(
+        "features/instruction.md".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::File,
+            content: Some(DEFAULT_INSTRUCTION_CONTENT.to_string()),
         },
     );
 
