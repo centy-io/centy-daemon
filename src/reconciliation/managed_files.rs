@@ -1,4 +1,3 @@
-use crate::features::DEFAULT_INSTRUCTION_CONTENT;
 use crate::manifest::ManagedFileType;
 use std::collections::HashMap;
 
@@ -239,31 +238,6 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(TEMPLATES_README_CONTENT.to_string()),
-        },
-    );
-
-    // Features folder for LLM-driven feature compaction
-    files.insert(
-        "features/".to_string(),
-        ManagedFileTemplate {
-            file_type: ManagedFileType::Directory,
-            content: None,
-        },
-    );
-
-    files.insert(
-        "features/migrations/".to_string(),
-        ManagedFileTemplate {
-            file_type: ManagedFileType::Directory,
-            content: None,
-        },
-    );
-
-    files.insert(
-        "features/instruction.md".to_string(),
-        ManagedFileTemplate {
-            file_type: ManagedFileType::File,
-            content: Some(DEFAULT_INSTRUCTION_CONTENT.to_string()),
         },
     );
 
