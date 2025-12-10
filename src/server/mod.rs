@@ -1,4 +1,9 @@
 use crate::config::{read_config, write_config, CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig};
+use crate::llm::{
+    self, get_effective_local_config, spawn_agent as llm_spawn_agent, read_work_session,
+    record_work_session, clear_work_session, is_process_running, has_global_config, has_project_config,
+    write_global_local_config, write_project_local_config, LlmAction, AgentType as InternalAgentType,
+};
 use crate::features::{
     get_compact, get_feature_status, get_instruction, list_uncompacted_issues,
     mark_issues_compacted, save_migration, update_compact,
@@ -1386,6 +1391,251 @@ impl CentyDaemon for CentyDaemonService {
             })),
         }
     }
+
+    // ============ LLM Agent RPCs ============
+
+    async fn spawn_agent(
+        &self,
+        request: Request<SpawnAgentRequest>,
+    ) -> Result<Response<SpawnAgentResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Parse action
+        let action = match LlmAction::from_proto(req.action) {
+            Some(a) => a,
+            None => {
+                return Ok(Response::new(SpawnAgentResponse {
+                    success: false,
+                    error: "Invalid action. Must be 1 (plan) or 2 (implement).".to_string(),
+                    agent_name: String::new(),
+                    issue_id: String::new(),
+                    display_number: 0,
+                    prompt_preview: String::new(),
+                }));
+            }
+        };
+
+        // Resolve issue - try parsing as display number first, then as UUID
+        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
+            match get_issue_by_display_number(project_path, display_num).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(SpawnAgentResponse {
+                        success: false,
+                        error: format!("Issue not found: {}", e),
+                        agent_name: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        prompt_preview: String::new(),
+                    }));
+                }
+            }
+        } else {
+            match get_issue(project_path, &req.issue_id).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(SpawnAgentResponse {
+                        success: false,
+                        error: format!("Issue not found: {}", e),
+                        agent_name: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        prompt_preview: String::new(),
+                    }));
+                }
+            }
+        };
+
+        // Get effective config
+        let llm_config = match get_effective_local_config(Some(project_path)).await {
+            Ok(c) => c,
+            Err(e) => {
+                return Ok(Response::new(SpawnAgentResponse {
+                    success: false,
+                    error: format!("Failed to load LLM config: {}", e),
+                    agent_name: String::new(),
+                    issue_id: String::new(),
+                    display_number: 0,
+                    prompt_preview: String::new(),
+                }));
+            }
+        };
+
+        // Get project config for priority levels
+        let project_config = read_config(project_path).await.ok().flatten().unwrap_or_default();
+        let priority_levels = project_config.priority_levels;
+
+        // Resolve agent name
+        let agent_name = if req.agent_name.is_empty() {
+            None
+        } else {
+            Some(req.agent_name.as_str())
+        };
+
+        // Spawn agent
+        match llm_spawn_agent(
+            project_path,
+            &llm_config,
+            &issue,
+            action,
+            agent_name,
+            req.extra_args,
+            priority_levels,
+        )
+        .await
+        {
+            Ok(result) => {
+                // Record work session
+                let _ = record_work_session(
+                    project_path,
+                    &issue.id,
+                    issue.metadata.display_number,
+                    &issue.title,
+                    &result.agent_name,
+                    action,
+                    result.pid,
+                )
+                .await;
+
+                Ok(Response::new(SpawnAgentResponse {
+                    success: true,
+                    error: String::new(),
+                    agent_name: result.agent_name,
+                    issue_id: issue.id,
+                    display_number: issue.metadata.display_number,
+                    prompt_preview: result.prompt_preview,
+                }))
+            }
+            Err(e) => Ok(Response::new(SpawnAgentResponse {
+                success: false,
+                error: e.to_string(),
+                agent_name: String::new(),
+                issue_id: String::new(),
+                display_number: 0,
+                prompt_preview: String::new(),
+            })),
+        }
+    }
+
+    async fn get_llm_work(
+        &self,
+        request: Request<GetLlmWorkRequest>,
+    ) -> Result<Response<GetLlmWorkResponse>, Status> {
+        let req = request.into_inner();
+        let project_path = Path::new(&req.project_path);
+
+        match read_work_session(project_path).await {
+            Ok(Some(session)) => {
+                // Check if process is still running
+                let pid = session.pid.filter(|&p| is_process_running(p));
+
+                Ok(Response::new(GetLlmWorkResponse {
+                    has_active_work: true,
+                    session: Some(LlmWorkSession {
+                        issue_id: session.issue_id,
+                        display_number: session.display_number,
+                        issue_title: session.issue_title,
+                        agent_name: session.agent_name,
+                        action: match session.action.as_str() {
+                            "plan" => 1,
+                            "implement" => 2,
+                            _ => 0,
+                        },
+                        started_at: session.started_at,
+                        pid: pid.unwrap_or(0),
+                    }),
+                }))
+            }
+            Ok(None) => Ok(Response::new(GetLlmWorkResponse {
+                has_active_work: false,
+                session: None,
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn clear_llm_work(
+        &self,
+        request: Request<ClearLlmWorkRequest>,
+    ) -> Result<Response<ClearLlmWorkResponse>, Status> {
+        let req = request.into_inner();
+        let project_path = Path::new(&req.project_path);
+
+        match clear_work_session(project_path).await {
+            Ok(()) => Ok(Response::new(ClearLlmWorkResponse {
+                success: true,
+                error: String::new(),
+            })),
+            Err(e) => Ok(Response::new(ClearLlmWorkResponse {
+                success: false,
+                error: e.to_string(),
+            })),
+        }
+    }
+
+    async fn get_local_llm_config(
+        &self,
+        request: Request<GetLocalLlmConfigRequest>,
+    ) -> Result<Response<GetLocalLlmConfigResponse>, Status> {
+        let req = request.into_inner();
+        let project_path = if req.project_path.is_empty() {
+            None
+        } else {
+            Some(Path::new(&req.project_path))
+        };
+
+        let has_global = has_global_config().await;
+        let has_project = project_path.map(has_project_config).unwrap_or(false);
+
+        match get_effective_local_config(project_path).await {
+            Ok(config) => Ok(Response::new(GetLocalLlmConfigResponse {
+                config: Some(local_llm_config_to_proto(&config)),
+                has_project_config: has_project,
+                has_global_config: has_global,
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_local_llm_config(
+        &self,
+        request: Request<UpdateLocalLlmConfigRequest>,
+    ) -> Result<Response<UpdateLocalLlmConfigResponse>, Status> {
+        let req = request.into_inner();
+
+        let config = match req.config {
+            Some(c) => proto_to_local_llm_config(&c),
+            None => {
+                return Ok(Response::new(UpdateLocalLlmConfigResponse {
+                    success: false,
+                    error: "Config is required".to_string(),
+                    config: None,
+                }));
+            }
+        };
+
+        let result = if req.project_path.is_empty() {
+            write_global_local_config(&config).await
+        } else {
+            let project_path = Path::new(&req.project_path);
+            write_project_local_config(project_path, &config).await
+        };
+
+        match result {
+            Ok(()) => Ok(Response::new(UpdateLocalLlmConfigResponse {
+                success: true,
+                error: String::new(),
+                config: Some(local_llm_config_to_proto(&config)),
+            })),
+            Err(e) => Ok(Response::new(UpdateLocalLlmConfigResponse {
+                success: false,
+                error: e.to_string(),
+                config: None,
+            })),
+        }
+    }
 }
 
 // Helper functions for converting internal types to proto types
@@ -1607,5 +1857,67 @@ fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest
             closed_at: pr.metadata.closed_at.clone(),
             custom_fields: pr.metadata.custom_fields.clone(),
         }),
+    }
+}
+
+fn local_llm_config_to_proto(config: &llm::LocalLlmConfig) -> LocalLlmConfig {
+    LocalLlmConfig {
+        default_agent: config.default_agent.clone().unwrap_or_default(),
+        agents: config
+            .agents
+            .iter()
+            .map(|a| AgentConfig {
+                agent_type: match a.agent_type {
+                    InternalAgentType::Claude => AgentType::Claude as i32,
+                    InternalAgentType::Gemini => AgentType::Gemini as i32,
+                    InternalAgentType::Codex => AgentType::Codex as i32,
+                    InternalAgentType::Opencode => AgentType::Opencode as i32,
+                    InternalAgentType::Custom => AgentType::Custom as i32,
+                },
+                name: a.name.clone(),
+                command: a.command.clone(),
+                default_args: a.default_args.clone(),
+                plan_template: a.plan_template.clone().unwrap_or_default(),
+                implement_template: a.implement_template.clone().unwrap_or_default(),
+            })
+            .collect(),
+        env_vars: config.env_vars.clone(),
+    }
+}
+
+fn proto_to_local_llm_config(proto: &LocalLlmConfig) -> llm::LocalLlmConfig {
+    llm::LocalLlmConfig {
+        default_agent: if proto.default_agent.is_empty() {
+            None
+        } else {
+            Some(proto.default_agent.clone())
+        },
+        agents: proto
+            .agents
+            .iter()
+            .map(|a| llm::AgentConfig {
+                agent_type: match a.agent_type {
+                    1 => InternalAgentType::Claude,
+                    2 => InternalAgentType::Gemini,
+                    3 => InternalAgentType::Codex,
+                    4 => InternalAgentType::Opencode,
+                    _ => InternalAgentType::Custom,
+                },
+                name: a.name.clone(),
+                command: a.command.clone(),
+                default_args: a.default_args.clone(),
+                plan_template: if a.plan_template.is_empty() {
+                    None
+                } else {
+                    Some(a.plan_template.clone())
+                },
+                implement_template: if a.implement_template.is_empty() {
+                    None
+                } else {
+                    Some(a.implement_template.clone())
+                },
+            })
+            .collect(),
+        env_vars: proto.env_vars.clone(),
     }
 }

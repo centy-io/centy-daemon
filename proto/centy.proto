@@ -164,6 +164,23 @@ service CentyDaemon {
 
   // Mark multiple issues as compacted
   rpc MarkIssuesCompacted(MarkIssuesCompactedRequest) returns (MarkIssuesCompactedResponse);
+
+  // ============ LLM Agent RPCs ============
+
+  // Spawn an LLM agent to work on an issue
+  rpc SpawnAgent(SpawnAgentRequest) returns (SpawnAgentResponse);
+
+  // Get current LLM work session for a project
+  rpc GetLlmWork(GetLlmWorkRequest) returns (GetLlmWorkResponse);
+
+  // Clear the active LLM work tracking
+  rpc ClearLlmWork(ClearLlmWorkRequest) returns (ClearLlmWorkResponse);
+
+  // Get local LLM configuration (config.local.json)
+  rpc GetLocalLlmConfig(GetLocalLlmConfigRequest) returns (GetLocalLlmConfigResponse);
+
+  // Update local LLM configuration
+  rpc UpdateLocalLlmConfig(UpdateLocalLlmConfigRequest) returns (UpdateLocalLlmConfigResponse);
 }
 
 // ============ Init Messages ============
@@ -913,4 +930,111 @@ message MarkIssuesCompactedResponse {
   bool success = 1;
   string error = 2;
   uint32 marked_count = 3;            // Number of issues successfully marked
+}
+
+// ============ LLM Agent Messages ============
+
+// Predefined agent types
+enum AgentType {
+  AGENT_TYPE_UNSPECIFIED = 0;
+  AGENT_TYPE_CLAUDE = 1;
+  AGENT_TYPE_GEMINI = 2;
+  AGENT_TYPE_CODEX = 3;
+  AGENT_TYPE_OPENCODE = 4;
+  AGENT_TYPE_CUSTOM = 5;
+}
+
+// Action types for LLM agents
+enum LlmAction {
+  LLM_ACTION_UNSPECIFIED = 0;
+  LLM_ACTION_PLAN = 1;
+  LLM_ACTION_IMPLEMENT = 2;
+}
+
+// Agent configuration (stored in config.local.json)
+message AgentConfig {
+  AgentType agent_type = 1;
+  string name = 2;                      // Display name (e.g., "claude", "my-agent")
+  string command = 3;                   // CLI command (e.g., "claude", "/path/to/agent")
+  repeated string default_args = 4;     // Default arguments for the CLI
+  string plan_template = 5;             // Template name for "plan" action
+  string implement_template = 6;        // Template name for "implement" action
+}
+
+// Local LLM configuration (config.local.json - not version controlled)
+message LocalLlmConfig {
+  string default_agent = 1;             // Name of default agent to use
+  repeated AgentConfig agents = 2;      // Available agents
+  map<string, string> env_vars = 3;     // Environment variables for agents
+}
+
+// Request to spawn an LLM agent
+message SpawnAgentRequest {
+  string project_path = 1;
+  string issue_id = 2;                  // UUID or display number of issue to work on
+  LlmAction action = 3;                 // "plan" or "implement"
+  string agent_name = 4;                // Agent to use (empty = default)
+  repeated string extra_args = 5;       // Additional CLI arguments
+}
+
+message SpawnAgentResponse {
+  bool success = 1;
+  string error = 2;
+  string agent_name = 3;                // Which agent was spawned
+  string issue_id = 4;                  // Resolved issue UUID
+  uint32 display_number = 5;            // Issue display number
+  string prompt_preview = 6;            // First 500 chars of generated prompt
+}
+
+// Get active LLM work for a project
+message GetLlmWorkRequest {
+  string project_path = 1;
+}
+
+message LlmWorkSession {
+  string issue_id = 1;
+  uint32 display_number = 2;
+  string issue_title = 3;
+  string agent_name = 4;
+  LlmAction action = 5;
+  string started_at = 6;                // ISO timestamp
+  uint32 pid = 7;                       // Process ID (0 if unknown/exited)
+}
+
+message GetLlmWorkResponse {
+  bool has_active_work = 1;
+  LlmWorkSession session = 2;           // Current session (if any)
+}
+
+// Clear active work tracking
+message ClearLlmWorkRequest {
+  string project_path = 1;
+}
+
+message ClearLlmWorkResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Get local LLM config
+message GetLocalLlmConfigRequest {
+  string project_path = 1;              // Empty = global config only
+}
+
+message GetLocalLlmConfigResponse {
+  LocalLlmConfig config = 1;
+  bool has_project_config = 2;
+  bool has_global_config = 3;
+}
+
+// Update local LLM config
+message UpdateLocalLlmConfigRequest {
+  string project_path = 1;              // Empty = update global config
+  LocalLlmConfig config = 2;
+}
+
+message UpdateLocalLlmConfigResponse {
+  bool success = 1;
+  string error = 2;
+  LocalLlmConfig config = 3;
 }

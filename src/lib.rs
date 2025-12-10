@@ -2,6 +2,7 @@ pub mod config;
 pub mod docs;
 pub mod features;
 pub mod issue;
+pub mod llm;
 pub mod manifest;
 pub mod migration;
 pub mod pr;
@@ -50,3 +51,8 @@ pub use migration::{
     MigrationRegistry, MigrationResult,
 };
 pub use version::{compare_versions, daemon_version, SemVer, VersionComparison, VersionError};
+pub use llm::{
+    spawn_agent, get_effective_local_config, read_work_session, clear_work_session,
+    record_work_session, AgentConfig, AgentType, LocalLlmConfig, LlmAction, LlmError,
+    LlmWorkSession, PromptBuilder,
+};

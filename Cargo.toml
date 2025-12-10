@@ -59,6 +59,9 @@ regex = "1"
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }
 
+# Command existence checking
+which = "6"
+
 [build-dependencies]
 tonic-build = "0.12"
 
