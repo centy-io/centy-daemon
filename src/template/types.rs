@@ -10,6 +10,7 @@ pub enum TemplateType {
 }
 
 impl TemplateType {
+    #[must_use] 
     pub fn folder_name(&self) -> &'static str {
         match self {
             TemplateType::Issue => "issues",
@@ -20,7 +21,7 @@ impl TemplateType {
 }
 
 /// Context for issue templates
-/// Placeholders: {{title}}, {{description}}, {{priority}}, {{priority_label}}, {{status}}, {{created_at}}, {{custom_fields}}
+/// Placeholders: {{title}}, {{description}}, {{priority}}, {{`priority_label`}}, {{status}}, {{`created_at`}}, {{`custom_fields`}}
 #[derive(Debug, Clone, Serialize)]
 pub struct IssueTemplateContext {
     pub title: String,
@@ -33,7 +34,7 @@ pub struct IssueTemplateContext {
 }
 
 /// Context for doc templates
-/// Placeholders: {{title}}, {{content}}, {{slug}}, {{created_at}}, {{updated_at}}
+/// Placeholders: {{title}}, {{content}}, {{slug}}, {{`created_at`}}, {{`updated_at`}}
 #[derive(Debug, Clone, Serialize)]
 pub struct DocTemplateContext {
     pub title: String,
@@ -44,8 +45,8 @@ pub struct DocTemplateContext {
 }
 
 /// Context for LLM templates
-/// Placeholders: {{issue_id}}, {{display_number}}, {{title}}, {{description}}, {{status}},
-/// {{priority}}, {{priority_label}}, {{created_at}}, {{custom_fields}}, {{action}}, {{project_path}}
+/// Placeholders: {{`issue_id`}}, {{`display_number`}}, {{title}}, {{description}}, {{status}},
+/// {{priority}}, {{`priority_label`}}, {{`created_at`}}, {{`custom_fields`}}, {{action}}, {{`project_path`}}
 #[derive(Debug, Clone, Serialize)]
 pub struct LlmTemplateContext {
     pub issue_id: String,

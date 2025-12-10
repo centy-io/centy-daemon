@@ -7,15 +7,13 @@ use tokio::fs;
 use tracing::warn;
 
 /// Track a project access - called on any RPC operation
-/// Updates last_accessed timestamp, creates new entry if not exists
+/// Updates `last_accessed` timestamp, creates new entry if not exists
 pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     let path = Path::new(project_path);
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| project_path.to_string());
+        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle to prevent race conditions
     let _guard = get_lock().lock().await;
@@ -59,9 +57,7 @@ pub async fn untrack_project(project_path: &str) -> Result<(), RegistryError> {
 
     // Try canonical path first, fall back to original
     let canonical_path = path
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| project_path.to_string());
+        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle to prevent race conditions
     let _guard = get_lock().lock().await;
@@ -162,9 +158,7 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
 
     // Canonicalize path
     let canonical_path = path
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| project_path.to_string());
+        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     let registry = read_registry().await?;
 
@@ -230,9 +224,7 @@ pub async fn set_project_favorite(
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| project_path.to_string());
+        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -248,8 +240,8 @@ pub async fn set_project_favorite(
         return Err(RegistryError::ProjectNotFound(project_path.to_string()));
     };
 
-    // Now we can safely get the mutable entry
-    let tracked = registry.projects.get_mut(&key).unwrap();
+    // Now we can safely get the mutable entry (key existence was checked above)
+    let tracked = registry.projects.get_mut(&key).expect("key was verified to exist");
     tracked.is_favorite = is_favorite;
     let tracked_clone = tracked.clone();
 
@@ -269,9 +261,7 @@ pub async fn set_project_archived(
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| project_path.to_string());
+        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -287,8 +277,8 @@ pub async fn set_project_archived(
         return Err(RegistryError::ProjectNotFound(project_path.to_string()));
     };
 
-    // Now we can safely get the mutable entry
-    let tracked = registry.projects.get_mut(&key).unwrap();
+    // Now we can safely get the mutable entry (key existence was checked above)
+    let tracked = registry.projects.get_mut(&key).expect("key was verified to exist");
     tracked.is_archived = is_archived;
     let tracked_clone = tracked.clone();
 

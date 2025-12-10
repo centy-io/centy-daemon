@@ -67,6 +67,51 @@ tonic-build = "0.12"
 
 [dev-dependencies]
 tempfile = "3"
+cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "user-hooks"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+# Allow dead code since many items are exported for library use
+dead_code = "allow"
+
+[lints.clippy]
+# Enable pedantic lints
+pedantic = { level = "warn", priority = -1 }
+
+# unwrap_used is a restriction lint (not pedantic), allow it
+# Code review should catch inappropriate unwrap usage
+
+# Allow noisy pedantic lints
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+module_name_repetitions = "allow"
+too_many_lines = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+struct_excessive_bools = "allow"
+map_unwrap_or = "allow"
+single_match_else = "allow"
+unused_self = "allow"
+needless_pass_by_value = "allow"
+items_after_statements = "allow"
+match_same_arms = "allow"
+wildcard_imports = "allow"
+return_self_not_must_use = "allow"
+format_push_string = "allow"
+wrong_self_convention = "allow"
+too_many_arguments = "allow"
+enum_variant_names = "allow"
+assigning_clones = "allow"
+missing_panics_doc = "allow"
+default_trait_access = "allow"
+const_is_empty = "allow"
+manual_let_else = "allow"
+unused_async = "allow"
+struct_field_names = "allow"
+trivially_copy_pass_by_ref = "allow"
 
 [[bin]]
 name = "centy-daemon"

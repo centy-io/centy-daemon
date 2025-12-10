@@ -32,6 +32,7 @@ pub struct IssueMetadata {
 }
 
 impl IssueMetadata {
+    #[must_use] 
     pub fn new(
         display_number: u32,
         status: String,
@@ -62,7 +63,7 @@ where
 
     struct PriorityVisitor;
 
-    impl<'de> Visitor<'de> for PriorityVisitor {
+    impl Visitor<'_> for PriorityVisitor {
         type Value = u32;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

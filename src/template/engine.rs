@@ -26,17 +26,20 @@ pub struct TemplateEngine {
 }
 
 impl TemplateEngine {
+    #[must_use] 
     pub fn new() -> Self {
         let handlebars = Handlebars::new();
         Self { handlebars }
     }
 
     /// Get the templates directory path
+    #[must_use] 
     pub fn get_templates_path(project_path: &Path) -> std::path::PathBuf {
         get_centy_path(project_path).join("templates")
     }
 
     /// Get the path for a specific template type's folder
+    #[must_use] 
     pub fn get_template_type_path(
         project_path: &Path,
         template_type: TemplateType,
@@ -45,7 +48,7 @@ impl TemplateEngine {
     }
 
     /// Load a template from disk by name
-    /// Looks for "{template_name}.md" in the appropriate template folder
+    /// Looks for "{`template_name}.md`" in the appropriate template folder
     pub async fn load_template(
         &self,
         project_path: &Path,
@@ -53,7 +56,7 @@ impl TemplateEngine {
         template_name: &str,
     ) -> Result<String, TemplateError> {
         let template_folder = Self::get_template_type_path(project_path, template_type);
-        let file_name = format!("{}.md", template_name);
+        let file_name = format!("{template_name}.md");
         let template_path = template_folder.join(&file_name);
 
         if template_path.exists() {

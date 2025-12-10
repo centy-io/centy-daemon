@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         info!("Received restart signal, stopping server...");
                         break;
                     }
-                    ShutdownSignal::None => continue,
+                    ShutdownSignal::None => {}
                 }
             }
         })

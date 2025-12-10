@@ -118,14 +118,14 @@ fn get_mime_type(filename: &str) -> Option<String> {
     // Check image types
     for (ext, mime) in IMAGE_MIME_TYPES {
         if extension == *ext {
-            return Some(mime.to_string());
+            return Some((*mime).to_string());
         }
     }
 
     // Check video types
     for (ext, mime) in VIDEO_MIME_TYPES {
         if extension == *ext {
-            return Some(mime.to_string());
+            return Some((*mime).to_string());
         }
     }
 
@@ -211,7 +211,7 @@ pub async fn add_asset(
             }
 
             let assets_dir = issue_path.join("assets");
-            let manifest_base = format!("issues/{}/assets/", id);
+            let manifest_base = format!("issues/{id}/assets/");
             (assets_dir, manifest_base)
         }
         AssetScope::Shared => {
@@ -254,7 +254,7 @@ pub async fn add_asset(
 
     Ok(AddAssetResult {
         asset: asset_info,
-        path: format!(".centy/{}{}", manifest_base_path, sanitized_filename),
+        path: format!(".centy/{manifest_base_path}{sanitized_filename}"),
     })
 }
 

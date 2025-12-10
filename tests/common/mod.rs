@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -6,7 +8,7 @@ pub fn create_test_dir() -> TempDir {
     tempfile::tempdir().expect("Failed to create temp directory")
 }
 
-/// Initialize a centy project in the given directory by calling execute_reconciliation
+/// Initialize a centy project in the given directory by calling `execute_reconciliation`
 pub async fn init_centy_project(project_path: &Path) {
     use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 

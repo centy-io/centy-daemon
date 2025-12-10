@@ -2,6 +2,7 @@ mod managed_files;
 mod plan;
 mod execute;
 
-pub use managed_files::{ManagedFileTemplate, get_managed_files};
-pub use plan::{ReconciliationPlan, FileInfo, build_reconciliation_plan};
-pub use execute::{ReconciliationDecisions, execute_reconciliation, ReconciliationResult};
+#[allow(unused_imports)]
+pub use plan::{FileInfo, ReconciliationPlan, build_reconciliation_plan};
+#[allow(unused_imports)]
+pub use execute::{ReconciliationDecisions, ReconciliationResult, execute_reconciliation};

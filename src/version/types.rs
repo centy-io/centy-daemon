@@ -24,7 +24,8 @@ pub struct SemVer {
 }
 
 impl SemVer {
-    /// Create a new SemVer instance.
+    /// Create a new `SemVer` instance.
+    #[must_use] 
     pub fn new(major: u32, minor: u32, patch: u32) -> Self {
         Self {
             major,
@@ -33,7 +34,7 @@ impl SemVer {
         }
     }
 
-    /// Parse a version string (e.g., "1.2.3") into a SemVer.
+    /// Parse a version string (e.g., "1.2.3") into a `SemVer`.
     pub fn parse(s: &str) -> Result<Self, VersionError> {
         let parts: Vec<&str> = s.split('.').collect();
         if parts.len() != 3 {
@@ -151,12 +152,10 @@ mod tests {
 
     #[test]
     fn test_semver_ordering() {
-        let mut versions = vec![
-            SemVer::new(2, 0, 0),
+        let mut versions = [SemVer::new(2, 0, 0),
             SemVer::new(0, 1, 0),
             SemVer::new(1, 0, 0),
-            SemVer::new(1, 1, 0),
-        ];
+            SemVer::new(1, 1, 0)];
         versions.sort();
 
         assert_eq!(versions[0], SemVer::new(0, 1, 0));

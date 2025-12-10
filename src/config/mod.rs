@@ -81,7 +81,7 @@ pub struct CentyConfig {
     pub custom_fields: Vec<CustomFieldDefinition>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
-    /// Allowed status values for issues (default: ["open", "in-progress", "closed"])
+    /// Allowed status values for issues (default: `["open", "in-progress", "closed"]`)
     #[serde(default = "default_allowed_states")]
     pub allowed_states: Vec<String>,
     /// Default state for new issues (default: "open")
@@ -100,6 +100,7 @@ pub struct CentyConfig {
 
 impl CentyConfig {
     /// Get the effective version (config version or daemon default).
+    #[must_use] 
     pub fn effective_version(&self) -> String {
         self.version
             .clone()

@@ -3,8 +3,7 @@ mod common;
 use centy_daemon::docs::{
     create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
 };
-use common::{create_test_dir, init_centy_project, verify_centy_structure};
-use std::path::Path;
+use common::{create_test_dir, init_centy_project};
 
 // ============ Create Doc Tests ============
 

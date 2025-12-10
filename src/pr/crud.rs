@@ -159,17 +159,13 @@ pub async fn list_prs(
                     Ok(pr) => {
                         // Apply filters
                         let status_match = status_filter
-                            .map(|s| pr.metadata.status == s)
-                            .unwrap_or(true);
+                            .is_none_or(|s| pr.metadata.status == s);
                         let source_match = source_branch_filter
-                            .map(|s| pr.metadata.source_branch == s)
-                            .unwrap_or(true);
+                            .is_none_or(|s| pr.metadata.source_branch == s);
                         let target_match = target_branch_filter
-                            .map(|t| pr.metadata.target_branch == t)
-                            .unwrap_or(true);
+                            .is_none_or(|t| pr.metadata.target_branch == t);
                         let priority_match = priority_filter
-                            .map(|p| pr.metadata.priority == p)
-                            .unwrap_or(true);
+                            .is_none_or(|p| pr.metadata.priority == p);
 
                         if status_match && source_match && target_match && priority_match {
                             prs.push(pr);
@@ -177,7 +173,6 @@ pub async fn list_prs(
                     }
                     Err(_) => {
                         // Skip PRs that can't be read
-                        continue;
                     }
                 }
             }
@@ -258,7 +253,7 @@ pub async fn update_pr(
 
     // Read config for priority_levels validation
     let config = read_config(project_path).await.ok().flatten();
-    let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Read current PR
     let current = read_pr_from_disk(&pr_path, pr_id).await?;
@@ -394,8 +389,7 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
 
     if !pr_md_path.exists() || !metadata_path.exists() {
         return Err(PrCrudError::InvalidPrFormat(format!(
-            "PR {} is missing required files",
-            pr_id
+            "PR {pr_id} is missing required files"
         )));
     }
 
@@ -452,8 +446,7 @@ fn parse_pr_md(content: &str) -> (String, String) {
     // First line should be the title (# Title)
     let title = lines[0]
         .strip_prefix('#')
-        .map(|s| s.trim())
-        .unwrap_or(lines[0])
+        .map_or(lines[0], str::trim)
         .to_string();
 
     // Rest is description (skip empty lines after title)
@@ -471,9 +464,9 @@ fn parse_pr_md(content: &str) -> (String, String) {
 /// Generate the PR markdown content
 fn generate_pr_md(title: &str, description: &str) -> String {
     if description.is_empty() {
-        format!("# {}\n", title)
+        format!("# {title}\n")
     } else {
-        format!("# {}\n\n{}\n", title, description)
+        format!("# {title}\n\n{description}\n")
     }
 }
 

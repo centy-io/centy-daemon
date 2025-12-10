@@ -9,9 +9,7 @@ use std::path::Path;
 /// Helper to get canonical path for comparison
 fn canonical_path(path: &str) -> String {
     Path::new(path)
-        .canonicalize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| path.to_string())
+        .canonicalize().map_or_else(|_| path.to_string(), |p| p.to_string_lossy().to_string())
 }
 
 #[tokio::test]
@@ -162,7 +160,7 @@ async fn test_project_info_counts_issues() {
     // Create some issues
     for i in 1..=3 {
         let options = CreateIssueOptions {
-            title: format!("Issue {}", i),
+            title: format!("Issue {i}"),
             ..Default::default()
         };
         create_issue(project_path, options)
@@ -195,7 +193,7 @@ async fn test_project_info_counts_docs() {
     // Create some docs
     for i in 1..=2 {
         let options = CreateDocOptions {
-            title: format!("Doc {}", i),
+            title: format!("Doc {i}"),
             content: "Content".to_string(),
             slug: None,
             template: None,

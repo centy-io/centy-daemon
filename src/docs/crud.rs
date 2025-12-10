@@ -55,6 +55,7 @@ pub struct DocMetadata {
 }
 
 impl DocMetadata {
+    #[must_use] 
     pub fn new() -> Self {
         let now = now_iso();
         Self {
@@ -143,7 +144,7 @@ pub async fn create_doc(
     };
 
     // Check if slug already exists
-    let doc_path = docs_path.join(format!("{}.md", slug));
+    let doc_path = docs_path.join(format!("{slug}.md"));
     if doc_path.exists() {
         return Err(DocError::SlugAlreadyExists(slug));
     }
@@ -177,7 +178,7 @@ pub async fn create_doc(
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    let created_file = format!(".centy/docs/{}.md", slug);
+    let created_file = format!(".centy/docs/{slug}.md");
 
     Ok(CreateDocResult {
         slug,
@@ -194,7 +195,7 @@ pub async fn get_doc(project_path: &Path, slug: &str) -> Result<Doc, DocError> {
         .ok_or(DocError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let doc_path = centy_path.join("docs").join(format!("{}.md", slug));
+    let doc_path = centy_path.join("docs").join(format!("{slug}.md"));
 
     if !doc_path.exists() {
         return Err(DocError::DocNotFound(slug.to_string()));
@@ -222,16 +223,16 @@ pub async fn list_docs(project_path: &Path) -> Result<Vec<Doc>, DocError> {
 
     while let Some(entry) = entries.next_entry().await? {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
             if let Some(slug) = path.file_stem().and_then(|s| s.to_str()) {
                 // Skip the README.md that's managed by centy
                 if slug == "README" {
                     continue;
                 }
-                match read_doc_from_disk(&path, slug).await {
-                    Ok(doc) => docs.push(doc),
-                    Err(_) => continue, // Skip docs that can't be read
+                if let Ok(doc) = read_doc_from_disk(&path, slug).await {
+                    docs.push(doc);
                 }
+                // Skip docs that can't be read
             }
         }
     }
@@ -255,7 +256,7 @@ pub async fn update_doc(
 
     let centy_path = get_centy_path(project_path);
     let docs_path = centy_path.join("docs");
-    let doc_path = docs_path.join(format!("{}.md", slug));
+    let doc_path = docs_path.join(format!("{slug}.md"));
 
     if !doc_path.exists() {
         return Err(DocError::DocNotFound(slug.to_string()));
@@ -275,7 +276,7 @@ pub async fn update_doc(
             validate_slug(&new_slug)?;
 
             // Check if new slug already exists
-            let new_path = docs_path.join(format!("{}.md", new_slug));
+            let new_path = docs_path.join(format!("{new_slug}.md"));
             if new_path.exists() {
                 return Err(DocError::SlugAlreadyExists(new_slug));
             }
@@ -300,7 +301,7 @@ pub async fn update_doc(
         fs::remove_file(&doc_path).await?;
 
         // Write new file
-        let new_path = docs_path.join(format!("{}.md", new_slug));
+        let new_path = docs_path.join(format!("{new_slug}.md"));
         fs::write(&new_path, &doc_content).await?;
 
         new_slug.clone()
@@ -333,7 +334,7 @@ pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResu
         .ok_or(DocError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let doc_path = centy_path.join("docs").join(format!("{}.md", slug));
+    let doc_path = centy_path.join("docs").join(format!("{slug}.md"));
 
     if !doc_path.exists() {
         return Err(DocError::DocNotFound(slug.to_string()));
@@ -408,7 +409,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
                 .collect();
 
             // Skip the title line if it matches (# Title)
-            let body = if body_lines.first().map_or(false, |l| l.starts_with("# ")) {
+            let body = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
                 body_lines[1..]
                     .iter()
                     .skip_while(|line| line.is_empty())

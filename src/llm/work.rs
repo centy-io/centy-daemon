@@ -90,6 +90,7 @@ pub async fn clear_work_session(project_path: &Path) -> Result<(), WorkTrackingE
 
 /// Check if a PID is still running (Unix)
 #[cfg(unix)]
+#[must_use] 
 pub fn is_process_running(pid: u32) -> bool {
     use std::process::Command;
 
@@ -128,7 +129,7 @@ pub async fn get_active_work_status(
 ) -> Result<Option<(LlmWorkSession, bool)>, WorkTrackingError> {
     match read_work_session(project_path).await? {
         Some(session) => {
-            let is_running = session.pid.map(is_process_running).unwrap_or(false);
+            let is_running = session.pid.is_some_and(is_process_running);
             Ok(Some((session, is_running)))
         }
         None => Ok(None),
@@ -229,7 +230,7 @@ mod tests {
     fn test_is_process_running_invalid_pid() {
         // PID 0 is special and should not be "running" in the usual sense
         // A very high PID is likely not running
-        assert!(!is_process_running(999999999));
+        assert!(!is_process_running(999_999_999));
     }
 
     #[cfg(unix)]

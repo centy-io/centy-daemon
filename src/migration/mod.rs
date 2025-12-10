@@ -24,8 +24,11 @@ pub mod migrations;
 mod registry;
 mod types;
 
+#[allow(unused_imports)]
 pub use executor::MigrationExecutor;
+#[allow(unused_imports)]
 pub use registry::MigrationRegistry;
+#[allow(unused_imports)]
 pub use types::{Migration, MigrationDirection, MigrationError, MigrationResult};
 
 use migrations::v0_1_0::InitialVersionMigration;
@@ -36,6 +39,7 @@ use std::sync::Arc;
 /// This function creates a new registry and registers all migrations
 /// in the correct order. Call this to get the standard registry for
 /// migration operations.
+#[must_use] 
 pub fn create_registry() -> Arc<MigrationRegistry> {
     let mut registry = MigrationRegistry::new();
 

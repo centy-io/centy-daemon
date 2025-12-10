@@ -2,11 +2,12 @@ mod storage;
 mod tracking;
 mod types;
 
-pub use storage::{get_registry_path, read_registry, write_registry};
+#[allow(unused_imports)]
 pub use tracking::{
-    enrich_project, get_project_info, list_projects, set_project_archived, set_project_favorite,
+    get_project_info, list_projects, set_project_archived, set_project_favorite,
     track_project, track_project_async, untrack_project,
 };
+#[allow(unused_imports)]
 pub use types::{ProjectInfo, ProjectRegistry, TrackedProject};
 
 use thiserror::Error;

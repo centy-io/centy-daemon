@@ -63,7 +63,7 @@ pub fn detect_current_branch(project_path: &Path) -> Result<String, GitError> {
 /// Runs `git rev-parse --verify <branch>` to check if the branch exists.
 pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool, GitError> {
     let output = Command::new("git")
-        .args(["rev-parse", "--verify", &format!("refs/heads/{}", branch)])
+        .args(["rev-parse", "--verify", &format!("refs/heads/{branch}")])
         .current_dir(project_path)
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
@@ -71,7 +71,7 @@ pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool,
     // Also check remote branches
     if !output.status.success() {
         let output_remote = Command::new("git")
-            .args(["rev-parse", "--verify", &format!("refs/remotes/origin/{}", branch)])
+            .args(["rev-parse", "--verify", &format!("refs/remotes/origin/{branch}")])
             .current_dir(project_path)
             .output()
             .map_err(|e| GitError::CommandError(e.to_string()))?;
@@ -83,6 +83,7 @@ pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool,
 }
 
 /// Check if the current directory is a git repository.
+#[must_use] 
 pub fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])
@@ -96,6 +97,7 @@ pub fn is_git_repository(project_path: &Path) -> bool {
 ///
 /// Checks if 'main' exists first, then falls back to 'master'.
 /// If neither exists, returns "main" as the default.
+#[must_use] 
 pub fn get_default_branch(project_path: &Path) -> String {
     // Check if main exists
     if validate_branch_exists(project_path, "main").unwrap_or(false) {

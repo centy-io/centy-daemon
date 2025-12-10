@@ -42,6 +42,7 @@ pub struct ReconciliationPlan {
 
 impl ReconciliationPlan {
     /// Check if user decisions are needed
+    #[must_use] 
     pub fn needs_decisions(&self) -> bool {
         !self.to_restore.is_empty() || !self.to_reset.is_empty()
     }
@@ -78,10 +79,7 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
             }),
         };
 
-        if !exists_on_disk {
-            // File doesn't exist - needs to be created
-            plan.to_create.push(file_info);
-        } else {
+        if exists_on_disk {
             // File exists on disk
             match &template.file_type {
                 ManagedFileType::Directory => {
@@ -108,6 +106,9 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
                     }
                 }
             }
+        } else {
+            // File doesn't exist - needs to be created
+            plan.to_create.push(file_info);
         }
     }
 
@@ -117,10 +118,10 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
             let full_path = centy_path.join(disk_path.trim_end_matches('/'));
             let is_dir = full_path.is_dir();
 
-            let hash = if !is_dir {
-                compute_file_hash(&full_path).await.unwrap_or_default()
-            } else {
+            let hash = if is_dir {
                 String::new()
+            } else {
+                compute_file_hash(&full_path).await.unwrap_or_default()
             };
 
             plan.user_files.push(FileInfo {
@@ -150,7 +151,7 @@ async fn scan_centy_folder(centy_path: &Path) -> HashSet<String> {
     for entry in WalkDir::new(centy_path)
         .min_depth(1)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
     {
         let path = entry.path();
 

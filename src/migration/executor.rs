@@ -18,6 +18,7 @@ pub struct MigrationExecutor {
 
 impl MigrationExecutor {
     /// Create a new executor with the given registry.
+    #[must_use] 
     pub fn new(registry: Arc<MigrationRegistry>) -> Self {
         Self { registry }
     }
@@ -115,7 +116,7 @@ impl MigrationExecutor {
                     from_version: current_version.to_string(),
                     to_version: target_version.to_string(),
                     migrations_applied: vec![],
-                    error: Some(format!("Migration {} failed: {}", migration_name, e)),
+                    error: Some(format!("Migration {migration_name} failed: {e}")),
                 });
             }
 

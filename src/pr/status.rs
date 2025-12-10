@@ -21,8 +21,9 @@ pub fn validate_pr_status(status: &str, allowed_states: &[String]) -> bool {
 }
 
 /// Get the default allowed PR statuses as a Vec<String>
+#[must_use] 
 pub fn default_pr_statuses() -> Vec<String> {
-    DEFAULT_PR_STATUSES.iter().map(|s| s.to_string()).collect()
+    DEFAULT_PR_STATUSES.iter().map(|s| (*s).to_string()).collect()
 }
 
 #[cfg(test)]

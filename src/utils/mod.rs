@@ -14,16 +14,19 @@ pub const MANIFEST_FILE: &str = ".centy-manifest.json";
 pub const CENTY_VERSION: &str = "0.1.0";
 
 /// Get the path to the .centy folder
+#[must_use] 
 pub fn get_centy_path(project_path: &Path) -> std::path::PathBuf {
     project_path.join(CENTY_FOLDER)
 }
 
 /// Get the path to the manifest file
+#[must_use] 
 pub fn get_manifest_path(project_path: &Path) -> std::path::PathBuf {
     get_centy_path(project_path).join(MANIFEST_FILE)
 }
 
 /// Get current timestamp in ISO 8601 format
+#[must_use] 
 pub fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
 }
@@ -75,8 +78,8 @@ mod tests {
         assert!(timestamp.len() > 20, "Timestamp should be reasonably long");
 
         // Should contain date separators
-        assert!(timestamp.contains("-"), "Should contain date separator");
-        assert!(timestamp.contains(":"), "Should contain time separator");
+        assert!(timestamp.contains('-'), "Should contain date separator");
+        assert!(timestamp.contains(':'), "Should contain time separator");
 
         // Should be parseable
         let parsed = chrono::DateTime::parse_from_rfc3339(&timestamp);

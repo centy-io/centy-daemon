@@ -99,7 +99,7 @@ pub async fn create_issue(
 
     // Read config for defaults and priority_levels
     let config = read_config(project_path).await.ok().flatten();
-    let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Determine priority
     let priority = match options.priority {
@@ -120,9 +120,7 @@ pub async fn create_issue(
     // Determine status - use provided value, config.default_state, or fallback to "open"
     let status = options.status.unwrap_or_else(|| {
         config
-            .as_ref()
-            .map(|c| c.default_state.clone())
-            .unwrap_or_else(|| "open".to_string())
+            .as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
     });
 
     // Lenient validation: log warning if status is not in allowed_states
@@ -210,7 +208,7 @@ pub async fn create_issue(
 /// Get the next issue number (zero-padded to 4 digits)
 ///
 /// DEPRECATED: This function is kept for backward compatibility with legacy issues.
-/// New issues use UUID folders with display_number in metadata.
+/// New issues use UUID folders with `display_number` in metadata.
 /// Use `reconcile::get_next_display_number` for display numbers.
 #[deprecated(note = "Use UUID-based folders with display_number in metadata")]
 pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io::Error> {
@@ -237,8 +235,8 @@ pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io
 /// Generate the issue markdown content
 fn generate_issue_md(title: &str, description: &str) -> String {
     if description.is_empty() {
-        format!("# {}\n", title)
+        format!("# {title}\n")
     } else {
-        format!("# {}\n\n{}\n", title, description)
+        format!("# {title}\n\n{description}\n")
     }
 }

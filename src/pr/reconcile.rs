@@ -2,7 +2,7 @@
 //!
 //! When multiple users create PRs offline, they may assign the same display
 //! number. This module detects and resolves such conflicts by:
-//! 1. Keeping the oldest PR's display number (by created_at)
+//! 1. Keeping the oldest PR's display number (by `created_at`)
 //! 2. Reassigning newer PRs to the next available number
 
 use super::id::is_valid_pr_folder;
@@ -33,7 +33,7 @@ struct PrInfo {
 ///
 /// This function scans all PRs, finds duplicate display numbers, and
 /// reassigns them so each PR has a unique display number. The oldest
-/// PR (by created_at) keeps its original number.
+/// PR (by `created_at`) keeps its original number.
 ///
 /// Returns the number of PRs that were reassigned.
 pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, ReconcileError> {

@@ -12,12 +12,14 @@ use crate::utils::CENTY_VERSION;
 use std::path::Path;
 use tracing::warn;
 
-/// Get the current daemon version as a SemVer.
+/// Get the current daemon version as a `SemVer`.
+#[must_use] 
 pub fn daemon_version() -> SemVer {
     SemVer::parse(CENTY_VERSION).expect("CENTY_VERSION should be valid semver")
 }
 
 /// Compare project version against daemon version.
+#[must_use] 
 pub fn compare_versions(project_version: &SemVer, daemon_version: &SemVer) -> VersionComparison {
     match project_version.cmp(daemon_version) {
         std::cmp::Ordering::Equal => VersionComparison::Equal,
@@ -63,9 +65,8 @@ mod tests {
 
     #[test]
     fn test_daemon_version() {
-        let v = daemon_version();
-        // Should parse without panicking
-        assert!(v.major >= 0);
+        let _v = daemon_version();
+        // Should parse without panicking - if we got here, it worked
     }
 
     #[test]

@@ -2,7 +2,7 @@
 //!
 //! When multiple users create issues offline, they may assign the same display
 //! number. This module detects and resolves such conflicts by:
-//! 1. Keeping the oldest issue's display number (by created_at)
+//! 1. Keeping the oldest issue's display number (by `created_at`)
 //! 2. Reassigning newer issues to the next available number
 
 use super::id::is_valid_issue_folder;
@@ -33,7 +33,7 @@ struct IssueInfo {
 ///
 /// This function scans all issues, finds duplicate display numbers, and
 /// reassigns them so each issue has a unique display number. The oldest
-/// issue (by created_at) keeps its original number.
+/// issue (by `created_at`) keeps its original number.
 ///
 /// Returns the number of issues that were reassigned.
 pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, ReconcileError> {

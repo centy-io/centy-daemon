@@ -110,12 +110,14 @@ pub async fn spawn_agent(
 }
 
 /// Check if an agent command exists and is executable
+#[must_use] 
 pub fn check_agent_available(agent: &AgentConfig) -> bool {
     // Try to find the command
     which::which(&agent.command).is_ok()
 }
 
 /// Get list of available agents (those whose commands exist)
+#[must_use] 
 pub fn get_available_agents(config: &LocalLlmConfig) -> Vec<&AgentConfig> {
     config
         .agents

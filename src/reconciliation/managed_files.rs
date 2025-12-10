@@ -9,7 +9,7 @@ pub struct ManagedFileTemplate {
 }
 
 /// Default README content
-const README_CONTENT: &str = r#"# Centy Project
+const README_CONTENT: &str = r"# Centy Project
 
 This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
 
@@ -40,7 +40,7 @@ centy create issue
 ```
 
 View all issues in the `issues/` folder.
-"#;
+";
 
 /// Issues README content
 const ISSUES_README_CONTENT: &str = r#"# Issues
@@ -166,6 +166,7 @@ slug: "{{slug}}"
 "#;
 
 /// Get the list of managed files with their templates
+#[must_use] 
 pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     let mut files = HashMap::new();
 

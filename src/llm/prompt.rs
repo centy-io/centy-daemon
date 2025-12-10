@@ -21,6 +21,7 @@ pub enum LlmAction {
 }
 
 impl LlmAction {
+    #[must_use] 
     pub fn as_str(&self) -> &'static str {
         match self {
             LlmAction::Plan => "plan",
@@ -29,6 +30,7 @@ impl LlmAction {
     }
 
     /// Convert from proto enum value
+    #[must_use] 
     pub fn from_proto(value: i32) -> Option<Self> {
         match value {
             1 => Some(LlmAction::Plan),
@@ -38,6 +40,7 @@ impl LlmAction {
     }
 
     /// Convert to proto enum value
+    #[must_use] 
     pub fn to_proto(&self) -> i32 {
         match self {
             LlmAction::Plan => 1,
@@ -47,7 +50,7 @@ impl LlmAction {
 }
 
 /// Base system prompt for LLM integration
-pub const BASE_SYSTEM_PROMPT: &str = r#"# Issue Context
+pub const BASE_SYSTEM_PROMPT: &str = r"# Issue Context
 
 You are working on an issue from a local issue tracker.
 
@@ -65,10 +68,10 @@ You are working on an issue from a local issue tracker.
 
 ---
 
-"#;
+";
 
 /// Base prompt specifically for "plan" action
-pub const PLAN_ACTION_PROMPT: &str = r#"## Your Task: Planning
+pub const PLAN_ACTION_PROMPT: &str = r"## Your Task: Planning
 
 You are creating an implementation plan for this issue. Your plan should:
 
@@ -81,10 +84,10 @@ Do NOT implement anything yet. Focus on creating a clear, comprehensive plan tha
 
 ---
 
-"#;
+";
 
 /// Base prompt specifically for "implement" action
-pub const IMPLEMENT_ACTION_PROMPT: &str = r#"## Your Task: Implementation
+pub const IMPLEMENT_ACTION_PROMPT: &str = r"## Your Task: Implementation
 
 You are implementing a solution for this issue. You should:
 
@@ -98,7 +101,7 @@ When complete, update the issue status to closed.
 
 ---
 
-"#;
+";
 
 /// Build a complete prompt for an LLM agent
 pub struct PromptBuilder {
@@ -106,6 +109,7 @@ pub struct PromptBuilder {
 }
 
 impl PromptBuilder {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             template_engine: TemplateEngine::new(),
@@ -206,9 +210,9 @@ impl PromptBuilder {
         if !issue.metadata.custom_fields.is_empty() {
             context.push_str("### Custom Fields\n\n");
             for (key, value) in &issue.metadata.custom_fields {
-                context.push_str(&format!("- **{}**: {}\n", key, value));
+                context.push_str(&format!("- **{key}**: {value}\n"));
             }
-            context.push_str("\n");
+            context.push('\n');
         }
 
         context.push_str("---\n\n");
@@ -216,6 +220,7 @@ impl PromptBuilder {
     }
 
     /// Get a preview of the prompt (first N characters)
+    #[must_use] 
     pub fn preview(prompt: &str, max_chars: usize) -> String {
         if prompt.len() > max_chars {
             format!("{}...", &prompt[..max_chars])

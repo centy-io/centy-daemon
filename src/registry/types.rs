@@ -23,11 +23,12 @@ pub struct ProjectRegistry {
     /// When the registry was last modified
     pub updated_at: String,
 
-    /// Map of project path -> TrackedProject (timestamps only)
+    /// Map of project path -> `TrackedProject` (timestamps only)
     pub projects: HashMap<String, TrackedProject>,
 }
 
 impl ProjectRegistry {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             schema_version: 1,

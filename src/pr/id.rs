@@ -7,22 +7,27 @@
 use uuid::Uuid;
 
 /// Check if a string is a valid UUID
+#[must_use] 
 pub fn is_uuid(s: &str) -> bool {
     Uuid::parse_str(s).is_ok()
 }
 
 /// Check if a folder name is a valid PR folder (UUID only, no legacy format for PRs)
+#[must_use] 
 pub fn is_valid_pr_folder(name: &str) -> bool {
     is_uuid(name)
 }
 
 /// Generate a new UUID for a PR folder
+#[must_use] 
 pub fn generate_pr_id() -> String {
     Uuid::new_v4().to_string()
 }
 
 /// Get the short form of a PR ID (first 8 characters)
 /// Useful for display purposes
+#[allow(dead_code)]
+#[must_use]
 pub fn short_id(id: &str) -> &str {
     if id.len() >= 8 {
         &id[..8]

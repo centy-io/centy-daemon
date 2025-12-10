@@ -1,7 +1,7 @@
 mod common;
 
 use centy_daemon::issue::{
-    create_issue, delete_issue, get_issue, get_issue_by_display_number, is_uuid, list_issues,
+    create_issue, delete_issue, get_issue, is_uuid, list_issues,
     update_issue, CreateIssueOptions, IssueError, IssueCrudError, UpdateIssueOptions,
 };
 use common::{create_test_dir, init_centy_project};
@@ -105,7 +105,7 @@ async fn test_create_issue_requires_title() {
 
     // Try to create issue without title
     let options = CreateIssueOptions {
-        title: "".to_string(),
+        title: String::new(),
         ..Default::default()
     };
 
@@ -204,7 +204,7 @@ async fn test_list_issues_returns_all() {
     // Create multiple issues
     for i in 1..=3 {
         let options = CreateIssueOptions {
-            title: format!("Issue {}", i),
+            title: format!("Issue {i}"),
             ..Default::default()
         };
         create_issue(project_path, options).await.expect("Should create");

@@ -42,11 +42,13 @@ use tracing::info;
 
 // Import generated protobuf types
 pub mod proto {
+    #![allow(clippy::pedantic)]
+    #![allow(clippy::all)]
     tonic::include_proto!("centy");
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::*;
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +64,7 @@ pub struct CentyDaemonService {
 }
 
 impl CentyDaemonService {
+    #[must_use] 
     pub fn new(shutdown_tx: Arc<watch::Sender<ShutdownSignal>>, exe_path: Option<PathBuf>) -> Self {
         Self { shutdown_tx, exe_path }
     }
@@ -211,7 +214,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_issue(project_path, &req.issue_id).await {
             Ok(issue) => Ok(Response::new(issue_to_proto(&issue, priority_levels))),
@@ -229,7 +232,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_issue_by_display_number(project_path, req.display_number).await {
             Ok(issue) => Ok(Response::new(issue_to_proto(&issue, priority_levels))),
@@ -247,7 +250,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
         // Convert int32 priority filter: 0 means no filter
@@ -275,7 +278,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         // Convert int32 priority: 0 means don't update, otherwise use the value
         let options = UpdateIssueOptions {
@@ -333,6 +336,7 @@ impl CentyDaemon for CentyDaemonService {
         let project_path = Path::new(&req.project_path);
         let issues_path = get_centy_path(project_path).join("issues");
 
+        #[allow(deprecated)]
         match crate::issue::create::get_next_issue_number(&issues_path).await {
             Ok(issue_number) => Ok(Response::new(GetNextIssueNumberResponse { issue_number })),
             Err(e) => Err(Status::internal(e.to_string())),
@@ -936,7 +940,7 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => {
                 return Ok(Response::new(UpdateVersionResponse {
                     success: false,
-                    error: format!("Invalid target version: {}", e),
+                    error: format!("Invalid target version: {e}"),
                     from_version: String::new(),
                     to_version: String::new(),
                     migrations_applied: vec![],
@@ -983,7 +987,7 @@ impl CentyDaemon for CentyDaemonService {
         // Always wait a small amount of time to ensure the response is sent before shutting down
         tokio::spawn(async move {
             if delay > 0 {
-                tokio::time::sleep(tokio::time::Duration::from_secs(delay as u64)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(u64::from(delay))).await;
             } else {
                 // Small delay to ensure the RPC response is fully sent before shutdown
                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -992,7 +996,7 @@ impl CentyDaemon for CentyDaemonService {
         });
 
         let message = if delay > 0 {
-            format!("Daemon will shutdown in {} seconds", delay)
+            format!("Daemon will shutdown in {delay} seconds")
         } else {
             "Daemon shutting down".to_string()
         };
@@ -1030,7 +1034,7 @@ impl CentyDaemon for CentyDaemonService {
         // Always wait a small amount of time to ensure the response is sent before restarting
         tokio::spawn(async move {
             if delay > 0 {
-                tokio::time::sleep(tokio::time::Duration::from_secs(delay as u64)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(u64::from(delay))).await;
             } else {
                 // Small delay to ensure the RPC response is fully sent before restart
                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -1051,7 +1055,7 @@ impl CentyDaemon for CentyDaemonService {
         });
 
         let message = if delay > 0 {
-            format!("Daemon will restart in {} seconds", delay)
+            format!("Daemon will restart in {delay} seconds")
         } else {
             "Daemon restarting".to_string()
         };
@@ -1117,7 +1121,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_pr(project_path, &req.pr_id).await {
             Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
@@ -1135,7 +1139,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_pr_by_display_number(project_path, req.display_number).await {
             Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
@@ -1153,7 +1157,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
         let source_filter = if req.source_branch.is_empty() { None } else { Some(req.source_branch.as_str()) };
@@ -1182,7 +1186,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         let options = UpdatePrOptions {
             title: if req.title.is_empty() { None } else { Some(req.title) },
@@ -1281,7 +1285,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match list_uncompacted_issues(project_path).await {
             Ok(issues) => {
@@ -1424,7 +1428,7 @@ impl CentyDaemon for CentyDaemonService {
                 Err(e) => {
                     return Ok(Response::new(SpawnAgentResponse {
                         success: false,
-                        error: format!("Issue not found: {}", e),
+                        error: format!("Issue not found: {e}"),
                         agent_name: String::new(),
                         issue_id: String::new(),
                         display_number: 0,
@@ -1438,7 +1442,7 @@ impl CentyDaemon for CentyDaemonService {
                 Err(e) => {
                     return Ok(Response::new(SpawnAgentResponse {
                         success: false,
-                        error: format!("Issue not found: {}", e),
+                        error: format!("Issue not found: {e}"),
                         agent_name: String::new(),
                         issue_id: String::new(),
                         display_number: 0,
@@ -1454,7 +1458,7 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => {
                 return Ok(Response::new(SpawnAgentResponse {
                     success: false,
-                    error: format!("Failed to load LLM config: {}", e),
+                    error: format!("Failed to load LLM config: {e}"),
                     agent_name: String::new(),
                     issue_id: String::new(),
                     display_number: 0,
@@ -1587,7 +1591,7 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         let has_global = has_global_config().await;
-        let has_project = project_path.map(has_project_config).unwrap_or(false);
+        let has_project = project_path.is_some_and(has_project_config);
 
         match get_effective_local_config(project_path).await {
             Ok(config) => Ok(Response::new(GetLocalLlmConfigResponse {
@@ -1760,16 +1764,14 @@ fn validate_config(config: &CentyConfig) -> Result<(), String> {
     for (state, color) in &config.state_colors {
         if !hex_color_regex.is_match(color) {
             return Err(format!(
-                "invalid color '{}' for state '{}': must be hex format (#RGB or #RRGGBB)",
-                color, state
+                "invalid color '{color}' for state '{state}': must be hex format (#RGB or #RRGGBB)"
             ));
         }
     }
     for (priority, color) in &config.priority_colors {
         if !hex_color_regex.is_match(color) {
             return Err(format!(
-                "invalid color '{}' for priority '{}': must be hex format (#RGB or #RRGGBB)",
-                color, priority
+                "invalid color '{color}' for priority '{priority}': must be hex format (#RGB or #RRGGBB)"
             ));
         }
     }

@@ -127,11 +127,10 @@ pub async fn create_pr(
     let source_branch = match options.source_branch {
         Some(branch) if !branch.is_empty() => {
             // Validate branch exists if in git repo
-            if is_git_repository(project_path) {
-                if !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+            if is_git_repository(project_path)
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
                     warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
                 }
-            }
             branch
         }
         _ => {
@@ -148,11 +147,10 @@ pub async fn create_pr(
     let target_branch = match options.target_branch {
         Some(branch) if !branch.is_empty() => {
             // Validate branch exists if in git repo
-            if is_git_repository(project_path) {
-                if !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+            if is_git_repository(project_path)
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
                     warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
                 }
-            }
             branch
         }
         _ => {
@@ -167,7 +165,7 @@ pub async fn create_pr(
 
     // Read config for defaults and priority_levels
     let config = read_config(project_path).await.ok().flatten();
-    let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Determine priority
     let priority = match options.priority {
@@ -264,9 +262,9 @@ pub async fn create_pr(
 /// Generate the PR markdown content
 fn generate_pr_md(title: &str, description: &str) -> String {
     if description.is_empty() {
-        format!("# {}\n", title)
+        format!("# {title}\n")
     } else {
-        format!("# {}\n\n{}\n", title, description)
+        format!("# {title}\n\n{description}\n")
     }
 }
 

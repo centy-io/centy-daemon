@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 mod common;
 
 use centy_daemon::docs::{create_doc, CreateDocOptions};
@@ -100,13 +101,13 @@ async fn test_issue_template_with_custom_fields_loop() {
     let template_path = project_path.join(".centy/templates/issues/detailed.md");
     fs::write(
         &template_path,
-        r#"# {{title}}
+        r"# {{title}}
 
 {{#each custom_fields}}
 - **{{@key}}:** {{this}}
 {{/each}}
 
-{{description}}"#,
+{{description}}",
     )
     .await
     .expect("Should write template");
@@ -149,12 +150,12 @@ async fn test_issue_template_with_conditionals() {
     let template_path = project_path.join(".centy/templates/issues/conditional.md");
     fs::write(
         &template_path,
-        r#"# {{title}}
+        r"# {{title}}
 
 {{#if description}}
 ## Description
 {{description}}
-{{/if}}"#,
+{{/if}}",
     )
     .await
     .expect("Should write template");
@@ -181,7 +182,7 @@ async fn test_issue_template_with_conditionals() {
     // Test without description
     let options_no_desc = CreateIssueOptions {
         title: "No Desc".to_string(),
-        description: "".to_string(),
+        description: String::new(),
         template: Some("conditional".to_string()),
         ..Default::default()
     };

@@ -14,6 +14,7 @@ pub struct MigrationRegistry {
 
 impl MigrationRegistry {
     /// Create a new empty registry.
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             migrations: Vec::new(),
@@ -22,7 +23,7 @@ impl MigrationRegistry {
 
     /// Register a migration.
     ///
-    /// Migrations are automatically sorted by from_version after registration.
+    /// Migrations are automatically sorted by `from_version` after registration.
     pub fn register(&mut self, migration: Arc<dyn Migration>) {
         self.migrations.push(migration);
         // Keep sorted by from_version for efficient path finding
@@ -31,6 +32,7 @@ impl MigrationRegistry {
     }
 
     /// Get all available versions that can be migrated to.
+    #[must_use] 
     pub fn available_versions(&self) -> Vec<String> {
         let mut versions: Vec<SemVer> = self
             .migrations
@@ -40,7 +42,7 @@ impl MigrationRegistry {
 
         versions.sort();
         versions.dedup();
-        versions.iter().map(|v| v.to_string()).collect()
+        versions.iter().map(std::string::ToString::to_string).collect()
     }
 
     /// Get the migrations needed to go from one version to another.
@@ -127,7 +129,7 @@ mod tests {
             &self.to
         }
 
-        fn description(&self) -> &str {
+        fn description(&self) -> &'static str {
             "Mock migration"
         }
 

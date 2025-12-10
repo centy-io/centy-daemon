@@ -44,6 +44,7 @@ pub async fn write_manifest(
 }
 
 /// Create a new empty manifest
+#[must_use] 
 pub fn create_manifest() -> CentyManifest {
     let now = now_iso();
     CentyManifest {

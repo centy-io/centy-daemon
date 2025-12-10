@@ -153,11 +153,9 @@ pub async fn list_issues(
                     Ok(issue) => {
                         // Apply filters
                         let status_match = status_filter
-                            .map(|s| issue.metadata.status == s)
-                            .unwrap_or(true);
+                            .is_none_or(|s| issue.metadata.status == s);
                         let priority_match = priority_filter
-                            .map(|p| issue.metadata.priority == p)
-                            .unwrap_or(true);
+                            .is_none_or(|p| issue.metadata.priority == p);
 
                         if status_match && priority_match {
                             issues.push(issue);
@@ -165,7 +163,6 @@ pub async fn list_issues(
                     }
                     Err(_) => {
                         // Skip issues that can't be read
-                        continue;
                     }
                 }
             }
@@ -246,7 +243,7 @@ pub async fn update_issue(
 
     // Read config for priority_levels validation
     let config = read_config(project_path).await.ok().flatten();
-    let priority_levels = config.as_ref().map(|c| c.priority_levels).unwrap_or(3);
+    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Read current issue
     let current = read_issue_from_disk(&issue_path, issue_number).await?;
@@ -360,8 +357,7 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
 
     if !issue_md_path.exists() || !metadata_path.exists() {
         return Err(IssueCrudError::InvalidIssueFormat(format!(
-            "Issue {} is missing required files",
-            issue_number
+            "Issue {issue_number} is missing required files"
         )));
     }
 
@@ -416,8 +412,7 @@ fn parse_issue_md(content: &str) -> (String, String) {
     // First line should be the title (# Title)
     let title = lines[0]
         .strip_prefix('#')
-        .map(|s| s.trim())
-        .unwrap_or(lines[0])
+        .map_or(lines[0], str::trim)
         .to_string();
 
     // Rest is description (skip empty lines after title)
@@ -435,9 +430,9 @@ fn parse_issue_md(content: &str) -> (String, String) {
 /// Generate the issue markdown content
 fn generate_issue_md(title: &str, description: &str) -> String {
     if description.is_empty() {
-        format!("# {}\n", title)
+        format!("# {title}\n")
     } else {
-        format!("# {}\n\n{}\n", title, description)
+        format!("# {title}\n\n{description}\n")
     }
 }
 

@@ -6,14 +6,13 @@
 use crate::migration::types::{Migration, MigrationError};
 use crate::version::SemVer;
 use async_trait::async_trait;
-use once_cell::sync::Lazy;
 use std::path::Path;
 
 /// Lazy static for the "from" version (0.0.0).
-static FROM_VERSION: Lazy<SemVer> = Lazy::new(|| SemVer::new(0, 0, 0));
+static FROM_VERSION: std::sync::LazyLock<SemVer> = std::sync::LazyLock::new(|| SemVer::new(0, 0, 0));
 
 /// Lazy static for the "to" version (0.1.0).
-static TO_VERSION: Lazy<SemVer> = Lazy::new(|| SemVer::new(0, 1, 0));
+static TO_VERSION: std::sync::LazyLock<SemVer> = std::sync::LazyLock::new(|| SemVer::new(0, 1, 0));
 
 /// Initial migration that establishes version tracking for existing projects.
 ///
@@ -24,6 +23,7 @@ pub struct InitialVersionMigration;
 
 impl InitialVersionMigration {
     /// Create a new initial version migration.
+    #[must_use] 
     pub fn new() -> Self {
         Self
     }
@@ -45,7 +45,7 @@ impl Migration for InitialVersionMigration {
         &TO_VERSION
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Initialize version tracking for existing projects"
     }
 

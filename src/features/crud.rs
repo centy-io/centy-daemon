@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::issue::{list_issues, Issue};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
@@ -159,7 +161,7 @@ pub async fn save_migration(
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    let relative_path = format!(".centy/features/migrations/{}", filename);
+    let relative_path = format!(".centy/features/migrations/{filename}");
     Ok((filename, relative_path))
 }
 
@@ -191,7 +193,7 @@ pub async fn mark_issues_compacted(
         // Update compacted fields
         metadata.compacted = true;
         metadata.compacted_at = Some(now.clone());
-        metadata.updated_at = now.clone();
+        metadata.updated_at.clone_from(&now);
 
         // Write back
         fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
@@ -215,7 +217,7 @@ fn generate_migration_filename(timestamp: &str) -> String {
         .map(|c| if c == ':' { '-' } else { c })
         .collect::<String>();
 
-    format!("{}.md", safe_ts)
+    format!("{safe_ts}.md")
 }
 
 /// Count migration files in the migrations directory
@@ -229,7 +231,7 @@ async fn count_migration_files(migrations_path: &Path) -> Result<u32, std::io::E
 
     while let Some(entry) = entries.next_entry().await? {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
             count += 1;
         }
     }
@@ -238,6 +240,7 @@ async fn count_migration_files(migrations_path: &Path) -> Result<u32, std::io::E
 }
 
 /// Build compacted issue references from issues
+#[must_use] 
 pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
     issues
         .iter()
@@ -250,6 +253,7 @@ pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
 }
 
 /// Generate migration frontmatter
+#[must_use] 
 pub fn generate_migration_frontmatter(issues: &[Issue]) -> MigrationFrontmatter {
     MigrationFrontmatter {
         timestamp: now_iso(),

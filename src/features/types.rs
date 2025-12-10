@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 
 /// Status of the features system in a project
@@ -34,6 +36,7 @@ pub struct MigrationFrontmatter {
 
 impl MigrationFrontmatter {
     /// Parse frontmatter from markdown content
+    #[must_use] 
     pub fn parse(content: &str) -> Option<Self> {
         let lines: Vec<&str> = content.lines().collect();
 
@@ -50,6 +53,7 @@ impl MigrationFrontmatter {
     }
 
     /// Generate YAML frontmatter string
+    #[must_use] 
     pub fn to_yaml(&self) -> String {
         serde_yaml::to_string(self).unwrap_or_default()
     }
