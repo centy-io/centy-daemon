@@ -1,0 +1,3 @@
+# LLM integration
+
+A user can configure his active CLI tool in his workspace in a custom `config.local.json` file that will have the option to configure what code agent cli they work with, from a multi select options that will include at least `claude` `gemini` `codex` `opencode` and will have the option to trigger a plan/implement orders to is default agent, the daemon will boot a process calling this cli agent to plan/implement the issue, the user will have also an option to configure templates for those actions, the templates will be injected along side the centy system prompt, the user will have the option to declare what issue to work on or just let the agent check by itself
