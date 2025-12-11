@@ -26,9 +26,15 @@ pub fn get_manifest_path(project_path: &Path) -> std::path::PathBuf {
 }
 
 /// Get current timestamp in ISO 8601 format
-#[must_use] 
+#[must_use]
 pub fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
+}
+
+/// Format a path for display, replacing home directory with ~/
+#[must_use]
+pub fn format_display_path(path: &str) -> String {
+    replace_homedir::replace_homedir(path, "~")
 }
 
 #[cfg(test)]
@@ -102,5 +108,24 @@ mod tests {
 
         // Manifest path should be inside centy path
         assert!(manifest_path.starts_with(&centy_path));
+    }
+
+    #[test]
+    fn test_format_display_path_non_home() {
+        // Paths outside home directory should remain unchanged
+        let path = "/tmp/some/path";
+        let result = format_display_path(path);
+        assert_eq!(result, path);
+    }
+
+    #[test]
+    fn test_format_display_path_home() {
+        // Get the actual home directory for this system
+        if let Some(home) = dirs::home_dir() {
+            let home_str = home.to_string_lossy();
+            let test_path = format!("{home_str}/projects/myapp");
+            let result = format_display_path(&test_path);
+            assert_eq!(result, "~/projects/myapp");
+        }
     }
 }

@@ -32,7 +32,7 @@ use crate::registry::{
     get_project_info, list_projects, set_project_archived, set_project_favorite,
     track_project_async, untrack_project, ProjectInfo,
 };
-use crate::utils::get_centy_path;
+use crate::utils::{format_display_path, get_centy_path};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -923,7 +923,7 @@ impl CentyDaemon for CentyDaemonService {
         let daemon_ver = daemon_version();
         let registry = create_registry();
         let binary_path = std::env::current_exe()
-            .map(|p| p.to_string_lossy().to_string())
+            .map(|p| format_display_path(&p.to_string_lossy()))
             .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
@@ -1856,7 +1856,7 @@ fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
 
 fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
     proto::ProjectInfo {
-        path: info.path.clone(),
+        path: format_display_path(&info.path),
         first_accessed: info.first_accessed.clone(),
         last_accessed: info.last_accessed.clone(),
         issue_count: info.issue_count,
