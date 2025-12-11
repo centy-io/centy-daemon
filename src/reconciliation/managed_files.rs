@@ -165,6 +165,22 @@ slug: "{{slug}}"
 ```
 "#;
 
+/// CSpell configuration content
+const CSPELL_JSON_CONTENT: &str = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "centy",
+    "displayNumber",
+    "createdAt",
+    "updatedAt"
+  ],
+  "ignorePaths": [
+    ".centy-manifest.json"
+  ]
+}
+"#;
+
 /// Get the list of managed files with their templates
 #[must_use] 
 pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
@@ -239,6 +255,14 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(TEMPLATES_README_CONTENT.to_string()),
+        },
+    );
+
+    files.insert(
+        "cspell.json".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::File,
+            content: Some(CSPELL_JSON_CONTENT.to_string()),
         },
     );
 
