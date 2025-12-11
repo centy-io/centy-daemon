@@ -14,7 +14,7 @@ use crate::docs::{
     create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
 };
 use crate::issue::{
-    create_issue, delete_issue, get_issue, get_issue_by_display_number, list_issues, priority_label, update_issue,
+    create_issue, delete_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid, list_issues, priority_label, update_issue,
     CreateIssueOptions, UpdateIssueOptions,
     // Asset imports
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
@@ -48,7 +48,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -237,6 +237,47 @@ impl CentyDaemon for CentyDaemonService {
         match get_issue_by_display_number(project_path, req.display_number).await {
             Ok(issue) => Ok(Response::new(issue_to_proto(&issue, priority_levels))),
             Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn get_issues_by_uuid(
+        &self,
+        request: Request<GetIssuesByUuidRequest>,
+    ) -> Result<Response<GetIssuesByUuidResponse>, Status> {
+        let req = request.into_inner();
+
+        // Get all initialized projects from registry
+        let projects = match list_projects(false, false, false).await {
+            Ok(p) => p,
+            Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        };
+
+        match get_issues_by_uuid(&req.uuid, &projects).await {
+            Ok(result) => {
+                let issues_with_projects: Vec<ProtoIssueWithProject> = result
+                    .issues
+                    .into_iter()
+                    .map(|iwp| {
+                        // Use default priority_levels of 3 for global search
+                        let priority_levels = 3;
+
+                        ProtoIssueWithProject {
+                            issue: Some(issue_to_proto(&iwp.issue, priority_levels)),
+                            project_path: iwp.project_path,
+                            project_name: iwp.project_name,
+                        }
+                    })
+                    .collect();
+
+                let total_count = issues_with_projects.len() as i32;
+
+                Ok(Response::new(GetIssuesByUuidResponse {
+                    issues: issues_with_projects,
+                    total_count,
+                    errors: result.errors,
+                }))
+            }
+            Err(e) => Err(Status::invalid_argument(e.to_string())),
         }
     }
 

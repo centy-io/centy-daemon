@@ -2,8 +2,9 @@ use crate::config::read_config;
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
+use crate::registry::ProjectInfo;
 use crate::utils::{get_centy_path, now_iso};
-use super::id::is_valid_issue_folder;
+use super::id::{is_uuid, is_valid_issue_folder};
 use super::metadata::IssueMetadata;
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{reconcile_display_numbers, ReconcileError};
@@ -95,6 +96,21 @@ pub struct UpdateIssueResult {
 #[derive(Debug, Clone)]
 pub struct DeleteIssueResult {
     pub manifest: CentyManifest,
+}
+
+/// An issue with its source project information
+#[derive(Debug, Clone)]
+pub struct IssueWithProject {
+    pub issue: Issue,
+    pub project_path: String,
+    pub project_name: String,
+}
+
+/// Result of searching for issues by UUID across projects
+#[derive(Debug, Clone)]
+pub struct GetIssuesByUuidResult {
+    pub issues: Vec<IssueWithProject>,
+    pub errors: Vec<String>,
 }
 
 /// Get a single issue by its number
@@ -221,6 +237,65 @@ pub async fn get_issue_by_display_number(
     }
 
     Err(IssueCrudError::IssueDisplayNumberNotFound(display_number))
+}
+
+/// Search for issues by UUID across all tracked projects
+/// This is a global search that doesn't require a project_path
+pub async fn get_issues_by_uuid(
+    uuid: &str,
+    projects: &[ProjectInfo],
+) -> Result<GetIssuesByUuidResult, IssueCrudError> {
+    // Validate that uuid is a valid UUID format
+    if !is_uuid(uuid) {
+        return Err(IssueCrudError::InvalidIssueFormat(
+            "Only UUID format is supported for global search".to_string(),
+        ));
+    }
+
+    let mut found_issues = Vec::new();
+    let mut errors = Vec::new();
+
+    for project in projects {
+        // Skip uninitialized projects
+        if !project.initialized {
+            continue;
+        }
+
+        let project_path = Path::new(&project.path);
+
+        // Try to get the issue from this project
+        match get_issue(project_path, uuid).await {
+            Ok(issue) => {
+                let project_name = project.name.clone().unwrap_or_else(|| {
+                    project_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| project.path.clone())
+                });
+
+                found_issues.push(IssueWithProject {
+                    issue,
+                    project_path: project.path.clone(),
+                    project_name,
+                });
+            }
+            Err(IssueCrudError::IssueNotFound(_)) => {
+                // Not an error - issue simply doesn't exist in this project
+            }
+            Err(IssueCrudError::NotInitialized) => {
+                // Skip - project not properly initialized
+            }
+            Err(e) => {
+                // Log non-fatal errors but continue searching
+                errors.push(format!("Error searching {}: {}", project.path, e));
+            }
+        }
+    }
+
+    Ok(GetIssuesByUuidResult {
+        issues: found_issues,
+        errors,
+    })
 }
 
 /// Update an existing issue

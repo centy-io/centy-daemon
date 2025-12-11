@@ -22,6 +22,9 @@ service CentyDaemon {
   // Get a single issue by display number (human-readable number like 1, 2, 3)
   rpc GetIssueByDisplayNumber(GetIssueByDisplayNumberRequest) returns (Issue);
 
+  // Get issues by UUID across all tracked projects (global search)
+  rpc GetIssuesByUuid(GetIssuesByUuidRequest) returns (GetIssuesByUuidResponse);
+
   // List all issues with optional filtering
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
 
@@ -324,6 +327,25 @@ message GetIssueRequest {
 message GetIssueByDisplayNumberRequest {
   string project_path = 1;
   uint32 display_number = 2;      // Human-readable number (1, 2, 3...)
+}
+
+// ============ Global Issue Search Messages ============
+
+message GetIssuesByUuidRequest {
+  string uuid = 1;                // The UUID to search for (must be valid UUID format)
+}
+
+// An issue with its source project path
+message IssueWithProject {
+  Issue issue = 1;
+  string project_path = 2;        // Absolute path to the project where this issue was found
+  string project_name = 3;        // Human-readable project name (directory name)
+}
+
+message GetIssuesByUuidResponse {
+  repeated IssueWithProject issues = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;     // Non-fatal errors (e.g., projects that couldn't be accessed)
 }
 
 message ListIssuesRequest {

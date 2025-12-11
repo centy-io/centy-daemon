@@ -12,8 +12,8 @@ pub mod status;
 pub use create::{create_issue, CreateIssueOptions, CreateIssueResult};
 #[allow(unused_imports)]
 pub use crud::{
-    delete_issue, get_issue, get_issue_by_display_number, list_issues, update_issue,
-    DeleteIssueResult, Issue, IssueCrudError, UpdateIssueOptions, UpdateIssueResult,
+    delete_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid, list_issues, update_issue,
+    DeleteIssueResult, GetIssuesByUuidResult, Issue, IssueCrudError, IssueWithProject, UpdateIssueOptions, UpdateIssueResult,
 };
 #[allow(unused_imports)]
 pub use metadata::IssueMetadata;
