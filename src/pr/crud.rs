@@ -2,9 +2,10 @@ use crate::config::read_config;
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
+use crate::registry::ProjectInfo;
 use crate::utils::{get_centy_path, now_iso};
 use crate::issue::priority::{validate_priority, PriorityError};
-use super::id::is_valid_pr_folder;
+use super::id::{is_uuid, is_valid_pr_folder};
 use super::metadata::PrMetadata;
 use super::reconcile::{reconcile_pr_display_numbers, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
@@ -100,6 +101,21 @@ pub struct UpdatePrResult {
 #[derive(Debug, Clone)]
 pub struct DeletePrResult {
     pub manifest: CentyManifest,
+}
+
+/// A PR with its source project information
+#[derive(Debug, Clone)]
+pub struct PrWithProject {
+    pub pr: PullRequest,
+    pub project_path: String,
+    pub project_name: String,
+}
+
+/// Result of searching for PRs by UUID across projects
+#[derive(Debug, Clone)]
+pub struct GetPrsByUuidResult {
+    pub prs: Vec<PrWithProject>,
+    pub errors: Vec<String>,
 }
 
 /// Get a single PR by its ID (UUID)
@@ -231,6 +247,65 @@ pub async fn get_pr_by_display_number(
     }
 
     Err(PrCrudError::PrDisplayNumberNotFound(display_number))
+}
+
+/// Search for PRs by UUID across all tracked projects
+/// This is a global search that doesn't require a project_path
+pub async fn get_prs_by_uuid(
+    uuid: &str,
+    projects: &[ProjectInfo],
+) -> Result<GetPrsByUuidResult, PrCrudError> {
+    // Validate that uuid is a valid UUID format
+    if !is_uuid(uuid) {
+        return Err(PrCrudError::InvalidPrFormat(
+            "Only UUID format is supported for global search".to_string(),
+        ));
+    }
+
+    let mut found_prs = Vec::new();
+    let mut errors = Vec::new();
+
+    for project in projects {
+        // Skip uninitialized projects
+        if !project.initialized {
+            continue;
+        }
+
+        let project_path = Path::new(&project.path);
+
+        // Try to get the PR from this project
+        match get_pr(project_path, uuid).await {
+            Ok(pr) => {
+                let project_name = project.name.clone().unwrap_or_else(|| {
+                    project_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| project.path.clone())
+                });
+
+                found_prs.push(PrWithProject {
+                    pr,
+                    project_path: project.path.clone(),
+                    project_name,
+                });
+            }
+            Err(PrCrudError::PrNotFound(_)) => {
+                // Not an error - PR simply doesn't exist in this project
+            }
+            Err(PrCrudError::NotInitialized) => {
+                // Skip - project not properly initialized
+            }
+            Err(e) => {
+                // Log non-fatal errors but continue searching
+                errors.push(format!("Error searching {}: {}", project.path, e));
+            }
+        }
+    }
+
+    Ok(GetPrsByUuidResult {
+        prs: found_prs,
+        errors,
+    })
 }
 
 /// Update an existing PR

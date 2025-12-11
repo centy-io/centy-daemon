@@ -11,7 +11,7 @@ use crate::features::{
 use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::docs::{
-    create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, get_doc, get_docs_by_slug, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
 };
 use crate::issue::{
     create_issue, delete_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid, list_issues, priority_label, update_issue,
@@ -21,7 +21,7 @@ use crate::issue::{
     AssetInfo, AssetScope,
 };
 use crate::pr::{
-    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
+    create_pr, delete_pr, get_pr, get_pr_by_display_number, get_prs_by_uuid, list_prs, update_pr,
     CreatePrOptions, UpdatePrOptions,
 };
 use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
@@ -48,7 +48,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -557,6 +557,42 @@ impl CentyDaemon for CentyDaemonService {
         match get_doc(project_path, &req.slug).await {
             Ok(doc) => Ok(Response::new(doc_to_proto(&doc))),
             Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn get_docs_by_slug(
+        &self,
+        request: Request<GetDocsBySlugRequest>,
+    ) -> Result<Response<GetDocsBySlugResponse>, Status> {
+        let req = request.into_inner();
+
+        // Get all initialized projects from registry
+        let projects = match list_projects(false, false, false).await {
+            Ok(p) => p,
+            Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        };
+
+        match get_docs_by_slug(&req.slug, &projects).await {
+            Ok(result) => {
+                let docs_with_projects: Vec<ProtoDocWithProject> = result
+                    .docs
+                    .into_iter()
+                    .map(|dwp| ProtoDocWithProject {
+                        doc: Some(doc_to_proto(&dwp.doc)),
+                        project_path: dwp.project_path,
+                        project_name: dwp.project_name,
+                    })
+                    .collect();
+
+                let total_count = docs_with_projects.len() as i32;
+
+                Ok(Response::new(GetDocsBySlugResponse {
+                    docs: docs_with_projects,
+                    total_count,
+                    errors: result.errors,
+                }))
+            }
+            Err(e) => Err(Status::invalid_argument(e.to_string())),
         }
     }
 
@@ -1185,6 +1221,47 @@ impl CentyDaemon for CentyDaemonService {
         match get_pr_by_display_number(project_path, req.display_number).await {
             Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
             Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn get_prs_by_uuid(
+        &self,
+        request: Request<GetPrsByUuidRequest>,
+    ) -> Result<Response<GetPrsByUuidResponse>, Status> {
+        let req = request.into_inner();
+
+        // Get all initialized projects from registry
+        let projects = match list_projects(false, false, false).await {
+            Ok(p) => p,
+            Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        };
+
+        match get_prs_by_uuid(&req.uuid, &projects).await {
+            Ok(result) => {
+                let prs_with_projects: Vec<ProtoPrWithProject> = result
+                    .prs
+                    .into_iter()
+                    .map(|pwp| {
+                        // Use default priority_levels of 3 for global search
+                        let priority_levels = 3;
+
+                        ProtoPrWithProject {
+                            pr: Some(pr_to_proto(&pwp.pr, priority_levels)),
+                            project_path: pwp.project_path,
+                            project_name: pwp.project_name,
+                        }
+                    })
+                    .collect();
+
+                let total_count = prs_with_projects.len() as i32;
+
+                Ok(Response::new(GetPrsByUuidResponse {
+                    prs: prs_with_projects,
+                    total_count,
+                    errors: result.errors,
+                }))
+            }
+            Err(e) => Err(Status::invalid_argument(e.to_string())),
         }
     }
 
@@ -1856,7 +1933,7 @@ fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
 
 fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
     proto::ProjectInfo {
-        path: format_display_path(&info.path),
+        path: info.path.clone(),
         first_accessed: info.first_accessed.clone(),
         last_accessed: info.last_accessed.clone(),
         issue_count: info.issue_count,
@@ -1865,6 +1942,7 @@ fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
         name: info.name.clone().unwrap_or_default(),
         is_favorite: info.is_favorite,
         is_archived: info.is_archived,
+        display_path: format_display_path(&info.path),
     }
 }
 

@@ -57,6 +57,9 @@ service CentyDaemon {
   // Get a single doc by slug
   rpc GetDoc(GetDocRequest) returns (Doc);
 
+  // Get docs by slug across all tracked projects (global search)
+  rpc GetDocsBySlug(GetDocsBySlugRequest) returns (GetDocsBySlugResponse);
+
   // List all docs
   rpc ListDocs(ListDocsRequest) returns (ListDocsResponse);
 
@@ -124,6 +127,9 @@ service CentyDaemon {
 
   // Get a single PR by display number (human-readable number like 1, 2, 3)
   rpc GetPrByDisplayNumber(GetPrByDisplayNumberRequest) returns (PullRequest);
+
+  // Get PRs by UUID across all tracked projects (global search)
+  rpc GetPrsByUuid(GetPrsByUuidRequest) returns (GetPrsByUuidResponse);
 
   // List all PRs with optional filtering
   rpc ListPrs(ListPrsRequest) returns (ListPrsResponse);
@@ -494,6 +500,25 @@ message GetDocRequest {
   string slug = 2;                // e.g., "getting-started"
 }
 
+// ============ Global Doc Search Messages ============
+
+message GetDocsBySlugRequest {
+  string slug = 1;                    // The slug to search for (kebab-case)
+}
+
+// A doc with its source project path
+message DocWithProject {
+  Doc doc = 1;
+  string project_path = 2;            // Absolute path to the project where this doc was found
+  string project_name = 3;            // Human-readable project name (directory name)
+}
+
+message GetDocsBySlugResponse {
+  repeated DocWithProject docs = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;         // Non-fatal errors (e.g., projects that couldn't be accessed)
+}
+
 message ListDocsRequest {
   string project_path = 1;
 }
@@ -620,7 +645,7 @@ message ListSharedAssetsRequest {
 
 // Returned by API (enriched with live data from disk)
 message ProjectInfo {
-  string path = 1;                // Absolute path to project
+  string path = 1;                // Absolute path to project (use this for API calls)
   string first_accessed = 2;      // ISO timestamp
   string last_accessed = 3;       // ISO timestamp
   uint32 issue_count = 4;         // Fetched live from .centy/issues/
@@ -629,6 +654,7 @@ message ProjectInfo {
   string name = 7;                // Fetched live (directory name)
   bool is_favorite = 8;           // User-marked favorite status
   bool is_archived = 9;           // User-marked archived status
+  string display_path = 10;       // Human-readable path with ~/ for home dir (use for display only)
 }
 
 message ListProjectsRequest {
@@ -830,6 +856,25 @@ message GetPrRequest {
 message GetPrByDisplayNumberRequest {
   string project_path = 1;
   uint32 display_number = 2;          // Human-readable number (1, 2, 3...)
+}
+
+// ============ Global PR Search Messages ============
+
+message GetPrsByUuidRequest {
+  string uuid = 1;                    // The UUID to search for (must be valid UUID format)
+}
+
+// A PR with its source project path
+message PrWithProject {
+  PullRequest pr = 1;
+  string project_path = 2;            // Absolute path to the project where this PR was found
+  string project_name = 3;            // Human-readable project name (directory name)
+}
+
+message GetPrsByUuidResponse {
+  repeated PrWithProject prs = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;         // Non-fatal errors (e.g., projects that couldn't be accessed)
 }
 
 message ListPrsRequest {

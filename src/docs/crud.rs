@@ -1,6 +1,7 @@
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
+use crate::registry::ProjectInfo;
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -108,6 +109,21 @@ pub struct UpdateDocResult {
 #[derive(Debug, Clone)]
 pub struct DeleteDocResult {
     pub manifest: CentyManifest,
+}
+
+/// A doc with its source project information
+#[derive(Debug, Clone)]
+pub struct DocWithProject {
+    pub doc: Doc,
+    pub project_path: String,
+    pub project_name: String,
+}
+
+/// Result of searching for docs by slug across projects
+#[derive(Debug, Clone)]
+pub struct GetDocsBySlugResult {
+    pub docs: Vec<DocWithProject>,
+    pub errors: Vec<String>,
 }
 
 /// Create a new doc
@@ -241,6 +257,61 @@ pub async fn list_docs(project_path: &Path) -> Result<Vec<Doc>, DocError> {
     docs.sort_by(|a, b| a.slug.cmp(&b.slug));
 
     Ok(docs)
+}
+
+/// Search for docs by slug across all tracked projects
+/// This is a global search that doesn't require a project_path
+pub async fn get_docs_by_slug(
+    slug: &str,
+    projects: &[ProjectInfo],
+) -> Result<GetDocsBySlugResult, DocError> {
+    // Validate slug format
+    validate_slug(slug)?;
+
+    let mut found_docs = Vec::new();
+    let mut errors = Vec::new();
+
+    for project in projects {
+        // Skip uninitialized projects
+        if !project.initialized {
+            continue;
+        }
+
+        let project_path = Path::new(&project.path);
+
+        // Try to get the doc from this project
+        match get_doc(project_path, slug).await {
+            Ok(doc) => {
+                let project_name = project.name.clone().unwrap_or_else(|| {
+                    project_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| project.path.clone())
+                });
+
+                found_docs.push(DocWithProject {
+                    doc,
+                    project_path: project.path.clone(),
+                    project_name,
+                });
+            }
+            Err(DocError::DocNotFound(_)) => {
+                // Not an error - doc simply doesn't exist in this project
+            }
+            Err(DocError::NotInitialized) => {
+                // Skip - project not properly initialized
+            }
+            Err(e) => {
+                // Log non-fatal errors but continue searching
+                errors.push(format!("Error searching {}: {}", project.path, e));
+            }
+        }
+    }
+
+    Ok(GetDocsBySlugResult {
+        docs: found_docs,
+        errors,
+    })
 }
 
 /// Update an existing doc
