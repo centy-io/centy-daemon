@@ -392,6 +392,7 @@ message IssueWithProject {
   Issue issue = 1;
   string project_path = 2;        // Absolute path to the project where this issue was found
   string project_name = 3;        // Human-readable project name (directory name)
+  string display_path = 4;        // Human-readable path with ~/ for home dir (use for display only)
 }
 
 message GetIssuesByUuidResponse {
@@ -597,6 +598,7 @@ message DocWithProject {
   Doc doc = 1;
   string project_path = 2;            // Absolute path to the project where this doc was found
   string project_name = 3;            // Human-readable project name (directory name)
+  string display_path = 4;            // Human-readable path with ~/ for home dir (use for display only)
 }
 
 message GetDocsBySlugResponse {
@@ -1066,6 +1068,7 @@ message PrWithProject {
   PullRequest pr = 1;
   string project_path = 2;            // Absolute path to the project where this PR was found
   string project_name = 3;            // Human-readable project name (directory name)
+  string display_path = 4;            // Human-readable path with ~/ for home dir (use for display only)
 }
 
 message GetPrsByUuidResponse {

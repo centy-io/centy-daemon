@@ -271,6 +271,7 @@ impl CentyDaemon for CentyDaemonService {
 
                         ProtoIssueWithProject {
                             issue: Some(issue_to_proto(&iwp.issue, priority_levels)),
+                            display_path: format_display_path(&iwp.project_path),
                             project_path: iwp.project_path,
                             project_name: iwp.project_name,
                         }
@@ -663,6 +664,7 @@ impl CentyDaemon for CentyDaemonService {
                     .into_iter()
                     .map(|dwp| ProtoDocWithProject {
                         doc: Some(doc_to_proto(&dwp.doc)),
+                        display_path: format_display_path(&dwp.project_path),
                         project_path: dwp.project_path,
                         project_name: dwp.project_name,
                     })
@@ -1538,6 +1540,7 @@ impl CentyDaemon for CentyDaemonService {
 
                         ProtoPrWithProject {
                             pr: Some(pr_to_proto(&pwp.pr, priority_levels)),
+                            display_path: format_display_path(&pwp.project_path),
                             project_path: pwp.project_path,
                             project_name: pwp.project_name,
                         }
