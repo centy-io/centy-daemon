@@ -88,6 +88,7 @@ pub struct CreatePrResult {
 }
 
 /// Create a new PR
+#[allow(clippy::too_many_lines)]
 pub async fn create_pr(
     project_path: &Path,
     options: CreatePrOptions,

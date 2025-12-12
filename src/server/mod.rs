@@ -1665,6 +1665,7 @@ impl CentyDaemon for CentyDaemonService {
 
     // ============ LLM Agent RPCs ============
 
+    #[allow(clippy::too_many_lines)]
     async fn spawn_agent(
         &self,
         request: Request<SpawnAgentRequest>,

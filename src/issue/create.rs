@@ -69,6 +69,7 @@ pub struct CreateIssueResult {
 }
 
 /// Create a new issue
+#[allow(clippy::too_many_lines)]
 pub async fn create_issue(
     project_path: &Path,
     options: CreateIssueOptions,

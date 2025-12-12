@@ -267,6 +267,7 @@ pub async fn add_asset(
 ///
 /// # Returns
 /// List of assets for the issue
+#[allow(clippy::too_many_lines)]
 pub async fn list_assets(
     project_path: &Path,
     issue_id: &str,

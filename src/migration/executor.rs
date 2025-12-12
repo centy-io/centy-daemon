@@ -31,6 +31,7 @@ impl MigrationExecutor {
     /// 3. Executes each migration in order
     /// 4. Rolls back on failure
     /// 5. Updates the config with the new version on success
+    #[allow(clippy::too_many_lines)]
     pub async fn migrate(
         &self,
         project_path: &Path,
