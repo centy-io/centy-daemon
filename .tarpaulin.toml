@@ -1,20 +1,11 @@
 [default]
 engine = "Llvm"
-out = ["Html", "Lcov", "Json"]
+out = ["Lcov", "Json"]
 output-dir = "coverage"
 run-types = ["Tests", "Lib"]
 exclude-files = ["target/*", "build.rs"]
 timeout = "300"
 all = true
-branch = true
-fail-under = 90.0
-force-clean = true
-
-[ci]
-engine = "Llvm"
-out = ["Lcov", "Json"]
-output-dir = "coverage"
-timeout = "300"
 branch = true
 fail-under = 90.0
 force-clean = true
