@@ -239,6 +239,160 @@ export interface CentyClient {
     ) => void
   ): void;
 
+  // PRs
+  createPr(
+    request: CreatePrRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreatePrResponse
+    ) => void
+  ): void;
+  getPr(
+    request: GetPrRequest,
+    callback: (error: grpc.ServiceError | null, response: PullRequest) => void
+  ): void;
+  getPrByDisplayNumber(
+    request: GetPrByDisplayNumberRequest,
+    callback: (error: grpc.ServiceError | null, response: PullRequest) => void
+  ): void;
+  listPrs(
+    request: ListPrsRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListPrsResponse
+    ) => void
+  ): void;
+  updatePr(
+    request: UpdatePrRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: UpdatePrResponse
+    ) => void
+  ): void;
+  deletePr(
+    request: DeletePrRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: DeletePrResponse
+    ) => void
+  ): void;
+  getNextPrNumber(
+    request: GetNextPrNumberRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: GetNextPrNumberResponse
+    ) => void
+  ): void;
+
+  // Organizations
+  createOrganization(
+    request: CreateOrganizationRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreateOrganizationResponse
+    ) => void
+  ): void;
+  listOrganizations(
+    request: ListOrganizationsRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListOrganizationsResponse
+    ) => void
+  ): void;
+  getOrganization(
+    request: GetOrganizationRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: GetOrganizationResponse
+    ) => void
+  ): void;
+  deleteOrganization(
+    request: DeleteOrganizationRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: DeleteOrganizationResponse
+    ) => void
+  ): void;
+
+  // Org Issues
+  createOrgIssue(
+    request: CreateOrgIssueRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreateOrgIssueResponse
+    ) => void
+  ): void;
+  getOrgIssue(
+    request: GetOrgIssueRequest,
+    callback: (error: grpc.ServiceError | null, response: OrgIssue) => void
+  ): void;
+  getOrgIssueByDisplayNumber(
+    request: GetOrgIssueByDisplayNumberRequest,
+    callback: (error: grpc.ServiceError | null, response: OrgIssue) => void
+  ): void;
+  listOrgIssues(
+    request: ListOrgIssuesRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListOrgIssuesResponse
+    ) => void
+  ): void;
+  updateOrgIssue(
+    request: UpdateOrgIssueRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: UpdateOrgIssueResponse
+    ) => void
+  ): void;
+  deleteOrgIssue(
+    request: DeleteOrgIssueRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: DeleteOrgIssueResponse
+    ) => void
+  ): void;
+  getOrgConfig(
+    request: GetOrgConfigRequest,
+    callback: (error: grpc.ServiceError | null, response: OrgConfig) => void
+  ): void;
+  updateOrgConfig(
+    request: UpdateOrgConfigRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: UpdateOrgConfigResponse
+    ) => void
+  ): void;
+
+  // Links
+  createLink(
+    request: CreateLinkRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreateLinkResponse
+    ) => void
+  ): void;
+  deleteLink(
+    request: DeleteLinkRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: DeleteLinkResponse
+    ) => void
+  ): void;
+  listLinks(
+    request: ListLinksRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListLinksResponse
+    ) => void
+  ): void;
+  getAvailableLinkTypes(
+    request: GetAvailableLinkTypesRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: GetAvailableLinkTypesResponse
+    ) => void
+  ): void;
+
   // For cleanup
   close(): void;
 }
@@ -680,6 +834,349 @@ export interface RestartResponse {
   message: string;
 }
 
+// ============ PR Types ============
+
+export interface CreatePrRequest {
+  projectPath: string;
+  title: string;
+  description?: string;
+  sourceBranch?: string;
+  targetBranch?: string;
+  reviewers?: string[];
+  priority?: number;
+  status?: string;
+  customFields?: Record<string, string>;
+  template?: string;
+}
+
+export interface CreatePrResponse {
+  success: boolean;
+  error: string;
+  id: string;
+  displayNumber: number;
+  createdFiles: string[];
+  manifest?: Manifest;
+  detectedSourceBranch: string;
+}
+
+export interface GetPrRequest {
+  projectPath: string;
+  prId: string;
+}
+
+export interface GetPrByDisplayNumberRequest {
+  projectPath: string;
+  displayNumber: number;
+}
+
+export interface PullRequest {
+  id: string;
+  displayNumber: number;
+  title: string;
+  description: string;
+  metadata: PrMetadata;
+}
+
+export interface PrMetadata {
+  displayNumber: number;
+  status: string;
+  sourceBranch: string;
+  targetBranch: string;
+  reviewers: string[];
+  priority: number;
+  priorityLabel: string;
+  createdAt: string;
+  updatedAt: string;
+  mergedAt: string;
+  closedAt: string;
+  customFields: Record<string, string>;
+}
+
+export interface ListPrsRequest {
+  projectPath: string;
+  status?: string;
+  sourceBranch?: string;
+  targetBranch?: string;
+  priority?: number;
+}
+
+export interface ListPrsResponse {
+  prs: PullRequest[];
+  totalCount: number;
+}
+
+export interface UpdatePrRequest {
+  projectPath: string;
+  prId: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  sourceBranch?: string;
+  targetBranch?: string;
+  reviewers?: string[];
+  priority?: number;
+  customFields?: Record<string, string>;
+}
+
+export interface UpdatePrResponse {
+  success: boolean;
+  error: string;
+  pr?: PullRequest;
+  manifest?: Manifest;
+}
+
+export interface DeletePrRequest {
+  projectPath: string;
+  prId: string;
+}
+
+export interface DeletePrResponse {
+  success: boolean;
+  error: string;
+  manifest?: Manifest;
+}
+
+export interface GetNextPrNumberRequest {
+  projectPath: string;
+}
+
+export interface GetNextPrNumberResponse {
+  nextNumber: number;
+}
+
+// ============ Organization Types ============
+
+export interface Organization {
+  slug: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  projectCount: number;
+}
+
+export interface CreateOrganizationRequest {
+  slug?: string;
+  name: string;
+  description?: string;
+}
+
+export interface CreateOrganizationResponse {
+  success: boolean;
+  error: string;
+  organization?: Organization;
+}
+
+export interface ListOrganizationsRequest {}
+
+export interface ListOrganizationsResponse {
+  organizations: Organization[];
+  totalCount: number;
+}
+
+export interface GetOrganizationRequest {
+  slug: string;
+}
+
+export interface GetOrganizationResponse {
+  found: boolean;
+  organization?: Organization;
+}
+
+export interface DeleteOrganizationRequest {
+  slug: string;
+}
+
+export interface DeleteOrganizationResponse {
+  success: boolean;
+  error: string;
+  unassignedProjects: number;
+}
+
+// ============ Org Issue Types ============
+
+export interface OrgIssue {
+  id: string;
+  displayNumber: number;
+  title: string;
+  description: string;
+  metadata: OrgIssueMetadata;
+}
+
+export interface OrgIssueMetadata {
+  displayNumber: number;
+  status: string;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+  customFields: Record<string, string>;
+  priorityLabel: string;
+  referencedProjects: string[];
+}
+
+export interface CreateOrgIssueRequest {
+  organizationSlug: string;
+  title: string;
+  description?: string;
+  priority?: number;
+  status?: string;
+  customFields?: Record<string, string>;
+  referencedProjects?: string[];
+}
+
+export interface CreateOrgIssueResponse {
+  success: boolean;
+  error: string;
+  id: string;
+  displayNumber: number;
+  createdFiles: string[];
+}
+
+export interface GetOrgIssueRequest {
+  organizationSlug: string;
+  issueId: string;
+}
+
+export interface GetOrgIssueByDisplayNumberRequest {
+  organizationSlug: string;
+  displayNumber: number;
+}
+
+export interface ListOrgIssuesRequest {
+  organizationSlug: string;
+  status?: string;
+  priority?: number;
+  referencedProject?: string;
+}
+
+export interface ListOrgIssuesResponse {
+  issues: OrgIssue[];
+  totalCount: number;
+}
+
+export interface UpdateOrgIssueRequest {
+  organizationSlug: string;
+  issueId: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: number;
+  customFields?: Record<string, string>;
+  addReferencedProjects?: string[];
+  removeReferencedProjects?: string[];
+}
+
+export interface UpdateOrgIssueResponse {
+  success: boolean;
+  error: string;
+  issue?: OrgIssue;
+}
+
+export interface DeleteOrgIssueRequest {
+  organizationSlug: string;
+  issueId: string;
+}
+
+export interface DeleteOrgIssueResponse {
+  success: boolean;
+  error: string;
+}
+
+export interface OrgConfig {
+  priorityLevels: number;
+  allowedStates: string[];
+  defaultState: string;
+  customFields: CustomFieldDefinition[];
+}
+
+export interface GetOrgConfigRequest {
+  organizationSlug: string;
+}
+
+export interface UpdateOrgConfigRequest {
+  organizationSlug: string;
+  config: Partial<OrgConfig>;
+}
+
+export interface UpdateOrgConfigResponse {
+  success: boolean;
+  error: string;
+  config?: OrgConfig;
+}
+
+// ============ Link Types ============
+
+export enum LinkTargetType {
+  UNSPECIFIED = 0,
+  ISSUE = 1,
+  DOC = 2,
+  PR = 3,
+}
+
+export interface Link {
+  targetId: string;
+  targetType: LinkTargetType | string;
+  linkType: string;
+  createdAt: string;
+}
+
+export interface CreateLinkRequest {
+  projectPath: string;
+  sourceId: string;
+  sourceType: LinkTargetType | string;
+  targetId: string;
+  targetType: LinkTargetType | string;
+  linkType: string;
+}
+
+export interface CreateLinkResponse {
+  success: boolean;
+  error: string;
+  createdLink?: Link;
+  inverseLink?: Link;
+}
+
+export interface DeleteLinkRequest {
+  projectPath: string;
+  sourceId: string;
+  sourceType: LinkTargetType | string;
+  targetId: string;
+  targetType: LinkTargetType | string;
+  linkType?: string;
+}
+
+export interface DeleteLinkResponse {
+  success: boolean;
+  error: string;
+  deletedCount: number;
+}
+
+export interface ListLinksRequest {
+  projectPath: string;
+  entityId: string;
+  entityType: LinkTargetType | string;
+}
+
+export interface ListLinksResponse {
+  links: Link[];
+  totalCount: number;
+}
+
+export interface GetAvailableLinkTypesRequest {
+  projectPath: string;
+}
+
+export interface LinkTypeInfo {
+  name: string;
+  inverse: string;
+  description: string;
+  isBuiltin: boolean;
+}
+
+export interface GetAvailableLinkTypesResponse {
+  linkTypes: LinkTypeInfo[];
+}
+
 /**
  * Create a gRPC client for the Centy daemon.
  * Uses plain text (insecure) transport for testing.
@@ -780,6 +1277,63 @@ export function promisifyClient(client: CentyClient) {
     ),
     shutdown: promisify<ShutdownRequest, ShutdownResponse>(client.shutdown),
     restart: promisify<RestartRequest, RestartResponse>(client.restart),
+
+    // PRs
+    createPr: promisify<CreatePrRequest, CreatePrResponse>(client.createPr),
+    getPr: promisify<GetPrRequest, PullRequest>(client.getPr),
+    getPrByDisplayNumber: promisify<GetPrByDisplayNumberRequest, PullRequest>(
+      client.getPrByDisplayNumber
+    ),
+    listPrs: promisify<ListPrsRequest, ListPrsResponse>(client.listPrs),
+    updatePr: promisify<UpdatePrRequest, UpdatePrResponse>(client.updatePr),
+    deletePr: promisify<DeletePrRequest, DeletePrResponse>(client.deletePr),
+    getNextPrNumber: promisify<GetNextPrNumberRequest, GetNextPrNumberResponse>(
+      client.getNextPrNumber
+    ),
+
+    // Organizations
+    createOrganization: promisify<CreateOrganizationRequest, CreateOrganizationResponse>(
+      client.createOrganization
+    ),
+    listOrganizations: promisify<ListOrganizationsRequest, ListOrganizationsResponse>(
+      client.listOrganizations
+    ),
+    getOrganization: promisify<GetOrganizationRequest, GetOrganizationResponse>(
+      client.getOrganization
+    ),
+    deleteOrganization: promisify<DeleteOrganizationRequest, DeleteOrganizationResponse>(
+      client.deleteOrganization
+    ),
+
+    // Org Issues
+    createOrgIssue: promisify<CreateOrgIssueRequest, CreateOrgIssueResponse>(
+      client.createOrgIssue
+    ),
+    getOrgIssue: promisify<GetOrgIssueRequest, OrgIssue>(client.getOrgIssue),
+    getOrgIssueByDisplayNumber: promisify<GetOrgIssueByDisplayNumberRequest, OrgIssue>(
+      client.getOrgIssueByDisplayNumber
+    ),
+    listOrgIssues: promisify<ListOrgIssuesRequest, ListOrgIssuesResponse>(
+      client.listOrgIssues
+    ),
+    updateOrgIssue: promisify<UpdateOrgIssueRequest, UpdateOrgIssueResponse>(
+      client.updateOrgIssue
+    ),
+    deleteOrgIssue: promisify<DeleteOrgIssueRequest, DeleteOrgIssueResponse>(
+      client.deleteOrgIssue
+    ),
+    getOrgConfig: promisify<GetOrgConfigRequest, OrgConfig>(client.getOrgConfig),
+    updateOrgConfig: promisify<UpdateOrgConfigRequest, UpdateOrgConfigResponse>(
+      client.updateOrgConfig
+    ),
+
+    // Links
+    createLink: promisify<CreateLinkRequest, CreateLinkResponse>(client.createLink),
+    deleteLink: promisify<DeleteLinkRequest, DeleteLinkResponse>(client.deleteLink),
+    listLinks: promisify<ListLinksRequest, ListLinksResponse>(client.listLinks),
+    getAvailableLinkTypes: promisify<GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse>(
+      client.getAvailableLinkTypes
+    ),
 
     // Close connection
     close: () => client.close(),

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { createGrpcClient, promisifyClient, type PromisifiedCentyClient } from './grpc-client.js';
 
 export interface TempProject {
@@ -189,4 +190,124 @@ export const testData = {
     const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
     return `${prefix} - ${randomUUID().slice(0, 8)}`;
   },
+
+  /**
+   * Generate a random PR title.
+   */
+  randomPrTitle(): string {
+    const prefixes = ['feat', 'fix', 'refactor', 'chore', 'docs'];
+    const subjects = ['authentication', 'api', 'database', 'ui', 'tests'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const subject = subjects[Math.floor(Math.random() * subjects.length)];
+    return `${prefix}: update ${subject} - ${randomUUID().slice(0, 8)}`;
+  },
+
+  /**
+   * Generate a random org issue title.
+   */
+  randomOrgIssueTitle(): string {
+    const prefixes = ['Plan', 'Track', 'Coordinate', 'Review', 'Audit'];
+    const subjects = ['Q1 roadmap', 'cross-team sync', 'security review', 'performance', 'deployment'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const subject = subjects[Math.floor(Math.random() * subjects.length)];
+    return `${prefix} ${subject} - ${randomUUID().slice(0, 8)}`;
+  },
+
+  /**
+   * Generate a random organization name.
+   */
+  randomOrgName(): string {
+    const prefixes = ['Acme', 'Test', 'Dev', 'Demo', 'Sample'];
+    const suffixes = ['Corp', 'Labs', 'Team', 'Org', 'Inc'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+    return `${prefix} ${suffix} ${randomUUID().slice(0, 4)}`;
+  },
 };
+
+export interface TempGitProjectOptions extends TempProjectOptions {
+  /** Default branch name (default: 'main') */
+  defaultBranch?: string;
+  /** Create an initial commit (default: true) */
+  initialCommit?: boolean;
+}
+
+const DEFAULT_GIT_OPTIONS: Required<TempGitProjectOptions> = {
+  ...DEFAULT_OPTIONS,
+  defaultBranch: 'main',
+  initialCommit: true,
+};
+
+/**
+ * Create a temporary project directory with git initialized.
+ * Required for PR tests since PRs need git branch information.
+ */
+export async function createTempGitProject(
+  options: TempGitProjectOptions = {}
+): Promise<TempProject> {
+  const opts = { ...DEFAULT_GIT_OPTIONS, ...options };
+
+  // Create unique temp directory
+  const projectPath = join(tmpdir(), `${opts.prefix}-${randomUUID()}`);
+  await mkdir(projectPath, { recursive: true });
+
+  // Initialize git repository
+  execSync(`git init -b ${opts.defaultBranch}`, { cwd: projectPath, stdio: 'pipe' });
+  execSync('git config user.email "test@example.com"', { cwd: projectPath, stdio: 'pipe' });
+  execSync('git config user.name "Test User"', { cwd: projectPath, stdio: 'pipe' });
+
+  // Create initial commit if requested
+  if (opts.initialCommit) {
+    await writeFile(join(projectPath, 'README.md'), '# Test Project\n', 'utf-8');
+    execSync('git add .', { cwd: projectPath, stdio: 'pipe' });
+    execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'pipe' });
+  }
+
+  const centyPath = join(projectPath, '.centy');
+  const rawClient = createGrpcClient(opts.daemonAddress);
+  const client = promisifyClient(rawClient);
+
+  // Initialize centy if requested
+  if (opts.initialize) {
+    const result = await client.init({
+      projectPath,
+      force: true,
+    });
+
+    if (!result.success) {
+      await rm(projectPath, { recursive: true, force: true });
+      throw new Error(`Failed to initialize temp git project: ${result.error}`);
+    }
+  }
+
+  return {
+    path: projectPath,
+    centyPath,
+    client,
+    cleanup: async () => {
+      client.close();
+      await rm(projectPath, { recursive: true, force: true });
+    },
+  };
+}
+
+/**
+ * Create a git branch in a temp project.
+ */
+export function createGitBranch(projectPath: string, branchName: string): void {
+  execSync(`git checkout -b ${branchName}`, { cwd: projectPath, stdio: 'pipe' });
+}
+
+/**
+ * Switch to a git branch in a temp project.
+ */
+export function switchGitBranch(projectPath: string, branchName: string): void {
+  execSync(`git checkout ${branchName}`, { cwd: projectPath, stdio: 'pipe' });
+}
+
+/**
+ * Get the current git branch name.
+ */
+export function getCurrentGitBranch(projectPath: string): string {
+  return execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectPath, encoding: 'utf-8' }).trim();
+}
