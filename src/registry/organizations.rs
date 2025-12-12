@@ -335,7 +335,7 @@ pub async fn set_project_organization(
 
     project.organization_slug = org_slug.filter(|s| !s.is_empty()).map(String::from);
 
-    // Write project org file if assigning, remove if unassigning
+    // Write project org file if assigning, remove if removing assignment
     let centy_path = get_centy_path(path);
     let org_file_path = centy_path.join("organization.json");
 
