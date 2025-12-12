@@ -73,6 +73,28 @@ Each issue is stored in its own folder (UUID or display number) with:
 
 3. **Status Values**: Valid status values are defined in `config.json` under `allowedStates`. Default: `["open", "planning", "in-progress", "closed"]`
 
+### Auto-Closing Issues
+
+When `llm.autoCloseOnComplete` is `true` in `config.json`, you should close the issue after completing the requested work:
+
+1. **When to close**: Close the issue when you have fully completed the task described in the issue. This includes:
+   - All requested changes have been implemented
+   - Tests pass (if applicable)
+   - The build succeeds (if applicable)
+   - No remaining work items from the issue description
+
+2. **How to close**:
+   - If `llm.allowDirectEdits` is `true`: Edit `metadata.json` and set `"status": "closed"` and update `"updatedAt"` to the current ISO 8601 timestamp
+   - If `llm.allowDirectEdits` is `false`: Run `centy update issue <id> --status closed`
+
+3. **When NOT to close**:
+   - The task is only partially complete
+   - You encountered errors or blockers
+   - The user needs to review or approve before closing
+   - The issue requires follow-up work
+
+4. **After closing**: Inform the user that you have closed the issue and summarize what was accomplished.
+
 ### Planning Status
 
 When an issue has status `"planning"`, a special blockquote note is embedded at the top of `issue.md`:
