@@ -1,3 +1,4 @@
+use crate::link::CustomLinkTypeDefinition;
 use crate::utils::get_centy_path;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -96,6 +97,9 @@ pub struct CentyConfig {
     /// LLM configuration for automated issue management
     #[serde(default)]
     pub llm: LlmConfig,
+    /// Custom link types (in addition to built-in types)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub custom_link_types: Vec<CustomLinkTypeDefinition>,
 }
 
 impl CentyConfig {
@@ -120,6 +124,7 @@ impl Default for CentyConfig {
             state_colors: HashMap::new(),
             priority_colors: HashMap::new(),
             llm: LlmConfig::default(),
+            custom_link_types: Vec::new(),
         }
     }
 }

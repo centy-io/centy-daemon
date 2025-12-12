@@ -1,0 +1,320 @@
+use super::{
+    get_inverse_link_type, is_valid_link_type, read_links, write_links, CustomLinkTypeDefinition,
+    Link, LinksFile, TargetType, BUILTIN_LINK_TYPES,
+};
+use crate::utils::get_centy_path;
+use std::path::Path;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum LinkError {
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("Invalid link type: {0}")]
+    InvalidLinkType(String),
+
+    #[error("Source entity not found: {0} ({1})")]
+    SourceNotFound(String, TargetType),
+
+    #[error("Target entity not found: {0} ({1})")]
+    TargetNotFound(String, TargetType),
+
+    #[error("Link already exists")]
+    LinkAlreadyExists,
+
+    #[error("Link not found")]
+    LinkNotFound,
+
+    #[error("Cannot link entity to itself")]
+    SelfLink,
+}
+
+/// Options for creating a link
+#[derive(Debug, Clone)]
+pub struct CreateLinkOptions {
+    pub source_id: String,
+    pub source_type: TargetType,
+    pub target_id: String,
+    pub target_type: TargetType,
+    pub link_type: String,
+}
+
+/// Result of creating a link
+#[derive(Debug)]
+pub struct CreateLinkResult {
+    pub created_link: Link,
+    pub inverse_link: Link,
+}
+
+/// Options for deleting a link
+#[derive(Debug, Clone)]
+pub struct DeleteLinkOptions {
+    pub source_id: String,
+    pub source_type: TargetType,
+    pub target_id: String,
+    pub target_type: TargetType,
+    /// If provided, only delete links of this type
+    /// If None, delete all links between source and target
+    pub link_type: Option<String>,
+}
+
+/// Result of deleting a link
+#[derive(Debug)]
+pub struct DeleteLinkResult {
+    /// Number of links deleted (including inverse links)
+    pub deleted_count: u32,
+}
+
+/// Information about a link type
+#[derive(Debug, Clone)]
+pub struct LinkTypeInfo {
+    pub name: String,
+    pub inverse: String,
+    pub description: Option<String>,
+    pub is_builtin: bool,
+}
+
+/// Get the path to an entity's folder
+fn get_entity_path(project_path: &Path, entity_id: &str, entity_type: TargetType) -> std::path::PathBuf {
+    get_centy_path(project_path)
+        .join(entity_type.folder_name())
+        .join(entity_id)
+}
+
+/// Check if an entity exists
+async fn entity_exists(project_path: &Path, entity_id: &str, entity_type: TargetType) -> bool {
+    let entity_path = get_entity_path(project_path, entity_id, entity_type);
+    entity_path.exists()
+}
+
+/// Create a link between two entities
+///
+/// This creates both the forward link and the inverse link atomically.
+pub async fn create_link(
+    project_path: &Path,
+    options: CreateLinkOptions,
+    custom_types: &[CustomLinkTypeDefinition],
+) -> Result<CreateLinkResult, LinkError> {
+    // Validate link type
+    if !is_valid_link_type(&options.link_type, custom_types) {
+        return Err(LinkError::InvalidLinkType(options.link_type));
+    }
+
+    // Prevent self-links
+    if options.source_id == options.target_id && options.source_type == options.target_type {
+        return Err(LinkError::SelfLink);
+    }
+
+    // Check source exists
+    if !entity_exists(project_path, &options.source_id, options.source_type).await {
+        return Err(LinkError::SourceNotFound(
+            options.source_id.clone(),
+            options.source_type,
+        ));
+    }
+
+    // Check target exists
+    if !entity_exists(project_path, &options.target_id, options.target_type).await {
+        return Err(LinkError::TargetNotFound(
+            options.target_id.clone(),
+            options.target_type,
+        ));
+    }
+
+    // Get inverse link type
+    let inverse_type = get_inverse_link_type(&options.link_type, custom_types)
+        .ok_or_else(|| LinkError::InvalidLinkType(options.link_type.clone()))?;
+
+    // Get paths
+    let source_path = get_entity_path(project_path, &options.source_id, options.source_type);
+    let target_path = get_entity_path(project_path, &options.target_id, options.target_type);
+
+    // Read existing links
+    let mut source_links = read_links(&source_path).await?;
+    let mut target_links = read_links(&target_path).await?;
+
+    // Check if link already exists
+    if source_links.has_link(&options.target_id, &options.link_type) {
+        return Err(LinkError::LinkAlreadyExists);
+    }
+
+    // Create forward link
+    let forward_link = Link::new(
+        options.target_id.clone(),
+        options.target_type,
+        options.link_type.clone(),
+    );
+
+    // Create inverse link
+    let inverse_link = Link::new(
+        options.source_id.clone(),
+        options.source_type,
+        inverse_type,
+    );
+
+    // Add links
+    source_links.add_link(forward_link.clone());
+    target_links.add_link(inverse_link.clone());
+
+    // Write both files atomically (best effort - not truly atomic)
+    write_links(&source_path, &source_links).await?;
+    write_links(&target_path, &target_links).await?;
+
+    Ok(CreateLinkResult {
+        created_link: forward_link,
+        inverse_link,
+    })
+}
+
+/// Delete a link between two entities
+///
+/// This deletes both the forward link and the inverse link.
+pub async fn delete_link(
+    project_path: &Path,
+    options: DeleteLinkOptions,
+    custom_types: &[CustomLinkTypeDefinition],
+) -> Result<DeleteLinkResult, LinkError> {
+    let source_path = get_entity_path(project_path, &options.source_id, options.source_type);
+    let target_path = get_entity_path(project_path, &options.target_id, options.target_type);
+
+    // Read existing links
+    let mut source_links = read_links(&source_path).await?;
+    let mut target_links = read_links(&target_path).await?;
+
+    let mut deleted_count = 0u32;
+
+    if let Some(link_type) = &options.link_type {
+        // Delete specific link type
+        if source_links.remove_link(&options.target_id, Some(link_type)) {
+            deleted_count += 1;
+        }
+
+        // Delete inverse link
+        if let Some(inverse_type) = get_inverse_link_type(link_type, custom_types) {
+            if target_links.remove_link(&options.source_id, Some(&inverse_type)) {
+                deleted_count += 1;
+            }
+        }
+    } else {
+        // Delete all links between source and target
+        // First, find all link types from source to target
+        let link_types: Vec<String> = source_links
+            .links
+            .iter()
+            .filter(|l| l.target_id == options.target_id)
+            .map(|l| l.link_type.clone())
+            .collect();
+
+        // Remove forward links
+        if source_links.remove_link(&options.target_id, None) {
+            deleted_count += link_types.len() as u32;
+        }
+
+        // Remove inverse links for each type
+        for link_type in &link_types {
+            if let Some(inverse_type) = get_inverse_link_type(link_type, custom_types) {
+                if target_links.remove_link(&options.source_id, Some(&inverse_type)) {
+                    deleted_count += 1;
+                }
+            }
+        }
+    }
+
+    if deleted_count == 0 {
+        return Err(LinkError::LinkNotFound);
+    }
+
+    // Write both files
+    write_links(&source_path, &source_links).await?;
+    write_links(&target_path, &target_links).await?;
+
+    Ok(DeleteLinkResult { deleted_count })
+}
+
+/// List all links for an entity
+pub async fn list_links(
+    project_path: &Path,
+    entity_id: &str,
+    entity_type: TargetType,
+) -> Result<LinksFile, LinkError> {
+    let entity_path = get_entity_path(project_path, entity_id, entity_type);
+
+    if !entity_path.exists() {
+        return Err(LinkError::SourceNotFound(
+            entity_id.to_string(),
+            entity_type,
+        ));
+    }
+
+    let links = read_links(&entity_path).await?;
+    Ok(links)
+}
+
+/// Get all available link types (builtin + custom)
+pub fn get_available_link_types(custom_types: &[CustomLinkTypeDefinition]) -> Vec<LinkTypeInfo> {
+    let mut types = Vec::new();
+
+    // Add builtin types (deduplicated - only add forward direction)
+    let mut seen = std::collections::HashSet::new();
+    for (name, inverse) in BUILTIN_LINK_TYPES {
+        if !seen.contains(name) && !seen.contains(inverse) {
+            types.push(LinkTypeInfo {
+                name: (*name).to_string(),
+                inverse: (*inverse).to_string(),
+                description: None,
+                is_builtin: true,
+            });
+            seen.insert(*name);
+            seen.insert(*inverse);
+        }
+    }
+
+    // Add custom types
+    for custom in custom_types {
+        types.push(LinkTypeInfo {
+            name: custom.name.clone(),
+            inverse: custom.inverse.clone(),
+            description: custom.description.clone(),
+            is_builtin: false,
+        });
+    }
+
+    types
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_available_link_types_builtin() {
+        let custom: Vec<CustomLinkTypeDefinition> = vec![];
+        let types = get_available_link_types(&custom);
+
+        // Should have 4 builtin pairs (blocks, parent-of, relates-to, duplicates)
+        assert_eq!(types.len(), 4);
+        assert!(types.iter().all(|t| t.is_builtin));
+    }
+
+    #[test]
+    fn test_get_available_link_types_with_custom() {
+        let custom = vec![CustomLinkTypeDefinition {
+            name: "depends-on".to_string(),
+            inverse: "dependency-of".to_string(),
+            description: Some("Dependency relationship".to_string()),
+        }];
+        let types = get_available_link_types(&custom);
+
+        // Should have 4 builtin + 1 custom
+        assert_eq!(types.len(), 5);
+
+        let custom_type = types.iter().find(|t| !t.is_builtin).unwrap();
+        assert_eq!(custom_type.name, "depends-on");
+        assert_eq!(custom_type.inverse, "dependency-of");
+        assert_eq!(
+            custom_type.description,
+            Some("Dependency relationship".to_string())
+        );
+    }
+}

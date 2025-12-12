@@ -1,4 +1,8 @@
 use crate::config::{read_config, write_config, CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig};
+use crate::link::{
+    create_link, delete_link, get_available_link_types, list_links,
+    CreateLinkOptions, DeleteLinkOptions, TargetType,
+};
 use crate::llm::{
     self, get_effective_local_config, spawn_agent as llm_spawn_agent, read_work_session,
     record_work_session, clear_work_session, is_process_running, has_global_config, has_project_config,
@@ -48,7 +52,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -427,6 +431,7 @@ impl CentyDaemon for CentyDaemonService {
                     update_status_on_start: false,
                     allow_direct_edits: false,
                 }),
+                custom_link_types: vec![],
             })),
             Err(e) => Err(Status::internal(e.to_string())),
         }
@@ -1158,7 +1163,6 @@ impl CentyDaemon for CentyDaemonService {
             description: req.description,
             source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
             target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
-            linked_issues: req.linked_issues,
             reviewers: req.reviewers,
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             status: if req.status.is_empty() { None } else { Some(req.status) },
@@ -1312,7 +1316,6 @@ impl CentyDaemon for CentyDaemonService {
             status: if req.status.is_empty() { None } else { Some(req.status) },
             source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
             target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
-            linked_issues: if req.linked_issues.is_empty() { None } else { Some(req.linked_issues) },
             reviewers: if req.reviewers.is_empty() { None } else { Some(req.reviewers) },
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             custom_fields: req.custom_fields,
@@ -1758,6 +1761,170 @@ impl CentyDaemon for CentyDaemonService {
             })),
         }
     }
+
+    // ============ Link RPCs ============
+
+    async fn create_link(
+        &self,
+        request: Request<CreateLinkRequest>,
+    ) -> Result<Response<CreateLinkResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Convert proto types to internal types
+        let source_type = proto_link_target_to_internal(req.source_type());
+        let target_type = proto_link_target_to_internal(req.target_type());
+
+        // Get custom link types from config
+        let custom_types = match read_config(project_path).await {
+            Ok(Some(config)) => config.custom_link_types,
+            Ok(None) => vec![],
+            Err(_) => vec![],
+        };
+
+        let options = CreateLinkOptions {
+            source_id: req.source_id,
+            source_type,
+            target_id: req.target_id,
+            target_type,
+            link_type: req.link_type,
+        };
+
+        match create_link(project_path, options, &custom_types).await {
+            Ok(result) => Ok(Response::new(CreateLinkResponse {
+                success: true,
+                error: String::new(),
+                created_link: Some(internal_link_to_proto(&result.created_link)),
+                inverse_link: Some(internal_link_to_proto(&result.inverse_link)),
+            })),
+            Err(e) => Ok(Response::new(CreateLinkResponse {
+                success: false,
+                error: e.to_string(),
+                created_link: None,
+                inverse_link: None,
+            })),
+        }
+    }
+
+    async fn delete_link(
+        &self,
+        request: Request<DeleteLinkRequest>,
+    ) -> Result<Response<DeleteLinkResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Convert proto types to internal types
+        let source_type = proto_link_target_to_internal(req.source_type());
+        let target_type = proto_link_target_to_internal(req.target_type());
+
+        // Get custom link types from config
+        let custom_types = match read_config(project_path).await {
+            Ok(Some(config)) => config.custom_link_types,
+            Ok(None) => vec![],
+            Err(_) => vec![],
+        };
+
+        let options = DeleteLinkOptions {
+            source_id: req.source_id,
+            source_type,
+            target_id: req.target_id,
+            target_type,
+            link_type: if req.link_type.is_empty() { None } else { Some(req.link_type) },
+        };
+
+        match delete_link(project_path, options, &custom_types).await {
+            Ok(result) => Ok(Response::new(DeleteLinkResponse {
+                success: true,
+                error: String::new(),
+                deleted_count: result.deleted_count,
+            })),
+            Err(e) => Ok(Response::new(DeleteLinkResponse {
+                success: false,
+                error: e.to_string(),
+                deleted_count: 0,
+            })),
+        }
+    }
+
+    async fn list_links(
+        &self,
+        request: Request<ListLinksRequest>,
+    ) -> Result<Response<ListLinksResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Convert proto type to internal type
+        let entity_type = proto_link_target_to_internal(req.entity_type());
+
+        match list_links(project_path, &req.entity_id, entity_type).await {
+            Ok(links_file) => Ok(Response::new(ListLinksResponse {
+                links: links_file.links.iter().map(internal_link_to_proto).collect(),
+                total_count: links_file.links.len() as i32,
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_available_link_types(
+        &self,
+        request: Request<GetAvailableLinkTypesRequest>,
+    ) -> Result<Response<GetAvailableLinkTypesResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Get custom link types from config
+        let custom_types = match read_config(project_path).await {
+            Ok(Some(config)) => config.custom_link_types,
+            Ok(None) => vec![],
+            Err(_) => vec![],
+        };
+
+        let types = get_available_link_types(&custom_types);
+
+        Ok(Response::new(GetAvailableLinkTypesResponse {
+            link_types: types
+                .iter()
+                .map(|t| LinkTypeInfo {
+                    name: t.name.clone(),
+                    inverse: t.inverse.clone(),
+                    description: t.description.clone().unwrap_or_default(),
+                    is_builtin: t.is_builtin,
+                })
+                .collect(),
+        }))
+    }
+}
+
+// Helper functions for link type conversion
+
+fn proto_link_target_to_internal(proto_type: LinkTargetType) -> TargetType {
+    match proto_type {
+        LinkTargetType::Issue => TargetType::Issue,
+        LinkTargetType::Doc => TargetType::Doc,
+        LinkTargetType::Pr => TargetType::Pr,
+        LinkTargetType::Unspecified => TargetType::Issue, // Default to issue
+    }
+}
+
+fn internal_target_type_to_proto(internal_type: TargetType) -> i32 {
+    match internal_type {
+        TargetType::Issue => LinkTargetType::Issue as i32,
+        TargetType::Doc => LinkTargetType::Doc as i32,
+        TargetType::Pr => LinkTargetType::Pr as i32,
+    }
+}
+
+fn internal_link_to_proto(link: &crate::link::Link) -> ProtoLink {
+    ProtoLink {
+        target_id: link.target_id.clone(),
+        target_type: internal_target_type_to_proto(link.target_type),
+        link_type: link.link_type.clone(),
+        created_at: link.created_at.clone(),
+    }
 }
 
 // Helper functions for converting internal types to proto types
@@ -1808,6 +1975,15 @@ fn config_to_proto(config: &CentyConfig) -> Config {
             update_status_on_start: config.llm.update_status_on_start,
             allow_direct_edits: config.llm.allow_direct_edits,
         }),
+        custom_link_types: config
+            .custom_link_types
+            .iter()
+            .map(|lt| LinkTypeDefinition {
+                name: lt.name.clone(),
+                inverse: lt.inverse.clone(),
+                description: lt.description.clone().unwrap_or_default(),
+            })
+            .collect(),
     }
 }
 
@@ -1838,6 +2014,19 @@ fn proto_to_config(proto: &Config) -> CentyConfig {
         state_colors: proto.state_colors.clone(),
         priority_colors: proto.priority_colors.clone(),
         llm: llm_config,
+        custom_link_types: proto
+            .custom_link_types
+            .iter()
+            .map(|lt| crate::link::CustomLinkTypeDefinition {
+                name: lt.name.clone(),
+                inverse: lt.inverse.clone(),
+                description: if lt.description.is_empty() {
+                    None
+                } else {
+                    Some(lt.description.clone())
+                },
+            })
+            .collect(),
     }
 }
 
@@ -1968,7 +2157,6 @@ fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest
             status: pr.metadata.status.clone(),
             source_branch: pr.metadata.source_branch.clone(),
             target_branch: pr.metadata.target_branch.clone(),
-            linked_issues: pr.metadata.linked_issues.clone(),
             reviewers: pr.metadata.reviewers.clone(),
             priority: pr.metadata.priority as i32,
             priority_label: priority_label(pr.metadata.priority, priority_levels),

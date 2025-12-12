@@ -2,6 +2,7 @@ mod config;
 mod docs;
 mod features;
 mod issue;
+mod link;
 mod llm;
 mod manifest;
 mod migration;

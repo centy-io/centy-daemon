@@ -190,6 +190,20 @@ service CentyDaemon {
 
   // Update local LLM configuration
   rpc UpdateLocalLlmConfig(UpdateLocalLlmConfigRequest) returns (UpdateLocalLlmConfigResponse);
+
+  // ============ Link RPCs ============
+
+  // Create a link between two entities (bidirectional)
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+
+  // Delete a link between two entities (bidirectional)
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+
+  // List all links for an entity
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+
+  // Get all available link types (builtin + custom)
+  rpc GetAvailableLinkTypes(GetAvailableLinkTypesRequest) returns (GetAvailableLinkTypesResponse);
 }
 
 // ============ Init Messages ============
@@ -439,6 +453,7 @@ message Config {
   map<string, string> state_colors = 7;     // State name → hex color (e.g., "open" → "#10b981")
   map<string, string> priority_colors = 8;  // Priority level → hex color (e.g., "1" → "#ef4444")
   LlmConfig llm = 9;                        // LLM-related settings
+  repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
 }
 
 message CustomFieldDefinition {
@@ -453,6 +468,13 @@ message LlmConfig {
   bool auto_close_on_complete = 1;    // Auto-close issues when marked complete by LLM
   bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work
   bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
+}
+
+// Custom link type definition (for custom relationship types)
+message LinkTypeDefinition {
+  string name = 1;                    // Link type name (e.g., "depends-on")
+  string inverse = 2;                 // Inverse link type (e.g., "dependency-of")
+  string description = 3;             // Optional description
 }
 
 message UpdateConfigRequest {
@@ -782,7 +804,7 @@ message CreatePrRequest {
   string description = 3;
   string source_branch = 4;         // Source branch name (auto-detected if empty)
   string target_branch = 5;         // Target branch name (default: "main")
-  repeated string linked_issues = 6; // Linked issue IDs or display numbers
+  reserved 6;                       // Removed: linked_issues (use Link system instead)
   repeated string reviewers = 7;     // Reviewer usernames/identifiers
   int32 priority = 8;               // 1 = highest priority, 0 = use default
   string status = 9;                // default: "draft"
@@ -837,7 +859,7 @@ message PrMetadata {
   string status = 2;                  // e.g., "draft", "open", "merged", "closed"
   string source_branch = 3;
   string target_branch = 4;
-  repeated string linked_issues = 5;
+  reserved 5;                         // Removed: linked_issues (use Link system instead)
   repeated string reviewers = 6;
   int32 priority = 7;                 // 1 = highest priority, N = lowest
   string priority_label = 8;          // Human-readable label (e.g., "high", "P1")
@@ -902,7 +924,7 @@ message UpdatePrRequest {
   string status = 5;
   string source_branch = 6;
   string target_branch = 7;
-  repeated string linked_issues = 8;
+  reserved 8;                         // Removed: linked_issues (use Link system instead)
   repeated string reviewers = 9;
   int32 priority = 10;                // 0 = don't update, otherwise 1-N
   map<string, string> custom_fields = 11;
@@ -1104,4 +1126,84 @@ message UpdateLocalLlmConfigResponse {
   bool success = 1;
   string error = 2;
   LocalLlmConfig config = 3;
+}
+
+// ============ Link Messages ============
+
+// Target entity type for links
+enum LinkTargetType {
+  LINK_TARGET_TYPE_UNSPECIFIED = 0;
+  LINK_TARGET_TYPE_ISSUE = 1;
+  LINK_TARGET_TYPE_DOC = 2;
+  LINK_TARGET_TYPE_PR = 3;
+}
+
+// A link between two entities
+message Link {
+  string target_id = 1;               // Target entity ID (UUID for issues/PRs, slug for docs)
+  LinkTargetType target_type = 2;     // Type of the target entity
+  string link_type = 3;               // Relationship type (e.g., "blocks", "parent-of")
+  string created_at = 4;              // ISO timestamp when link was created
+}
+
+// Create a link between two entities (bidirectional - also creates inverse)
+message CreateLinkRequest {
+  string project_path = 1;
+  string source_id = 2;               // Source entity ID
+  LinkTargetType source_type = 3;     // Source entity type
+  string target_id = 4;               // Target entity ID
+  LinkTargetType target_type = 5;     // Target entity type
+  string link_type = 6;               // Link type (e.g., "blocks")
+}
+
+message CreateLinkResponse {
+  bool success = 1;
+  string error = 2;
+  Link created_link = 3;              // The forward link that was created
+  Link inverse_link = 4;              // The inverse link that was created
+}
+
+// Delete a link between two entities (also deletes inverse)
+message DeleteLinkRequest {
+  string project_path = 1;
+  string source_id = 2;               // Source entity ID
+  LinkTargetType source_type = 3;     // Source entity type
+  string target_id = 4;               // Target entity ID
+  LinkTargetType target_type = 5;     // Target entity type
+  string link_type = 6;               // Optional: specific link type to delete (empty = all links between entities)
+}
+
+message DeleteLinkResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 deleted_count = 3;           // Number of links deleted (including inverse)
+}
+
+// List all links for an entity
+message ListLinksRequest {
+  string project_path = 1;
+  string entity_id = 2;               // Entity ID to list links for
+  LinkTargetType entity_type = 3;     // Entity type
+}
+
+message ListLinksResponse {
+  repeated Link links = 1;
+  int32 total_count = 2;
+}
+
+// Get all available link types (builtin + custom)
+message GetAvailableLinkTypesRequest {
+  string project_path = 1;
+}
+
+// Information about a link type
+message LinkTypeInfo {
+  string name = 1;                    // Link type name (e.g., "blocks")
+  string inverse = 2;                 // Inverse link type (e.g., "blocked-by")
+  string description = 3;             // Optional description
+  bool is_builtin = 4;                // Whether this is a built-in type
+}
+
+message GetAvailableLinkTypesResponse {
+  repeated LinkTypeInfo link_types = 1;
 }

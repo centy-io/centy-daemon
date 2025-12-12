@@ -62,7 +62,6 @@ pub struct PrMetadataFlat {
     pub status: String,
     pub source_branch: String,
     pub target_branch: String,
-    pub linked_issues: Vec<String>,
     pub reviewers: Vec<String>,
     /// Priority as a number (1 = highest, N = lowest)
     pub priority: u32,
@@ -83,7 +82,6 @@ pub struct UpdatePrOptions {
     pub status: Option<String>,
     pub source_branch: Option<String>,
     pub target_branch: Option<String>,
-    pub linked_issues: Option<Vec<String>>,
     pub reviewers: Option<Vec<String>>,
     /// Priority as a number (1 = highest). None = don't update.
     pub priority: Option<u32>,
@@ -339,7 +337,6 @@ pub async fn update_pr(
     let new_status = options.status.unwrap_or(current.metadata.status);
     let new_source_branch = options.source_branch.unwrap_or(current.metadata.source_branch);
     let new_target_branch = options.target_branch.unwrap_or(current.metadata.target_branch);
-    let new_linked_issues = options.linked_issues.unwrap_or(current.metadata.linked_issues);
     let new_reviewers = options.reviewers.unwrap_or(current.metadata.reviewers);
 
     // Get allowed PR statuses from config or use defaults
@@ -380,7 +377,6 @@ pub async fn update_pr(
         status: new_status.clone(),
         source_branch: new_source_branch.clone(),
         target_branch: new_target_branch.clone(),
-        linked_issues: new_linked_issues.clone(),
         reviewers: new_reviewers.clone(),
         priority: new_priority,
         created_at: current.metadata.created_at.clone(),
@@ -416,7 +412,6 @@ pub async fn update_pr(
             status: new_status,
             source_branch: new_source_branch,
             target_branch: new_target_branch,
-            linked_issues: new_linked_issues,
             reviewers: new_reviewers,
             priority: new_priority,
             created_at: current.metadata.created_at,
@@ -498,7 +493,6 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
             status: metadata.status,
             source_branch: metadata.source_branch,
             target_branch: metadata.target_branch,
-            linked_issues: metadata.linked_issues,
             reviewers: metadata.reviewers,
             priority: metadata.priority,
             created_at: metadata.created_at,

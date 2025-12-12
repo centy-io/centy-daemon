@@ -63,8 +63,6 @@ pub struct CreatePrOptions {
     pub source_branch: Option<String>,
     /// Target branch name. If empty, defaults to "main" or "master".
     pub target_branch: Option<String>,
-    /// Linked issue IDs or display numbers
-    pub linked_issues: Vec<String>,
     /// Reviewer usernames/identifiers
     pub reviewers: Vec<String>,
     /// Priority as a number (1 = highest). None = use default.
@@ -218,7 +216,6 @@ pub async fn create_pr(
         status,
         source_branch.clone(),
         target_branch,
-        options.linked_issues,
         options.reviewers,
         priority,
         custom_field_values,

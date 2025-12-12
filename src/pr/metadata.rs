@@ -17,8 +17,6 @@ pub struct PrMetadata {
     pub source_branch: String,
     pub target_branch: String,
     #[serde(default)]
-    pub linked_issues: Vec<String>,
-    #[serde(default)]
     pub reviewers: Vec<String>,
     /// Priority as a number (1 = highest, N = lowest).
     /// During deserialization, string values are automatically migrated to numbers.
@@ -37,13 +35,12 @@ pub struct PrMetadata {
 }
 
 impl PrMetadata {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         display_number: u32,
         status: String,
         source_branch: String,
         target_branch: String,
-        linked_issues: Vec<String>,
         reviewers: Vec<String>,
         priority: u32,
         custom_fields: HashMap<String, serde_json::Value>,
@@ -54,7 +51,6 @@ impl PrMetadata {
             status,
             source_branch,
             target_branch,
-            linked_issues,
             reviewers,
             priority,
             created_at: now.clone(),
@@ -140,7 +136,6 @@ mod tests {
             "feature".to_string(),
             "main".to_string(),
             vec![],
-            vec![],
             2,
             HashMap::new(),
         );
@@ -155,7 +150,6 @@ mod tests {
             "draft".to_string(),
             "feature-branch".to_string(),
             "main".to_string(),
-            vec!["1".to_string(), "2".to_string()],
             vec!["alice".to_string()],
             1,
             HashMap::new(),
@@ -164,7 +158,6 @@ mod tests {
         assert_eq!(metadata.status, "draft");
         assert_eq!(metadata.source_branch, "feature-branch");
         assert_eq!(metadata.target_branch, "main");
-        assert_eq!(metadata.linked_issues.len(), 2);
         assert_eq!(metadata.reviewers.len(), 1);
         assert_eq!(metadata.priority, 1);
         assert!(!metadata.created_at.is_empty());
@@ -180,7 +173,6 @@ mod tests {
             "open".to_string(),
             "feature".to_string(),
             "main".to_string(),
-            vec![],
             vec![],
             1,
             HashMap::new(),
