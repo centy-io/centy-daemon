@@ -1,8 +1,9 @@
 mod common;
 
 use centy_daemon::issue::{
-    create_issue, delete_issue, get_issue, is_uuid, list_issues,
-    update_issue, CreateIssueOptions, IssueError, IssueCrudError, UpdateIssueOptions,
+    create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues,
+    move_issue, update_issue, CreateIssueOptions, DuplicateIssueOptions, IssueError,
+    IssueCrudError, MoveIssueOptions, UpdateIssueOptions,
 };
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
@@ -654,4 +655,279 @@ async fn test_update_issue_priority() {
     .expect("Should update");
 
     assert_eq!(result.issue.metadata.priority, 1);
+}
+
+// ============ Move Issue Tests ============
+
+#[tokio::test]
+async fn test_move_issue_success() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    // Create issue in source
+    let created = create_issue(
+        source_path,
+        CreateIssueOptions {
+            title: "Issue to Move".to_string(),
+            description: "Description".to_string(),
+            priority: Some(1),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Move to target
+    let result = move_issue(MoveIssueOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        issue_id: created.id.clone(),
+    })
+    .await
+    .expect("Should move issue");
+
+    // Verify issue exists in target with same UUID
+    assert_eq!(result.issue.id, created.id);
+    assert_eq!(result.issue.metadata.display_number, 1);
+    assert_eq!(result.issue.title, "Issue to Move");
+
+    // Verify issue no longer exists in source
+    let source_result = get_issue(source_path, &created.id).await;
+    assert!(source_result.is_err());
+
+    // Verify exists in target
+    let target_issue = get_issue(target_path, &created.id).await;
+    assert!(target_issue.is_ok());
+}
+
+#[tokio::test]
+async fn test_move_issue_preserves_uuid() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    let created = create_issue(
+        source_path,
+        CreateIssueOptions {
+            title: "Linked Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let original_uuid = created.id.clone();
+
+    let result = move_issue(MoveIssueOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        issue_id: created.id,
+    })
+    .await
+    .unwrap();
+
+    // UUID must be preserved
+    assert_eq!(result.issue.id, original_uuid);
+}
+
+#[tokio::test]
+async fn test_move_issue_assigns_new_display_number() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    // Create existing issues in target
+    create_issue(
+        target_path,
+        CreateIssueOptions {
+            title: "Existing 1".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    create_issue(
+        target_path,
+        CreateIssueOptions {
+            title: "Existing 2".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Create and move issue from source
+    let created = create_issue(
+        source_path,
+        CreateIssueOptions {
+            title: "To Move".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(created.display_number, 1); // First in source
+
+    let result = move_issue(MoveIssueOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        issue_id: created.id,
+    })
+    .await
+    .unwrap();
+
+    // Should be 3 in target (after 1 and 2)
+    assert_eq!(result.issue.metadata.display_number, 3);
+}
+
+#[tokio::test]
+async fn test_move_issue_same_project_fails() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Test".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = move_issue(MoveIssueOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        issue_id: created.id,
+    })
+    .await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IssueCrudError::SameProject));
+}
+
+// ============ Duplicate Issue Tests ============
+
+#[tokio::test]
+async fn test_duplicate_issue_same_project() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    let original = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Original Issue".to_string(),
+            description: "Original description".to_string(),
+            priority: Some(1),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_issue(DuplicateIssueOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        issue_id: original.id.clone(),
+        new_title: None,
+    })
+    .await
+    .expect("Should duplicate issue");
+
+    // New UUID
+    assert_ne!(result.issue.id, original.id);
+    // New display number
+    assert_eq!(result.issue.metadata.display_number, 2);
+    // Default title
+    assert_eq!(result.issue.title, "Copy of Original Issue");
+    // Same description
+    assert_eq!(result.issue.description, "Original description");
+    // Same priority
+    assert_eq!(result.issue.metadata.priority, 1);
+}
+
+#[tokio::test]
+async fn test_duplicate_issue_with_custom_title() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    let original = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Original".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_issue(DuplicateIssueOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        issue_id: original.id,
+        new_title: Some("Custom Title".to_string()),
+    })
+    .await
+    .unwrap();
+
+    assert_eq!(result.issue.title, "Custom Title");
+}
+
+#[tokio::test]
+async fn test_duplicate_issue_to_different_project() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    let original = create_issue(
+        source_path,
+        CreateIssueOptions {
+            title: "Original".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_issue(DuplicateIssueOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        issue_id: original.id.clone(),
+        new_title: None,
+    })
+    .await
+    .unwrap();
+
+    // Original still exists in source
+    let original_still_exists = get_issue(source_path, &original.id).await;
+    assert!(original_still_exists.is_ok());
+
+    // Duplicate exists in target
+    let duplicate_exists = get_issue(target_path, &result.issue.id).await;
+    assert!(duplicate_exists.is_ok());
+
+    // Different UUIDs
+    assert_ne!(result.issue.id, original.id);
 }

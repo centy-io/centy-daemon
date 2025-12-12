@@ -551,6 +551,44 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
     Ok(assets)
 }
 
+/// Copy all assets from one issue folder to another
+///
+/// # Arguments
+/// * `source_assets_path` - Path to source issue's assets folder
+/// * `target_assets_path` - Path to target issue's assets folder
+///
+/// # Returns
+/// Number of files copied
+pub async fn copy_assets_folder(
+    source_assets_path: &Path,
+    target_assets_path: &Path,
+) -> Result<u32, AssetError> {
+    // Ensure target directory exists
+    fs::create_dir_all(target_assets_path).await?;
+
+    // If source doesn't exist, nothing to copy
+    if !source_assets_path.exists() {
+        return Ok(0);
+    }
+
+    let mut copied_count = 0u32;
+
+    let mut entries = fs::read_dir(source_assets_path).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        if entry.file_type().await?.is_file() {
+            let source_file = entry.path();
+            let filename = entry.file_name();
+            let target_file = target_assets_path.join(&filename);
+
+            // Copy the file
+            fs::copy(&source_file, &target_file).await?;
+            copied_count += 1;
+        }
+    }
+
+    Ok(copied_count)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

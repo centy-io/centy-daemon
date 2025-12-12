@@ -4,13 +4,14 @@ use crate::manifest::{
 };
 use crate::registry::ProjectInfo;
 use crate::utils::{get_centy_path, now_iso};
-use super::id::{is_uuid, is_valid_issue_folder};
+use super::assets::copy_assets_folder;
+use super::id::{generate_issue_id, is_uuid, is_valid_issue_folder};
 use super::metadata::IssueMetadata;
 use super::priority::{validate_priority, PriorityError};
-use super::reconcile::{reconcile_display_numbers, ReconcileError};
+use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
 use super::status::validate_status;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::fs;
 
@@ -42,6 +43,15 @@ pub enum IssueCrudError {
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
+
+    #[error("Target project not initialized")]
+    TargetNotInitialized,
+
+    #[error("Priority {0} exceeds target project's priority_levels")]
+    InvalidPriorityInTarget(u32),
+
+    #[error("Cannot move issue to same project")]
+    SameProject,
 }
 
 /// Full issue data
@@ -111,6 +121,40 @@ pub struct IssueWithProject {
 pub struct GetIssuesByUuidResult {
     pub issues: Vec<IssueWithProject>,
     pub errors: Vec<String>,
+}
+
+/// Options for moving an issue to another project
+#[derive(Debug, Clone)]
+pub struct MoveIssueOptions {
+    pub source_project_path: PathBuf,
+    pub target_project_path: PathBuf,
+    pub issue_id: String,
+}
+
+/// Result of moving an issue
+#[derive(Debug, Clone)]
+pub struct MoveIssueResult {
+    pub issue: Issue,
+    pub old_display_number: u32,
+    pub source_manifest: CentyManifest,
+    pub target_manifest: CentyManifest,
+}
+
+/// Options for duplicating an issue
+#[derive(Debug, Clone)]
+pub struct DuplicateIssueOptions {
+    pub source_project_path: PathBuf,
+    pub target_project_path: PathBuf,
+    pub issue_id: String,
+    pub new_title: Option<String>,
+}
+
+/// Result of duplicating an issue
+#[derive(Debug, Clone)]
+pub struct DuplicateIssueResult {
+    pub issue: Issue,
+    pub original_issue_id: String,
+    pub manifest: CentyManifest,
 }
 
 /// Get a single issue by its number
@@ -423,6 +467,219 @@ pub async fn delete_issue(
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteIssueResult { manifest })
+}
+
+/// Move an issue to another project
+///
+/// The issue keeps its UUID (preserving cross-project references) but gets
+/// a new display number in the target project. Assets are copied to the target.
+///
+/// # Arguments
+/// * `options` - Move options specifying source, target, and issue ID
+///
+/// # Returns
+/// The moved issue with updated display number, plus both manifests
+pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
+    // Verify not same project
+    if options.source_project_path == options.target_project_path {
+        return Err(IssueCrudError::SameProject);
+    }
+
+    // Validate source project is initialized
+    let mut source_manifest = read_manifest(&options.source_project_path)
+        .await?
+        .ok_or(IssueCrudError::NotInitialized)?;
+
+    // Validate target project is initialized
+    let mut target_manifest = read_manifest(&options.target_project_path)
+        .await?
+        .ok_or(IssueCrudError::TargetNotInitialized)?;
+
+    // Read source issue
+    let source_centy = get_centy_path(&options.source_project_path);
+    let source_issue_path = source_centy.join("issues").join(&options.issue_id);
+
+    if !source_issue_path.exists() {
+        return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
+    }
+
+    let source_issue = read_issue_from_disk(&source_issue_path, &options.issue_id).await?;
+    let old_display_number = source_issue.metadata.display_number;
+
+    // Read target config for priority validation
+    let target_config = read_config(&options.target_project_path).await.ok().flatten();
+    let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
+
+    // Validate priority is within target's range
+    if source_issue.metadata.priority > target_priority_levels {
+        return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
+    }
+
+    // Status validation is lenient (just log warning)
+    if let Some(ref config) = target_config {
+        validate_status(&source_issue.metadata.status, &config.allowed_states);
+    }
+
+    // Get next display number in target project
+    let target_centy = get_centy_path(&options.target_project_path);
+    let target_issues_path = target_centy.join("issues");
+    fs::create_dir_all(&target_issues_path).await?;
+    let new_display_number = get_next_display_number(&target_issues_path).await?;
+
+    // Create target issue folder (same UUID)
+    let target_issue_path = target_issues_path.join(&options.issue_id);
+    fs::create_dir_all(&target_issue_path).await?;
+    fs::create_dir_all(target_issue_path.join("assets")).await?;
+
+    // Copy issue.md
+    fs::copy(
+        source_issue_path.join("issue.md"),
+        target_issue_path.join("issue.md"),
+    ).await?;
+
+    // Read, update, and write metadata with new display number
+    let metadata_content = fs::read_to_string(source_issue_path.join("metadata.json")).await?;
+    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
+    metadata.display_number = new_display_number;
+    metadata.updated_at = now_iso();
+    fs::write(
+        target_issue_path.join("metadata.json"),
+        serde_json::to_string_pretty(&metadata)?,
+    ).await?;
+
+    // Copy assets
+    let source_assets_path = source_issue_path.join("assets");
+    let target_assets_path = target_issue_path.join("assets");
+    copy_assets_folder(&source_assets_path, &target_assets_path).await
+        .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+
+    // Delete from source project
+    fs::remove_dir_all(&source_issue_path).await?;
+
+    // Update both manifests
+    update_manifest_timestamp(&mut source_manifest);
+    update_manifest_timestamp(&mut target_manifest);
+    write_manifest(&options.source_project_path, &source_manifest).await?;
+    write_manifest(&options.target_project_path, &target_manifest).await?;
+
+    // Read the moved issue from target
+    let moved_issue = read_issue_from_disk(&target_issue_path, &options.issue_id).await?;
+
+    Ok(MoveIssueResult {
+        issue: moved_issue,
+        old_display_number,
+        source_manifest,
+        target_manifest,
+    })
+}
+
+/// Duplicate an issue to the same or different project
+///
+/// Creates a copy of the issue with a new UUID and display number.
+/// Assets are copied to the new issue folder.
+///
+/// # Arguments
+/// * `options` - Duplicate options specifying source, target, issue ID, and optional new title
+///
+/// # Returns
+/// The new duplicate issue with the original issue ID for reference
+pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<DuplicateIssueResult, IssueCrudError> {
+    // Validate source project is initialized
+    read_manifest(&options.source_project_path)
+        .await?
+        .ok_or(IssueCrudError::NotInitialized)?;
+
+    // Validate target project is initialized
+    let mut target_manifest = read_manifest(&options.target_project_path)
+        .await?
+        .ok_or(IssueCrudError::TargetNotInitialized)?;
+
+    // Read source issue
+    let source_centy = get_centy_path(&options.source_project_path);
+    let source_issue_path = source_centy.join("issues").join(&options.issue_id);
+
+    if !source_issue_path.exists() {
+        return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
+    }
+
+    let source_issue = read_issue_from_disk(&source_issue_path, &options.issue_id).await?;
+
+    // Read target config for priority validation (if different project)
+    if options.source_project_path != options.target_project_path {
+        let target_config = read_config(&options.target_project_path).await.ok().flatten();
+        let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
+
+        // Validate priority is within target's range
+        if source_issue.metadata.priority > target_priority_levels {
+            return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
+        }
+
+        // Status validation is lenient
+        if let Some(ref config) = target_config {
+            validate_status(&source_issue.metadata.status, &config.allowed_states);
+        }
+    }
+
+    // Generate new UUID for the duplicate
+    let new_id = generate_issue_id();
+
+    // Get next display number in target project
+    let target_centy = get_centy_path(&options.target_project_path);
+    let target_issues_path = target_centy.join("issues");
+    fs::create_dir_all(&target_issues_path).await?;
+    let new_display_number = get_next_display_number(&target_issues_path).await?;
+
+    // Create new issue folder
+    let new_issue_path = target_issues_path.join(&new_id);
+    fs::create_dir_all(&new_issue_path).await?;
+    fs::create_dir_all(new_issue_path.join("assets")).await?;
+
+    // Prepare new title
+    let new_title = options.new_title.unwrap_or_else(|| {
+        format!("Copy of {}", source_issue.title)
+    });
+
+    // Create new issue.md
+    let issue_md = generate_issue_md(&new_title, &source_issue.description);
+    fs::write(new_issue_path.join("issue.md"), &issue_md).await?;
+
+    // Create new metadata with fresh timestamps
+    let new_metadata = IssueMetadata {
+        display_number: new_display_number,
+        status: source_issue.metadata.status.clone(),
+        priority: source_issue.metadata.priority,
+        created_at: now_iso(),
+        updated_at: now_iso(),
+        custom_fields: source_issue.metadata.custom_fields
+            .iter()
+            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+            .collect(),
+        compacted: false, // Reset compacted status for new issue
+        compacted_at: None,
+    };
+    fs::write(
+        new_issue_path.join("metadata.json"),
+        serde_json::to_string_pretty(&new_metadata)?,
+    ).await?;
+
+    // Copy assets
+    let source_assets_path = source_issue_path.join("assets");
+    let target_assets_path = new_issue_path.join("assets");
+    copy_assets_folder(&source_assets_path, &target_assets_path).await
+        .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+
+    // Update target manifest
+    update_manifest_timestamp(&mut target_manifest);
+    write_manifest(&options.target_project_path, &target_manifest).await?;
+
+    // Read the new issue
+    let new_issue = read_issue_from_disk(&new_issue_path, &new_id).await?;
+
+    Ok(DuplicateIssueResult {
+        issue: new_issue,
+        original_issue_id: options.issue_id,
+        manifest: target_manifest,
+    })
 }
 
 /// Read an issue from disk

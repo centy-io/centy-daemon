@@ -15,11 +15,13 @@ use crate::features::{
 use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::docs::{
-    create_doc, delete_doc, get_doc, get_docs_by_slug, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, duplicate_doc, get_doc, get_docs_by_slug, list_docs, move_doc, update_doc,
+    CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
 use crate::issue::{
-    create_issue, delete_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid, list_issues, priority_label, update_issue,
-    CreateIssueOptions, UpdateIssueOptions,
+    create_issue, delete_issue, duplicate_issue, get_issue, get_issue_by_display_number,
+    get_issues_by_uuid, list_issues, move_issue, priority_label, update_issue,
+    CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
@@ -52,7 +54,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -372,6 +374,81 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn move_issue(
+        &self,
+        request: Request<MoveIssueRequest>,
+    ) -> Result<Response<MoveIssueResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.source_project_path.clone());
+        track_project_async(req.target_project_path.clone());
+
+        // Read target config for priority_levels
+        let target_config = read_config(Path::new(&req.target_project_path)).await.ok().flatten();
+        let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
+
+        let options = MoveIssueOptions {
+            source_project_path: PathBuf::from(&req.source_project_path),
+            target_project_path: PathBuf::from(&req.target_project_path),
+            issue_id: req.issue_id,
+        };
+
+        match move_issue(options).await {
+            Ok(result) => Ok(Response::new(MoveIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                old_display_number: result.old_display_number,
+                source_manifest: Some(manifest_to_proto(&result.source_manifest)),
+                target_manifest: Some(manifest_to_proto(&result.target_manifest)),
+            })),
+            Err(e) => Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+                old_display_number: 0,
+                source_manifest: None,
+                target_manifest: None,
+            })),
+        }
+    }
+
+    async fn duplicate_issue(
+        &self,
+        request: Request<DuplicateIssueRequest>,
+    ) -> Result<Response<DuplicateIssueResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.source_project_path.clone());
+        track_project_async(req.target_project_path.clone());
+
+        // Read target config for priority_levels
+        let target_config = read_config(Path::new(&req.target_project_path)).await.ok().flatten();
+        let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
+
+        let options = DuplicateIssueOptions {
+            source_project_path: PathBuf::from(&req.source_project_path),
+            target_project_path: PathBuf::from(&req.target_project_path),
+            issue_id: req.issue_id,
+            new_title: if req.new_title.is_empty() { None } else { Some(req.new_title) },
+        };
+
+        match duplicate_issue(options).await {
+            Ok(result) => Ok(Response::new(DuplicateIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                original_issue_id: result.original_issue_id,
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(DuplicateIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+                original_issue_id: String::new(),
+                manifest: None,
+            })),
+        }
+    }
+
     async fn get_next_issue_number(
         &self,
         request: Request<GetNextIssueNumberRequest>,
@@ -668,6 +745,75 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => Ok(Response::new(DeleteDocResponse {
                 success: false,
                 error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn move_doc(
+        &self,
+        request: Request<MoveDocRequest>,
+    ) -> Result<Response<MoveDocResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.source_project_path.clone());
+        track_project_async(req.target_project_path.clone());
+
+        let options = MoveDocOptions {
+            source_project_path: PathBuf::from(&req.source_project_path),
+            target_project_path: PathBuf::from(&req.target_project_path),
+            slug: req.slug.clone(),
+            new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
+        };
+
+        match move_doc(options).await {
+            Ok(result) => Ok(Response::new(MoveDocResponse {
+                success: true,
+                error: String::new(),
+                doc: Some(doc_to_proto(&result.doc)),
+                old_slug: result.old_slug,
+                source_manifest: Some(manifest_to_proto(&result.source_manifest)),
+                target_manifest: Some(manifest_to_proto(&result.target_manifest)),
+            })),
+            Err(e) => Ok(Response::new(MoveDocResponse {
+                success: false,
+                error: e.to_string(),
+                doc: None,
+                old_slug: req.slug,
+                source_manifest: None,
+                target_manifest: None,
+            })),
+        }
+    }
+
+    async fn duplicate_doc(
+        &self,
+        request: Request<DuplicateDocRequest>,
+    ) -> Result<Response<DuplicateDocResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.source_project_path.clone());
+        track_project_async(req.target_project_path.clone());
+
+        let options = DuplicateDocOptions {
+            source_project_path: PathBuf::from(&req.source_project_path),
+            target_project_path: PathBuf::from(&req.target_project_path),
+            slug: req.slug.clone(),
+            new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
+            new_title: if req.new_title.is_empty() { None } else { Some(req.new_title) },
+        };
+
+        match duplicate_doc(options).await {
+            Ok(result) => Ok(Response::new(DuplicateDocResponse {
+                success: true,
+                error: String::new(),
+                doc: Some(doc_to_proto(&result.doc)),
+                original_slug: result.original_slug,
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(DuplicateDocResponse {
+                success: false,
+                error: e.to_string(),
+                doc: None,
+                original_slug: req.slug,
                 manifest: None,
             })),
         }

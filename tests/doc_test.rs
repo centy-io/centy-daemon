@@ -1,7 +1,8 @@
 mod common;
 
 use centy_daemon::docs::{
-    create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
+    CreateDocOptions, DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
 use common::{create_test_dir, init_centy_project};
 
@@ -593,4 +594,254 @@ async fn test_doc_preserves_metadata_on_update() {
     assert_eq!(updated.metadata.created_at, original_created_at);
     // updated_at should be different
     assert_ne!(updated.metadata.updated_at, original_created_at);
+}
+
+// ============ Move Doc Tests ============
+
+#[tokio::test]
+async fn test_move_doc_success() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    // Create doc in source
+    create_doc(
+        source_path,
+        CreateDocOptions {
+            title: "API Guide".to_string(),
+            content: "API documentation content".to_string(),
+            slug: Some("api-guide".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = move_doc(MoveDocOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        slug: "api-guide".to_string(),
+        new_slug: None,
+    })
+    .await
+    .expect("Should move doc");
+
+    assert_eq!(result.doc.slug, "api-guide");
+    assert_eq!(result.doc.title, "API Guide");
+
+    // No longer in source
+    let source_result = get_doc(source_path, "api-guide").await;
+    assert!(source_result.is_err());
+
+    // Exists in target
+    let target_doc = get_doc(target_path, "api-guide").await.unwrap();
+    assert_eq!(target_doc.content, "API documentation content");
+}
+
+#[tokio::test]
+async fn test_move_doc_with_slug_conflict() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    // Create doc with same slug in both projects
+    create_doc(
+        source_path,
+        CreateDocOptions {
+            title: "Source Doc".to_string(),
+            content: "Source content".to_string(),
+            slug: Some("guide".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    create_doc(
+        target_path,
+        CreateDocOptions {
+            title: "Target Doc".to_string(),
+            content: "Target content".to_string(),
+            slug: Some("guide".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Move without new_slug should fail
+    let result = move_doc(MoveDocOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        slug: "guide".to_string(),
+        new_slug: None,
+    })
+    .await;
+    assert!(result.is_err());
+
+    // Move with new_slug should succeed
+    let result = move_doc(MoveDocOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        slug: "guide".to_string(),
+        new_slug: Some("guide-v2".to_string()),
+    })
+    .await
+    .unwrap();
+
+    assert_eq!(result.doc.slug, "guide-v2");
+}
+
+#[tokio::test]
+async fn test_move_doc_same_project_fails() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    create_doc(
+        project_path,
+        CreateDocOptions {
+            title: "Test Doc".to_string(),
+            content: "Content".to_string(),
+            slug: Some("test".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = move_doc(MoveDocOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        slug: "test".to_string(),
+        new_slug: None,
+    })
+    .await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), DocError::SameProjectMove));
+}
+
+// ============ Duplicate Doc Tests ============
+
+#[tokio::test]
+async fn test_duplicate_doc_same_project() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    create_doc(
+        project_path,
+        CreateDocOptions {
+            title: "Original Doc".to_string(),
+            content: "Original content".to_string(),
+            slug: Some("original".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_doc(DuplicateDocOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        slug: "original".to_string(),
+        new_slug: None,
+        new_title: None,
+    })
+    .await
+    .expect("Should duplicate doc");
+
+    assert_eq!(result.doc.slug, "original-copy");
+    assert_eq!(result.doc.title, "Copy of Original Doc");
+    assert_eq!(result.doc.content, "Original content");
+
+    // Original still exists
+    let original = get_doc(project_path, "original").await.unwrap();
+    assert_eq!(original.title, "Original Doc");
+}
+
+#[tokio::test]
+async fn test_duplicate_doc_custom_slug_and_title() {
+    let dir = create_test_dir();
+    let project_path = dir.path();
+
+    init_centy_project(project_path).await;
+
+    create_doc(
+        project_path,
+        CreateDocOptions {
+            title: "Original".to_string(),
+            content: "Content".to_string(),
+            slug: Some("original".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_doc(DuplicateDocOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        slug: "original".to_string(),
+        new_slug: Some("custom-slug".to_string()),
+        new_title: Some("Custom Title".to_string()),
+    })
+    .await
+    .unwrap();
+
+    assert_eq!(result.doc.slug, "custom-slug");
+    assert_eq!(result.doc.title, "Custom Title");
+}
+
+#[tokio::test]
+async fn test_duplicate_doc_to_different_project() {
+    let source_dir = create_test_dir();
+    let target_dir = create_test_dir();
+    let source_path = source_dir.path();
+    let target_path = target_dir.path();
+
+    init_centy_project(source_path).await;
+    init_centy_project(target_path).await;
+
+    create_doc(
+        source_path,
+        CreateDocOptions {
+            title: "Original".to_string(),
+            content: "Content".to_string(),
+            slug: Some("original".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = duplicate_doc(DuplicateDocOptions {
+        source_project_path: source_path.to_path_buf(),
+        target_project_path: target_path.to_path_buf(),
+        slug: "original".to_string(),
+        new_slug: None,
+        new_title: None,
+    })
+    .await
+    .unwrap();
+
+    // Original still exists in source
+    let original = get_doc(source_path, "original").await;
+    assert!(original.is_ok());
+
+    // Duplicate exists in target
+    let duplicate = get_doc(target_path, "original-copy").await;
+    assert!(duplicate.is_ok());
+    assert_eq!(result.doc.title, "Copy of Original");
 }
