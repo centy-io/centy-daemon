@@ -35,8 +35,10 @@ use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use crate::registry::{
-    get_project_info, list_projects, set_project_archived, set_project_favorite,
-    track_project_async, untrack_project, ProjectInfo,
+    create_organization, delete_organization, get_organization, get_project_info, list_organizations,
+    list_projects, set_project_archived, set_project_favorite, set_project_organization,
+    track_project_async, untrack_project, update_organization, ListProjectsOptions, OrganizationInfo,
+    ProjectInfo,
 };
 use crate::utils::{format_display_path, get_centy_path};
 use std::path::{Path, PathBuf};
@@ -54,7 +56,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -253,7 +255,7 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
 
         // Get all initialized projects from registry
-        let projects = match list_projects(false, false, false).await {
+        let projects = match list_projects(ListProjectsOptions::default()).await {
             Ok(p) => p,
             Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
         };
@@ -649,7 +651,7 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
 
         // Get all initialized projects from registry
-        let projects = match list_projects(false, false, false).await {
+        let projects = match list_projects(ListProjectsOptions::default()).await {
             Ok(p) => p,
             Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
         };
@@ -977,7 +979,19 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<ListProjectsResponse>, Status> {
         let req = request.into_inner();
 
-        match list_projects(req.include_stale, req.include_uninitialized, req.include_archived).await {
+        let org_slug = if req.organization_slug.is_empty() {
+            None
+        } else {
+            Some(req.organization_slug.as_str())
+        };
+        let opts = ListProjectsOptions {
+            include_stale: req.include_stale,
+            include_uninitialized: req.include_uninitialized,
+            include_archived: req.include_archived,
+            organization_slug: org_slug,
+            ungrouped_only: req.ungrouped_only,
+        };
+        match list_projects(opts).await {
             Ok(projects) => {
                 let total_count = projects.len() as i32;
                 Ok(Response::new(ListProjectsResponse {
@@ -1097,6 +1111,133 @@ impl CentyDaemon for CentyDaemonService {
                 success: false,
                 error: e.to_string(),
                 project: None,
+            })),
+        }
+    }
+
+    async fn set_project_organization(
+        &self,
+        request: Request<SetProjectOrganizationRequest>,
+    ) -> Result<Response<SetProjectOrganizationResponse>, Status> {
+        let req = request.into_inner();
+        let org_slug = if req.organization_slug.is_empty() {
+            None
+        } else {
+            Some(req.organization_slug.as_str())
+        };
+
+        match set_project_organization(&req.project_path, org_slug).await {
+            Ok(info) => Ok(Response::new(SetProjectOrganizationResponse {
+                success: true,
+                error: String::new(),
+                project: Some(project_info_to_proto(&info)),
+            })),
+            Err(e) => Ok(Response::new(SetProjectOrganizationResponse {
+                success: false,
+                error: e.to_string(),
+                project: None,
+            })),
+        }
+    }
+
+    // ============ Organization RPCs ============
+
+    async fn create_organization(
+        &self,
+        request: Request<CreateOrganizationRequest>,
+    ) -> Result<Response<CreateOrganizationResponse>, Status> {
+        let req = request.into_inner();
+        let slug = if req.slug.is_empty() { None } else { Some(req.slug.as_str()) };
+        let description = if req.description.is_empty() { None } else { Some(req.description.as_str()) };
+
+        match create_organization(slug, &req.name, description).await {
+            Ok(org) => Ok(Response::new(CreateOrganizationResponse {
+                success: true,
+                error: String::new(),
+                organization: Some(org_info_to_proto(&org)),
+            })),
+            Err(e) => Ok(Response::new(CreateOrganizationResponse {
+                success: false,
+                error: e.to_string(),
+                organization: None,
+            })),
+        }
+    }
+
+    async fn list_organizations(
+        &self,
+        _request: Request<ListOrganizationsRequest>,
+    ) -> Result<Response<ListOrganizationsResponse>, Status> {
+        match list_organizations().await {
+            Ok(orgs) => {
+                let total_count = orgs.len() as i32;
+                Ok(Response::new(ListOrganizationsResponse {
+                    organizations: orgs.into_iter().map(|o| org_info_to_proto(&o)).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_organization(
+        &self,
+        request: Request<GetOrganizationRequest>,
+    ) -> Result<Response<GetOrganizationResponse>, Status> {
+        let req = request.into_inner();
+
+        match get_organization(&req.slug).await {
+            Ok(Some(org)) => Ok(Response::new(GetOrganizationResponse {
+                found: true,
+                organization: Some(org_info_to_proto(&org)),
+            })),
+            Ok(None) => Ok(Response::new(GetOrganizationResponse {
+                found: false,
+                organization: None,
+            })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_organization(
+        &self,
+        request: Request<UpdateOrganizationRequest>,
+    ) -> Result<Response<UpdateOrganizationResponse>, Status> {
+        let req = request.into_inner();
+        let name = if req.name.is_empty() { None } else { Some(req.name.as_str()) };
+        let description = if req.description.is_empty() { None } else { Some(req.description.as_str()) };
+        let new_slug = if req.new_slug.is_empty() { None } else { Some(req.new_slug.as_str()) };
+
+        match update_organization(&req.slug, name, description, new_slug).await {
+            Ok(org) => Ok(Response::new(UpdateOrganizationResponse {
+                success: true,
+                error: String::new(),
+                organization: Some(org_info_to_proto(&org)),
+            })),
+            Err(e) => Ok(Response::new(UpdateOrganizationResponse {
+                success: false,
+                error: e.to_string(),
+                organization: None,
+            })),
+        }
+    }
+
+    async fn delete_organization(
+        &self,
+        request: Request<DeleteOrganizationRequest>,
+    ) -> Result<Response<DeleteOrganizationResponse>, Status> {
+        let req = request.into_inner();
+
+        match delete_organization(&req.slug).await {
+            Ok(()) => Ok(Response::new(DeleteOrganizationResponse {
+                success: true,
+                error: String::new(),
+                unassigned_projects: 0,
+            })),
+            Err(e) => Ok(Response::new(DeleteOrganizationResponse {
+                success: false,
+                error: e.to_string(),
+                unassigned_projects: 0,
             })),
         }
     }
@@ -1381,7 +1522,7 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
 
         // Get all initialized projects from registry
-        let projects = match list_projects(false, false, false).await {
+        let projects = match list_projects(ListProjectsOptions::default()).await {
             Ok(p) => p,
             Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
         };
@@ -2279,6 +2420,19 @@ fn project_info_to_proto(info: &ProjectInfo) -> proto::ProjectInfo {
         is_favorite: info.is_favorite,
         is_archived: info.is_archived,
         display_path: format_display_path(&info.path),
+        organization_slug: info.organization_slug.clone().unwrap_or_default(),
+        organization_name: info.organization_name.clone().unwrap_or_default(),
+    }
+}
+
+fn org_info_to_proto(info: &OrganizationInfo) -> ProtoOrganization {
+    ProtoOrganization {
+        slug: info.slug.clone(),
+        name: info.name.clone(),
+        description: info.description.clone().unwrap_or_default(),
+        created_at: info.created_at.clone(),
+        updated_at: info.updated_at.clone(),
+        project_count: info.project_count,
     }
 }
 

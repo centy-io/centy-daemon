@@ -1,5 +1,6 @@
+use super::organizations::sync_org_from_project;
 use super::storage::{get_lock, read_registry, write_registry_unlocked};
-use super::types::{ProjectInfo, TrackedProject};
+use super::types::{ListProjectsOptions, ProjectInfo, TrackedProject};
 use super::RegistryError;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -13,7 +14,8 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle to prevent race conditions
     let _guard = get_lock().lock().await;
@@ -22,7 +24,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     let now = now_iso();
 
     if let Some(entry) = registry.projects.get_mut(&canonical_path) {
-        // Update existing entry (preserve is_favorite)
+        // Update existing entry (preserve is_favorite and organization_slug)
         entry.last_accessed = now.clone();
     } else {
         // Create new entry
@@ -31,6 +33,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
             last_accessed: now.clone(),
             is_favorite: false,
             is_archived: false,
+            organization_slug: None,
         };
         registry.projects.insert(canonical_path, entry);
     }
@@ -57,7 +60,8 @@ pub async fn untrack_project(project_path: &str) -> Result<(), RegistryError> {
 
     // Try canonical path first, fall back to original
     let canonical_path = path
-        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle to prevent race conditions
     let _guard = get_lock().lock().await;
@@ -79,7 +83,11 @@ pub async fn untrack_project(project_path: &str) -> Result<(), RegistryError> {
 }
 
 /// Enrich a tracked project with live data from disk
-pub async fn enrich_project(path: &str, tracked: &TrackedProject) -> ProjectInfo {
+pub async fn enrich_project(
+    path: &str,
+    tracked: &TrackedProject,
+    org_name: Option<String>,
+) -> ProjectInfo {
     let project_path = Path::new(path);
     let centy_path = get_centy_path(project_path);
 
@@ -110,15 +118,13 @@ pub async fn enrich_project(path: &str, tracked: &TrackedProject) -> ProjectInfo
         name,
         is_favorite: tracked.is_favorite,
         is_archived: tracked.is_archived,
+        organization_slug: tracked.organization_slug.clone(),
+        organization_name: org_name,
     }
 }
 
 /// List all tracked projects, enriched with live data
-pub async fn list_projects(
-    include_stale: bool,
-    include_uninitialized: bool,
-    include_archived: bool,
-) -> Result<Vec<ProjectInfo>, RegistryError> {
+pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectInfo>, RegistryError> {
     let registry = read_registry().await?;
 
     let mut projects = Vec::new();
@@ -126,19 +132,48 @@ pub async fn list_projects(
     for (path, tracked) in &registry.projects {
         let path_exists = Path::new(path).exists();
 
-        if !include_stale && !path_exists {
+        if !opts.include_stale && !path_exists {
             // Skip stale (non-existent) projects
             continue;
         }
 
-        if !include_archived && tracked.is_archived {
+        if !opts.include_archived && tracked.is_archived {
             // Skip archived projects
             continue;
         }
 
-        let info = enrich_project(path, tracked).await;
+        // Filter by organization if specified
+        if let Some(org_slug) = opts.organization_slug {
+            if tracked.organization_slug.as_deref() != Some(org_slug) {
+                continue;
+            }
+        }
 
-        if !include_uninitialized && !info.initialized {
+        // Filter to ungrouped only if specified
+        if opts.ungrouped_only && tracked.organization_slug.is_some() {
+            continue;
+        }
+
+        // Get organization name if project has one
+        let org_name = tracked
+            .organization_slug
+            .as_ref()
+            .and_then(|slug| registry.organizations.get(slug))
+            .map(|org| org.name.clone());
+
+        // Try to sync org from project's organization.json (for clone workflow)
+        if tracked.organization_slug.is_some() && org_name.is_none() {
+            // Project has org slug but org doesn't exist - try to sync from file
+            let project_path = Path::new(path);
+            if let Ok(Some(_synced_slug)) = sync_org_from_project(project_path).await {
+                // Re-read registry to get the org name after sync
+                // For now, just use None - the next call will have the synced org
+            }
+        }
+
+        let info = enrich_project(path, tracked, org_name).await;
+
+        if !opts.include_uninitialized && !info.initialized {
             // Skip uninitialized projects
             continue;
         }
@@ -158,7 +193,8 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
 
     // Canonicalize path
     let canonical_path = path
-        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     let registry = read_registry().await?;
 
@@ -169,7 +205,16 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
         .or_else(|| registry.projects.get(project_path));
 
     match tracked {
-        Some(tracked) => Ok(Some(enrich_project(&canonical_path, tracked).await)),
+        Some(tracked) => {
+            // Get organization name if project has one
+            let org_name = tracked
+                .organization_slug
+                .as_ref()
+                .and_then(|slug| registry.organizations.get(slug))
+                .map(|org| org.name.clone());
+
+            Ok(Some(enrich_project(&canonical_path, tracked, org_name).await))
+        }
         None => Ok(None),
     }
 }
@@ -224,7 +269,8 @@ pub async fn set_project_favorite(
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -241,15 +287,25 @@ pub async fn set_project_favorite(
     };
 
     // Now we can safely get the mutable entry (key existence was checked above)
-    let tracked = registry.projects.get_mut(&key).expect("key was verified to exist");
+    let tracked = registry
+        .projects
+        .get_mut(&key)
+        .expect("key was verified to exist");
     tracked.is_favorite = is_favorite;
     let tracked_clone = tracked.clone();
+
+    // Get organization name
+    let org_name = tracked_clone
+        .organization_slug
+        .as_ref()
+        .and_then(|slug| registry.organizations.get(slug))
+        .map(|org| org.name.clone());
 
     registry.updated_at = now_iso();
     write_registry_unlocked(&registry).await?;
 
     // Return enriched project info
-    Ok(enrich_project(&canonical_path, &tracked_clone).await)
+    Ok(enrich_project(&canonical_path, &tracked_clone, org_name).await)
 }
 
 /// Set the archived status for a project
@@ -261,7 +317,8 @@ pub async fn set_project_archived(
 
     // Canonicalize path to ensure consistent keys
     let canonical_path = path
-        .canonicalize().map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -278,13 +335,23 @@ pub async fn set_project_archived(
     };
 
     // Now we can safely get the mutable entry (key existence was checked above)
-    let tracked = registry.projects.get_mut(&key).expect("key was verified to exist");
+    let tracked = registry
+        .projects
+        .get_mut(&key)
+        .expect("key was verified to exist");
     tracked.is_archived = is_archived;
     let tracked_clone = tracked.clone();
+
+    // Get organization name
+    let org_name = tracked_clone
+        .organization_slug
+        .as_ref()
+        .and_then(|slug| registry.organizations.get(slug))
+        .map(|org| org.name.clone());
 
     registry.updated_at = now_iso();
     write_registry_unlocked(&registry).await?;
 
     // Return enriched project info
-    Ok(enrich_project(&canonical_path, &tracked_clone).await)
+    Ok(enrich_project(&canonical_path, &tracked_clone, org_name).await)
 }

@@ -1,9 +1,11 @@
-use super::types::ProjectRegistry;
+use super::types::{ProjectRegistry, CURRENT_SCHEMA_VERSION};
 use super::RegistryError;
+use crate::utils::now_iso;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::fs;
 use tokio::sync::Mutex;
+use tracing::info;
 
 /// Global mutex for registry file access
 static REGISTRY_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -26,7 +28,31 @@ pub fn get_registry_path() -> Result<PathBuf, RegistryError> {
     Ok(get_centy_config_dir()?.join("projects.json"))
 }
 
-/// Read the registry from disk
+/// Migrate registry from v1 to v2 (add organizations support)
+fn migrate_v1_to_v2(registry: &mut ProjectRegistry) {
+    // v1 -> v2: Add empty organizations map (already has #[serde(default)])
+    // Existing projects remain ungrouped (organization_slug = None by default)
+    registry.schema_version = 2;
+    registry.updated_at = now_iso();
+    info!("Migrated registry from v1 to v2 (added organizations support)");
+}
+
+/// Apply any necessary migrations to bring registry to current schema version
+fn apply_migrations(registry: &mut ProjectRegistry) -> bool {
+    let mut migrated = false;
+
+    if registry.schema_version < 2 {
+        migrate_v1_to_v2(registry);
+        migrated = true;
+    }
+
+    // Future migrations go here:
+    // if registry.schema_version < 3 { migrate_v2_to_v3(registry); migrated = true; }
+
+    migrated
+}
+
+/// Read the registry from disk, applying any necessary migrations
 pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
     let path = get_registry_path()?;
 
@@ -35,7 +61,16 @@ pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
     }
 
     let content = fs::read_to_string(&path).await?;
-    let registry: ProjectRegistry = serde_json::from_str(&content)?;
+    let mut registry: ProjectRegistry = serde_json::from_str(&content)?;
+
+    // Apply migrations if needed
+    if registry.schema_version < CURRENT_SCHEMA_VERSION {
+        let _guard = get_lock().lock().await;
+        if apply_migrations(&mut registry) {
+            write_registry_unlocked(&registry).await?;
+        }
+    }
+
     Ok(registry)
 }
 
@@ -83,8 +118,9 @@ mod tests {
     #[test]
     fn test_project_registry_new() {
         let registry = ProjectRegistry::new();
-        assert_eq!(registry.schema_version, 1);
+        assert_eq!(registry.schema_version, CURRENT_SCHEMA_VERSION);
         assert!(registry.projects.is_empty());
+        assert!(registry.organizations.is_empty());
         assert!(!registry.updated_at.is_empty());
     }
 }

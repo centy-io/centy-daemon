@@ -1,14 +1,22 @@
+mod organizations;
 mod storage;
 mod tracking;
 mod types;
 
-#[allow(unused_imports)]
-pub use tracking::{
-    get_project_info, list_projects, set_project_archived, set_project_favorite,
-    track_project, track_project_async, untrack_project,
+pub use organizations::{
+    create_organization, delete_organization, get_organization, list_organizations,
+    set_project_organization, update_organization,
 };
 #[allow(unused_imports)]
-pub use types::{ProjectInfo, ProjectRegistry, TrackedProject};
+pub use tracking::{
+    get_project_info, list_projects, set_project_archived, set_project_favorite, track_project,
+    track_project_async, untrack_project,
+};
+#[allow(unused_imports)]
+pub use types::{
+    ListProjectsOptions, Organization, OrganizationInfo, ProjectInfo, ProjectOrganization,
+    ProjectRegistry, TrackedProject, CURRENT_SCHEMA_VERSION,
+};
 
 use thiserror::Error;
 

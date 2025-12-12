@@ -1,6 +1,28 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Organization stored in global registry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Organization {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Organization info for per-project `.centy/organization.json` file
+/// This travels with the project when cloned
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectOrganization {
+    pub slug: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
 /// Stored in registry file (minimal - only timestamps and favorite/archived status)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -11,28 +33,38 @@ pub struct TrackedProject {
     pub is_favorite: bool,
     #[serde(default)]
     pub is_archived: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub organization_slug: Option<String>,
 }
 
 /// The global project registry stored in ~/.centy/projects.json
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRegistry {
-    /// Schema version for future migrations
+    /// Schema version for future migrations (2 = organizations support)
     pub schema_version: u32,
 
     /// When the registry was last modified
     pub updated_at: String,
 
+    /// Map of organization slug -> Organization
+    #[serde(default)]
+    pub organizations: HashMap<String, Organization>,
+
     /// Map of project path -> `TrackedProject` (timestamps only)
     pub projects: HashMap<String, TrackedProject>,
 }
 
+/// Current schema version
+pub const CURRENT_SCHEMA_VERSION: u32 = 2;
+
 impl ProjectRegistry {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
-            schema_version: 1,
+            schema_version: CURRENT_SCHEMA_VERSION,
             updated_at: crate::utils::now_iso(),
+            organizations: HashMap::new(),
             projects: HashMap::new(),
         }
     }
@@ -67,4 +99,47 @@ pub struct ProjectInfo {
 
     /// User-marked archived status (stored in registry)
     pub is_archived: bool,
+
+    /// Organization slug (stored in registry)
+    pub organization_slug: Option<String>,
+
+    /// Organization name (resolved from registry, for display)
+    pub organization_name: Option<String>,
+}
+
+/// Organization info returned by API (enriched with project count)
+#[derive(Debug, Clone)]
+pub struct OrganizationInfo {
+    /// Unique slug identifier
+    pub slug: String,
+
+    /// Display name
+    pub name: String,
+
+    /// Optional description
+    pub description: Option<String>,
+
+    /// When the organization was created
+    pub created_at: String,
+
+    /// When the organization was last updated
+    pub updated_at: String,
+
+    /// Number of projects in this organization (computed)
+    pub project_count: u32,
+}
+
+/// Options for listing projects
+#[derive(Debug, Clone, Default)]
+pub struct ListProjectsOptions<'a> {
+    /// Include projects where path no longer exists
+    pub include_stale: bool,
+    /// Include projects without .centy manifest
+    pub include_uninitialized: bool,
+    /// Include archived projects
+    pub include_archived: bool,
+    /// Filter by organization slug
+    pub organization_slug: Option<&'a str>,
+    /// Only show projects without organization
+    pub ungrouped_only: bool,
 }

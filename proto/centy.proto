@@ -118,6 +118,26 @@ service CentyDaemon {
   // Set project archived status
   rpc SetProjectArchived(SetProjectArchivedRequest) returns (SetProjectArchivedResponse);
 
+  // Set project organization
+  rpc SetProjectOrganization(SetProjectOrganizationRequest) returns (SetProjectOrganizationResponse);
+
+  // ============ Organization RPCs ============
+
+  // Create a new organization
+  rpc CreateOrganization(CreateOrganizationRequest) returns (CreateOrganizationResponse);
+
+  // List all organizations
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+
+  // Get a specific organization
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
+
+  // Update an organization
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse);
+
+  // Delete an organization
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse);
+
   // ============ Version RPCs ============
 
   // Get daemon version info
@@ -755,12 +775,16 @@ message ProjectInfo {
   bool is_favorite = 8;           // User-marked favorite status
   bool is_archived = 9;           // User-marked archived status
   string display_path = 10;       // Human-readable path with ~/ for home dir (use for display only)
+  string organization_slug = 11;  // Organization slug (empty if ungrouped)
+  string organization_name = 12;  // Organization display name (for convenience)
 }
 
 message ListProjectsRequest {
   bool include_stale = 1;         // Include projects where path no longer exists
   bool include_uninitialized = 2; // Include projects without .centy manifest
   bool include_archived = 3;      // Include archived projects (default: false)
+  string organization_slug = 4;   // Filter by organization (empty = all)
+  bool ungrouped_only = 5;        // Only show projects without organization
 }
 
 message ListProjectsResponse {
@@ -816,6 +840,79 @@ message SetProjectArchivedResponse {
   bool success = 1;
   string error = 2;
   ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectOrganizationRequest {
+  string project_path = 1;
+  string organization_slug = 2;   // Empty to remove from organization
+}
+
+message SetProjectOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+// ============ Organization Messages ============
+
+message Organization {
+  string slug = 1;                // Unique identifier (kebab-case)
+  string name = 2;                // Display name
+  string description = 3;         // Optional description
+  string created_at = 4;          // ISO timestamp
+  string updated_at = 5;          // ISO timestamp
+  uint32 project_count = 6;       // Number of projects in this org
+}
+
+message CreateOrganizationRequest {
+  string slug = 1;                // Unique slug (auto-generated from name if empty)
+  string name = 2;                // Display name (required)
+  string description = 3;         // Optional description
+}
+
+message CreateOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  Organization organization = 3;
+}
+
+message ListOrganizationsRequest {}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  int32 total_count = 2;
+}
+
+message GetOrganizationRequest {
+  string slug = 1;
+}
+
+message GetOrganizationResponse {
+  bool found = 1;
+  Organization organization = 2;
+}
+
+message UpdateOrganizationRequest {
+  string slug = 1;                // Current slug
+  string name = 2;                // New name (empty = don't change)
+  string description = 3;         // New description (empty = don't change)
+  string new_slug = 4;            // Rename slug (empty = keep current)
+}
+
+message UpdateOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  Organization organization = 3;
+}
+
+message DeleteOrganizationRequest {
+  string slug = 1;
+}
+
+message DeleteOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 unassigned_projects = 3; // Projects that are now ungrouped (should be 0 if block deletion)
 }
 
 // ============ Version Messages ============
