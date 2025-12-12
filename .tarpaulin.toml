@@ -1,5 +1,5 @@
 [default]
-engine = "llvm"
+engine = "Llvm"
 out = ["Html", "Lcov", "Json"]
 output-dir = "coverage"
 run-types = ["Tests", "Lib"]
@@ -11,7 +11,7 @@ fail-under = 90.0
 force-clean = true
 
 [ci]
-engine = "llvm"
+engine = "Llvm"
 out = ["Lcov", "Json"]
 output-dir = "coverage"
 timeout = "300"
