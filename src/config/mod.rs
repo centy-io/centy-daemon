@@ -39,6 +39,7 @@ fn default_priority_levels() -> u32 {
 fn default_allowed_states() -> Vec<String> {
     vec![
         "open".to_string(),
+        "planning".to_string(),
         "in-progress".to_string(),
         "closed".to_string(),
     ]
@@ -82,7 +83,7 @@ pub struct CentyConfig {
     pub custom_fields: Vec<CustomFieldDefinition>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
-    /// Allowed status values for issues (default: `["open", "in-progress", "closed"]`)
+    /// Allowed status values for issues (default: `["open", "planning", "in-progress", "closed"]`)
     #[serde(default = "default_allowed_states")]
     pub allowed_states: Vec<String>,
     /// Default state for new issues (default: "open")

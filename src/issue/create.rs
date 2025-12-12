@@ -8,6 +8,7 @@ use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
+use super::planning::{add_planning_note, is_planning_status};
 use super::status::validate_status;
 use std::collections::HashMap;
 use std::path::Path;
@@ -153,7 +154,7 @@ pub async fn create_issue(
     let metadata = IssueMetadata::new(display_number, status.clone(), priority, custom_field_values);
 
     // Create issue content
-    let issue_md = if let Some(ref template_name) = options.template {
+    let mut issue_md = if let Some(ref template_name) = options.template {
         // Use template engine
         let template_engine = TemplateEngine::new();
         let context = IssueTemplateContext {
@@ -172,6 +173,11 @@ pub async fn create_issue(
         // Use default format
         generate_issue_md(&options.title, &options.description)
     };
+
+    // Add planning note if status is "planning"
+    if is_planning_status(&metadata.status) {
+        issue_md = add_planning_note(&issue_md);
+    }
 
     // Write files (using UUID as folder name)
     let issue_folder = issues_path.join(&issue_id);

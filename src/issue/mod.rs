@@ -3,6 +3,7 @@ pub mod create;
 pub mod crud;
 pub mod id;
 mod metadata;
+pub mod planning;
 pub mod priority;
 pub mod reconcile;
 pub mod status;
@@ -23,6 +24,11 @@ pub use metadata::IssueMetadata;
 #[allow(unused_imports)]
 pub use crud::IssueMetadataFlat;
 pub use priority::priority_label;
+#[allow(unused_imports)]
+pub use planning::{
+    add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
+    PLANNING_NOTE, PLANNING_STATUS,
+};
 #[allow(unused_imports)]
 pub use assets::{
     add_asset, copy_assets_folder, delete_asset, get_asset, list_assets, list_shared_assets,

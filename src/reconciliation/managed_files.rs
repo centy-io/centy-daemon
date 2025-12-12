@@ -58,7 +58,7 @@ Each issue is stored in its own folder (UUID or display number) with:
 - `issue.md` - The issue content (title and description in markdown)
 - `metadata.json` - Machine-readable metadata:
   - `displayNumber` - Human-friendly issue number
-  - `status` - Current status (e.g., "open", "in-progress", "closed")
+  - `status` - Current status (e.g., "open", "planning", "in-progress", "closed")
   - `priority` - Priority level (1 = highest)
   - `createdAt` / `updatedAt` - ISO 8601 timestamps
 
@@ -71,7 +71,21 @@ Each issue is stored in its own folder (UUID or display number) with:
    - `llm.updateStatusOnStart`: If `true`, you should update status to "in-progress" when starting work
    - `llm.allowDirectEdits`: If `true`, you may directly edit `metadata.json` to change status. If `false`, use the `centy` CLI instead
 
-3. **Status Values**: Valid status values are defined in `config.json` under `allowedStates`. Default: `["open", "in-progress", "closed"]`
+3. **Status Values**: Valid status values are defined in `config.json` under `allowedStates`. Default: `["open", "planning", "in-progress", "closed"]`
+
+### Planning Status
+
+When an issue has status `"planning"`, a special blockquote note is embedded at the top of `issue.md`:
+
+> **Planning Mode**: Do not implement code changes. Brainstorm with the user, create an action plan, and update this issue before transitioning to "in-progress".
+
+**Important**: When you see this note:
+- DO NOT write or modify code
+- Focus on discussing the approach with the user
+- Help create an action plan within the issue
+- Only transition to "in-progress" when the user is ready to implement
+
+When the status changes from "planning" to another state, this note is automatically removed.
 
 ### Best Practices
 
@@ -79,6 +93,7 @@ Each issue is stored in its own folder (UUID or display number) with:
 - Check the priority to understand urgency (1 = highest priority)
 - Update status according to the project's `llm` configuration
 - When closing an issue, update the `updatedAt` timestamp to the current ISO 8601 time
+- Respect the planning mode when present - do not implement until transitioning out of planning
 "#;
 
 /// Templates README content

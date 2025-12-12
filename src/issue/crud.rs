@@ -9,6 +9,7 @@ use super::id::{generate_issue_id, is_uuid, is_valid_issue_folder};
 use super::metadata::IssueMetadata;
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
+use super::planning::{add_planning_note, has_planning_note, is_planning_status, remove_planning_note};
 use super::status::validate_status;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -367,6 +368,9 @@ pub async fn update_issue(
     // Read current issue
     let current = read_issue_from_disk(&issue_path, issue_number).await?;
 
+    // Capture old status before it gets moved
+    let old_status = current.metadata.status.clone();
+
     // Apply updates
     let new_title = options.title.unwrap_or(current.title);
     let new_description = options.description.unwrap_or(current.description);
@@ -408,7 +412,26 @@ pub async fn update_issue(
     };
 
     // Generate updated content
-    let issue_md = generate_issue_md(&new_title, &new_description);
+    let mut issue_md = generate_issue_md(&new_title, &new_description);
+
+    // Handle planning note based on status transition
+    let transitioning_to_planning = !is_planning_status(&old_status) && is_planning_status(&new_status);
+    let _transitioning_from_planning = is_planning_status(&old_status) && !is_planning_status(&new_status);
+    let staying_in_planning = is_planning_status(&old_status) && is_planning_status(&new_status);
+
+    if transitioning_to_planning {
+        // Add planning note when transitioning TO planning
+        issue_md = add_planning_note(&issue_md);
+    } else if staying_in_planning {
+        // Keep planning note when staying in planning
+        // Read current issue.md to check if note exists
+        let current_issue_md = fs::read_to_string(issue_path.join("issue.md")).await?;
+        if has_planning_note(&current_issue_md) {
+            issue_md = add_planning_note(&issue_md);
+        }
+    }
+    // Note: transitioning_from_planning doesn't need handling because
+    // generate_issue_md produces clean content without the note
 
     // Write files
     let issue_md_path = issue_path.join("issue.md");
@@ -641,7 +664,13 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
     });
 
     // Create new issue.md
-    let issue_md = generate_issue_md(&new_title, &source_issue.description);
+    let mut issue_md = generate_issue_md(&new_title, &source_issue.description);
+
+    // Add planning note if source issue is in planning state
+    if is_planning_status(&source_issue.metadata.status) {
+        issue_md = add_planning_note(&issue_md);
+    }
+
     fs::write(new_issue_path.join("issue.md"), &issue_md).await?;
 
     // Create new metadata with fresh timestamps
@@ -735,21 +764,33 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
 }
 
 /// Parse issue.md content to extract title and description
+/// Handles the planning note by skipping it if present at the start
 fn parse_issue_md(content: &str) -> (String, String) {
+    // Remove planning note if present before parsing
+    let content = remove_planning_note(content);
     let lines: Vec<&str> = content.lines().collect();
 
     if lines.is_empty() {
         return (String::new(), String::new());
     }
 
-    // First line should be the title (# Title)
-    let title = lines[0]
-        .strip_prefix('#')
-        .map_or(lines[0], str::trim)
+    // Find the title line (should start with #)
+    let mut title_idx = 0;
+    for (idx, line) in lines.iter().enumerate() {
+        if line.starts_with('#') {
+            title_idx = idx;
+            break;
+        }
+    }
+
+    // Extract title
+    let title = lines.get(title_idx)
+        .map(|line| line.strip_prefix('#').map_or(*line, str::trim))
+        .unwrap_or("")
         .to_string();
 
     // Rest is description (skip empty lines after title)
-    let description_lines: Vec<&str> = lines[1..]
+    let description_lines: Vec<&str> = lines[(title_idx + 1)..]
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()

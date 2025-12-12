@@ -931,3 +931,268 @@ async fn test_duplicate_issue_to_different_project() {
     // Different UUIDs
     assert_ne!(result.issue.id, original.id);
 }
+
+// ============ Planning State Tests ============
+
+#[tokio::test]
+async fn test_create_issue_with_planning_status_adds_note() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with planning status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Planning Issue".to_string(),
+            description: "Need to plan this".to_string(),
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should create issue");
+
+    // Read issue.md directly to verify planning note
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&created.id)
+        .join("issue.md");
+    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+
+    assert!(content.contains("> **Planning Mode**"), "Should contain planning note");
+    assert!(content.contains("# Planning Issue"), "Should contain title");
+}
+
+#[tokio::test]
+async fn test_create_issue_without_planning_status_no_note() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with open status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Regular Issue".to_string(),
+            status: Some("open".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should create issue");
+
+    // Read issue.md directly
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&created.id)
+        .join("issue.md");
+    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+
+    assert!(!content.contains("> **Planning Mode**"), "Should NOT contain planning note");
+    assert!(content.starts_with("# Regular Issue"), "Should start with title");
+}
+
+#[tokio::test]
+async fn test_update_issue_to_planning_adds_note() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with open status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Test Issue".to_string(),
+            status: Some("open".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Verify no planning note initially
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&created.id)
+        .join("issue.md");
+    let initial_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    assert!(!initial_content.contains("> **Planning Mode**"));
+
+    // Update to planning status
+    update_issue(
+        project_path,
+        &created.id,
+        UpdateIssueOptions {
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should update issue");
+
+    // Verify planning note was added
+    let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    assert!(updated_content.contains("> **Planning Mode**"), "Should add planning note");
+}
+
+#[tokio::test]
+async fn test_update_issue_from_planning_removes_note() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with planning status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Test Issue".to_string(),
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Verify planning note exists
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&created.id)
+        .join("issue.md");
+    let initial_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    assert!(initial_content.contains("> **Planning Mode**"));
+
+    // Update to in-progress status
+    update_issue(
+        project_path,
+        &created.id,
+        UpdateIssueOptions {
+            status: Some("in-progress".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should update issue");
+
+    // Verify planning note was removed
+    let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    assert!(!updated_content.contains("> **Planning Mode**"), "Should remove planning note");
+    assert!(updated_content.starts_with("# Test Issue"), "Should start with title");
+}
+
+#[tokio::test]
+async fn test_planning_note_idempotent() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with planning status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Test".to_string(),
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&created.id)
+        .join("issue.md");
+
+    // Update multiple times while staying in planning
+    for i in 0..3 {
+        update_issue(
+            project_path,
+            &created.id,
+            UpdateIssueOptions {
+                description: Some(format!("Updated description {i}")),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    }
+
+    // Should still have exactly one planning note
+    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    assert_eq!(
+        content.matches("> **Planning Mode**").count(),
+        1,
+        "Should have exactly one planning note"
+    );
+}
+
+#[tokio::test]
+async fn test_duplicate_issue_preserves_planning_note() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with planning status
+    let original = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Planning Issue".to_string(),
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Duplicate it
+    let result = duplicate_issue(DuplicateIssueOptions {
+        source_project_path: project_path.to_path_buf(),
+        target_project_path: project_path.to_path_buf(),
+        issue_id: original.id.clone(),
+        new_title: None,
+    })
+    .await
+    .expect("Should duplicate issue");
+
+    // Verify duplicate has planning note
+    let issue_md_path = project_path
+        .join(".centy/issues")
+        .join(&result.issue.id)
+        .join("issue.md");
+    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+
+    assert!(content.contains("> **Planning Mode**"), "Duplicate should have planning note");
+    assert_eq!(result.issue.metadata.status, "planning");
+}
+
+#[tokio::test]
+async fn test_planning_note_parsing_extracts_correct_title() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    // Create issue with planning status
+    let created = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "My Planning Issue".to_string(),
+            description: "Some description".to_string(),
+            status: Some("planning".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Get the issue and verify title is parsed correctly (not the planning note)
+    let issue = get_issue(project_path, &created.id).await.expect("Should get issue");
+    assert_eq!(issue.title, "My Planning Issue");
+    assert_eq!(issue.description, "Some description");
+}
