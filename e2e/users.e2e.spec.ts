@@ -10,7 +10,9 @@ describe('gRPC: User Operations', () => {
   let project: TempProject;
 
   afterEach(async () => {
-    await project.cleanup();
+    if (project) {
+      await project.cleanup();
+    }
   });
 
   describe('SyncUsers', () => {

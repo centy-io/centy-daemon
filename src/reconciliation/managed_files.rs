@@ -210,7 +210,17 @@ const CSPELL_JSON_CONTENT: &str = r#"{
     "centy",
     "displayNumber",
     "createdAt",
-    "updatedAt"
+    "updatedAt",
+    "compacted",
+    "priorityLevels",
+    "allowedStates",
+    "stateColors",
+    "priorityColors",
+    "autoCloseOnComplete",
+    "updateStatusOnStart",
+    "allowDirectEdits",
+    "centyVersion",
+    "schemaVersion"
   ],
   "ignorePaths": [
     ".centy-manifest.json"
