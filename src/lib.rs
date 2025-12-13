@@ -11,6 +11,7 @@ pub mod reconciliation;
 pub mod registry;
 pub mod server;
 pub mod template;
+pub mod user;
 pub mod utils;
 pub mod version;
 
@@ -61,4 +62,10 @@ pub use llm::{
     spawn_agent, get_effective_local_config, read_work_session, clear_work_session,
     record_work_session, AgentConfig, AgentType, LocalLlmConfig, LlmAction, LlmError,
     LlmWorkSession, PromptBuilder,
+};
+pub use user::{
+    create_user, delete_user, get_user, list_users, sync_users, update_user,
+    CreateUserOptions, CreateUserResult, DeleteUserResult, GitContributor,
+    SyncUsersFullResult, SyncUsersResult, UpdateUserOptions, UpdateUserResult,
+    User, UserError,
 };

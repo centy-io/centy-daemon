@@ -11,6 +11,7 @@ mod reconciliation;
 mod registry;
 mod server;
 mod template;
+mod user;
 mod utils;
 mod version;
 

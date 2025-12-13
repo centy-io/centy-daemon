@@ -236,6 +236,26 @@ service CentyDaemon {
 
   // Get all available link types (builtin + custom)
   rpc GetAvailableLinkTypes(GetAvailableLinkTypesRequest) returns (GetAvailableLinkTypesResponse);
+
+  // ============ User RPCs ============
+
+  // Create a new user
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+
+  // Get a single user by ID
+  rpc GetUser(GetUserRequest) returns (User);
+
+  // List all users
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // Update an existing user
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+
+  // Delete a user
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+  // Sync users from git history
+  rpc SyncUsers(SyncUsersRequest) returns (SyncUsersResponse);
 }
 
 // ============ Init Messages ============
@@ -1384,4 +1404,94 @@ message LinkTypeInfo {
 
 message GetAvailableLinkTypesResponse {
   repeated LinkTypeInfo link_types = 1;
+}
+
+// ============ User Messages ============
+
+// A project user/team member
+message User {
+  string id = 1;                        // Unique identifier (slug format, e.g., "john-doe")
+  string name = 2;                      // Display name
+  string email = 3;                     // Email address (optional)
+  repeated string git_usernames = 4;    // Git usernames (e.g., GitHub handles)
+  string created_at = 5;                // ISO timestamp
+  string updated_at = 6;                // ISO timestamp
+}
+
+message CreateUserRequest {
+  string project_path = 1;
+  string id = 2;                        // User ID (slug format)
+  string name = 3;                      // Display name (required)
+  string email = 4;                     // Email address (optional)
+  repeated string git_usernames = 5;    // Git usernames (optional)
+}
+
+message CreateUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The created user
+  Manifest manifest = 4;
+}
+
+message GetUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message ListUsersRequest {
+  string project_path = 1;
+  string git_username = 2;              // Optional: filter by git username
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total_count = 2;
+}
+
+message UpdateUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+  string name = 3;                      // Empty = don't update
+  string email = 4;                     // Empty = don't update
+  repeated string git_usernames = 5;    // Empty array = don't update
+}
+
+message UpdateUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The updated user
+  Manifest manifest = 4;
+}
+
+message DeleteUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
+// Git contributor found in history
+message GitContributor {
+  string name = 1;
+  string email = 2;
+}
+
+message SyncUsersRequest {
+  string project_path = 1;
+  bool dry_run = 2;                     // If true, don't create users, just show what would be created
+}
+
+message SyncUsersResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string created = 3;          // User IDs that were created
+  repeated string skipped = 4;          // Emails that were skipped (already exist)
+  repeated string errors = 5;           // Errors during creation
+  repeated GitContributor would_create = 6;  // For dry run: users that would be created
+  repeated GitContributor would_skip = 7;    // For dry run: users that would be skipped
+  Manifest manifest = 8;
 }

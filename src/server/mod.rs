@@ -40,6 +40,12 @@ use crate::registry::{
     track_project_async, untrack_project, update_organization, ListProjectsOptions, OrganizationInfo,
     ProjectInfo,
 };
+use crate::user::{
+    create_user as internal_create_user, delete_user as internal_delete_user,
+    get_user as internal_get_user, list_users as internal_list_users,
+    sync_users as internal_sync_users, update_user as internal_update_user,
+    CreateUserOptions, UpdateUserOptions,
+};
 use crate::utils::{format_display_path, get_centy_path};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -56,7 +62,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2188,6 +2194,184 @@ impl CentyDaemon for CentyDaemonService {
                 .collect(),
         }))
     }
+
+    // ============ User RPCs ============
+
+    async fn create_user(
+        &self,
+        request: Request<CreateUserRequest>,
+    ) -> Result<Response<CreateUserResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let options = CreateUserOptions {
+            id: req.id,
+            name: req.name,
+            email: if req.email.is_empty() { None } else { Some(req.email) },
+            git_usernames: req.git_usernames,
+        };
+
+        match internal_create_user(project_path, options).await {
+            Ok(result) => Ok(Response::new(CreateUserResponse {
+                success: true,
+                error: String::new(),
+                user: Some(user_to_proto(&result.user)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(CreateUserResponse {
+                success: false,
+                error: e.to_string(),
+                user: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn get_user(
+        &self,
+        request: Request<GetUserRequest>,
+    ) -> Result<Response<ProtoUser>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_get_user(project_path, &req.user_id).await {
+            Ok(user) => Ok(Response::new(user_to_proto(&user))),
+            Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn list_users(
+        &self,
+        request: Request<ListUsersRequest>,
+    ) -> Result<Response<ListUsersResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let filter = if req.git_username.is_empty() {
+            None
+        } else {
+            Some(req.git_username.as_str())
+        };
+
+        match internal_list_users(project_path, filter).await {
+            Ok(users) => {
+                let total_count = users.len() as i32;
+                Ok(Response::new(ListUsersResponse {
+                    users: users.iter().map(user_to_proto).collect(),
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_user(
+        &self,
+        request: Request<UpdateUserRequest>,
+    ) -> Result<Response<UpdateUserResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let options = UpdateUserOptions {
+            name: if req.name.is_empty() { None } else { Some(req.name) },
+            email: if req.email.is_empty() { None } else { Some(req.email) },
+            git_usernames: if req.git_usernames.is_empty() {
+                None
+            } else {
+                Some(req.git_usernames)
+            },
+        };
+
+        match internal_update_user(project_path, &req.user_id, options).await {
+            Ok(result) => Ok(Response::new(UpdateUserResponse {
+                success: true,
+                error: String::new(),
+                user: Some(user_to_proto(&result.user)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(UpdateUserResponse {
+                success: false,
+                error: e.to_string(),
+                user: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn delete_user(
+        &self,
+        request: Request<DeleteUserRequest>,
+    ) -> Result<Response<DeleteUserResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_delete_user(project_path, &req.user_id).await {
+            Ok(result) => Ok(Response::new(DeleteUserResponse {
+                success: true,
+                error: String::new(),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(DeleteUserResponse {
+                success: false,
+                error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn sync_users(
+        &self,
+        request: Request<SyncUsersRequest>,
+    ) -> Result<Response<SyncUsersResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_sync_users(project_path, req.dry_run).await {
+            Ok(full_result) => {
+                let result = full_result.result;
+                Ok(Response::new(SyncUsersResponse {
+                    success: true,
+                    error: String::new(),
+                    created: result.created,
+                    skipped: result.skipped,
+                    errors: result.errors,
+                    would_create: result
+                        .would_create
+                        .into_iter()
+                        .map(|c| ProtoGitContributor {
+                            name: c.name,
+                            email: c.email,
+                        })
+                        .collect(),
+                    would_skip: result
+                        .would_skip
+                        .into_iter()
+                        .map(|c| ProtoGitContributor {
+                            name: c.name,
+                            email: c.email,
+                        })
+                        .collect(),
+                    manifest: Some(manifest_to_proto(&full_result.manifest)),
+                }))
+            }
+            Err(e) => Ok(Response::new(SyncUsersResponse {
+                success: false,
+                error: e.to_string(),
+                created: vec![],
+                skipped: vec![],
+                errors: vec![],
+                would_create: vec![],
+                would_skip: vec![],
+                manifest: None,
+            })),
+        }
+    }
 }
 
 // Helper functions for link type conversion
@@ -2447,6 +2631,17 @@ fn asset_info_to_proto(asset: &AssetInfo) -> Asset {
         mime_type: asset.mime_type.clone(),
         is_shared: asset.is_shared,
         created_at: asset.created_at.clone(),
+    }
+}
+
+fn user_to_proto(user: &crate::user::User) -> ProtoUser {
+    ProtoUser {
+        id: user.id.clone(),
+        name: user.name.clone(),
+        email: user.email.clone().unwrap_or_default(),
+        git_usernames: user.git_usernames.clone(),
+        created_at: user.created_at.clone(),
+        updated_at: user.updated_at.clone(),
     }
 }
 
