@@ -393,6 +393,47 @@ export interface CentyClient {
     ) => void
   ): void;
 
+  // Users
+  createUser(
+    request: CreateUserRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreateUserResponse
+    ) => void
+  ): void;
+  getUser(
+    request: GetUserRequest,
+    callback: (error: grpc.ServiceError | null, response: User) => void
+  ): void;
+  listUsers(
+    request: ListUsersRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListUsersResponse
+    ) => void
+  ): void;
+  updateUser(
+    request: UpdateUserRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: UpdateUserResponse
+    ) => void
+  ): void;
+  deleteUser(
+    request: DeleteUserRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: DeleteUserResponse
+    ) => void
+  ): void;
+  syncUsers(
+    request: SyncUsersRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: SyncUsersResponse
+    ) => void
+  ): void;
+
   // For cleanup
   close(): void;
 }
@@ -1177,6 +1218,94 @@ export interface GetAvailableLinkTypesResponse {
   linkTypes: LinkTypeInfo[];
 }
 
+// ============ User Types ============
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  gitUsernames: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserRequest {
+  projectPath: string;
+  id: string;
+  name: string;
+  email?: string;
+  gitUsernames?: string[];
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  error: string;
+  user?: User;
+  manifest?: Manifest;
+}
+
+export interface GetUserRequest {
+  projectPath: string;
+  userId: string;
+}
+
+export interface ListUsersRequest {
+  projectPath: string;
+  gitUsername?: string;
+}
+
+export interface ListUsersResponse {
+  users: User[];
+  totalCount: number;
+}
+
+export interface UpdateUserRequest {
+  projectPath: string;
+  userId: string;
+  name?: string;
+  email?: string;
+  gitUsernames?: string[];
+}
+
+export interface UpdateUserResponse {
+  success: boolean;
+  error: string;
+  user?: User;
+  manifest?: Manifest;
+}
+
+export interface DeleteUserRequest {
+  projectPath: string;
+  userId: string;
+}
+
+export interface DeleteUserResponse {
+  success: boolean;
+  error: string;
+  manifest?: Manifest;
+}
+
+export interface GitContributor {
+  name: string;
+  email: string;
+}
+
+export interface SyncUsersRequest {
+  projectPath: string;
+  dryRun: boolean;
+}
+
+export interface SyncUsersResponse {
+  success: boolean;
+  error: string;
+  created: string[];
+  skipped: string[];
+  errors: string[];
+  wouldCreate: GitContributor[];
+  wouldSkip: GitContributor[];
+  manifest?: Manifest;
+}
+
 /**
  * Create a gRPC client for the Centy daemon.
  * Uses plain text (insecure) transport for testing.
@@ -1334,6 +1463,14 @@ export function promisifyClient(client: CentyClient) {
     getAvailableLinkTypes: promisify<GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse>(
       client.getAvailableLinkTypes
     ),
+
+    // Users
+    createUser: promisify<CreateUserRequest, CreateUserResponse>(client.createUser),
+    getUser: promisify<GetUserRequest, User>(client.getUser),
+    listUsers: promisify<ListUsersRequest, ListUsersResponse>(client.listUsers),
+    updateUser: promisify<UpdateUserRequest, UpdateUserResponse>(client.updateUser),
+    deleteUser: promisify<DeleteUserRequest, DeleteUserResponse>(client.deleteUser),
+    syncUsers: promisify<SyncUsersRequest, SyncUsersResponse>(client.syncUsers),
 
     // Close connection
     close: () => client.close(),
