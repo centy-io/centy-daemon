@@ -10,7 +10,7 @@ use super::metadata::IssueMetadata;
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
 use super::planning::{add_planning_note, has_planning_note, is_planning_status, remove_planning_note};
-use super::status::validate_status;
+use super::status::{validate_status, StatusError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -41,6 +41,9 @@ pub enum IssueCrudError {
 
     #[error("Invalid priority: {0}")]
     InvalidPriority(#[from] PriorityError),
+
+    #[error("Invalid status: {0}")]
+    InvalidStatus(#[from] StatusError),
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
@@ -376,9 +379,9 @@ pub async fn update_issue(
     let new_description = options.description.unwrap_or(current.description);
     let new_status = options.status.unwrap_or(current.metadata.status);
 
-    // Lenient validation: log warning if status is not in allowed_states
+    // Strict validation: reject if status is not in allowed_states
     if let Some(ref config) = config {
-        validate_status(&new_status, &config.allowed_states);
+        validate_status(&new_status, &config.allowed_states)?;
     }
 
     // Validate and apply priority update
@@ -539,9 +542,9 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
     }
 
-    // Status validation is lenient (just log warning)
+    // Status validation: reject if status is not valid in target project
     if let Some(ref config) = target_config {
-        validate_status(&source_issue.metadata.status, &config.allowed_states);
+        validate_status(&source_issue.metadata.status, &config.allowed_states)?;
     }
 
     // Get next display number in target project
@@ -638,9 +641,9 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
             return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
         }
 
-        // Status validation is lenient
+        // Status validation: reject if status is not valid in target project
         if let Some(ref config) = target_config {
-            validate_status(&source_issue.metadata.status, &config.allowed_states);
+            validate_status(&source_issue.metadata.status, &config.allowed_states)?;
         }
     }
 

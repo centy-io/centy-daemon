@@ -27,6 +27,8 @@ pub use metadata::IssueMetadata;
 pub use crud::IssueMetadataFlat;
 pub use priority::priority_label;
 #[allow(unused_imports)]
+pub use status::StatusError;
+#[allow(unused_imports)]
 pub use planning::{
     add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
     PLANNING_NOTE, PLANNING_STATUS,

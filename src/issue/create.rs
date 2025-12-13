@@ -10,7 +10,7 @@ use super::metadata::IssueMetadata;
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
 use super::planning::{add_planning_note, is_planning_status};
-use super::status::validate_status;
+use super::status::{validate_status, StatusError};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -35,6 +35,9 @@ pub enum IssueError {
 
     #[error("Invalid priority: {0}")]
     InvalidPriority(#[from] PriorityError),
+
+    #[error("Invalid status: {0}")]
+    InvalidStatus(#[from] StatusError),
 
     #[error("Template error: {0}")]
     TemplateError(#[from] TemplateError),
@@ -129,9 +132,9 @@ pub async fn create_issue(
             .as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
     });
 
-    // Lenient validation: log warning if status is not in allowed_states
+    // Strict validation: reject if status is not in allowed_states
     if let Some(ref config) = config {
-        validate_status(&status, &config.allowed_states);
+        validate_status(&status, &config.allowed_states)?;
     }
 
     // Build custom fields with defaults from config
