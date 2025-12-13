@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod config;
+pub mod generate;
 pub mod prompt;
 pub mod work;
 
@@ -19,6 +20,8 @@ pub use work::{
     clear_work_session, is_process_running, read_work_session,
     record_work_session, LlmWorkSession, WorkTrackingError,
 };
+#[allow(unused_imports)]
+pub use generate::{generate_title, GeneratedTitle, TitleGenerationError};
 
 use thiserror::Error;
 

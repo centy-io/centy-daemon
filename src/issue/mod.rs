@@ -10,7 +10,9 @@ pub mod status;
 
 #[allow(deprecated)]
 #[allow(unused_imports)]
-pub use create::{create_issue, CreateIssueOptions, CreateIssueResult};
+pub use create::{
+    create_issue, create_issue_with_title_generation, CreateIssueOptions, CreateIssueResult,
+};
 #[allow(unused_imports)]
 pub use crud::{
     delete_issue, duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid,

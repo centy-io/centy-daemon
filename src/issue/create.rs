@@ -1,4 +1,5 @@
 use crate::config::read_config;
+use crate::llm::{generate_title, TitleGenerationError};
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
@@ -40,6 +41,9 @@ pub enum IssueError {
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
+
+    #[error("Title generation failed: {0}")]
+    TitleGenerationFailed(#[from] TitleGenerationError),
 }
 
 /// Options for creating an issue
@@ -246,4 +250,44 @@ fn generate_issue_md(title: &str, description: &str) -> String {
     } else {
         format!("# {title}\n\n{description}\n")
     }
+}
+
+/// Create a new issue, optionally generating title via LLM
+///
+/// If title is empty and description is provided, attempts to generate
+/// title using the configured LLM agent.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Both title and description are empty (`TitleRequired`)
+/// - Title is empty and LLM is not configured (`TitleGenerationFailed`)
+/// - Title is empty and LLM agent is not available (`TitleGenerationFailed`)
+/// - LLM title generation fails for any other reason (`TitleGenerationFailed`)
+/// - Any of the regular issue creation errors occur
+pub async fn create_issue_with_title_generation(
+    project_path: &Path,
+    options: CreateIssueOptions,
+) -> Result<CreateIssueResult, IssueError> {
+    let title = if options.title.trim().is_empty() {
+        // No title provided - try to generate one
+        if options.description.trim().is_empty() {
+            // Can't generate title without description
+            return Err(IssueError::TitleRequired);
+        }
+
+        // Generate title via LLM
+        let generated = generate_title(project_path, &options.description).await?;
+        generated.title
+    } else {
+        options.title.clone()
+    };
+
+    // Create issue with (possibly generated) title
+    let options_with_title = CreateIssueOptions {
+        title,
+        ..options
+    };
+
+    create_issue(project_path, options_with_title).await
 }

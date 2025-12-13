@@ -19,9 +19,9 @@ use crate::docs::{
     CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
 use crate::issue::{
-    create_issue, delete_issue, duplicate_issue, get_issue, get_issue_by_display_number,
-    get_issues_by_uuid, list_issues, move_issue, priority_label, update_issue,
-    CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
+    create_issue_with_title_generation, delete_issue, duplicate_issue, get_issue,
+    get_issue_by_display_number, get_issues_by_uuid, list_issues, move_issue, priority_label,
+    update_issue, CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
@@ -189,7 +189,7 @@ impl CentyDaemon for CentyDaemonService {
             template: if req.template.is_empty() { None } else { Some(req.template) },
         };
 
-        match create_issue(project_path, options).await {
+        match create_issue_with_title_generation(project_path, options).await {
             #[allow(deprecated)]
             Ok(result) => Ok(Response::new(CreateIssueResponse {
                 success: true,
