@@ -119,7 +119,7 @@ pub async fn sync_users(
                     id: id.clone(),
                     name: contributor.name.clone(),
                     email: Some(contributor.email.clone()),
-                    git_usernames: Vec::new(),
+                    git_usernames: vec![contributor.name.clone()],
                 },
             )
             .await
@@ -139,7 +139,7 @@ pub async fn sync_users(
                                 id: fallback_id.clone(),
                                 name: contributor.name.clone(),
                                 email: Some(contributor.email.clone()),
-                                git_usernames: Vec::new(),
+                                git_usernames: vec![contributor.name.clone()],
                             },
                         )
                         .await
