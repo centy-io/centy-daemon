@@ -10,7 +10,9 @@
     "checksums",
     "chrono",
     "clippy",
+    "createdat",
     "darwin",
+    "displaynumber",
     "esbuild",
     "frontmatter",
     "fullstorydev",
@@ -35,7 +37,9 @@
     "oneofs",
     "opencode",
     "parseable",
+    "peekable",
     "prerelease",
+    "prio",
     "println",
     "promp",
     "prost",
@@ -57,9 +61,11 @@
     "tonic",
     "tupe",
     "uncompacted",
+    "updatedat",
     "USERPROFILE",
     "walkdir",
     "WIXUI",
-    "workingdirectory"
+    "workingdirectory",
+    "worktree"
   ]
 }
