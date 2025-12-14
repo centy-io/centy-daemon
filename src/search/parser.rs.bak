@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn test_complex_query() {
         let result = parse_query(
-            "(status:open OR status:planning) AND priority<=2"
+            "(status:open OR status:planning) AND priority<=2 AND NOT draft:true"
         ).unwrap();
         assert!(result.is_some());
     }

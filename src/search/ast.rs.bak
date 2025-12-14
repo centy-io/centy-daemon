@@ -42,7 +42,7 @@ impl Field {
             "displaynumber" | "number" | "num" | "n" => Field::DisplayNumber,
             "createdat" | "created" => Field::CreatedAt,
             "updatedat" | "updated" => Field::UpdatedAt,
-            "compacted" => Field::Compacted,
+            "draft" => Field::Draft,
             other => Field::Custom(other.to_string()),
         }
     }
@@ -56,7 +56,7 @@ impl Field {
     }
 
     pub fn is_boolean(&self) -> bool {
-        matches!(self, Field::Compacted)
+        matches!(self, Field::Draft | Field::Compacted)
     }
 }
 
