@@ -1,0 +1,63 @@
+//! Temporary workspace management for opening issues in VS Code.
+//!
+//! This module provides functionality to:
+//! - Create temporary git worktrees for isolated issue work
+//! - Set up VS Code with auto-running agent tasks
+//! - Track and cleanup workspaces with TTL-based expiration
+
+pub mod cleanup;
+pub mod create;
+pub mod storage;
+pub mod types;
+pub mod vscode;
+
+#[allow(unused_imports)]
+pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
+#[allow(unused_imports)]
+pub use create::{create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult};
+#[allow(unused_imports)]
+pub use storage::{
+    add_workspace, get_workspace, list_workspaces, read_registry, remove_workspace, write_registry,
+};
+#[allow(unused_imports)]
+pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
+#[allow(unused_imports)]
+pub use vscode::{open_vscode, setup_vscode_config};
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum WorkspaceError {
+    #[error("Home directory not found")]
+    HomeDirNotFound,
+
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
+
+    #[error("Source is not a git repository")]
+    NotGitRepository,
+
+    #[error("Git error: {0}")]
+    GitError(String),
+
+    #[error("VS Code not found in PATH")]
+    VscodeNotFound,
+
+    #[error("VS Code failed to open: {0}")]
+    VscodeError(String),
+
+    #[error("Workspace not found: {0}")]
+    WorkspaceNotFound(String),
+
+    #[error("Issue error: {0}")]
+    IssueError(#[from] crate::issue::IssueCrudError),
+
+    #[error("Config error: {0}")]
+    ConfigError(#[from] crate::llm::LocalConfigError),
+
+    #[error("Source project not found: {0}")]
+    SourceProjectNotFound(String),
+}
