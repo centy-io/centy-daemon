@@ -46,7 +46,13 @@ use crate::user::{
     sync_users as internal_sync_users, update_user as internal_update_user,
     CreateUserOptions, UpdateUserOptions,
 };
+use crate::search::{advanced_search, SearchOptions, SortOptions};
 use crate::utils::{format_display_path, get_centy_path};
+use crate::workspace::{
+    cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
+    create_temp_workspace, list_workspaces as internal_list_workspaces,
+    CreateWorkspaceOptions,
+};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -62,7 +68,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -193,6 +199,7 @@ impl CentyDaemon for CentyDaemonService {
             status: if req.status.is_empty() { None } else { Some(req.status) },
             custom_fields: req.custom_fields,
             template: if req.template.is_empty() { None } else { Some(req.template) },
+            draft: Some(req.draft),
         };
 
         match create_issue_with_title_generation(project_path, options).await {
@@ -311,8 +318,10 @@ impl CentyDaemon for CentyDaemonService {
         let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
         // Convert int32 priority filter: 0 means no filter
         let priority_filter = if req.priority == 0 { None } else { Some(req.priority as u32) };
+        // Draft filter is optional bool
+        let draft_filter = req.draft;
 
-        match list_issues(project_path, status_filter, priority_filter).await {
+        match list_issues(project_path, status_filter, priority_filter, draft_filter).await {
             Ok(issues) => {
                 let total_count = issues.len() as i32;
                 Ok(Response::new(ListIssuesResponse {
@@ -343,6 +352,7 @@ impl CentyDaemon for CentyDaemonService {
             status: if req.status.is_empty() { None } else { Some(req.status) },
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             custom_fields: req.custom_fields,
+            draft: req.draft,
         };
 
         match update_issue(project_path, &req.issue_id, options).await {
@@ -2372,6 +2382,268 @@ impl CentyDaemon for CentyDaemonService {
             })),
         }
     }
+
+    async fn advanced_search(
+        &self,
+        request: Request<AdvancedSearchRequest>,
+    ) -> Result<Response<AdvancedSearchResponse>, Status> {
+        let req = request.into_inner();
+
+        // Track project if single-project search
+        if !req.multi_project && !req.project_path.is_empty() {
+            track_project_async(req.project_path.clone());
+        }
+
+        // Parse sort options
+        let sort = if req.sort_by.is_empty() {
+            None
+        } else {
+            Some(SortOptions {
+                field: req.sort_by.parse().unwrap(),
+                descending: req.sort_descending,
+            })
+        };
+
+        let options = SearchOptions {
+            query: req.query,
+            sort,
+            multi_project: req.multi_project,
+            project_path: if req.project_path.is_empty() {
+                None
+            } else {
+                Some(req.project_path)
+            },
+        };
+
+        match advanced_search(options).await {
+            Ok(result) => {
+                // Convert results to proto types
+                let results: Vec<ProtoSearchResultIssue> = result
+                    .results
+                    .into_iter()
+                    .map(|r| {
+                        // Use default priority_levels since we can't do async in map
+                        let priority_levels = 3;
+                        ProtoSearchResultIssue {
+                            issue: Some(issue_to_proto(&r.issue, priority_levels)),
+                            project_path: r.project_path,
+                            project_name: r.project_name,
+                            display_path: r.display_path,
+                        }
+                    })
+                    .collect();
+
+                let total_count = results.len() as i32;
+
+                Ok(Response::new(AdvancedSearchResponse {
+                    success: true,
+                    error: String::new(),
+                    results,
+                    total_count,
+                    parsed_query: result.parsed_query,
+                }))
+            }
+            Err(e) => Ok(Response::new(AdvancedSearchResponse {
+                success: false,
+                error: e.to_string(),
+                results: vec![],
+                total_count: 0,
+                parsed_query: String::new(),
+            })),
+        }
+    }
+
+    async fn open_in_temp_vscode(
+        &self,
+        request: Request<OpenInTempVscodeRequest>,
+    ) -> Result<Response<OpenInTempVscodeResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Parse action (default to Plan)
+        let action_str = match req.action {
+            1 => "plan",
+            2 => "implement",
+            _ => "plan", // Default to plan
+        };
+
+        // Resolve issue - try parsing as display number first, then as UUID
+        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
+            match get_issue_by_display_number(project_path, display_num).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(OpenInTempVscodeResponse {
+                        success: false,
+                        error: format!("Issue not found: {e}"),
+                        workspace_path: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        expires_at: String::new(),
+                        vscode_opened: false,
+                    }));
+                }
+            }
+        } else {
+            match get_issue(project_path, &req.issue_id).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(OpenInTempVscodeResponse {
+                        success: false,
+                        error: format!("Issue not found: {e}"),
+                        workspace_path: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        expires_at: String::new(),
+                        vscode_opened: false,
+                    }));
+                }
+            }
+        };
+
+        // Get effective config to resolve agent name
+        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
+        let agent_name = if req.agent_name.is_empty() {
+            llm_config
+                .as_ref()
+                .and_then(|c| c.default_agent.clone())
+                .unwrap_or_else(|| "default".to_string())
+        } else {
+            req.agent_name.clone()
+        };
+
+        // Create the workspace
+        let options = CreateWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            issue: issue.clone(),
+            action: action_str.to_string(),
+            agent_name,
+            ttl_hours: req.ttl_hours,
+        };
+
+        match create_temp_workspace(options).await {
+            Ok(result) => Ok(Response::new(OpenInTempVscodeResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                expires_at: result.entry.expires_at,
+                vscode_opened: result.vscode_opened,
+            })),
+            Err(e) => Ok(Response::new(OpenInTempVscodeResponse {
+                success: false,
+                error: e.to_string(),
+                workspace_path: String::new(),
+                issue_id: String::new(),
+                display_number: 0,
+                expires_at: String::new(),
+                vscode_opened: false,
+            })),
+        }
+    }
+
+    async fn list_temp_workspaces(
+        &self,
+        request: Request<ListTempWorkspacesRequest>,
+    ) -> Result<Response<ListTempWorkspacesResponse>, Status> {
+        let req = request.into_inner();
+
+        let source_filter = if req.source_project_path.is_empty() {
+            None
+        } else {
+            Some(req.source_project_path.as_str())
+        };
+
+        match internal_list_workspaces(req.include_expired, source_filter).await {
+            Ok(workspaces) => {
+                let expired_count = workspaces.iter().filter(|(_, _, exp)| *exp).count() as u32;
+                let proto_workspaces: Vec<ProtoTempWorkspace> = workspaces
+                    .into_iter()
+                    .map(|(path, entry, _)| ProtoTempWorkspace {
+                        workspace_path: path,
+                        source_project_path: entry.source_project_path,
+                        issue_id: entry.issue_id,
+                        issue_display_number: entry.issue_display_number,
+                        issue_title: entry.issue_title,
+                        agent_name: entry.agent_name,
+                        action: match entry.action.as_str() {
+                            "plan" => 1,      // LLM_ACTION_PLAN
+                            "implement" => 2, // LLM_ACTION_IMPLEMENT
+                            _ => 0,
+                        },
+                        created_at: entry.created_at,
+                        expires_at: entry.expires_at,
+                    })
+                    .collect();
+
+                Ok(Response::new(ListTempWorkspacesResponse {
+                    total_count: proto_workspaces.len() as u32,
+                    workspaces: proto_workspaces,
+                    expired_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn close_temp_workspace(
+        &self,
+        request: Request<CloseTempWorkspaceRequest>,
+    ) -> Result<Response<CloseTempWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+
+        match internal_cleanup_workspace(&req.workspace_path, req.force).await {
+            Ok(result) => Ok(Response::new(CloseTempWorkspaceResponse {
+                success: result.error.is_none(),
+                error: result.error.unwrap_or_default(),
+                worktree_removed: result.worktree_removed,
+                directory_removed: result.directory_removed,
+            })),
+            Err(e) => Ok(Response::new(CloseTempWorkspaceResponse {
+                success: false,
+                error: e.to_string(),
+                worktree_removed: false,
+                directory_removed: false,
+            })),
+        }
+    }
+
+    async fn cleanup_expired_workspaces(
+        &self,
+        _request: Request<CleanupExpiredWorkspacesRequest>,
+    ) -> Result<Response<CleanupExpiredWorkspacesResponse>, Status> {
+        match internal_cleanup_expired().await {
+            Ok(results) => {
+                let cleaned_count = results.iter().filter(|r| r.error.is_none()).count() as u32;
+                let cleaned_paths: Vec<String> = results
+                    .iter()
+                    .filter(|r| r.error.is_none())
+                    .map(|r| r.workspace_path.clone())
+                    .collect();
+                let failed_paths: Vec<String> = results
+                    .iter()
+                    .filter(|r| r.error.is_some())
+                    .map(|r| r.workspace_path.clone())
+                    .collect();
+
+                Ok(Response::new(CleanupExpiredWorkspacesResponse {
+                    success: true,
+                    error: String::new(),
+                    cleaned_count,
+                    cleaned_paths,
+                    failed_paths,
+                }))
+            }
+            Err(e) => Ok(Response::new(CleanupExpiredWorkspacesResponse {
+                success: false,
+                error: e.to_string(),
+                cleaned_count: 0,
+                cleaned_paths: vec![],
+                failed_paths: vec![],
+            })),
+        }
+    }
 }
 
 // Helper functions for link type conversion
@@ -2579,6 +2851,7 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             priority_label: priority_label(issue.metadata.priority, priority_levels),
             compacted: issue.metadata.compacted,
             compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
+            draft: issue.metadata.draft,
         }),
     }
 }

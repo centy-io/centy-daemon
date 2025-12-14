@@ -57,6 +57,13 @@ once_cell = "1"
 # Regex for validation
 regex = "1"
 
+# Query parser for advanced search
+pest = "2.8"
+pest_derive = "2.8"
+
+# Async utilities
+futures = "0.3"
+
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }
 

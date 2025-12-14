@@ -9,11 +9,13 @@ mod migration;
 mod pr;
 mod reconciliation;
 mod registry;
+mod search;
 mod server;
 mod template;
 mod user;
 mod utils;
 mod version;
+mod workspace;
 
 use clap::Parser;
 use http::Method;

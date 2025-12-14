@@ -9,11 +9,13 @@ pub mod migration;
 pub mod pr;
 pub mod reconciliation;
 pub mod registry;
+pub mod search;
 pub mod server;
 pub mod template;
 pub mod user;
 pub mod utils;
 pub mod version;
+pub mod workspace;
 
 // Re-export commonly used types
 pub use config::{CentyConfig, CustomFieldDefinition};
@@ -68,4 +70,13 @@ pub use user::{
     CreateUserOptions, CreateUserResult, DeleteUserResult, GitContributor,
     SyncUsersFullResult, SyncUsersResult, UpdateUserOptions, UpdateUserResult,
     User, UserError,
+};
+pub use search::{
+    advanced_search, format_query, parse_query,
+    SearchError, SearchOptions, SearchResult, SearchResultIssue, SortField, SortOptions,
+};
+pub use workspace::{
+    cleanup_expired_workspaces, cleanup_workspace, create_temp_workspace, list_workspaces,
+    CleanupResult, CreateWorkspaceOptions, CreateWorkspaceResult, TempWorkspaceEntry,
+    WorkspaceError, WorkspaceRegistry, DEFAULT_TTL_HOURS,
 };

@@ -1,0 +1,151 @@
+use chrono::NaiveDate;
+use regex::Regex;
+
+/// Represents a parsed search query
+#[derive(Debug, Clone)]
+pub enum Query {
+    And(Box<Query>, Box<Query>),
+    Or(Box<Query>, Box<Query>),
+    Not(Box<Query>),
+    Condition(Condition),
+}
+
+/// A single search condition
+#[derive(Debug, Clone)]
+pub struct Condition {
+    pub field: Field,
+    pub operator: Operator,
+    pub value: Value,
+}
+
+/// Fields that can be searched
+#[derive(Debug, Clone, PartialEq)]
+pub enum Field {
+    Title,
+    Description,
+    Status,
+    Priority,
+    DisplayNumber,
+    CreatedAt,
+    UpdatedAt,
+    Draft,
+    Compacted,
+    Custom(String),
+}
+
+impl Field {
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "title" => Field::Title,
+            "description" | "desc" => Field::Description,
+            "status" => Field::Status,
+            "priority" | "prio" | "p" => Field::Priority,
+            "displaynumber" | "number" | "num" | "n" => Field::DisplayNumber,
+            "createdat" | "created" => Field::CreatedAt,
+            "updatedat" | "updated" => Field::UpdatedAt,
+            "draft" => Field::Draft,
+            "compacted" => Field::Compacted,
+            other => Field::Custom(other.to_string()),
+        }
+    }
+
+    pub fn is_numeric(&self) -> bool {
+        matches!(self, Field::Priority | Field::DisplayNumber)
+    }
+
+    pub fn is_date(&self) -> bool {
+        matches!(self, Field::CreatedAt | Field::UpdatedAt)
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, Field::Draft | Field::Compacted)
+    }
+}
+
+/// Comparison operators
+#[derive(Debug, Clone, PartialEq)]
+pub enum Operator {
+    /// Equality (`:` or `=`)
+    Eq,
+    /// Not equal (`!=`)
+    NotEq,
+    /// Contains (`~`)
+    Contains,
+    /// Starts with (`^`)
+    StartsWith,
+    /// Ends with (`$`)
+    EndsWith,
+    /// Greater than (`>`)
+    Gt,
+    /// Less than (`<`)
+    Lt,
+    /// Greater than or equal (`>=`)
+    Gte,
+    /// Less than or equal (`<=`)
+    Lte,
+    /// Wildcard pattern (`:` with `*` or `?`)
+    Wildcard,
+}
+
+impl Operator {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            ":" | "=" => Some(Operator::Eq),
+            "!=" => Some(Operator::NotEq),
+            "~" => Some(Operator::Contains),
+            "^" => Some(Operator::StartsWith),
+            "$" => Some(Operator::EndsWith),
+            ">" => Some(Operator::Gt),
+            "<" => Some(Operator::Lt),
+            ">=" => Some(Operator::Gte),
+            "<=" => Some(Operator::Lte),
+            _ => None,
+        }
+    }
+}
+
+/// A compiled pattern for wildcard matching
+#[derive(Debug, Clone)]
+pub struct CompiledPattern {
+    pub regex: Regex,
+    pub original: String,
+}
+
+impl CompiledPattern {
+    pub fn from_wildcard(pattern: &str) -> Result<Self, regex::Error> {
+        // Convert wildcard pattern to regex
+        let mut regex_str = String::from("^");
+        for ch in pattern.chars() {
+            match ch {
+                '*' => regex_str.push_str(".*"),
+                '?' => regex_str.push('.'),
+                '.' | '+' | '^' | '$' | '(' | ')' | '[' | ']' | '{' | '}' | '|' | '\\' => {
+                    regex_str.push('\\');
+                    regex_str.push(ch);
+                }
+                _ => regex_str.push(ch),
+            }
+        }
+        regex_str.push('$');
+
+        let regex = Regex::new(&regex_str)?;
+        Ok(CompiledPattern {
+            regex,
+            original: pattern.to_string(),
+        })
+    }
+
+    pub fn matches(&self, text: &str) -> bool {
+        self.regex.is_match(text)
+    }
+}
+
+/// Value types for comparisons
+#[derive(Debug, Clone)]
+pub enum Value {
+    String(String),
+    Number(i64),
+    Boolean(bool),
+    Date(NaiveDate),
+    Pattern(CompiledPattern),
+}

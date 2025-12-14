@@ -1,0 +1,57 @@
+// Query grammar for advanced issue search
+
+WHITESPACE = _{ " " | "\t" }
+
+// Keywords (case-insensitive)
+and_op = { ^"and" }
+or_op = { ^"or" }
+not_op = { ^"not" }
+
+// Main query structure
+query = { SOI ~ expr ~ EOI }
+
+// Expression with operator precedence: OR < AND < NOT
+expr = { or_expr }
+
+// OR has lowest precedence
+or_expr = { and_expr ~ (or_op ~ and_expr)* }
+
+// AND has higher precedence than OR
+and_expr = { not_expr ~ (and_op ~ not_expr)* }
+
+// NOT has highest precedence among logical operators
+not_expr = { not_op ~ not_expr | primary }
+
+// Primary: either a grouped expression or a condition
+primary = { "(" ~ expr ~ ")" | condition }
+
+// A condition: field with optional operator and value
+condition = { field ~ operator? ~ value }
+
+// Field names (alphanumeric with underscores)
+field = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// Operators
+operator = {
+    ">=" | "<=" | "!=" | ">" | "<" | ":" | "=" | "~" | "^" | "$"
+}
+
+// Values
+value = { quoted_string | boolean_value | date_value | number | wildcard_or_word }
+
+// Quoted strings (single or double)
+quoted_string = @{ "\"" ~ inner_double ~ "\"" | "'" ~ inner_single ~ "'" }
+inner_double = @{ (!("\"" | "\\") ~ ANY | "\\" ~ ANY)* }
+inner_single = @{ (!("'" | "\\") ~ ANY | "\\" ~ ANY)* }
+
+// Boolean values
+boolean_value = @{ ^"true" | ^"false" }
+
+// Date values (YYYY-MM-DD format)
+date_value = @{ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+
+// Numbers (integers only for now)
+number = @{ "-"? ~ ASCII_DIGIT+ }
+
+// Unquoted words (may contain wildcards)
+wildcard_or_word = @{ (ASCII_ALPHANUMERIC | "_" | "-" | "*" | "?")+ }
