@@ -176,6 +176,7 @@ mod tests {
                 custom_fields: HashMap::new(),
                 compacted: false,
                 compacted_at: None,
+                draft: false,
             },
         }
     }
