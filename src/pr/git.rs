@@ -28,6 +28,9 @@ pub enum GitError {
 
     #[error("Worktree error: {0}")]
     WorktreeError(String),
+
+    #[error("Remote '{0}' not found")]
+    RemoteNotFound(String),
 }
 
 /// Detect the current git branch.
@@ -86,7 +89,7 @@ pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool,
 }
 
 /// Check if the current directory is a git repository.
-#[must_use] 
+#[must_use]
 pub fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])
@@ -94,6 +97,29 @@ pub fn is_git_repository(project_path: &Path) -> bool {
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
+}
+
+/// Get the origin remote URL from a git repository.
+///
+/// Runs `git remote get-url origin` in the given project path.
+pub fn get_remote_origin_url(project_path: &Path) -> Result<String, GitError> {
+    let output = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .current_dir(project_path)
+        .output()
+        .map_err(|e| GitError::CommandError(e.to_string()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("not a git repository") {
+            return Err(GitError::NotGitRepository);
+        }
+        return Err(GitError::RemoteNotFound("origin".to_string()));
+    }
+
+    String::from_utf8(output.stdout)
+        .map_err(|_| GitError::InvalidUtf8)
+        .map(|s| s.trim().to_string())
 }
 
 /// Get the default branch name (main or master).

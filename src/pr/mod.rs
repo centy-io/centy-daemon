@@ -4,6 +4,7 @@ pub mod git;
 mod id;
 mod metadata;
 pub mod reconcile;
+pub mod remote;
 pub mod status;
 
 #[allow(unused_imports)]
@@ -15,3 +16,5 @@ pub use crud::{
 };
 #[allow(unused_imports)]
 pub use crud::PrMetadataFlat;
+#[allow(unused_imports)]
+pub use remote::{parse_remote_url, ParsedRemote};

@@ -300,6 +300,9 @@ message InitResponse {
 
   // The updated manifest
   Manifest manifest = 7;
+
+  // Organization inference result from git remote
+  OrgInferenceResult org_inference = 8;
 }
 
 message GetReconciliationPlanRequest {
@@ -869,6 +872,7 @@ message RegisterProjectResponse {
   bool success = 1;
   string error = 2;
   ProjectInfo project = 3;        // The registered project info
+  OrgInferenceResult org_inference = 4;  // Organization inference result from git remote
 }
 
 message UntrackProjectRequest {
@@ -931,6 +935,16 @@ message Organization {
   string created_at = 4;          // ISO timestamp
   string updated_at = 5;          // ISO timestamp
   uint32 project_count = 6;       // Number of projects in this org
+}
+
+// Organization inference result from git remote
+message OrgInferenceResult {
+  string inferred_org_slug = 1;   // The inferred slug (empty if not found)
+  string inferred_org_name = 2;   // The inferred display name
+  bool org_created = 3;           // Whether a new org was created
+  string existing_org_slug = 4;   // Existing org if already assigned
+  bool has_mismatch = 5;          // True if inferred != existing
+  string message = 6;             // Human-readable status message
 }
 
 message CreateOrganizationRequest {

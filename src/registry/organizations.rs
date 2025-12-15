@@ -32,7 +32,7 @@ pub enum OrganizationError {
 }
 
 /// Convert a name to a URL-friendly slug (kebab-case)
-fn slugify(name: &str) -> String {
+pub(crate) fn slugify(name: &str) -> String {
     name.to_lowercase()
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '-' })

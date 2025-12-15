@@ -35,10 +35,10 @@ use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use crate::registry::{
-    create_organization, delete_organization, get_organization, get_project_info, list_organizations,
-    list_projects, set_project_archived, set_project_favorite, set_project_organization,
-    track_project_async, untrack_project, update_organization, ListProjectsOptions, OrganizationInfo,
-    ProjectInfo,
+    create_organization, delete_organization, get_organization, get_project_info,
+    infer_organization_from_remote, list_organizations, list_projects, set_project_archived,
+    set_project_favorite, set_project_organization, track_project_async, untrack_project,
+    update_organization, ListProjectsOptions, OrgInferenceResult, OrganizationInfo, ProjectInfo,
 };
 use crate::user::{
     create_user as internal_create_user, delete_user as internal_delete_user,
@@ -68,7 +68,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,15 +103,37 @@ impl CentyDaemon for CentyDaemonService {
         }).unwrap_or_default();
 
         match execute_reconciliation(project_path, decisions, req.force).await {
-            Ok(result) => Ok(Response::new(InitResponse {
-                success: true,
-                error: String::new(),
-                created: result.created,
-                restored: result.restored,
-                reset: result.reset,
-                skipped: result.skipped,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                // Infer organization from git remote
+                let existing_org = get_project_info(&req.project_path)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|info| info.organization_slug);
+                let inference = infer_organization_from_remote(
+                    project_path,
+                    existing_org.as_deref(),
+                )
+                .await;
+
+                // Auto-assign if no existing org and inference succeeded without mismatch
+                if existing_org.is_none() && !inference.has_mismatch {
+                    if let Some(ref slug) = inference.inferred_org_slug {
+                        let _ = set_project_organization(&req.project_path, Some(slug)).await;
+                    }
+                }
+
+                Ok(Response::new(InitResponse {
+                    success: true,
+                    error: String::new(),
+                    created: result.created,
+                    restored: result.restored,
+                    reset: result.reset,
+                    skipped: result.skipped,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    org_inference: Some(org_inference_to_proto(&inference)),
+                }))
+            }
             Err(e) => Ok(Response::new(InitResponse {
                 success: false,
                 error: e.to_string(),
@@ -120,6 +142,7 @@ impl CentyDaemon for CentyDaemonService {
                 reset: vec![],
                 skipped: vec![],
                 manifest: None,
+                org_inference: None,
             })),
         }
     }
@@ -162,15 +185,37 @@ impl CentyDaemon for CentyDaemonService {
         }).unwrap_or_default();
 
         match execute_reconciliation(project_path, decisions, false).await {
-            Ok(result) => Ok(Response::new(InitResponse {
-                success: true,
-                error: String::new(),
-                created: result.created,
-                restored: result.restored,
-                reset: result.reset,
-                skipped: result.skipped,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                // Infer organization from git remote
+                let existing_org = get_project_info(&req.project_path)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|info| info.organization_slug);
+                let inference = infer_organization_from_remote(
+                    project_path,
+                    existing_org.as_deref(),
+                )
+                .await;
+
+                // Auto-assign if no existing org and inference succeeded without mismatch
+                if existing_org.is_none() && !inference.has_mismatch {
+                    if let Some(ref slug) = inference.inferred_org_slug {
+                        let _ = set_project_organization(&req.project_path, Some(slug)).await;
+                    }
+                }
+
+                Ok(Response::new(InitResponse {
+                    success: true,
+                    error: String::new(),
+                    created: result.created,
+                    restored: result.restored,
+                    reset: result.reset,
+                    skipped: result.skipped,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    org_inference: Some(org_inference_to_proto(&inference)),
+                }))
+            }
             Err(e) => Ok(Response::new(InitResponse {
                 success: false,
                 error: e.to_string(),
@@ -179,6 +224,7 @@ impl CentyDaemon for CentyDaemonService {
                 reset: vec![],
                 skipped: vec![],
                 manifest: None,
+                org_inference: None,
             })),
         }
     }
@@ -1026,6 +1072,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<RegisterProjectRequest>,
     ) -> Result<Response<RegisterProjectResponse>, Status> {
         let req = request.into_inner();
+        let project_path = Path::new(&req.project_path);
 
         // Track the project (this creates or updates the entry)
         if let Err(e) = crate::registry::track_project(&req.project_path).await {
@@ -1033,25 +1080,48 @@ impl CentyDaemon for CentyDaemonService {
                 success: false,
                 error: e.to_string(),
                 project: None,
+                org_inference: None,
             }));
         }
 
-        // Get the project info
+        // Infer organization from git remote
+        let existing_org = get_project_info(&req.project_path)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|info| info.organization_slug);
+        let inference = infer_organization_from_remote(
+            project_path,
+            existing_org.as_deref(),
+        )
+        .await;
+
+        // Auto-assign if no existing org and inference succeeded without mismatch
+        if existing_org.is_none() && !inference.has_mismatch {
+            if let Some(ref slug) = inference.inferred_org_slug {
+                let _ = set_project_organization(&req.project_path, Some(slug)).await;
+            }
+        }
+
+        // Get the project info (refresh after potential org assignment)
         match get_project_info(&req.project_path).await {
             Ok(Some(info)) => Ok(Response::new(RegisterProjectResponse {
                 success: true,
                 error: String::new(),
                 project: Some(project_info_to_proto(&info)),
+                org_inference: Some(org_inference_to_proto(&inference)),
             })),
             Ok(None) => Ok(Response::new(RegisterProjectResponse {
                 success: false,
                 error: "Failed to retrieve project after registration".to_string(),
                 project: None,
+                org_inference: Some(org_inference_to_proto(&inference)),
             })),
             Err(e) => Ok(Response::new(RegisterProjectResponse {
                 success: false,
                 error: e.to_string(),
                 project: None,
+                org_inference: Some(org_inference_to_proto(&inference)),
             })),
         }
     }
@@ -2893,6 +2963,17 @@ fn org_info_to_proto(info: &OrganizationInfo) -> ProtoOrganization {
         created_at: info.created_at.clone(),
         updated_at: info.updated_at.clone(),
         project_count: info.project_count,
+    }
+}
+
+fn org_inference_to_proto(result: &OrgInferenceResult) -> ProtoOrgInferenceResult {
+    ProtoOrgInferenceResult {
+        inferred_org_slug: result.inferred_org_slug.clone().unwrap_or_default(),
+        inferred_org_name: result.inferred_org_name.clone().unwrap_or_default(),
+        org_created: result.org_created,
+        existing_org_slug: result.existing_org_slug.clone().unwrap_or_default(),
+        has_mismatch: result.has_mismatch,
+        message: result.message.clone().unwrap_or_default(),
     }
 }
 
