@@ -38,8 +38,8 @@ use crate::registry::{
     create_organization, delete_organization, get_organization, get_project_info,
     infer_organization_from_remote, list_organizations, list_projects, set_project_archived,
     set_project_favorite, set_project_organization, set_project_user_title, track_project_async,
-    untrack_project, update_organization, ListProjectsOptions, OrgInferenceResult,
-    OrganizationInfo, ProjectInfo,
+    try_auto_assign_organization, untrack_project, update_organization, ListProjectsOptions,
+    OrgInferenceResult, OrganizationInfo, ProjectInfo,
 };
 use crate::user::{
     create_user as internal_create_user, delete_user as internal_delete_user,
@@ -85,9 +85,67 @@ pub struct CentyDaemonService {
 }
 
 impl CentyDaemonService {
-    #[must_use] 
+    #[must_use]
     pub fn new(shutdown_tx: Arc<watch::Sender<ShutdownSignal>>, exe_path: Option<PathBuf>) -> Self {
+        // Spawn background task to infer organizations for ungrouped projects on startup
+        tokio::spawn(async {
+            startup_org_inference().await;
+        });
+
         Self { shutdown_tx, exe_path }
+    }
+}
+
+/// Background task to infer organizations for ungrouped projects on daemon startup
+async fn startup_org_inference() {
+    use tokio::time::{sleep, Duration};
+
+    // Small delay to let the daemon fully initialize
+    sleep(Duration::from_millis(100)).await;
+
+    // List all ungrouped projects that exist on disk
+    let projects = match list_projects(ListProjectsOptions {
+        include_stale: false,
+        include_uninitialized: true,
+        include_archived: false,
+        ungrouped_only: true,
+        ..Default::default()
+    })
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            info!("Startup org inference: failed to list projects: {e}");
+            return;
+        }
+    };
+
+    if projects.is_empty() {
+        return;
+    }
+
+    info!(
+        "Startup org inference: scanning {} ungrouped projects",
+        projects.len()
+    );
+
+    let mut inferred_count = 0;
+    for project in projects {
+        // Small delay between projects to avoid overloading
+        sleep(Duration::from_millis(50)).await;
+
+        if let Some(result) = try_auto_assign_organization(&project.path, None).await {
+            if result.inferred_org_slug.is_some() && !result.has_mismatch {
+                inferred_count += 1;
+            }
+        }
+    }
+
+    if inferred_count > 0 {
+        info!(
+            "Startup org inference: assigned organizations to {} projects",
+            inferred_count
+        );
     }
 }
 

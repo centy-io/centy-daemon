@@ -1,3 +1,4 @@
+use super::inference::try_auto_assign_organization;
 use super::organizations::sync_org_from_project;
 use super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::types::{ListProjectsOptions, ProjectInfo, TrackedProject};
@@ -18,30 +19,45 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
         .canonicalize()
         .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
 
-    // Lock the entire read-modify-write cycle to prevent race conditions
-    let _guard = get_lock().lock().await;
+    // Track whether this project needs org inference (ungrouped)
+    let needs_org_inference: bool;
 
-    let mut registry = read_registry().await?;
-    let now = now_iso();
+    {
+        // Lock the entire read-modify-write cycle to prevent race conditions
+        let _guard = get_lock().lock().await;
 
-    if let Some(entry) = registry.projects.get_mut(&canonical_path) {
-        // Update existing entry (preserve is_favorite and organization_slug)
-        entry.last_accessed = now.clone();
-    } else {
-        // Create new entry
-        let entry = TrackedProject {
-            first_accessed: now.clone(),
-            last_accessed: now.clone(),
-            is_favorite: false,
-            is_archived: false,
-            organization_slug: None,
-            user_title: None,
-        };
-        registry.projects.insert(canonical_path, entry);
+        let mut registry = read_registry().await?;
+        let now = now_iso();
+
+        if let Some(entry) = registry.projects.get_mut(&canonical_path) {
+            // Update existing entry (preserve is_favorite and organization_slug)
+            entry.last_accessed = now.clone();
+            needs_org_inference = entry.organization_slug.is_none();
+        } else {
+            // Create new entry
+            let entry = TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: None,
+                user_title: None,
+            };
+            registry.projects.insert(canonical_path.clone(), entry);
+            needs_org_inference = true;
+        }
+
+        registry.updated_at = now;
+        write_registry_unlocked(&registry).await?;
+    } // Lock released here
+
+    // Fire-and-forget org inference for ungrouped projects
+    if needs_org_inference {
+        let path_for_inference = canonical_path;
+        tokio::spawn(async move {
+            let _ = try_auto_assign_organization(&path_for_inference, None).await;
+        });
     }
-
-    registry.updated_at = now;
-    write_registry_unlocked(&registry).await?;
 
     Ok(())
 }
@@ -135,6 +151,8 @@ pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectI
     let registry = read_registry().await?;
 
     let mut projects = Vec::new();
+    // Collect ungrouped projects that exist on disk for background inference
+    let mut ungrouped_paths: Vec<String> = Vec::new();
 
     for (path, tracked) in &registry.projects {
         let path_exists = Path::new(path).exists();
@@ -147,6 +165,11 @@ pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectI
         if !opts.include_archived && tracked.is_archived {
             // Skip archived projects
             continue;
+        }
+
+        // Track ungrouped projects that exist for background inference
+        if tracked.organization_slug.is_none() && path_exists {
+            ungrouped_paths.push(path.clone());
         }
 
         // Filter by organization if specified
@@ -190,6 +213,15 @@ pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectI
 
     // Sort by last_accessed (most recent first)
     projects.sort_by(|a, b| b.last_accessed.cmp(&a.last_accessed));
+
+    // Fire-and-forget org inference for ungrouped projects
+    if !ungrouped_paths.is_empty() {
+        tokio::spawn(async move {
+            for path in ungrouped_paths {
+                let _ = try_auto_assign_organization(&path, None).await;
+            }
+        });
+    }
 
     Ok(projects)
 }

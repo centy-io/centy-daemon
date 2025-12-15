@@ -120,6 +120,51 @@ pub async fn infer_organization_from_remote(
     result
 }
 
+/// Attempt to infer and auto-assign organization for a project if ungrouped.
+///
+/// This function is designed for automatic background inference:
+/// 1. Skips if project already has an organization assigned
+/// 2. Skips if path doesn't exist
+/// 3. Calls `infer_organization_from_remote()`
+/// 4. Auto-assigns if inference succeeded without mismatch
+///
+/// # Arguments
+/// * `project_path` - Path string to the project directory
+/// * `current_org_slug` - The project's current organization (if known, avoids re-fetch)
+///
+/// # Returns
+/// `Some(OrgInferenceResult)` if inference was attempted, `None` if skipped
+pub async fn try_auto_assign_organization(
+    project_path: &str,
+    current_org_slug: Option<&str>,
+) -> Option<OrgInferenceResult> {
+    // Skip if already has org
+    if let Some(slug) = current_org_slug {
+        if !slug.is_empty() {
+            return None;
+        }
+    }
+
+    let path = Path::new(project_path);
+
+    // Skip if path doesn't exist
+    if !path.exists() {
+        return None;
+    }
+
+    let inference = infer_organization_from_remote(path, current_org_slug).await;
+
+    // Auto-assign if inference succeeded without mismatch
+    if !inference.has_mismatch {
+        if let Some(ref slug) = inference.inferred_org_slug {
+            // Attempt assignment, ignore errors
+            let _ = super::organizations::set_project_organization(project_path, Some(slug)).await;
+        }
+    }
+
+    Some(inference)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

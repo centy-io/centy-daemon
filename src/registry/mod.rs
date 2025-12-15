@@ -4,7 +4,7 @@ mod storage;
 mod tracking;
 mod types;
 
-pub use inference::{infer_organization_from_remote, OrgInferenceResult};
+pub use inference::{infer_organization_from_remote, try_auto_assign_organization, OrgInferenceResult};
 pub use organizations::{
     create_organization, delete_organization, get_organization, list_organizations,
     set_project_organization, update_organization,
