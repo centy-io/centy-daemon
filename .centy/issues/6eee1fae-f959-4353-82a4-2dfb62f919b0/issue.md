@@ -1,0 +1,35 @@
+# Add downgrade support to web UI version management
+
+The web UI currently only shows upgrade option when project is behind daemon. Should also support downgrading.
+
+## Current State
+- CLI `centy update --target` supports downgrade to any version
+- Migration system supports both up() and down() operations
+- Web UI only shows version selector when `project_behind` (lines 476-502 of ProjectConfig.tsx)
+- No way to downgrade through the UI
+
+## Expected Behavior
+- Show version selector regardless of comparison status
+- Filter available versions to show valid migration targets
+- Add confirmation dialog for downgrade ("This will run X migrations in reverse")
+- Show direction indicator (upgrade vs downgrade)
+
+## Implementation
+```tsx
+// Current: Only shows when project_behind
+{versionInfo.comparison === 'project_behind' && (
+  <div className="version-update">...
+
+// Should: Always show, with context-aware messaging
+<div className="version-management">
+  <VersionSelector 
+    currentVersion={versionInfo.projectVersion}
+    availableVersions={daemonInfo.availableVersions}
+    onUpdate={handleUpdateVersion}
+  />
+</div>
+```
+
+## Files
+- `centy-app/components/settings/ProjectConfig.tsx` - Lines 476-502
+- `centy-app/components/settings/Settings.tsx` - Similar code
