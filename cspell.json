@@ -4,6 +4,7 @@
     "**/pnpm-lock.yaml"
   ],
   "words": [
+    "aarch",
     "aarch64",
     "adoc",
     "centy",
@@ -53,6 +54,10 @@
     "rsplit",
     "rustc",
     "serde",
+    "slugified",
+    "slugifies",
+    "slugification",
+    "slugify",
     "softprops",
     "startmode",
     "TARGETDIR",
@@ -66,6 +71,7 @@
     "walkdir",
     "WIXUI",
     "workingdirectory",
-    "worktree"
+    "worktree",
+    "worktrees"
   ]
 }
