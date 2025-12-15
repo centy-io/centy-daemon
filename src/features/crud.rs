@@ -66,7 +66,7 @@ pub async fn get_feature_status(project_path: &Path) -> Result<FeatureStatus, Fe
 
 /// List all uncompacted issues
 pub async fn list_uncompacted_issues(project_path: &Path) -> Result<Vec<Issue>, FeatureError> {
-    let all_issues = list_issues(project_path, None, None).await?;
+    let all_issues = list_issues(project_path, None, None, None).await?;
 
     let uncompacted: Vec<Issue> = all_issues
         .into_iter()

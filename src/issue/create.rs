@@ -60,6 +60,8 @@ pub struct CreateIssueOptions {
     pub custom_fields: HashMap<String, String>,
     /// Optional template name (without .md extension)
     pub template: Option<String>,
+    /// Whether to create the issue as a draft
+    pub draft: Option<bool>,
 }
 
 /// Result of issue creation
@@ -158,7 +160,13 @@ pub async fn create_issue(
     }
 
     // Create metadata
-    let metadata = IssueMetadata::new(display_number, status.clone(), priority, custom_field_values);
+    let metadata = IssueMetadata::new_draft(
+        display_number,
+        status.clone(),
+        priority,
+        custom_field_values,
+        options.draft.unwrap_or(false),
+    );
 
     // Create issue content
     let mut issue_md = if let Some(ref template_name) = options.template {

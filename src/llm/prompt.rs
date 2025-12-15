@@ -277,6 +277,7 @@ mod tests {
                 ]),
                 compacted: false,
                 compacted_at: None,
+                draft: false,
             },
         }
     }

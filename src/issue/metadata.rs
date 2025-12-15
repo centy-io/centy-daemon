@@ -29,10 +29,13 @@ pub struct IssueMetadata {
     /// ISO timestamp when the issue was compacted
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted_at: Option<String>,
+    /// Whether this issue is a draft
+    #[serde(default)]
+    pub draft: bool,
 }
 
 impl IssueMetadata {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         display_number: u32,
         status: String,
@@ -49,6 +52,29 @@ impl IssueMetadata {
             custom_fields,
             compacted: false,
             compacted_at: None,
+            draft: false,
+        }
+    }
+
+    #[must_use]
+    pub fn new_draft(
+        display_number: u32,
+        status: String,
+        priority: u32,
+        custom_fields: HashMap<String, serde_json::Value>,
+        draft: bool,
+    ) -> Self {
+        let now = crate::utils::now_iso();
+        Self {
+            display_number,
+            status,
+            priority,
+            created_at: now.clone(),
+            updated_at: now,
+            custom_fields,
+            compacted: false,
+            compacted_at: None,
+            draft,
         }
     }
 }

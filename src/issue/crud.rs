@@ -86,6 +86,8 @@ pub struct IssueMetadataFlat {
     pub compacted: bool,
     /// ISO timestamp when the issue was compacted
     pub compacted_at: Option<String>,
+    /// Whether this issue is a draft
+    pub draft: bool,
 }
 
 /// Options for updating an issue
@@ -97,6 +99,8 @@ pub struct UpdateIssueOptions {
     /// Priority as a number (1 = highest). None = don't update.
     pub priority: Option<u32>,
     pub custom_fields: HashMap<String, String>,
+    /// Whether to mark as draft. None = don't update.
+    pub draft: Option<bool>,
 }
 
 /// Result of issue update
@@ -186,6 +190,7 @@ pub async fn list_issues(
     project_path: &Path,
     status_filter: Option<&str>,
     priority_filter: Option<u32>,
+    draft_filter: Option<bool>,
 ) -> Result<Vec<Issue>, IssueCrudError> {
     // Check if centy is initialized
     read_manifest(project_path)
@@ -220,8 +225,10 @@ pub async fn list_issues(
                             .is_none_or(|s| issue.metadata.status == s);
                         let priority_match = priority_filter
                             .is_none_or(|p| issue.metadata.priority == p);
+                        let draft_match = draft_filter
+                            .is_none_or(|d| issue.metadata.draft == d);
 
-                        if status_match && priority_match {
+                        if status_match && priority_match && draft_match {
                             issues.push(issue);
                         }
                     }
@@ -399,6 +406,9 @@ pub async fn update_issue(
         new_custom_fields.insert(key, value);
     }
 
+    // Apply draft update
+    let new_draft = options.draft.unwrap_or(current.metadata.draft);
+
     // Create updated metadata
     let updated_metadata = IssueMetadata {
         display_number: current.metadata.display_number,
@@ -412,6 +422,7 @@ pub async fn update_issue(
             .collect(),
         compacted: current.metadata.compacted,
         compacted_at: current.metadata.compacted_at.clone(),
+        draft: new_draft,
     };
 
     // Generate updated content
@@ -462,6 +473,7 @@ pub async fn update_issue(
             custom_fields: new_custom_fields,
             compacted: current.metadata.compacted,
             compacted_at: current.metadata.compacted_at,
+            draft: new_draft,
         },
     };
 
@@ -689,6 +701,7 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
             .collect(),
         compacted: false, // Reset compacted status for new issue
         compacted_at: None,
+        draft: source_issue.metadata.draft, // Preserve draft status
     };
     fs::write(
         new_issue_path.join("metadata.json"),
@@ -762,6 +775,7 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
             custom_fields,
             compacted: metadata.compacted,
             compacted_at: metadata.compacted_at,
+            draft: metadata.draft,
         },
     })
 }

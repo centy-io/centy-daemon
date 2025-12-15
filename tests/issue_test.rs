@@ -188,7 +188,7 @@ async fn test_list_issues_empty() {
 
     init_centy_project(project_path).await;
 
-    let issues = list_issues(project_path, None, None)
+    let issues = list_issues(project_path, None, None, None)
         .await
         .expect("Should list issues");
 
@@ -211,7 +211,7 @@ async fn test_list_issues_returns_all() {
         create_issue(project_path, options).await.expect("Should create");
     }
 
-    let issues = list_issues(project_path, None, None)
+    let issues = list_issues(project_path, None, None, None)
         .await
         .expect("Should list issues");
 
@@ -257,13 +257,13 @@ async fn test_list_issues_filter_by_status() {
     .unwrap();
 
     // Filter by status
-    let open_issues = list_issues(project_path, Some("open"), None)
+    let open_issues = list_issues(project_path, Some("open"), None, None)
         .await
         .expect("Should list");
     assert_eq!(open_issues.len(), 1);
     assert_eq!(open_issues[0].title, "Open Issue");
 
-    let closed_issues = list_issues(project_path, Some("closed"), None)
+    let closed_issues = list_issues(project_path, Some("closed"), None, None)
         .await
         .expect("Should list");
     assert_eq!(closed_issues.len(), 1);
@@ -301,7 +301,7 @@ async fn test_list_issues_filter_by_priority() {
     .unwrap();
 
     // Filter by priority (numeric)
-    let high_issues = list_issues(project_path, None, Some(1))
+    let high_issues = list_issues(project_path, None, Some(1), None)
         .await
         .expect("Should list");
     assert_eq!(high_issues.len(), 1);
@@ -471,7 +471,7 @@ async fn test_delete_issue_success() {
     assert!(!issue_path.exists());
 
     // Verify not in list
-    let issues = list_issues(project_path, None, None).await.unwrap();
+    let issues = list_issues(project_path, None, None, None).await.unwrap();
     assert!(issues.is_empty());
 }
 

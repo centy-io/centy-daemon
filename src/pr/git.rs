@@ -25,6 +25,9 @@ pub enum GitError {
 
     #[error("Git command output was not valid UTF-8")]
     InvalidUtf8,
+
+    #[error("Worktree error: {0}")]
+    WorktreeError(String),
 }
 
 /// Detect the current git branch.
@@ -111,6 +114,91 @@ pub fn get_default_branch(project_path: &Path) -> String {
 
     // Default to main
     "main".to_string()
+}
+
+/// Create a detached git worktree at the target path.
+///
+/// This creates a lightweight checkout of HEAD without uncommitted changes,
+/// ideal for isolated work on issues.
+///
+/// # Arguments
+/// * `source_path` - Path to the source git repository
+/// * `target_path` - Path where the worktree will be created
+/// * `git_ref` - Git ref to check out (usually "HEAD")
+pub fn create_worktree(source_path: &Path, target_path: &Path, git_ref: &str) -> Result<(), GitError> {
+    // First verify source is a git repo
+    if !is_git_repository(source_path) {
+        return Err(GitError::NotGitRepository);
+    }
+
+    let output = Command::new("git")
+        .args([
+            "worktree",
+            "add",
+            "--detach",
+            &target_path.to_string_lossy(),
+            git_ref,
+        ])
+        .current_dir(source_path)
+        .output()
+        .map_err(|e| GitError::CommandError(e.to_string()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(GitError::WorktreeError(stderr.to_string()));
+    }
+
+    Ok(())
+}
+
+/// Remove a git worktree.
+///
+/// Uses `--force` to ensure removal even if there are uncommitted changes
+/// in the worktree (since it's meant to be temporary anyway).
+///
+/// # Arguments
+/// * `source_path` - Path to the source git repository (not the worktree)
+/// * `worktree_path` - Path to the worktree to remove
+pub fn remove_worktree(source_path: &Path, worktree_path: &Path) -> Result<(), GitError> {
+    let output = Command::new("git")
+        .args([
+            "worktree",
+            "remove",
+            "--force",
+            &worktree_path.to_string_lossy(),
+        ])
+        .current_dir(source_path)
+        .output()
+        .map_err(|e| GitError::CommandError(e.to_string()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // If worktree doesn't exist, that's okay for our cleanup purposes
+        if !stderr.contains("is not a working tree") {
+            return Err(GitError::WorktreeError(stderr.to_string()));
+        }
+    }
+
+    Ok(())
+}
+
+/// Prune stale worktree references.
+///
+/// Call this after manually deleting worktree directories to clean up
+/// git's internal tracking.
+pub fn prune_worktrees(source_path: &Path) -> Result<(), GitError> {
+    let output = Command::new("git")
+        .args(["worktree", "prune"])
+        .current_dir(source_path)
+        .output()
+        .map_err(|e| GitError::CommandError(e.to_string()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(GitError::WorktreeError(stderr.to_string()));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

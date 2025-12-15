@@ -64,18 +64,18 @@ async fn test_issue_list_with_filters() {
     }
 
     // List all
-    let all_issues = list_issues(project_path, None, None)
+    let all_issues = list_issues(project_path, None, None, None)
         .await
         .expect("Should list");
     assert_eq!(all_issues.len(), 5);
 
     // List by status
-    let open_issues = list_issues(project_path, Some("open"), None)
+    let open_issues = list_issues(project_path, Some("open"), None, None)
         .await
         .expect("Should list");
     assert_eq!(open_issues.len(), 2);
 
-    let closed_issues = list_issues(project_path, Some("closed"), None)
+    let closed_issues = list_issues(project_path, Some("closed"), None, None)
         .await
         .expect("Should list");
     assert_eq!(closed_issues.len(), 3);
