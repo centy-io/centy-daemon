@@ -37,6 +37,30 @@ pub fn format_display_path(path: &str) -> String {
     replace_homedir::replace_homedir(path, "~")
 }
 
+/// Check if a path is inside the system's temporary directory.
+/// Uses `std::env::temp_dir()` to detect temp paths cross-platform.
+#[must_use]
+pub fn is_in_temp_dir(path: &Path) -> bool {
+    let temp_dir = std::env::temp_dir();
+
+    // Canonicalize the temp directory for consistent comparison
+    // On macOS, temp_dir() returns /var/folders/... but canonical paths are /private/var/folders/...
+    let canonical_temp = temp_dir.canonicalize().unwrap_or_else(|_| temp_dir.clone());
+
+    // Try to canonicalize the path. If it doesn't exist, check against both
+    // the canonical and non-canonical temp dir prefixes
+    if let Ok(canonical_path) = path.canonicalize() {
+        return canonical_path.starts_with(&canonical_temp);
+    }
+
+    // Path doesn't exist - check if it starts with temp_dir or canonical temp_dir
+    let path_str = path.to_string_lossy();
+    let temp_str = temp_dir.to_string_lossy();
+    let canonical_temp_str = canonical_temp.to_string_lossy();
+
+    path_str.starts_with(temp_str.as_ref()) || path_str.starts_with(canonical_temp_str.as_ref())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +151,26 @@ mod tests {
             let result = format_display_path(&test_path);
             assert_eq!(result, "~/projects/myapp");
         }
+    }
+
+    #[test]
+    fn test_is_in_temp_dir_temp_path() {
+        let temp_dir = std::env::temp_dir();
+        let test_path = temp_dir.join("some-project");
+        assert!(is_in_temp_dir(&test_path));
+    }
+
+    #[test]
+    fn test_is_in_temp_dir_non_temp_path() {
+        let home_dir = dirs::home_dir().unwrap_or_else(|| Path::new("/home/user").to_path_buf());
+        let test_path = home_dir.join("projects/my-project");
+        assert!(!is_in_temp_dir(&test_path));
+    }
+
+    #[test]
+    fn test_is_in_temp_dir_nested_temp_path() {
+        let temp_dir = std::env::temp_dir();
+        let test_path = temp_dir.join("centy-abc123-20251215").join("subdir");
+        assert!(is_in_temp_dir(&test_path));
     }
 }

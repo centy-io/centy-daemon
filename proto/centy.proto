@@ -865,6 +865,7 @@ message ListProjectsRequest {
   bool include_archived = 3;      // Include archived projects (default: false)
   string organization_slug = 4;   // Filter by organization (empty = all)
   bool ungrouped_only = 5;        // Only show projects without organization
+  bool include_temp = 6;          // Include projects in system temp directory (default: false)
 }
 
 message ListProjectsResponse {

@@ -4,7 +4,7 @@ use super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::types::{ListProjectsOptions, ProjectInfo, TrackedProject};
 use super::RegistryError;
 use crate::config::get_project_title;
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{get_centy_path, is_in_temp_dir, now_iso};
 use std::path::Path;
 use tokio::fs;
 use tracing::warn;
@@ -155,10 +155,16 @@ pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectI
     let mut ungrouped_paths: Vec<String> = Vec::new();
 
     for (path, tracked) in &registry.projects {
-        let path_exists = Path::new(path).exists();
+        let project_path = Path::new(path);
+        let path_exists = project_path.exists();
 
         if !opts.include_stale && !path_exists {
             // Skip stale (non-existent) projects
+            continue;
+        }
+
+        if !opts.include_temp && is_in_temp_dir(project_path) {
+            // Skip projects in system temp directory
             continue;
         }
 

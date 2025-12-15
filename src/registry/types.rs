@@ -151,4 +151,6 @@ pub struct ListProjectsOptions<'a> {
     pub organization_slug: Option<&'a str>,
     /// Only show projects without organization
     pub ungrouped_only: bool,
+    /// Include projects in system temp directory (default: false)
+    pub include_temp: bool,
 }

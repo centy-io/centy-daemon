@@ -1113,6 +1113,7 @@ impl CentyDaemon for CentyDaemonService {
             include_archived: req.include_archived,
             organization_slug: org_slug,
             ungrouped_only: req.ungrouped_only,
+            include_temp: req.include_temp,
         };
         match list_projects(opts).await {
             Ok(projects) => {
