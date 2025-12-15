@@ -1,0 +1,30 @@
+# Exclude projects in temporary folders from tracking and listing
+
+## Problem
+
+Currently, the daemon tracks all projects automatically via `track_project_async()` on every RPC operation. This includes projects located in temporary directories (e.g., `/tmp`, `/var/folders/...` on macOS, `%TEMP%` on Windows).
+
+This is problematic because:
+1. Temp folders are regularly cleaned by the OS
+2. Projects in temp folders are typically transient (e.g., test clones, temporary workspaces)
+3. They clutter the project list with stale entries
+4. The daemon already creates temp workspaces in these directories for isolated issue work (`centy-{issue_id}-{timestamp}`)
+
+## Proposed Solution
+
+Add filtering to prevent tracking and listing projects inside temp directories.
+
+### Temp Paths to Detect
+- `std::env::temp_dir()` (cross-platform system temp directory)
+- Common patterns: `/tmp`, `/var/folders/` (macOS), `/private/var/folders/` (macOS resolved symlink), Windows `%TEMP%`
+
+### Implementation Suggestions
+1. Add `is_temp_directory(path: &Path) -> bool` helper function in `src/registry/tracking.rs`
+2. Skip tracking in `track_project()` / `track_project_async()` if path is in temp directory
+3. Filter out temp directory projects in `list_projects()` as well
+4. Consider optional flag `--include-temp` / `include_temp: bool` for listing if needed
+
+### Files to Modify
+- `src/registry/tracking.rs` - Add helper function and filtering logic
+- `src/registry/types.rs` - Add `include_temp` to `ListProjectsOptions` if needed
+- `proto/centy.proto` - Add field to `ListProjectsRequest` if needed
