@@ -35,6 +35,9 @@ pub struct TrackedProject {
     pub is_archived: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub organization_slug: Option<String>,
+    /// User-scope custom title (only visible to this user)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_title: Option<String>,
 }
 
 /// The global project registry stored in ~/.centy/projects.json
@@ -105,6 +108,12 @@ pub struct ProjectInfo {
 
     /// Organization name (resolved from registry, for display)
     pub organization_name: Option<String>,
+
+    /// User-scope custom title (stored in registry, only visible to this user)
+    pub user_title: Option<String>,
+
+    /// Project-scope custom title (stored in .centy/project.json, visible to all)
+    pub project_title: Option<String>,
 }
 
 /// Organization info returned by API (enriched with project count)

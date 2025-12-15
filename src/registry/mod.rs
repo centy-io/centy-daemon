@@ -11,8 +11,8 @@ pub use organizations::{
 };
 #[allow(unused_imports)]
 pub use tracking::{
-    get_project_info, list_projects, set_project_archived, set_project_favorite, track_project,
-    track_project_async, untrack_project,
+    get_project_info, list_projects, set_project_archived, set_project_favorite,
+    set_project_user_title, track_project, track_project_async, untrack_project,
 };
 #[allow(unused_imports)]
 pub use types::{

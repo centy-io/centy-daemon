@@ -2,6 +2,7 @@ use super::organizations::sync_org_from_project;
 use super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::types::{ListProjectsOptions, ProjectInfo, TrackedProject};
 use super::RegistryError;
+use crate::config::get_project_title;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
@@ -34,6 +35,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
             is_favorite: false,
             is_archived: false,
             organization_slug: None,
+            user_title: None,
         };
         registry.projects.insert(canonical_path, entry);
     }
@@ -108,6 +110,9 @@ pub async fn enrich_project(
         .file_name()
         .map(|n| n.to_string_lossy().to_string());
 
+    // Get project-scope title from .centy/project.json
+    let project_title = get_project_title(project_path).await;
+
     ProjectInfo {
         path: path.to_string(),
         first_accessed: tracked.first_accessed.clone(),
@@ -120,6 +125,8 @@ pub async fn enrich_project(
         is_archived: tracked.is_archived,
         organization_slug: tracked.organization_slug.clone(),
         organization_name: org_name,
+        user_title: tracked.user_title.clone(),
+        project_title,
     }
 }
 
@@ -340,6 +347,57 @@ pub async fn set_project_archived(
         .get_mut(&key)
         .expect("key was verified to exist");
     tracked.is_archived = is_archived;
+    let tracked_clone = tracked.clone();
+
+    // Get organization name
+    let org_name = tracked_clone
+        .organization_slug
+        .as_ref()
+        .and_then(|slug| registry.organizations.get(slug))
+        .map(|org| org.name.clone());
+
+    registry.updated_at = now_iso();
+    write_registry_unlocked(&registry).await?;
+
+    // Return enriched project info
+    Ok(enrich_project(&canonical_path, &tracked_clone, org_name).await)
+}
+
+/// Set the user-scope custom title for a project
+/// This title is stored in the registry and is only visible to the current user
+pub async fn set_project_user_title(
+    project_path: &str,
+    title: Option<String>,
+) -> Result<ProjectInfo, RegistryError> {
+    let path = Path::new(project_path);
+
+    // Canonicalize path to ensure consistent keys
+    let canonical_path = path
+        .canonicalize()
+        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+
+    // Lock the entire read-modify-write cycle
+    let _guard = get_lock().lock().await;
+
+    let mut registry = read_registry().await?;
+
+    // Determine which key to use (try canonical first, then original)
+    let key = if registry.projects.contains_key(&canonical_path) {
+        canonical_path.clone()
+    } else if registry.projects.contains_key(project_path) {
+        project_path.to_string()
+    } else {
+        return Err(RegistryError::ProjectNotFound(project_path.to_string()));
+    };
+
+    // Now we can safely get the mutable entry (key existence was checked above)
+    let tracked = registry
+        .projects
+        .get_mut(&key)
+        .expect("key was verified to exist");
+
+    // Set title (None clears it, empty string also clears it)
+    tracked.user_title = title.filter(|t| !t.is_empty());
     let tracked_clone = tracked.clone();
 
     // Get organization name

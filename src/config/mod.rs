@@ -150,3 +150,51 @@ pub async fn write_config(project_path: &Path, config: &CentyConfig) -> Result<(
     fs::write(&config_path, content).await?;
     Ok(())
 }
+
+/// Project metadata stored in .centy/project.json (version-controlled, shared with team)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectMetadata {
+    /// Project-scope custom title (visible to all users)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+}
+
+/// Read the project metadata file (.centy/project.json)
+pub async fn read_project_metadata(project_path: &Path) -> Result<Option<ProjectMetadata>, ConfigError> {
+    let metadata_path = get_centy_path(project_path).join("project.json");
+
+    if !metadata_path.exists() {
+        return Ok(None);
+    }
+
+    let content = fs::read_to_string(&metadata_path).await?;
+    let metadata: ProjectMetadata = serde_json::from_str(&content)?;
+    Ok(Some(metadata))
+}
+
+/// Write the project metadata file (.centy/project.json)
+pub async fn write_project_metadata(project_path: &Path, metadata: &ProjectMetadata) -> Result<(), ConfigError> {
+    let metadata_path = get_centy_path(project_path).join("project.json");
+    let content = serde_json::to_string_pretty(metadata)?;
+    fs::write(&metadata_path, content).await?;
+    Ok(())
+}
+
+/// Get the project-scope title from .centy/project.json
+pub async fn get_project_title(project_path: &Path) -> Option<String> {
+    read_project_metadata(project_path)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|m| m.title)
+}
+
+/// Set the project-scope title in .centy/project.json
+pub async fn set_project_title(project_path: &Path, title: Option<String>) -> Result<(), ConfigError> {
+    let mut metadata = read_project_metadata(project_path)
+        .await?
+        .unwrap_or_default();
+    metadata.title = title;
+    write_project_metadata(project_path, &metadata).await
+}

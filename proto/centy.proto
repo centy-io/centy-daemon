@@ -124,6 +124,12 @@ service CentyDaemon {
   // Set project organization
   rpc SetProjectOrganization(SetProjectOrganizationRequest) returns (SetProjectOrganizationResponse);
 
+  // Set user-scope custom title (stored in ~/.centy/projects.json, only visible to current user)
+  rpc SetProjectUserTitle(SetProjectUserTitleRequest) returns (SetProjectUserTitleResponse);
+
+  // Set project-scope custom title (stored in .centy/project.json, visible to all users)
+  rpc SetProjectTitle(SetProjectTitleRequest) returns (SetProjectTitleResponse);
+
   // ============ Organization RPCs ============
 
   // Create a new organization
@@ -849,6 +855,8 @@ message ProjectInfo {
   string display_path = 10;       // Human-readable path with ~/ for home dir (use for display only)
   string organization_slug = 11;  // Organization slug (empty if ungrouped)
   string organization_name = 12;  // Organization display name (for convenience)
+  string user_title = 13;         // User-scope custom title (from ~/.centy/projects.json)
+  string project_title = 14;      // Project-scope custom title (from .centy/project.json)
 }
 
 message ListProjectsRequest {
@@ -921,6 +929,28 @@ message SetProjectOrganizationRequest {
 }
 
 message SetProjectOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectUserTitleRequest {
+  string project_path = 1;
+  string title = 2;               // Custom title (empty to clear)
+}
+
+message SetProjectUserTitleResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectTitleRequest {
+  string project_path = 1;
+  string title = 2;               // Custom title (empty to clear)
+}
+
+message SetProjectTitleResponse {
   bool success = 1;
   string error = 2;
   ProjectInfo project = 3;        // The updated project info

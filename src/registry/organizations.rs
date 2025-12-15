@@ -330,6 +330,7 @@ pub async fn set_project_organization(
                 is_favorite: false,
                 is_archived: false,
                 organization_slug: None,
+                user_title: None,
             }
         });
 
