@@ -82,6 +82,22 @@ You are creating an implementation plan for this issue. Your plan should:
 
 Do NOT implement anything yet. Focus on creating a clear, comprehensive plan that another developer (or you in a subsequent session) can follow.
 
+## Saving Your Plan
+
+After creating your plan, you MUST save it using the centy CLI:
+
+1. Write your plan to a file called `plan.md`
+2. Save it to the issue using: `centy add plan <ISSUE_ID> --file plan.md`
+   - Use the issue ID from the Issue Details section below (either the UUID or the display number like `1`, `2`, etc.)
+3. Delete the temporary `plan.md` file after saving
+
+Example:
+```bash
+# Write plan to file, then save to issue
+centy add plan 42 --file plan.md
+rm plan.md
+```
+
 ---
 
 ";
