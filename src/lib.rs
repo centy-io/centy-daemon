@@ -61,8 +61,8 @@ pub use migration::{
 };
 pub use version::{compare_versions, daemon_version, SemVer, VersionComparison, VersionError};
 pub use llm::{
-    spawn_agent, get_effective_local_config, read_work_session, clear_work_session,
-    record_work_session, AgentConfig, AgentType, LocalLlmConfig, LlmAction, LlmError,
+    spawn_agent, start_agent, get_effective_local_config, read_work_session, clear_work_session,
+    record_work_session, AgentConfig, AgentSpawnMode, AgentType, LocalLlmConfig, LlmAction, LlmError,
     LlmWorkSession, PromptBuilder,
 };
 pub use user::{

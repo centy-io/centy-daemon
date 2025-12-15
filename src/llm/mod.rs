@@ -5,7 +5,7 @@ pub mod prompt;
 pub mod work;
 
 #[allow(unused_imports)]
-pub use agent::{spawn_agent, AgentError};
+pub use agent::{spawn_agent, start_agent, AgentError, AgentSpawnMode};
 #[allow(unused_imports)]
 pub use config::{
     get_effective_local_config, has_global_config, has_project_config, write_global_local_config,

@@ -7,6 +7,18 @@ use super::config::{AgentConfig, LocalLlmConfig};
 use super::prompt::{LlmAction, PromptBuilder};
 use crate::issue::Issue;
 
+/// Mode for starting the agent process
+#[derive(Debug, Clone, Copy, Default)]
+pub enum AgentSpawnMode {
+    /// Spawn as background process, return PID (daemon mode)
+    #[default]
+    Background,
+    /// Replace current process with agent (CLI mode)
+    /// Unix: uses exec(), never returns on success
+    /// Windows: falls back to waiting for process completion
+    ReplaceProcess,
+}
+
 #[derive(Error, Debug)]
 pub enum AgentError {
     #[error("Agent '{0}' not found in configuration")]
@@ -30,8 +42,15 @@ pub struct SpawnResult {
     pub prompt_preview: String,
 }
 
-/// Spawn an LLM agent to work on an issue
-pub async fn spawn_agent(
+/// Start an LLM agent to work on an issue
+///
+/// This is the core implementation that supports both spawn() and exec() modes.
+///
+/// **Important**: When using `ReplaceProcess` mode:
+/// - On Unix: This function uses exec() and NEVER RETURNS on success
+/// - On Windows: This function waits for the child process and returns when it exits
+/// - The work session MUST be recorded BEFORE calling this function with ReplaceProcess
+pub async fn start_agent(
     project_path: &Path,
     config: &LocalLlmConfig,
     issue: &Issue,
@@ -39,6 +58,7 @@ pub async fn spawn_agent(
     agent_name: Option<&str>,
     extra_args: Vec<String>,
     priority_levels: u32,
+    mode: AgentSpawnMode,
 ) -> Result<SpawnResult, AgentError> {
     // Resolve which agent to use
     let agent = match agent_name {
@@ -79,33 +99,142 @@ pub async fn spawn_agent(
     // Most CLI agents accept prompt as last positional arg
     cmd.arg(&prompt);
 
-    // Configure stdio for fire-and-forget
+    // Configure stdio
     cmd.stdin(Stdio::null())
         .stdout(Stdio::inherit()) // Let output go to terminal
         .stderr(Stdio::inherit());
 
+    // Create preview (first 500 chars)
+    let prompt_preview = PromptBuilder::preview(&prompt, 500);
+
     info!(
-        "Spawning agent '{}' for issue #{} ({})",
+        "Starting agent '{}' for issue #{} ({}) in {:?} mode",
         agent.name,
         issue.metadata.display_number,
-        action.as_str()
+        action.as_str(),
+        mode
     );
 
-    // Spawn the process
-    let child = cmd
+    match mode {
+        AgentSpawnMode::Background => {
+            // Spawn and return immediately (daemon behavior)
+            let child = cmd
+                .spawn()
+                .map_err(|e| AgentError::SpawnError(e.to_string()))?;
+
+            let pid = child.id();
+            info!("Agent process spawned with PID: {:?}", pid);
+
+            Ok(SpawnResult {
+                agent_name: agent.name.clone(),
+                pid: Some(pid),
+                prompt_preview,
+            })
+        }
+        AgentSpawnMode::ReplaceProcess => {
+            // Platform-specific exec behavior
+            exec_agent_process(cmd, &agent.name, &prompt_preview)
+        }
+    }
+}
+
+/// Spawn an LLM agent to work on an issue (backward-compatible wrapper)
+///
+/// This is the original fire-and-forget API. For CLI use cases that need
+/// exec() behavior, use `start_agent` with `AgentSpawnMode::ReplaceProcess`.
+pub async fn spawn_agent(
+    project_path: &Path,
+    config: &LocalLlmConfig,
+    issue: &Issue,
+    action: LlmAction,
+    agent_name: Option<&str>,
+    extra_args: Vec<String>,
+    priority_levels: u32,
+) -> Result<SpawnResult, AgentError> {
+    start_agent(
+        project_path,
+        config,
+        issue,
+        action,
+        agent_name,
+        extra_args,
+        priority_levels,
+        AgentSpawnMode::Background,
+    )
+    .await
+}
+
+/// Unix implementation: exec() replaces current process
+#[cfg(unix)]
+fn exec_agent_process(
+    mut cmd: Command,
+    _agent_name: &str,
+    _prompt_preview: &str,
+) -> Result<SpawnResult, AgentError> {
+    use std::os::unix::process::CommandExt;
+
+    info!("Executing agent via exec() - replacing current process");
+
+    // exec() never returns on success - it replaces the current process
+    let err = cmd.exec();
+
+    // If we get here, exec() failed
+    Err(AgentError::SpawnError(format!("exec() failed: {err}")))
+}
+
+/// Windows implementation: spawn and wait (foreground process)
+#[cfg(windows)]
+fn exec_agent_process(
+    mut cmd: Command,
+    agent_name: &str,
+    prompt_preview: &str,
+) -> Result<SpawnResult, AgentError> {
+    info!("Windows: spawning agent in foreground (waiting for completion)");
+
+    let mut child = cmd
         .spawn()
         .map_err(|e| AgentError::SpawnError(e.to_string()))?;
 
     let pid = child.id();
-    info!("Agent process spawned with PID: {:?}", pid);
 
-    // Create preview (first 500 chars)
-    let prompt_preview = PromptBuilder::preview(&prompt, 500);
+    // Wait for the process to complete
+    let status = child
+        .wait()
+        .map_err(|e| AgentError::SpawnError(format!("Failed to wait for process: {}", e)))?;
+
+    info!("Agent process exited with status: {:?}", status);
 
     Ok(SpawnResult {
-        agent_name: agent.name.clone(),
+        agent_name: agent_name.to_string(),
         pid: Some(pid),
-        prompt_preview,
+        prompt_preview: prompt_preview.to_string(),
+    })
+}
+
+/// Fallback for other platforms: spawn and wait
+#[cfg(not(any(unix, windows)))]
+fn exec_agent_process(
+    mut cmd: Command,
+    agent_name: &str,
+    prompt_preview: &str,
+) -> Result<SpawnResult, AgentError> {
+    info!("Unsupported platform: spawning agent in foreground");
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| AgentError::SpawnError(e.to_string()))?;
+
+    let pid = child.id();
+    let status = child
+        .wait()
+        .map_err(|e| AgentError::SpawnError(format!("Failed to wait for process: {}", e)))?;
+
+    info!("Agent process exited with status: {:?}", status);
+
+    Ok(SpawnResult {
+        agent_name: agent_name.to_string(),
+        pid: Some(pid),
+        prompt_preview: prompt_preview.to_string(),
     })
 }
 
