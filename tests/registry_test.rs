@@ -26,6 +26,7 @@ async fn test_track_project_creates_entry() {
         include_stale: true,
         include_uninitialized: true,
         include_archived: true,
+        include_temp: true, // Tests run in temp directory
         ..Default::default()
     }).await.expect("Should list projects");
     assert!(
@@ -108,6 +109,7 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_stale: false,
         include_uninitialized: true,
         include_archived: true,
+        include_temp: true, // Tests run in temp directory
         ..Default::default()
     }).await.expect("Should list");
     assert!(
@@ -123,6 +125,7 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_stale: false,
         include_uninitialized: true,
         include_archived: true,
+        include_temp: true, // Tests run in temp directory
         ..Default::default()
     }).await.expect("Should list");
     assert!(
@@ -135,6 +138,7 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_stale: true,
         include_uninitialized: true,
         include_archived: true,
+        include_temp: true, // Tests run in temp directory
         ..Default::default()
     }).await.expect("Should list");
     assert!(
@@ -254,6 +258,7 @@ async fn test_list_projects_sorted_by_last_accessed() {
         include_stale: true,
         include_uninitialized: true,
         include_archived: true,
+        include_temp: true, // Tests run in temp directory
         ..Default::default()
     }).await.expect("Should list");
 
