@@ -1,0 +1,133 @@
+# Add ProjectPaths struct as single source of truth for all path construction
+
+## Problem
+
+Currently, paths are constructed ad-hoc throughout the codebase using repeated `.join()` calls. This pattern is duplicated across ~15 modules, making it error-prone and hard to maintain.
+
+**Current scattered pattern:**
+```rust
+let centy_path = get_centy_path(project_path);
+let issues_path = centy_path.join("issues");
+let issue_path = issues_path.join(issue_id);
+let issue_md_path = issue_path.join("issue.md");
+let metadata_path = issue_path.join("metadata.json");
+```
+
+**Files with path joins:**
+- `src/issue/crud.rs` - issue paths (~20 occurrences)
+- `src/pr/crud.rs` - PR paths
+- `src/docs/crud.rs` - doc paths
+- `src/issue/assets.rs` - asset paths
+- `src/features/crud.rs` - features paths
+- `src/config/mod.rs` - config paths
+- `src/workspace/storage.rs` - workspace paths
+- `src/template/engine.rs` - template paths
+- `src/llm/config.rs` - LLM config paths
+- `src/link/storage.rs` - link paths
+- `src/manifest/mod.rs` - manifest paths
+- `src/reconciliation/*.rs` - reconciliation paths
+- `src/user/storage.rs` - user paths
+
+## Solution
+
+Create a `ProjectPaths` struct (and related sub-structs) that serves as a single source of truth for all path construction in a Centy project.
+
+### Proposed API
+
+```rust
+pub struct ProjectPaths {
+    root: PathBuf,
+}
+
+impl ProjectPaths {
+    pub fn new(project_path: impl AsRef<Path>) -> Self;
+
+    // Core paths
+    pub fn centy(&self) -> PathBuf;           // .centy/
+    pub fn manifest(&self) -> PathBuf;         // .centy/.centy-manifest.json
+    pub fn config(&self) -> PathBuf;           // .centy/config.json
+    pub fn project_metadata(&self) -> PathBuf; // .centy/project.json
+
+    // Issues
+    pub fn issues(&self) -> PathBuf;                      // .centy/issues/
+    pub fn issue(&self, id: &str) -> IssuePaths;          // Returns IssuePaths struct
+
+    // PRs
+    pub fn prs(&self) -> PathBuf;                         // .centy/prs/
+    pub fn pr(&self, id: &str) -> PrPaths;                // Returns PrPaths struct
+
+    // Docs
+    pub fn docs(&self) -> PathBuf;                        // .centy/docs/
+    pub fn doc(&self, slug: &str) -> PathBuf;             // .centy/docs/{slug}.md
+
+    // Features
+    pub fn features(&self) -> FeaturesPaths;
+
+    // Templates
+    pub fn templates(&self) -> TemplatesPaths;
+
+    // Assets
+    pub fn shared_assets(&self) -> PathBuf;               // .centy/assets/
+
+    // Other
+    pub fn users(&self) -> PathBuf;                       // .centy/users.json
+    pub fn organization(&self) -> PathBuf;                // .centy/organization.json
+    pub fn local_config(&self) -> PathBuf;                // .centy/config.local.json
+    pub fn llm_work(&self) -> PathBuf;                    // .centy/llm-work.json
+}
+
+pub struct IssuePaths {
+    base: PathBuf,
+}
+
+impl IssuePaths {
+    pub fn dir(&self) -> &Path;               // .centy/issues/{id}/
+    pub fn content(&self) -> PathBuf;         // .centy/issues/{id}/issue.md
+    pub fn metadata(&self) -> PathBuf;        // .centy/issues/{id}/metadata.json
+    pub fn assets(&self) -> PathBuf;          // .centy/issues/{id}/assets/
+    pub fn links(&self) -> PathBuf;           // .centy/issues/{id}/links.json
+}
+
+// Similar structs: PrPaths, FeaturesPaths, TemplatesPaths
+```
+
+### Usage Example
+
+**Before:**
+```rust
+let centy_path = get_centy_path(project_path);
+let issue_path = centy_path.join("issues").join(&issue_id);
+let issue_md_path = issue_path.join("issue.md");
+let metadata_path = issue_path.join("metadata.json");
+```
+
+**After:**
+```rust
+let paths = ProjectPaths::new(project_path);
+let issue = paths.issue(&issue_id);
+let issue_md_path = issue.content();
+let metadata_path = issue.metadata();
+```
+
+## Benefits
+
+1. **Single source of truth** - All path logic in one place
+2. **Type safety** - `IssuePaths`, `PrPaths`, etc. prevent mixing up paths
+3. **Discoverability** - IDE autocomplete shows all available paths
+4. **Maintainability** - Change a path once, updates everywhere
+5. **Testability** - Easy to unit test path generation
+6. **Documentation** - Struct serves as living documentation of project structure
+
+## Implementation Steps
+
+1. Create `src/paths/mod.rs` with `ProjectPaths` struct
+2. Add sub-structs: `IssuePaths`, `PrPaths`, `FeaturesPaths`, `TemplatesPaths`
+3. Add comprehensive unit tests
+4. Migrate modules one by one:
+   - `issue/crud.rs`
+   - `pr/crud.rs`
+   - `docs/crud.rs`
+   - `config/mod.rs`
+   - etc.
+5. Deprecate old `get_centy_path()` / `get_manifest_path()` utilities
+6. Remove deprecated utilities after migration complete
