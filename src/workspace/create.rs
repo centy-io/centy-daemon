@@ -107,12 +107,15 @@ async fn create_plan_template(
 
 > **Note**: After completing this plan, save it using:
 > ```bash
-> centy add plan {display_number} --file plan.md
+> centy add plan {display_number} --file .centy/issues/{issue_id}/plan.md
 > ```
 "
     );
 
-    let plan_path = workspace_path.join("plan.md");
+    let plan_path = workspace_path
+        .join(".centy/issues")
+        .join(issue_id)
+        .join("plan.md");
     fs::write(&plan_path, plan_content).await?;
 
     Ok(())
