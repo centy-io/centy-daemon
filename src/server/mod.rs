@@ -48,7 +48,16 @@ use crate::user::{
     CreateUserOptions, UpdateUserOptions,
 };
 use crate::search::{advanced_search, SearchOptions, SortOptions};
-use crate::utils::{format_display_path, get_centy_path};
+use crate::utils::{format_display_path, get_centy_path, validate_absolute_path};
+
+/// Validates that a path is absolute, returning an InvalidArgument status on failure
+macro_rules! validate_project_path {
+    ($path:expr) => {
+        if let Err(e) = validate_absolute_path($path) {
+            return Err(Status::invalid_argument(e.to_string()));
+        }
+    };
+}
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
     create_temp_workspace, list_workspaces as internal_list_workspaces,
@@ -153,6 +162,7 @@ async fn startup_org_inference() {
 impl CentyDaemon for CentyDaemonService {
     async fn init(&self, request: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -211,6 +221,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetReconciliationPlanRequest>,
     ) -> Result<Response<ReconciliationPlan>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -235,6 +246,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ExecuteReconciliationRequest>,
     ) -> Result<Response<InitResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -293,6 +305,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreateIssueRequest>,
     ) -> Result<Response<CreateIssueResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -335,6 +348,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetIssueRequest>,
     ) -> Result<Response<Issue>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -353,6 +367,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetIssueByDisplayNumberRequest>,
     ) -> Result<Response<Issue>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -413,6 +428,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListIssuesRequest>,
     ) -> Result<Response<ListIssuesResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -443,6 +459,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateIssueRequest>,
     ) -> Result<Response<UpdateIssueResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -481,6 +498,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeleteIssueRequest>,
     ) -> Result<Response<DeleteIssueResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -503,6 +521,8 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<MoveIssueRequest>,
     ) -> Result<Response<MoveIssueResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.source_project_path);
+        validate_project_path!(&req.target_project_path);
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
 
@@ -541,6 +561,8 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DuplicateIssueRequest>,
     ) -> Result<Response<DuplicateIssueResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.source_project_path);
+        validate_project_path!(&req.target_project_path);
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
 
@@ -578,6 +600,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetNextIssueNumberRequest>,
     ) -> Result<Response<GetNextIssueNumberResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
         let issues_path = get_centy_path(project_path).join("issues");
@@ -594,6 +617,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetManifestRequest>,
     ) -> Result<Response<Manifest>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -609,6 +633,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetConfigRequest>,
     ) -> Result<Response<Config>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -643,6 +668,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateConfigRequest>,
     ) -> Result<Response<UpdateConfigResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -699,6 +725,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<IsInitializedRequest>,
     ) -> Result<Response<IsInitializedResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
         let centy_path = get_centy_path(project_path);
@@ -724,6 +751,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreateDocRequest>,
     ) -> Result<Response<CreateDocResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -757,6 +785,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetDocRequest>,
     ) -> Result<Response<Doc>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -808,6 +837,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListDocsRequest>,
     ) -> Result<Response<ListDocsResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -828,6 +858,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateDocRequest>,
     ) -> Result<Response<UpdateDocResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -858,6 +889,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeleteDocRequest>,
     ) -> Result<Response<DeleteDocResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -880,6 +912,8 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<MoveDocRequest>,
     ) -> Result<Response<MoveDocResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.source_project_path);
+        validate_project_path!(&req.target_project_path);
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
 
@@ -915,6 +949,8 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DuplicateDocRequest>,
     ) -> Result<Response<DuplicateDocResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.source_project_path);
+        validate_project_path!(&req.target_project_path);
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
 
@@ -951,6 +987,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<AddAssetRequest>,
     ) -> Result<Response<AddAssetResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -993,6 +1030,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListAssetsRequest>,
     ) -> Result<Response<ListAssetsResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1013,6 +1051,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetAssetRequest>,
     ) -> Result<Response<GetAssetResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1043,6 +1082,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeleteAssetRequest>,
     ) -> Result<Response<DeleteAssetResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1079,6 +1119,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListSharedAssetsRequest>,
     ) -> Result<Response<ListAssetsResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1132,6 +1173,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<RegisterProjectRequest>,
     ) -> Result<Response<RegisterProjectResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let project_path = Path::new(&req.project_path);
 
         // Track the project (this creates or updates the entry)
@@ -1191,6 +1233,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UntrackProjectRequest>,
     ) -> Result<Response<UntrackProjectResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
 
         match untrack_project(&req.project_path).await {
             Ok(()) => Ok(Response::new(UntrackProjectResponse {
@@ -1209,6 +1252,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetProjectInfoRequest>,
     ) -> Result<Response<GetProjectInfoResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
 
         match get_project_info(&req.project_path).await {
             Ok(Some(info)) => Ok(Response::new(GetProjectInfoResponse {
@@ -1228,6 +1272,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SetProjectFavoriteRequest>,
     ) -> Result<Response<SetProjectFavoriteResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
 
         match set_project_favorite(&req.project_path, req.is_favorite).await {
             Ok(info) => Ok(Response::new(SetProjectFavoriteResponse {
@@ -1248,6 +1293,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SetProjectArchivedRequest>,
     ) -> Result<Response<SetProjectArchivedResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
 
         match set_project_archived(&req.project_path, req.is_archived).await {
             Ok(info) => Ok(Response::new(SetProjectArchivedResponse {
@@ -1268,6 +1314,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SetProjectOrganizationRequest>,
     ) -> Result<Response<SetProjectOrganizationResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let org_slug = if req.organization_slug.is_empty() {
             None
         } else {
@@ -1293,6 +1340,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SetProjectUserTitleRequest>,
     ) -> Result<Response<SetProjectUserTitleResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let title = if req.title.is_empty() {
             None
         } else {
@@ -1318,6 +1366,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SetProjectTitleRequest>,
     ) -> Result<Response<SetProjectTitleResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let title = if req.title.is_empty() {
             None
         } else {
@@ -1481,6 +1530,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetProjectVersionRequest>,
     ) -> Result<Response<ProjectVersionInfo>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1516,6 +1566,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateVersionRequest>,
     ) -> Result<Response<UpdateVersionResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1657,6 +1708,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreatePrRequest>,
     ) -> Result<Response<CreatePrResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1699,6 +1751,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetPrRequest>,
     ) -> Result<Response<PullRequest>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1717,6 +1770,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetPrByDisplayNumberRequest>,
     ) -> Result<Response<PullRequest>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1777,6 +1831,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListPrsRequest>,
     ) -> Result<Response<ListPrsResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1806,6 +1861,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdatePrRequest>,
     ) -> Result<Response<UpdatePrResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1845,6 +1901,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeletePrRequest>,
     ) -> Result<Response<DeletePrResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1867,6 +1924,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetNextPrNumberRequest>,
     ) -> Result<Response<GetNextPrNumberResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
         let prs_path = get_centy_path(project_path).join("prs");
@@ -1884,6 +1942,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetFeatureStatusRequest>,
     ) -> Result<Response<GetFeatureStatusResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1904,6 +1963,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListUncompactedIssuesRequest>,
     ) -> Result<Response<ListUncompactedIssuesResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1928,6 +1988,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetInstructionRequest>,
     ) -> Result<Response<GetInstructionResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1942,6 +2003,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetCompactRequest>,
     ) -> Result<Response<GetCompactResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1959,6 +2021,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateCompactRequest>,
     ) -> Result<Response<UpdateCompactResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -1979,6 +2042,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SaveMigrationRequest>,
     ) -> Result<Response<SaveMigrationResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2003,6 +2067,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<MarkIssuesCompactedRequest>,
     ) -> Result<Response<MarkIssuesCompactedResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2028,6 +2093,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SpawnAgentRequest>,
     ) -> Result<Response<SpawnAgentResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2153,6 +2219,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetLlmWorkRequest>,
     ) -> Result<Response<GetLlmWorkResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let project_path = Path::new(&req.project_path);
 
         match read_work_session(project_path).await {
@@ -2190,6 +2257,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ClearLlmWorkRequest>,
     ) -> Result<Response<ClearLlmWorkResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         let project_path = Path::new(&req.project_path);
 
         match clear_work_session(project_path).await {
@@ -2209,6 +2277,10 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetLocalLlmConfigRequest>,
     ) -> Result<Response<GetLocalLlmConfigResponse>, Status> {
         let req = request.into_inner();
+        // Only validate if project_path is provided
+        if !req.project_path.is_empty() {
+            validate_project_path!(&req.project_path);
+        }
         let project_path = if req.project_path.is_empty() {
             None
         } else {
@@ -2233,6 +2305,10 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateLocalLlmConfigRequest>,
     ) -> Result<Response<UpdateLocalLlmConfigResponse>, Status> {
         let req = request.into_inner();
+        // Only validate if project_path is provided
+        if !req.project_path.is_empty() {
+            validate_project_path!(&req.project_path);
+        }
 
         let config = match req.config {
             Some(c) => proto_to_local_llm_config(&c),
@@ -2273,6 +2349,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreateLinkRequest>,
     ) -> Result<Response<CreateLinkResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2316,6 +2393,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeleteLinkRequest>,
     ) -> Result<Response<DeleteLinkResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2357,6 +2435,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListLinksRequest>,
     ) -> Result<Response<ListLinksResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2377,6 +2456,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetAvailableLinkTypesRequest>,
     ) -> Result<Response<GetAvailableLinkTypesResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2409,6 +2489,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreateUserRequest>,
     ) -> Result<Response<CreateUserResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2440,6 +2521,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<GetUserRequest>,
     ) -> Result<Response<ProtoUser>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2454,6 +2536,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListUsersRequest>,
     ) -> Result<Response<ListUsersResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2480,6 +2563,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateUserRequest>,
     ) -> Result<Response<UpdateUserResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2514,6 +2598,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<DeleteUserRequest>,
     ) -> Result<Response<DeleteUserResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2536,6 +2621,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<SyncUsersRequest>,
     ) -> Result<Response<SyncUsersResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2588,6 +2674,7 @@ impl CentyDaemon for CentyDaemonService {
 
         // Track project if single-project search
         if !req.multi_project && !req.project_path.is_empty() {
+            validate_project_path!(&req.project_path);
             track_project_async(req.project_path.clone());
         }
 
@@ -2655,6 +2742,7 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<OpenInTempVscodeRequest>,
     ) -> Result<Response<OpenInTempVscodeResponse>, Status> {
         let req = request.into_inner();
+        validate_project_path!(&req.project_path);
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
@@ -2745,6 +2833,11 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<ListTempWorkspacesRequest>,
     ) -> Result<Response<ListTempWorkspacesResponse>, Status> {
         let req = request.into_inner();
+
+        // Only validate if source_project_path is provided
+        if !req.source_project_path.is_empty() {
+            validate_project_path!(&req.source_project_path);
+        }
 
         let source_filter = if req.source_project_path.is_empty() {
             None

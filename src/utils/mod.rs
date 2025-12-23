@@ -3,6 +3,23 @@ mod hash;
 pub use hash::{compute_hash, compute_file_hash};
 
 use std::path::Path;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum PathValidationError {
+    #[error("Invalid path: projectPath must be an absolute path (got: {0})")]
+    NotAbsolute(String),
+}
+
+/// Validate that a path string is absolute.
+/// Returns an error with a clear message if the path is relative.
+pub fn validate_absolute_path(path: &str) -> Result<(), PathValidationError> {
+    if Path::new(path).is_absolute() {
+        Ok(())
+    } else {
+        Err(PathValidationError::NotAbsolute(path.to_string()))
+    }
+}
 
 /// The name of the centy folder
 pub const CENTY_FOLDER: &str = ".centy";
@@ -172,5 +189,29 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let test_path = temp_dir.join("centy-abc123-20251215").join("subdir");
         assert!(is_in_temp_dir(&test_path));
+    }
+
+    #[test]
+    fn test_validate_absolute_path_valid() {
+        assert!(validate_absolute_path("/home/user/project").is_ok());
+        assert!(validate_absolute_path("/").is_ok());
+    }
+
+    #[test]
+    fn test_validate_absolute_path_relative() {
+        let err = validate_absolute_path("my-project").unwrap_err();
+        assert!(err.to_string().contains("my-project"));
+        assert!(err.to_string().contains("absolute path"));
+    }
+
+    #[test]
+    fn test_validate_absolute_path_dot_relative() {
+        assert!(validate_absolute_path("./project").is_err());
+        assert!(validate_absolute_path("../project").is_err());
+    }
+
+    #[test]
+    fn test_validate_absolute_path_empty() {
+        assert!(validate_absolute_path("").is_err());
     }
 }
