@@ -1037,6 +1037,7 @@ message DaemonInfo {
   string version = 1;                    // Current daemon version (e.g., "0.1.0")
   repeated string available_versions = 2; // All versions we can migrate to
   string binary_path = 3;                // Absolute path to the running daemon binary
+  bool vscode_available = 4;             // Whether VS Code is installed and accessible
 }
 
 message GetProjectVersionRequest {

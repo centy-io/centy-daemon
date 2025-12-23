@@ -52,6 +52,7 @@ use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
     create_temp_workspace, list_workspaces as internal_list_workspaces,
+    vscode::is_vscode_available,
     CreateWorkspaceOptions,
 };
 use std::path::{Path, PathBuf};
@@ -1473,6 +1474,7 @@ impl CentyDaemon for CentyDaemonService {
             version: daemon_ver.to_string(),
             available_versions: registry.available_versions(),
             binary_path,
+            vscode_available: is_vscode_available(),
         }))
     }
 

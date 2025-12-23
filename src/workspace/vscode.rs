@@ -3,7 +3,7 @@
 //! Handles setting up VS Code with auto-running tasks and opening the editor.
 
 use super::WorkspaceError;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::fs;
 
@@ -61,10 +61,95 @@ pub async fn setup_vscode_config(
     Ok(())
 }
 
-/// Check if VS Code is available in PATH.
+/// Find the VS Code binary by checking PATH and common installation locations.
+///
+/// This function searches:
+/// 1. The system PATH (via `which`)
+/// 2. Common installation paths for each platform
+///
+/// This is necessary because GUI applications (like Tauri desktop apps) don't
+/// inherit the user's shell PATH modifications, so VS Code's `code` command
+/// may not be found even when properly installed.
+#[must_use]
+pub fn find_vscode_binary() -> Option<PathBuf> {
+    // First, try PATH (works when daemon is started from shell)
+    if let Ok(path) = which::which("code") {
+        return Some(path);
+    }
+
+    // Check common installation locations by platform
+    let common_paths = get_common_vscode_paths();
+
+    for path_str in common_paths {
+        let path = Path::new(path_str);
+        if path.exists() {
+            return Some(path.to_path_buf());
+        }
+    }
+
+    None
+}
+
+/// Get common VS Code installation paths for the current platform.
+#[cfg(target_os = "macos")]
+fn get_common_vscode_paths() -> Vec<&'static str> {
+    vec![
+        // Standard symlink location (created by "Install 'code' command in PATH")
+        "/usr/local/bin/code",
+        // Homebrew on Apple Silicon
+        "/opt/homebrew/bin/code",
+        // Direct app bundle path
+        "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+        // User-installed location
+        "~/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+        // VS Code Insiders
+        "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code-insiders",
+        "/usr/local/bin/code-insiders",
+    ]
+}
+
+#[cfg(target_os = "linux")]
+fn get_common_vscode_paths() -> Vec<&'static str> {
+    vec![
+        // Standard package manager installations
+        "/usr/bin/code",
+        "/usr/local/bin/code",
+        // Snap installation
+        "/snap/bin/code",
+        // Flatpak installation
+        "/var/lib/flatpak/exports/bin/com.visualstudio.code",
+        // Direct installation
+        "/usr/share/code/bin/code",
+        // VS Code Insiders
+        "/usr/bin/code-insiders",
+        "/snap/bin/code-insiders",
+    ]
+}
+
+#[cfg(target_os = "windows")]
+fn get_common_vscode_paths() -> Vec<&'static str> {
+    vec![
+        // User installation (most common)
+        r"C:\Users\%USERNAME%\AppData\Local\Programs\Microsoft VS Code\bin\code.cmd",
+        r"C:\Users\%USERNAME%\AppData\Local\Programs\Microsoft VS Code\Code.exe",
+        // System installation
+        r"C:\Program Files\Microsoft VS Code\bin\code.cmd",
+        r"C:\Program Files\Microsoft VS Code\Code.exe",
+        r"C:\Program Files (x86)\Microsoft VS Code\bin\code.cmd",
+        // VS Code Insiders
+        r"C:\Users\%USERNAME%\AppData\Local\Programs\Microsoft VS Code Insiders\bin\code-insiders.cmd",
+    ]
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn get_common_vscode_paths() -> Vec<&'static str> {
+    vec![]
+}
+
+/// Check if VS Code is available (either in PATH or common locations).
 #[must_use]
 pub fn is_vscode_available() -> bool {
-    which::which("code").is_ok()
+    find_vscode_binary().is_some()
 }
 
 /// Open VS Code at the specified workspace path.
@@ -72,15 +157,16 @@ pub fn is_vscode_available() -> bool {
 /// Returns Ok even if VS Code isn't installed, but sets the boolean to indicate
 /// whether VS Code was actually opened.
 pub fn open_vscode(workspace_path: &Path) -> Result<bool, WorkspaceError> {
-    if !is_vscode_available() {
-        // VS Code not installed, but this is not an error
-        // The workspace is still created and can be opened manually
-        return Ok(false);
-    }
+    let vscode_path = match find_vscode_binary() {
+        Some(path) => path,
+        None => {
+            // VS Code not installed, but this is not an error
+            // The workspace is still created and can be opened manually
+            return Ok(false);
+        }
+    };
 
-    let result = Command::new("code")
-        .arg(workspace_path)
-        .spawn();
+    let result = Command::new(&vscode_path).arg(workspace_path).spawn();
 
     match result {
         Ok(_) => Ok(true),
@@ -119,5 +205,31 @@ mod tests {
         assert_eq!(parsed["version"], "2.0.0");
         assert!(parsed["tasks"].is_array());
         assert_eq!(parsed["tasks"][0]["type"], "shell");
+    }
+
+    #[test]
+    fn test_get_common_vscode_paths_not_empty() {
+        // Should return non-empty list on supported platforms
+        let paths = get_common_vscode_paths();
+        #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+        assert!(!paths.is_empty());
+        #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+        assert!(paths.is_empty());
+    }
+
+    #[test]
+    fn test_is_vscode_available_returns_bool() {
+        // Just verify it returns without panicking
+        let _ = is_vscode_available();
+    }
+
+    #[test]
+    fn test_find_vscode_binary_returns_option() {
+        // Just verify it returns without panicking
+        let result = find_vscode_binary();
+        // If found, path should exist
+        if let Some(path) = result {
+            assert!(path.exists());
+        }
     }
 }
