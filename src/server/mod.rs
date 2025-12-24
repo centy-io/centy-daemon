@@ -2700,6 +2700,23 @@ impl CentyDaemon for CentyDaemonService {
             }
         };
 
+        // Auto-update status to in-progress if configured
+        let config = read_config(project_path).await.ok().flatten();
+        if let Some(ref cfg) = config {
+            if cfg.llm.update_status_on_start {
+                let current_status = &issue.metadata.status;
+                if current_status != "in-progress" && current_status != "closed" {
+                    let update_opts = UpdateIssueOptions {
+                        status: Some("in-progress".to_string()),
+                        ..Default::default()
+                    };
+                    if let Err(e) = update_issue(project_path, &issue.id, update_opts).await {
+                        tracing::warn!("Failed to auto-update status to in-progress: {e}");
+                    }
+                }
+            }
+        }
+
         // Get effective config to resolve agent name
         let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
