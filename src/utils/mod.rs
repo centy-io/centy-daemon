@@ -1,5 +1,7 @@
+mod format;
 mod hash;
 
+pub use format::format_markdown;
 pub use hash::{compute_hash, compute_file_hash};
 
 use std::path::Path;
