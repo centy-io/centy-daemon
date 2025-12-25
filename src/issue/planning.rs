@@ -17,8 +17,15 @@ pub fn is_planning_status(status: &str) -> bool {
 }
 
 /// Check if issue content has the planning note
+/// Handles both original and markdown-formatted versions
 pub fn has_planning_note(content: &str) -> bool {
-    content.starts_with(PLANNING_NOTE) || content.contains(PLANNING_NOTE)
+    // Check for exact match first
+    if content.starts_with(PLANNING_NOTE) || content.contains(PLANNING_NOTE) {
+        return true;
+    }
+    // Check for formatted version (markdown formatter may add spaces/newlines)
+    // The distinctive marker is "> **Planning Mode**" or " > **Planning Mode**"
+    content.contains("> **Planning Mode**")
 }
 
 /// Add planning note to issue content (at the top)
