@@ -70,7 +70,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2859,6 +2859,283 @@ impl CentyDaemon for CentyDaemonService {
                 failed_paths: vec![],
             })),
         }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn get_entity_actions(
+        &self,
+        request: Request<GetEntityActionsRequest>,
+    ) -> Result<Response<GetEntityActionsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read project config for allowed states and other settings
+        let config = read_config(project_path).await.ok().flatten();
+        let allowed_states = config
+            .as_ref()
+            .map(|c| c.allowed_states.clone())
+            .unwrap_or_else(|| vec!["open".to_string(), "in-progress".to_string(), "closed".to_string()]);
+
+        // Check if VSCode is available
+        let vscode_available = is_vscode_available();
+
+        // Build actions based on entity type and optional entity ID
+        let mut actions = Vec::new();
+
+        match req.entity_type {
+            // Issue actions
+            t if t == EntityType::Issue as i32 => {
+                // Fetch entity if ID provided for contextual actions
+                let entity_status = if req.entity_id.is_empty() {
+                    None
+                } else {
+                    // Try to get the issue to determine its current state
+                    if let Ok(display_num) = req.entity_id.parse::<u32>() {
+                        get_issue_by_display_number(project_path, display_num)
+                            .await
+                            .ok()
+                            .map(|i| i.metadata.status)
+                    } else {
+                        get_issue(project_path, &req.entity_id)
+                            .await
+                            .ok()
+                            .map(|i| i.metadata.status)
+                    }
+                };
+
+                // CRUD actions
+                if req.entity_id.is_empty() {
+                    // General actions (no specific entity)
+                    actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create Issue".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+                } else {
+                    // Entity-specific actions
+                    actions.push(EntityAction {
+                        id: "delete".to_string(),
+                        label: "Delete".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: true,
+                        keyboard_shortcut: "d".to_string(),
+                    });
+
+                    actions.push(EntityAction {
+                        id: "duplicate".to_string(),
+                        label: "Duplicate".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "D".to_string(),
+                    });
+
+                    actions.push(EntityAction {
+                        id: "move".to_string(),
+                        label: "Move to Project".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "m".to_string(),
+                    });
+
+                    // Mode actions (Plan/Implement) - only for issues with entity_id
+                    actions.push(EntityAction {
+                        id: "mode:plan".to_string(),
+                        label: "Plan".to_string(),
+                        category: ActionCategory::Mode as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "p".to_string(),
+                    });
+
+                    actions.push(EntityAction {
+                        id: "mode:implement".to_string(),
+                        label: "Implement".to_string(),
+                        category: ActionCategory::Mode as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "i".to_string(),
+                    });
+
+                    // Status actions - contextual based on current status
+                    for state in &allowed_states {
+                        let is_current = entity_status.as_ref().map(|s| s == state).unwrap_or(false);
+                        actions.push(EntityAction {
+                            id: format!("status:{state}"),
+                            label: format!("Mark as {}", capitalize_first(state)),
+                            category: ActionCategory::Status as i32,
+                            enabled: !is_current,
+                            disabled_reason: if is_current {
+                                "Already in this status".to_string()
+                            } else {
+                                String::new()
+                            },
+                            destructive: false,
+                            keyboard_shortcut: String::new(),
+                        });
+                    }
+
+                    // External actions
+                    actions.push(EntityAction {
+                        id: "open_in_vscode".to_string(),
+                        label: "Open in VSCode".to_string(),
+                        category: ActionCategory::External as i32,
+                        enabled: vscode_available,
+                        disabled_reason: if vscode_available {
+                            String::new()
+                        } else {
+                            "VSCode not available".to_string()
+                        },
+                        destructive: false,
+                        keyboard_shortcut: "o".to_string(),
+                    });
+                }
+            }
+
+            // PR actions
+            t if t == EntityType::Pr as i32 => {
+                let entity_status = if req.entity_id.is_empty() {
+                    None
+                } else if let Ok(display_num) = req.entity_id.parse::<u32>() {
+                    get_pr_by_display_number(project_path, display_num)
+                        .await
+                        .ok()
+                        .map(|p| p.metadata.status)
+                } else {
+                    get_pr(project_path, &req.entity_id)
+                        .await
+                        .ok()
+                        .map(|p| p.metadata.status)
+                };
+
+                if req.entity_id.is_empty() {
+                    actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create PR".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+                } else {
+                    actions.push(EntityAction {
+                        id: "delete".to_string(),
+                        label: "Delete".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: true,
+                        keyboard_shortcut: "d".to_string(),
+                    });
+
+                    // PR status actions
+                    let pr_states = vec!["draft", "open", "merged", "closed"];
+                    for state in &pr_states {
+                        let is_current = entity_status.as_ref().map(|s| s == *state).unwrap_or(false);
+                        let is_terminal = *state == "merged" || *state == "closed";
+                        let current_is_terminal = entity_status.as_ref().map(|s| s == "merged" || s == "closed").unwrap_or(false);
+
+                        actions.push(EntityAction {
+                            id: format!("status:{state}"),
+                            label: format!("Mark as {}", capitalize_first(state)),
+                            category: ActionCategory::Status as i32,
+                            enabled: !is_current && (is_terminal || !current_is_terminal),
+                            disabled_reason: if is_current {
+                                "Already in this status".to_string()
+                            } else if current_is_terminal && !is_terminal {
+                                "Cannot reopen after merge/close".to_string()
+                            } else {
+                                String::new()
+                            },
+                            destructive: false,
+                            keyboard_shortcut: String::new(),
+                        });
+                    }
+                }
+            }
+
+            // Doc actions
+            t if t == EntityType::Doc as i32 => {
+                if req.entity_id.is_empty() {
+                    actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create Doc".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+                } else {
+                    actions.push(EntityAction {
+                        id: "delete".to_string(),
+                        label: "Delete".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: true,
+                        keyboard_shortcut: "d".to_string(),
+                    });
+
+                    actions.push(EntityAction {
+                        id: "duplicate".to_string(),
+                        label: "Duplicate".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "D".to_string(),
+                    });
+
+                    actions.push(EntityAction {
+                        id: "move".to_string(),
+                        label: "Move to Project".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "m".to_string(),
+                    });
+                }
+            }
+
+            // Unknown entity type
+            _ => {
+                return Ok(Response::new(GetEntityActionsResponse {
+                    actions: vec![],
+                    success: false,
+                    error: "Unknown entity type".to_string(),
+                }));
+            }
+        }
+
+        Ok(Response::new(GetEntityActionsResponse {
+            actions,
+            success: true,
+            error: String::new(),
+        }))
+    }
+}
+
+/// Helper to capitalize first letter of a string
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
     }
 }
 

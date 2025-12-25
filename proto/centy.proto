@@ -279,6 +279,11 @@ service CentyDaemon {
 
   // Sync users from git history
   rpc SyncUsers(SyncUsersRequest) returns (SyncUsersResponse);
+
+  // ============ Entity Actions RPCs ============
+
+  // Get available actions for an entity (contextual based on entity state)
+  rpc GetEntityActions(GetEntityActionsRequest) returns (GetEntityActionsResponse);
 }
 
 // ============ Init Messages ============
@@ -1654,4 +1659,48 @@ message SyncUsersResponse {
   repeated GitContributor would_create = 6;  // For dry run: users that would be created
   repeated GitContributor would_skip = 7;    // For dry run: users that would be skipped
   Manifest manifest = 8;
+}
+
+// ============ Entity Actions Messages ============
+
+// Entity type for actions
+enum EntityType {
+  ENTITY_TYPE_UNSPECIFIED = 0;
+  ENTITY_TYPE_ISSUE = 1;
+  ENTITY_TYPE_PR = 2;
+  ENTITY_TYPE_DOC = 3;
+}
+
+// Action category for grouping in UI
+enum ActionCategory {
+  ACTION_CATEGORY_UNSPECIFIED = 0;
+  ACTION_CATEGORY_CRUD = 1;             // Create, Delete, Duplicate, Move
+  ACTION_CATEGORY_MODE = 2;             // Plan, Implement (LLM actions)
+  ACTION_CATEGORY_STATUS = 3;           // Status/state changes
+  ACTION_CATEGORY_EXTERNAL = 4;         // Open in VSCode, external tools
+}
+
+// An action that can be performed on an entity
+message EntityAction {
+  string id = 1;                        // Action identifier (e.g., "delete", "duplicate", "status:closed")
+  string label = 2;                     // Human-readable label (e.g., "Delete", "Mark as Closed")
+  ActionCategory category = 3;          // Category for grouping in UI
+  bool enabled = 4;                     // Whether action is available for current entity state
+  string disabled_reason = 5;           // Explanation if action is disabled
+  bool destructive = 6;                 // UI hint: show in red, require confirmation
+  string keyboard_shortcut = 7;         // Optional keyboard shortcut (e.g., "d" for delete)
+}
+
+// Request to get available actions for an entity
+message GetEntityActionsRequest {
+  string project_path = 1;              // Project path for config/state lookup
+  EntityType entity_type = 2;           // Type of entity (issue, PR, doc)
+  string entity_id = 3;                 // Optional: entity ID for contextual actions (empty = general actions like "create")
+}
+
+// Response with available actions
+message GetEntityActionsResponse {
+  repeated EntityAction actions = 1;    // Available actions, ordered by category then priority
+  bool success = 2;
+  string error = 3;
 }
