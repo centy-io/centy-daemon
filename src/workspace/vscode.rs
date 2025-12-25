@@ -166,7 +166,10 @@ pub fn open_vscode(workspace_path: &Path) -> Result<bool, WorkspaceError> {
         }
     };
 
-    let result = Command::new(&vscode_path).arg(workspace_path).spawn();
+    let result = Command::new(&vscode_path)
+        .arg("--new-window")
+        .arg(workspace_path)
+        .spawn();
 
     match result {
         Ok(_) => Ok(true),
