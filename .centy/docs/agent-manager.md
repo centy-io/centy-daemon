@@ -6,8 +6,6 @@ updatedAt: "2025-12-25T07:39:18.102005+00:00"
 
 # Agent Manager Architecture
 
-# Agent Manager Architecture
-
 A TUI window manager for AI code agents (Claude Code, Codex CLI, Aider, etc.) integrated into the centy daemon.
 
 ## Overview
@@ -24,35 +22,49 @@ The Agent Manager provides:
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                         Daemon (centy-daemon)                     │
+│                    Daemon (centy-daemon)                          │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │              Existing Services (Issues, Docs, PRs...)       │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │              NEW: TUI Agent Manager Service                 │  │
+│  │           NEW: TUI Agent Manager Module                     │  │
 │  │                                                             │  │
-│  │  Uses cockpit library internally:                          │  │
+│  │  Uses directly (NOT cockpit):                              │  │
+│  │  • portable-pty (cross-platform PTY)                       │  │
+│  │  • vt100 (terminal emulation / screen state)               │  │
+│  │                                                             │  │
+│  │  Daemon OWNS the PTYs → agents persist on TUI disconnect!  │  │
+│  │                                                             │  │
 │  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────┐   │  │
 │  │  │ Agent: claude   │ │ Agent: claude   │ │ Agent: codex│   │  │
 │  │  │ project: /app   │ │ project: /lib   │ │ project: /x │   │  │
 │  │  │ PTY (owned)     │ │ PTY (owned)     │ │ PTY (owned) │   │  │
 │  │  │ vt100 state     │ │ vt100 state     │ │ vt100 state │   │  │
 │  │  └─────────────────┘ └─────────────────┘ └─────────────┘   │  │
-│  │                                                             │  │
-│  │  Notification Manager (desktop alerts)                      │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │           Notification Service                              │  │
+│  │  • Desktop notifications (notify-rust)                     │  │
+│  │  • Network notifications (ntfy.sh)                         │  │
+│  │  • Fan-out to all enabled channels                         │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                              │                                    │
 │                     gRPC API (with streaming)                     │
 └──────────────────────────────────────────────────────────────────┘
                                │
-            ┌──────────────────┼──────────────────┐
-            │                  │                  │
-       ┌────┴────┐        ┌────┴────┐        ┌────┴────┐
-       │  TUI    │        │   CLI   │        │  TUI    │
-       │ (panel) │        │ (spawn) │        │ (panel) │
-       └─────────┘        └─────────┘        └─────────┘
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+     ┌────┴────┐          ┌────┴────┐          ┌────┴────┐
+     │ TUI Mgr │          │Standalone│          │   CLI   │
+     │(cockpit)│          │   TUI    │          │ (spawn) │
+     │ panels  │          │(terminal)│          │         │
+     └────┬────┘          └────┬─────┘          └─────────┘
+          │                    │
+          │ Check socket       │ Check socket
+          ▼                    ▼
+    If in manager:        If standalone:
+    → open as panel       → attach to terminal
+    via cockpit           directly
 ```
+
+**Key insight**: cockpit is ONLY for TUI panel layout, NOT for agent PTY management.
 
 ## Component Responsibilities
 
@@ -62,14 +74,14 @@ The Agent Manager provides:
 - Spawns agent processes (claude, codex, etc.)
 - Owns PTY file descriptors (processes stay alive when TUI disconnects)
 - Maintains vt100 screen state per agent
-- Sends desktop notifications
+- Sends notifications (desktop + network)
 - Exposes gRPC API for TUI clients
 
-**Uses cockpit library** for PTY and terminal emulation:
+**Uses directly** (NOT cockpit):
 - `portable-pty` for cross-platform PTY
 - `vt100` for terminal emulation / screen state
 
-### TUI (cockpit-based panel in centy-tui)
+### TUI (centy-tui)
 
 **Stateless view layer:**
 - Connects to daemon via gRPC
@@ -78,12 +90,17 @@ The Agent Manager provides:
 - Renders grid view / zoomed view
 - Multiple instances can connect simultaneously
 
+**Context Detection** (via socket check):
+- Check if tui-manager socket exists at known path
+- If socket exists → running inside manager → open agent as cockpit panel
+- If no socket → standalone → attach agent directly to terminal
+
 ### cockpit (library)
 
-**Reusable terminal multiplexer library:**
-- Already has PTY management, vt100, layout, widgets
-- Used by daemon internally
-- Could be used for standalone TUI apps too
+**Used ONLY for TUI panel layout:**
+- Manages cockpit panels in tui-manager
+- NOT used for agent PTY management
+- The daemon owns PTYs directly
 
 ## TUI Views
 
@@ -329,36 +346,49 @@ tui_agents:
 centy-daemon/src/
   tui_agents/                   # NEW
     mod.rs                      # TuiAgentManager
-    managed_agent.rs            # ManagedTuiAgent struct
-    screen.rs                   # Screen diffing logic
-    notifications.rs            # Desktop notification triggers
-    grpc.rs                     # gRPC handlers
+    agent.rs                    # ManagedTuiAgent struct
+    pty.rs                      # PTY spawning and management
+    config.rs                   # Agent type configuration
+    screen.rs                   # Screen state and diffing
+
+  notifications/                # NEW
+    mod.rs                      # NotificationService public API
+    router.rs                   # NotificationRouter (fan-out)
+    channel.rs                  # NotificationChannel trait
+    channels/
+      mod.rs
+      desktop.rs                # Desktop notifications (notify-rust)
+      ntfy.rs                   # ntfy.sh push notifications
 ```
 
-### Using cockpit Library
+### Using portable-pty Directly
 
 ```rust
-// In daemon, use cockpit for PTY management
-use cockpit::{PaneManager, SpawnConfig, PaneHandle};
+use portable_pty::{native_pty_system, PtyPair, PtySize, CommandBuilder};
+use vt100::Parser as Vt100Parser;
 
 pub struct TuiAgentManager {
     agents: HashMap<Uuid, ManagedTuiAgent>,
     config: TuiAgentConfig,
-    notification_tx: Sender<Notification>,
+    notification_service: NotificationService,
 }
 
-struct ManagedTuiAgent {
+pub struct ManagedTuiAgent {
     id: Uuid,
     agent_type: TuiAgentType,
     project_path: PathBuf,
-    
-    // cockpit pane handle
-    pane: PaneHandle,
-    
-    // For screen streaming
-    last_screen: vt100::Screen,
-    subscribers: Vec<Sender<AgentScreenUpdate>>,
-    
+
+    // PTY management (daemon owns these directly)
+    pty_master: Box<dyn portable_pty::MasterPty + Send>,
+    child: Box<dyn portable_pty::Child + Send>,
+
+    // Terminal state
+    parser: Arc<RwLock<Vt100Parser>>,
+
+    // Streaming subscribers
+    subscribers: Vec<mpsc::Sender<AgentScreenUpdate>>,
+
+    // Metadata
     status: TuiAgentStatus,
     started_at: Instant,
 }
@@ -366,62 +396,355 @@ struct ManagedTuiAgent {
 impl TuiAgentManager {
     pub fn spawn(&mut self, project_path: PathBuf, agent_type: TuiAgentType) -> Result<Uuid> {
         let config = self.config.get_agent_config(agent_type)?;
-        
-        // Use cockpit to spawn PTY
-        let mut pane_manager = PaneManager::new();
-        let spawn_config = SpawnConfig::new(&config.command)
-            .args(&config.args)
-            .cwd(&project_path);
-        
-        let pane = pane_manager.spawn(spawn_config)?;
-        
+
+        // Spawn PTY directly using portable-pty
+        let pty_system = native_pty_system();
+        let pair = pty_system.openpty(PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        })?;
+
+        let mut cmd = CommandBuilder::new(&config.command);
+        cmd.args(&config.args);
+        cmd.cwd(&project_path);
+
+        let child = pair.slave.spawn_command(cmd)?;
+
         let id = Uuid::new_v4();
         let agent = ManagedTuiAgent {
             id,
             agent_type,
             project_path,
-            pane,
-            last_screen: vt100::Screen::new(24, 80),
+            pty_master: pair.master,
+            child,
+            parser: Arc::new(RwLock::new(Vt100Parser::new(24, 80, 1000))),
             subscribers: vec![],
             status: TuiAgentStatus::Starting,
             started_at: Instant::now(),
         };
-        
+
         self.agents.insert(id, agent);
         Ok(id)
     }
-    
-    pub async fn poll_all(&mut self) {
-        for agent in self.agents.values_mut() {
-            // Poll pane for updates
-            let screen = agent.pane.screen();
-            let diff = compute_diff(&agent.last_screen, screen);
-            
-            if !diff.changes.is_empty() {
-                // Send to all subscribers
+}
+```
+
+### Background Polling Loop
+
+```rust
+async fn run_poll_loop(manager: Arc<RwLock<TuiAgentManager>>) {
+    let mut interval = tokio::time::interval(Duration::from_millis(16)); // ~60fps
+
+    loop {
+        interval.tick().await;
+        let mut mgr = manager.write().await;
+
+        for agent in mgr.agents.values_mut() {
+            // Read PTY output
+            if let Some(data) = agent.poll_pty() {
+                agent.parser.write().process(&data);
+
+                // Compute diff and send to subscribers
+                let diff = agent.compute_screen_diff();
                 for tx in &agent.subscribers {
-                    let _ = tx.send(AgentScreenUpdate {
-                        agent_id: agent.id.to_string(),
-                        update: diff.clone(),
-                        status: agent.status,
-                    }).await;
+                    let _ = tx.send(AgentScreenUpdate { diff, .. }).await;
                 }
-                agent.last_screen = screen.clone();
             }
-            
+
             // Check for status changes → notifications
-            let new_status = detect_status(screen);
-            if new_status != agent.status {
-                if new_status == TuiAgentStatus::Finished {
-                    self.notification_tx.send(Notification {
-                        title: "Agent Finished".to_string(),
-                        body: format!("{} completed in {:?}", agent.name(), agent.started_at.elapsed()),
-                    }).await;
-                }
-                agent.status = new_status;
+            if agent.status_changed() && agent.status == Finished {
+                mgr.notification_service.agent_finished(
+                    &agent.name(),
+                    &agent.project_path,
+                    agent.started_at.elapsed()
+                ).await;
             }
         }
     }
+}
+```
+
+## Notification Service
+
+An extensible, multi-channel notification service that supports both desktop and network notifications.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Notification Service                          │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                  NotificationRouter                        │  │
+│  │  • Receives notifications via mpsc channel                │  │
+│  │  • Sends to ALL enabled channels (fan-out)                │  │
+│  │  • Logs failures, doesn't block on slow channels          │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│       ┌──────────────────────┼──────────────────────┐           │
+│       │                      │                      │           │
+│  ┌────┴────┐           ┌────┴────┐           ┌────┴────┐       │
+│  │ Desktop │           │ ntfy.sh │           │ Future: │       │
+│  │ Channel │           │ Channel │           │ Webhook │       │
+│  │notify-rs│           │  HTTP   │           │ Gotify  │       │
+│  └─────────┘           └─────────┘           └─────────┘       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### NotificationChannel Trait
+
+```rust
+// src/notifications/channel.rs
+use async_trait::async_trait;
+
+#[derive(Clone, Debug)]
+pub struct Notification {
+    pub title: String,
+    pub body: String,
+    pub category: NotificationCategory,
+    pub priority: NotificationPriority,
+    pub icon: Option<String>,
+    pub actions: Vec<NotificationAction>,
+}
+
+#[derive(Clone, Debug)]
+pub enum NotificationCategory {
+    AgentFinished,
+    AgentNeedsInput,
+    AgentError,
+    SystemInfo,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum NotificationPriority {
+    Low,
+    Normal,
+    High,
+    Urgent,
+}
+
+#[async_trait]
+pub trait NotificationChannel: Send + Sync {
+    /// Channel identifier (e.g., "desktop", "ntfy")
+    fn name(&self) -> &str;
+
+    /// Check if channel is configured and available
+    fn is_enabled(&self) -> bool;
+
+    /// Send notification (non-blocking, fire-and-forget)
+    async fn send(&self, notification: &Notification) -> Result<(), ChannelError>;
+}
+```
+
+### Desktop Channel
+
+```rust
+// src/notifications/channels/desktop.rs
+use notify_rust::Notification as DesktopNotif;
+
+pub struct DesktopChannel {
+    enabled: bool,
+}
+
+#[async_trait]
+impl NotificationChannel for DesktopChannel {
+    fn name(&self) -> &str { "desktop" }
+    fn is_enabled(&self) -> bool { self.enabled }
+
+    async fn send(&self, notif: &Notification) -> Result<(), ChannelError> {
+        DesktopNotif::new()
+            .summary(&notif.title)
+            .body(&notif.body)
+            .icon(notif.icon.as_deref().unwrap_or("terminal"))
+            .urgency(match notif.priority {
+                NotificationPriority::Low => notify_rust::Urgency::Low,
+                NotificationPriority::Normal => notify_rust::Urgency::Normal,
+                NotificationPriority::High | NotificationPriority::Urgent =>
+                    notify_rust::Urgency::Critical,
+            })
+            .show()?;
+        Ok(())
+    }
+}
+```
+
+### ntfy.sh Channel
+
+```rust
+// src/notifications/channels/ntfy.rs
+use reqwest::Client;
+
+pub struct NtfyChannel {
+    client: Client,
+    server_url: String,  // e.g., "https://ntfy.sh" or self-hosted
+    topic: String,       // e.g., "centy-notifications"
+    enabled: bool,
+}
+
+#[async_trait]
+impl NotificationChannel for NtfyChannel {
+    fn name(&self) -> &str { "ntfy" }
+    fn is_enabled(&self) -> bool { self.enabled }
+
+    async fn send(&self, notif: &Notification) -> Result<(), ChannelError> {
+        let url = format!("{}/{}", self.server_url, self.topic);
+
+        self.client.post(&url)
+            .header("Title", &notif.title)
+            .header("Priority", match notif.priority {
+                NotificationPriority::Low => "2",
+                NotificationPriority::Normal => "3",
+                NotificationPriority::High => "4",
+                NotificationPriority::Urgent => "5",
+            })
+            .header("Tags", match notif.category {
+                NotificationCategory::AgentFinished => "white_check_mark",
+                NotificationCategory::AgentNeedsInput => "bell",
+                NotificationCategory::AgentError => "x",
+                NotificationCategory::SystemInfo => "information_source",
+            })
+            .body(notif.body.clone())
+            .send()
+            .await?;
+        Ok(())
+    }
+}
+```
+
+### NotificationRouter (Fan-out)
+
+```rust
+// src/notifications/router.rs
+pub struct NotificationRouter {
+    channels: Vec<Box<dyn NotificationChannel>>,
+    rx: mpsc::Receiver<Notification>,
+}
+
+impl NotificationRouter {
+    pub async fn run(mut self) {
+        while let Some(notif) = self.rx.recv().await {
+            // Fan-out: send to all enabled channels concurrently
+            let futures: Vec<_> = self.channels
+                .iter()
+                .filter(|ch| ch.is_enabled())
+                .map(|ch| {
+                    let notif = notif.clone();
+                    async move {
+                        if let Err(e) = ch.send(&notif).await {
+                            tracing::warn!("Notification channel {} failed: {}", ch.name(), e);
+                        }
+                    }
+                })
+                .collect();
+
+            // Send to all channels concurrently, don't wait
+            tokio::spawn(async move {
+                futures::future::join_all(futures).await;
+            });
+        }
+    }
+}
+```
+
+### NotificationService Public API
+
+```rust
+// src/notifications/mod.rs
+pub struct NotificationService {
+    tx: mpsc::Sender<Notification>,
+}
+
+impl NotificationService {
+    pub fn new(config: &NotificationConfig) -> (Self, NotificationRouter) {
+        let (tx, rx) = mpsc::channel(256);
+
+        let mut channels: Vec<Box<dyn NotificationChannel>> = vec![];
+
+        // Always add desktop if on supported platform
+        if config.desktop.enabled {
+            channels.push(Box::new(DesktopChannel::new()));
+        }
+
+        // Add ntfy if configured
+        if let Some(ntfy) = &config.ntfy {
+            channels.push(Box::new(NtfyChannel::new(
+                &ntfy.server_url,
+                &ntfy.topic,
+            )));
+        }
+
+        let router = NotificationRouter { channels, rx };
+        (Self { tx }, router)
+    }
+
+    pub async fn notify(&self, notification: Notification) {
+        let _ = self.tx.send(notification).await;
+    }
+
+    // Convenience methods
+    pub async fn agent_finished(&self, agent_name: &str, project: &str, duration: Duration) {
+        self.notify(Notification {
+            title: "Agent Finished".to_string(),
+            body: format!("{} completed in {:?} ({})", agent_name, duration, project),
+            category: NotificationCategory::AgentFinished,
+            priority: NotificationPriority::Normal,
+            icon: Some("checkmark".to_string()),
+            actions: vec![],
+        }).await;
+    }
+
+    pub async fn agent_needs_input(&self, agent_name: &str, project: &str) {
+        self.notify(Notification {
+            title: "Agent Needs Input".to_string(),
+            body: format!("{} is waiting for input ({})", agent_name, project),
+            category: NotificationCategory::AgentNeedsInput,
+            priority: NotificationPriority::High,
+            icon: Some("bell".to_string()),
+            actions: vec![],
+        }).await;
+    }
+}
+```
+
+### Notification Configuration
+
+```rust
+// Part of daemon config or separate notifications.json
+#[derive(Deserialize, Clone)]
+pub struct NotificationConfig {
+    pub desktop: DesktopConfig,
+    pub ntfy: Option<NtfyConfig>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct DesktopConfig {
+    pub enabled: bool,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct NtfyConfig {
+    pub server_url: String,  // "https://ntfy.sh" or self-hosted
+    pub topic: String,
+}
+```
+
+### Usage in Daemon
+
+```rust
+// In main.rs or service initialization
+let (notification_service, router) = NotificationService::new(&config.notifications);
+
+// Spawn router background task
+tokio::spawn(router.run());
+
+// In agent manager, use notification_service
+if agent.status == Finished {
+    notification_service.agent_finished(
+        &agent.name,
+        &agent.project_path,
+        agent.duration()
+    ).await;
 }
 ```
 
@@ -443,13 +766,29 @@ centy agents attach <id>        # zoom directly into one agent
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| PTY ownership | Daemon | Agents persist when TUI disconnects |
+| PTY ownership | Daemon directly (portable-pty) | Agents persist when TUI disconnects |
+| PTY library | portable-pty + vt100 | Cross-platform (Unix PTY + Windows ConPTY), battle-tested |
 | Communication | gRPC with streaming | Real-time screen updates, cross-platform |
 | Screen updates | Diffs | Minimize bandwidth, faster rendering |
-| Notifications | Daemon-managed | Works even when TUI is closed |
-| cockpit usage | As library in daemon | Reuse PTY/vt100 logic |
+| Notifications | Multi-channel service | Extensible, works even when TUI is closed |
+| Notification dispatch | Fan-out to all enabled | User gets notified via preferred channels |
+| Network notifications | ntfy.sh | Self-hostable, simple HTTP API, mobile apps |
+| cockpit usage | TUI panel layout only | NOT for agent PTY management |
+| TUI context detection | Socket check | Multiple managers can run on same machine |
 | Agent types | Configurable, Claude default | Extensible but works out of box |
 | Spawn location | Project directory | Always spawn in project root |
+
+## Dependencies
+
+```toml
+# Daemon Cargo.toml additions
+portable-pty = "0.8"           # Cross-platform PTY
+vt100 = "0.15"                 # Terminal emulation
+tokio-stream = "0.1"           # For gRPC streaming
+notify-rust = "4"              # Desktop notifications
+reqwest = { version = "0.12", features = ["json"] }  # HTTP for ntfy.sh
+async-trait = "0.1"            # Async trait support
+```
 
 ## Future Considerations
 
@@ -458,3 +797,5 @@ centy agents attach <id>        # zoom directly into one agent
 3. **Agent templates**: Pre-configured agent setups for common tasks
 4. **Resource monitoring**: CPU/memory per agent
 5. **Agent groups**: Group agents by project/task
+6. **Additional notification channels**: Webhook, Gotify, Slack, Discord
+7. **Notification preferences per agent**: Different channels for different agent types
