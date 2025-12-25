@@ -3690,6 +3690,7 @@ fn local_llm_config_to_proto(config: &llm::LocalLlmConfig) -> LocalLlmConfig {
                 name: a.name.clone(),
                 command: a.command.clone(),
                 default_args: a.default_args.clone(),
+                stdin_prompt: a.stdin_prompt,
                 plan_template: a.plan_template.clone().unwrap_or_default(),
                 implement_template: a.implement_template.clone().unwrap_or_default(),
             })
@@ -3719,6 +3720,7 @@ fn proto_to_local_llm_config(proto: &LocalLlmConfig) -> llm::LocalLlmConfig {
                 name: a.name.clone(),
                 command: a.command.clone(),
                 default_args: a.default_args.clone(),
+                stdin_prompt: a.stdin_prompt,
                 plan_template: if a.plan_template.is_empty() {
                     None
                 } else {

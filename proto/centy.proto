@@ -1362,6 +1362,7 @@ message AgentConfig {
   repeated string default_args = 4;     // Default arguments for the CLI
   string plan_template = 5;             // Template name for "plan" action
   string implement_template = 6;        // Template name for "implement" action
+  bool stdin_prompt = 7;                // If true, prompt is passed via stdin instead of as argument
 }
 
 // Local LLM configuration (config.local.json - not version controlled)

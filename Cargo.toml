@@ -74,6 +74,9 @@ clap = { version = "4", features = ["derive", "env"] }
 # Command existence checking
 which = "6"
 
+# Shell escaping for command construction
+shell-escape = "0.1"
+
 [build-dependencies]
 tonic-build = "0.12"
 

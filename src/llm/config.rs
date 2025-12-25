@@ -41,6 +41,10 @@ pub struct AgentConfig {
     pub command: String,
     #[serde(default)]
     pub default_args: Vec<String>,
+    /// If true, the prompt is passed via stdin instead of as a positional argument.
+    /// This is needed for agents like `claude --print` that expect input on stdin.
+    #[serde(default)]
+    pub stdin_prompt: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_template: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -71,6 +75,7 @@ impl LocalLlmConfig {
                     name: "claude".to_string(),
                     command: "claude".to_string(),
                     default_args: vec!["--print".to_string()],
+                    stdin_prompt: true,
                     plan_template: None,
                     implement_template: None,
                 },
@@ -79,6 +84,7 @@ impl LocalLlmConfig {
                     name: "gemini".to_string(),
                     command: "gemini".to_string(),
                     default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
@@ -87,6 +93,7 @@ impl LocalLlmConfig {
                     name: "codex".to_string(),
                     command: "codex".to_string(),
                     default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
@@ -95,6 +102,7 @@ impl LocalLlmConfig {
                     name: "opencode".to_string(),
                     command: "opencode".to_string(),
                     default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
@@ -272,6 +280,7 @@ mod tests {
                 name: "claude".to_string(),
                 command: "claude".to_string(),
                 default_args: vec!["--global".to_string()],
+                stdin_prompt: false,
                 plan_template: None,
                 implement_template: None,
             }],
@@ -285,6 +294,7 @@ mod tests {
                 name: "claude".to_string(),
                 command: "claude".to_string(),
                 default_args: vec!["--project".to_string()],
+                stdin_prompt: true,
                 plan_template: Some("my-plan".to_string()),
                 implement_template: None,
             }],
@@ -320,6 +330,7 @@ mod tests {
             name: "my-agent".to_string(),
             command: "/path/to/agent".to_string(),
             default_args: vec!["--flag".to_string()],
+            stdin_prompt: false,
             plan_template: Some("plan-template".to_string()),
             implement_template: None,
         };

@@ -79,7 +79,31 @@ pub async fn start_agent(
         .build_prompt(project_path, issue, action, user_template, priority_levels)
         .await?;
 
-    // Build command
+    // Create preview (first 500 chars)
+    let prompt_preview = PromptBuilder::preview(&prompt, 500);
+
+    info!(
+        "Starting agent '{}' for issue #{} ({}) in {:?} mode",
+        agent.name,
+        issue.metadata.display_number,
+        action.as_str(),
+        mode
+    );
+
+    // Handle stdin_prompt mode differently - pipe prompt via stdin
+    if agent.stdin_prompt {
+        return start_agent_with_stdin(
+            project_path,
+            config,
+            agent,
+            &prompt,
+            &prompt_preview,
+            extra_args,
+            mode,
+        );
+    }
+
+    // Build command for agents that accept prompt as argument
     let mut cmd = Command::new(&agent.command);
 
     // Add default args
@@ -97,24 +121,12 @@ pub async fn start_agent(
     }
 
     // Pass prompt via argument
-    // Most CLI agents accept prompt as last positional arg
     cmd.arg(&prompt);
 
     // Configure stdio
     cmd.stdin(Stdio::null())
-        .stdout(Stdio::inherit()) // Let output go to terminal
+        .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
-
-    // Create preview (first 500 chars)
-    let prompt_preview = PromptBuilder::preview(&prompt, 500);
-
-    info!(
-        "Starting agent '{}' for issue #{} ({}) in {:?} mode",
-        agent.name,
-        issue.metadata.display_number,
-        action.as_str(),
-        mode
-    );
 
     match mode {
         AgentSpawnMode::Background => {
@@ -135,6 +147,67 @@ pub async fn start_agent(
         AgentSpawnMode::ReplaceProcess => {
             // Platform-specific exec behavior
             exec_agent_process(cmd, &agent.name, &prompt_preview)
+        }
+    }
+}
+
+/// Start an agent that requires stdin input (like `claude --print`)
+///
+/// For ReplaceProcess mode, we use a shell to pipe the prompt since exec() replaces
+/// the process and we can't write to stdin afterward.
+fn start_agent_with_stdin(
+    project_path: &Path,
+    config: &LocalLlmConfig,
+    agent: &AgentConfig,
+    prompt: &str,
+    prompt_preview: &str,
+    extra_args: Vec<String>,
+    mode: AgentSpawnMode,
+) -> Result<SpawnResult, AgentError> {
+    use std::io::Write;
+
+    match mode {
+        AgentSpawnMode::Background => {
+            // For background mode, we can spawn with piped stdin and write to it
+            let mut cmd = Command::new(&agent.command);
+            cmd.args(&agent.default_args);
+            cmd.args(&extra_args);
+            cmd.current_dir(project_path);
+
+            for (key, value) in &config.env_vars {
+                cmd.env(key, value);
+            }
+
+            cmd.stdin(Stdio::piped())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+
+            let mut child = cmd
+                .spawn()
+                .map_err(|e| AgentError::SpawnError(e.to_string()))?;
+
+            // Write prompt to stdin
+            if let Some(mut stdin) = child.stdin.take() {
+                stdin
+                    .write_all(prompt.as_bytes())
+                    .map_err(|e| AgentError::SpawnError(format!("Failed to write to stdin: {e}")))?;
+                // stdin is dropped here, closing the pipe
+            }
+
+            let pid = child.id();
+            info!("Agent process spawned with PID: {:?}", pid);
+
+            Ok(SpawnResult {
+                agent_name: agent.name.clone(),
+                pid: Some(pid),
+                prompt_preview: prompt_preview.to_string(),
+            })
+        }
+        AgentSpawnMode::ReplaceProcess => {
+            // For exec mode, we need to use a shell to pipe stdin since we can't
+            // write to stdin after exec() replaces the process.
+            // We use `cat <<'PROMPT_EOF' | command args...` to avoid shell escaping issues.
+            exec_agent_with_stdin(project_path, config, agent, prompt, prompt_preview, extra_args)
         }
     }
 }
@@ -239,6 +312,165 @@ fn exec_agent_process(
     })
 }
 
+/// Unix implementation: exec a shell command that pipes stdin to the agent
+#[cfg(unix)]
+fn exec_agent_with_stdin(
+    project_path: &Path,
+    config: &LocalLlmConfig,
+    agent: &AgentConfig,
+    prompt: &str,
+    _prompt_preview: &str,
+    extra_args: Vec<String>,
+) -> Result<SpawnResult, AgentError> {
+    use std::os::unix::process::CommandExt;
+
+    info!("Executing agent with stdin via shell - replacing current process");
+
+    // Build the command string for the shell
+    // We use a heredoc to avoid escaping issues with the prompt
+    let mut all_args = agent.default_args.clone();
+    all_args.extend(extra_args);
+
+    // Shell-escape the command and args
+    let escaped_command = shell_escape::escape(agent.command.clone().into());
+    let escaped_args: Vec<_> = all_args
+        .iter()
+        .map(|a| shell_escape::escape(a.clone().into()).to_string())
+        .collect();
+
+    // Build the shell command with a heredoc
+    // Using <<'EOF' (quoted) prevents variable expansion in the heredoc
+    let shell_cmd = format!(
+        "cat <<'CENTY_PROMPT_EOF' | {} {}\n{}\nCENTY_PROMPT_EOF",
+        escaped_command,
+        escaped_args.join(" "),
+        prompt
+    );
+
+    let mut cmd = Command::new("sh");
+    cmd.args(["-c", &shell_cmd]);
+    cmd.current_dir(project_path);
+
+    // Set environment variables
+    for (key, value) in &config.env_vars {
+        cmd.env(key, value);
+    }
+
+    cmd.stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    // exec() never returns on success
+    let err = cmd.exec();
+    Err(AgentError::SpawnError(format!("exec() failed: {err}")))
+}
+
+/// Windows implementation: spawn shell with piped stdin and wait
+#[cfg(windows)]
+fn exec_agent_with_stdin(
+    project_path: &Path,
+    config: &LocalLlmConfig,
+    agent: &AgentConfig,
+    prompt: &str,
+    _prompt_preview: &str,
+    extra_args: Vec<String>,
+) -> Result<SpawnResult, AgentError> {
+    use std::io::Write;
+
+    info!("Windows: spawning agent with stdin in foreground");
+
+    let mut cmd = Command::new(&agent.command);
+    cmd.args(&agent.default_args);
+    cmd.args(&extra_args);
+    cmd.current_dir(project_path);
+
+    for (key, value) in &config.env_vars {
+        cmd.env(key, value);
+    }
+
+    cmd.stdin(Stdio::piped())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| AgentError::SpawnError(e.to_string()))?;
+
+    let pid = child.id();
+
+    // Write prompt to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(prompt.as_bytes())
+            .map_err(|e| AgentError::SpawnError(format!("Failed to write to stdin: {e}")))?;
+    }
+
+    // Wait for completion
+    let status = child
+        .wait()
+        .map_err(|e| AgentError::SpawnError(format!("Failed to wait for process: {e}")))?;
+
+    info!("Agent process exited with status: {:?}", status);
+
+    Ok(SpawnResult {
+        agent_name: agent.name.clone(),
+        pid: Some(pid),
+        prompt_preview: prompt_preview.to_string(),
+    })
+}
+
+/// Fallback for other platforms
+#[cfg(not(any(unix, windows)))]
+fn exec_agent_with_stdin(
+    project_path: &Path,
+    config: &LocalLlmConfig,
+    agent: &AgentConfig,
+    prompt: &str,
+    _prompt_preview: &str,
+    extra_args: Vec<String>,
+) -> Result<SpawnResult, AgentError> {
+    use std::io::Write;
+
+    info!("Unsupported platform: spawning agent with stdin in foreground");
+
+    let mut cmd = Command::new(&agent.command);
+    cmd.args(&agent.default_args);
+    cmd.args(&extra_args);
+    cmd.current_dir(project_path);
+
+    for (key, value) in &config.env_vars {
+        cmd.env(key, value);
+    }
+
+    cmd.stdin(Stdio::piped())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| AgentError::SpawnError(e.to_string()))?;
+
+    let pid = child.id();
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(prompt.as_bytes())
+            .map_err(|e| AgentError::SpawnError(format!("Failed to write to stdin: {e}")))?;
+    }
+
+    let status = child
+        .wait()
+        .map_err(|e| AgentError::SpawnError(format!("Failed to wait for process: {e}")))?;
+
+    info!("Agent process exited with status: {:?}", status);
+
+    Ok(SpawnResult {
+        agent_name: agent.name.clone(),
+        pid: Some(pid),
+        prompt_preview: prompt_preview.to_string(),
+    })
+}
+
 /// Check if an agent command exists and is executable
 #[must_use] 
 pub fn check_agent_available(agent: &AgentConfig) -> bool {
@@ -268,6 +500,7 @@ mod tests {
             name: "nonexistent-agent-xyz".to_string(),
             command: "nonexistent-command-xyz".to_string(),
             default_args: vec![],
+            stdin_prompt: false,
             plan_template: None,
             implement_template: None,
         };
@@ -285,6 +518,7 @@ mod tests {
                     name: "nonexistent".to_string(),
                     command: "nonexistent-command-xyz".to_string(),
                     default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
@@ -294,6 +528,7 @@ mod tests {
                     name: "ls-test".to_string(),
                     command: "ls".to_string(), // ls should exist on most systems
                     default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
