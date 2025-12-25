@@ -34,6 +34,12 @@ pub enum DocError {
     #[error("Invalid slug: {0}")]
     InvalidSlug(String),
 
+    #[error("Doc '{0}' is not soft-deleted")]
+    DocNotDeleted(String),
+
+    #[error("Doc '{0}' is already soft-deleted")]
+    DocAlreadyDeleted(String),
+
     #[error("Template error: {0}")]
     TemplateError(#[from] TemplateError),
 
@@ -59,15 +65,19 @@ pub struct Doc {
 pub struct DocMetadata {
     pub created_at: String,
     pub updated_at: String,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
 }
 
 impl DocMetadata {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         let now = now_iso();
         Self {
             created_at: now.clone(),
             updated_at: now,
+            deleted_at: None,
         }
     }
 }
@@ -114,6 +124,20 @@ pub struct UpdateDocResult {
 /// Result of doc deletion
 #[derive(Debug, Clone)]
 pub struct DeleteDocResult {
+    pub manifest: CentyManifest,
+}
+
+/// Result of soft-deleting a doc
+#[derive(Debug, Clone)]
+pub struct SoftDeleteDocResult {
+    pub doc: Doc,
+    pub manifest: CentyManifest,
+}
+
+/// Result of restoring a soft-deleted doc
+#[derive(Debug, Clone)]
+pub struct RestoreDocResult {
+    pub doc: Doc,
     pub manifest: CentyManifest,
 }
 
@@ -263,7 +287,7 @@ pub async fn get_doc(project_path: &Path, slug: &str) -> Result<Doc, DocError> {
 }
 
 /// List all docs
-pub async fn list_docs(project_path: &Path) -> Result<Vec<Doc>, DocError> {
+pub async fn list_docs(project_path: &Path, include_deleted: bool) -> Result<Vec<Doc>, DocError> {
     // Check if centy is initialized
     read_manifest(project_path)
         .await?
@@ -288,7 +312,10 @@ pub async fn list_docs(project_path: &Path) -> Result<Vec<Doc>, DocError> {
                     continue;
                 }
                 if let Ok(doc) = read_doc_from_disk(&path, slug).await {
-                    docs.push(doc);
+                    // Filter out soft-deleted unless include_deleted is true
+                    if include_deleted || doc.metadata.deleted_at.is_none() {
+                        docs.push(doc);
+                    }
                 }
                 // Skip docs that can't be read
             }
@@ -403,6 +430,7 @@ pub async fn update_doc(
     let updated_metadata = DocMetadata {
         created_at: current.metadata.created_at.clone(),
         updated_at: now_iso(),
+        deleted_at: current.metadata.deleted_at.clone(),
     };
 
     // Generate updated content
@@ -461,6 +489,93 @@ pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResu
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteDocResult { manifest })
+}
+
+/// Soft-delete a doc (set deleted_at timestamp in frontmatter)
+pub async fn soft_delete_doc(project_path: &Path, slug: &str) -> Result<SoftDeleteDocResult, DocError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(DocError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let doc_path = centy_path.join("docs").join(format!("{slug}.md"));
+
+    if !doc_path.exists() {
+        return Err(DocError::DocNotFound(slug.to_string()));
+    }
+
+    // Read current doc
+    let current = read_doc_from_disk(&doc_path, slug).await?;
+
+    // Check if already deleted
+    if current.metadata.deleted_at.is_some() {
+        return Err(DocError::DocAlreadyDeleted(slug.to_string()));
+    }
+
+    // Set deleted_at and update updated_at
+    let now = now_iso();
+    let updated_metadata = DocMetadata {
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now.clone(),
+        deleted_at: Some(now),
+    };
+
+    // Regenerate doc content with updated metadata
+    let doc_content = generate_doc_content(&current.title, &current.content, &updated_metadata);
+    fs::write(&doc_path, &doc_content).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the updated doc
+    let doc = read_doc_from_disk(&doc_path, slug).await?;
+
+    Ok(SoftDeleteDocResult { doc, manifest })
+}
+
+/// Restore a soft-deleted doc (clear deleted_at timestamp in frontmatter)
+pub async fn restore_doc(project_path: &Path, slug: &str) -> Result<RestoreDocResult, DocError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(DocError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let doc_path = centy_path.join("docs").join(format!("{slug}.md"));
+
+    if !doc_path.exists() {
+        return Err(DocError::DocNotFound(slug.to_string()));
+    }
+
+    // Read current doc
+    let current = read_doc_from_disk(&doc_path, slug).await?;
+
+    // Check if actually deleted
+    if current.metadata.deleted_at.is_none() {
+        return Err(DocError::DocNotDeleted(slug.to_string()));
+    }
+
+    // Clear deleted_at and update updated_at
+    let updated_metadata = DocMetadata {
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now_iso(),
+        deleted_at: None,
+    };
+
+    // Regenerate doc content with updated metadata
+    let doc_content = generate_doc_content(&current.title, &current.content, &updated_metadata);
+    fs::write(&doc_path, &doc_content).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the restored doc
+    let doc = read_doc_from_disk(&doc_path, slug).await?;
+
+    Ok(RestoreDocResult { doc, manifest })
 }
 
 /// Move a doc to another project
@@ -647,11 +762,15 @@ async fn read_doc_from_disk(doc_path: &Path, slug: &str) -> Result<Doc, DocError
 
 /// Generate doc content with YAML frontmatter
 fn generate_doc_content(title: &str, content: &str, metadata: &DocMetadata) -> String {
+    let deleted_line = metadata.deleted_at.as_ref()
+        .map(|d| format!("\ndeletedAt: \"{d}\""))
+        .unwrap_or_default();
     format!(
-        "---\ntitle: \"{}\"\ncreatedAt: \"{}\"\nupdatedAt: \"{}\"\n---\n\n# {}\n\n{}",
+        "---\ntitle: \"{}\"\ncreatedAt: \"{}\"\nupdatedAt: \"{}\"{}\n---\n\n# {}\n\n{}",
         escape_yaml_string(title),
         metadata.created_at,
         metadata.updated_at,
+        deleted_line,
         title,
         content
     )
@@ -672,6 +791,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
             let mut title = String::new();
             let mut created_at = String::new();
             let mut updated_at = String::new();
+            let mut deleted_at: Option<String> = None;
 
             for line in frontmatter {
                 if let Some(value) = line.strip_prefix("title:") {
@@ -680,6 +800,11 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
                     created_at = value.trim().trim_matches('"').to_string();
                 } else if let Some(value) = line.strip_prefix("updatedAt:") {
                     updated_at = value.trim().trim_matches('"').to_string();
+                } else if let Some(value) = line.strip_prefix("deletedAt:") {
+                    let v = value.trim().trim_matches('"').to_string();
+                    if !v.is_empty() {
+                        deleted_at = Some(v);
+                    }
                 }
             }
 
@@ -705,6 +830,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
             let metadata = DocMetadata {
                 created_at: if created_at.is_empty() { now_iso() } else { created_at },
                 updated_at: if updated_at.is_empty() { now_iso() } else { updated_at },
+                deleted_at,
             };
 
             return (title, body.trim_end().to_string(), metadata);
@@ -732,7 +858,11 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         .trim_end()
         .to_string();
 
-    (title, body, DocMetadata::new())
+    (title, body, DocMetadata {
+        created_at: now_iso(),
+        updated_at: now_iso(),
+        deleted_at: None,
+    })
 }
 
 /// Convert a string to a URL-friendly slug
@@ -838,6 +968,7 @@ This is the content."#;
         let metadata = DocMetadata {
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-02T00:00:00Z".to_string(),
+            deleted_at: None,
         };
         let content = generate_doc_content("Test Title", "Body text", &metadata);
 

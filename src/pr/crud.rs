@@ -34,6 +34,12 @@ pub enum PrCrudError {
     #[error("PR with display number {0} not found")]
     PrDisplayNumberNotFound(u32),
 
+    #[error("PR {0} is not soft-deleted")]
+    PrNotDeleted(String),
+
+    #[error("PR {0} is already soft-deleted")]
+    PrAlreadyDeleted(String),
+
     #[error("Invalid PR format: {0}")]
     InvalidPrFormat(String),
 
@@ -72,6 +78,8 @@ pub struct PrMetadataFlat {
     /// Timestamp when PR was closed (empty if not closed)
     pub closed_at: String,
     pub custom_fields: HashMap<String, String>,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    pub deleted_at: Option<String>,
 }
 
 /// Options for updating a PR
@@ -98,6 +106,20 @@ pub struct UpdatePrResult {
 /// Result of PR deletion
 #[derive(Debug, Clone)]
 pub struct DeletePrResult {
+    pub manifest: CentyManifest,
+}
+
+/// Result of soft-deleting a PR
+#[derive(Debug, Clone)]
+pub struct SoftDeletePrResult {
+    pub pr: PullRequest,
+    pub manifest: CentyManifest,
+}
+
+/// Result of restoring a soft-deleted PR
+#[derive(Debug, Clone)]
+pub struct RestorePrResult {
+    pub pr: PullRequest,
     pub manifest: CentyManifest,
 }
 
@@ -143,6 +165,7 @@ pub async fn list_prs(
     source_branch_filter: Option<&str>,
     target_branch_filter: Option<&str>,
     priority_filter: Option<u32>,
+    include_deleted: bool,
 ) -> Result<Vec<PullRequest>, PrCrudError> {
     // Check if centy is initialized
     read_manifest(project_path)
@@ -180,8 +203,9 @@ pub async fn list_prs(
                             .is_none_or(|t| pr.metadata.target_branch == t);
                         let priority_match = priority_filter
                             .is_none_or(|p| pr.metadata.priority == p);
+                        let deleted_match = include_deleted || pr.metadata.deleted_at.is_none();
 
-                        if status_match && source_match && target_match && priority_match {
+                        if status_match && source_match && target_match && priority_match && deleted_match {
                             prs.push(pr);
                         }
                     }
@@ -388,6 +412,7 @@ pub async fn update_pr(
             .iter()
             .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
             .collect(),
+        deleted_at: current.metadata.deleted_at.clone(),
     };
 
     // Generate updated content
@@ -420,6 +445,7 @@ pub async fn update_pr(
             merged_at: new_merged_at,
             closed_at: new_closed_at,
             custom_fields: new_custom_fields,
+            deleted_at: current.metadata.deleted_at,
         },
     };
 
@@ -451,6 +477,95 @@ pub async fn delete_pr(
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeletePrResult { manifest })
+}
+
+/// Soft-delete a PR (set deleted_at timestamp)
+pub async fn soft_delete_pr(
+    project_path: &Path,
+    pr_id: &str,
+) -> Result<SoftDeletePrResult, PrCrudError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(PrCrudError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let pr_path = centy_path.join("prs").join(pr_id);
+
+    if !pr_path.exists() {
+        return Err(PrCrudError::PrNotFound(pr_id.to_string()));
+    }
+
+    // Read current metadata
+    let metadata_path = pr_path.join("metadata.json");
+    let metadata_content = fs::read_to_string(&metadata_path).await?;
+    let mut metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
+
+    // Check if already deleted
+    if metadata.deleted_at.is_some() {
+        return Err(PrCrudError::PrAlreadyDeleted(pr_id.to_string()));
+    }
+
+    // Set deleted_at and update updated_at
+    let now = now_iso();
+    metadata.deleted_at = Some(now.clone());
+    metadata.updated_at = now;
+
+    // Write updated metadata
+    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the updated PR
+    let pr = read_pr_from_disk(&pr_path, pr_id).await?;
+
+    Ok(SoftDeletePrResult { pr, manifest })
+}
+
+/// Restore a soft-deleted PR (clear deleted_at timestamp)
+pub async fn restore_pr(
+    project_path: &Path,
+    pr_id: &str,
+) -> Result<RestorePrResult, PrCrudError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(PrCrudError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let pr_path = centy_path.join("prs").join(pr_id);
+
+    if !pr_path.exists() {
+        return Err(PrCrudError::PrNotFound(pr_id.to_string()));
+    }
+
+    // Read current metadata
+    let metadata_path = pr_path.join("metadata.json");
+    let metadata_content = fs::read_to_string(&metadata_path).await?;
+    let mut metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
+
+    // Check if actually deleted
+    if metadata.deleted_at.is_none() {
+        return Err(PrCrudError::PrNotDeleted(pr_id.to_string()));
+    }
+
+    // Clear deleted_at and update updated_at
+    metadata.deleted_at = None;
+    metadata.updated_at = now_iso();
+
+    // Write updated metadata
+    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the restored PR
+    let pr = read_pr_from_disk(&pr_path, pr_id).await?;
+
+    Ok(RestorePrResult { pr, manifest })
 }
 
 /// Read a PR from disk
@@ -501,6 +616,7 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
             merged_at: metadata.merged_at,
             closed_at: metadata.closed_at,
             custom_fields,
+            deleted_at: metadata.deleted_at,
         },
     })
 }

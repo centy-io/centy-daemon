@@ -427,7 +427,7 @@ impl CentyDaemon for CentyDaemonService {
         // Draft filter is optional bool
         let draft_filter = req.draft;
 
-        match list_issues(project_path, status_filter, priority_filter, draft_filter).await {
+        match list_issues(project_path, status_filter, priority_filter, draft_filter, false).await {
             Ok(issues) => {
                 let total_count = issues.len() as i32;
                 Ok(Response::new(ListIssuesResponse {
@@ -812,7 +812,7 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match list_docs(project_path).await {
+        match list_docs(project_path, false).await {
             Ok(docs) => {
                 let total_count = docs.len() as i32;
                 Ok(Response::new(ListDocsResponse {
@@ -1791,7 +1791,7 @@ impl CentyDaemon for CentyDaemonService {
         let target_filter = if req.target_branch.is_empty() { None } else { Some(req.target_branch.as_str()) };
         let priority_filter = if req.priority == 0 { None } else { Some(req.priority as u32) };
 
-        match list_prs(project_path, status_filter, source_filter, target_filter, priority_filter).await {
+        match list_prs(project_path, status_filter, source_filter, target_filter, priority_filter, false).await {
             Ok(prs) => {
                 let total_count = prs.len() as i32;
                 Ok(Response::new(ListPrsResponse {
@@ -2465,7 +2465,7 @@ impl CentyDaemon for CentyDaemonService {
             Some(req.git_username.as_str())
         };
 
-        match internal_list_users(project_path, filter).await {
+        match internal_list_users(project_path, filter, false).await {
             Ok(users) => {
                 let total_count = users.len() as i32;
                 Ok(Response::new(ListUsersResponse {
@@ -3068,6 +3068,7 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             compacted: issue.metadata.compacted,
             compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
             draft: issue.metadata.draft,
+            deleted_at: issue.metadata.deleted_at.clone().unwrap_or_default(),
         }),
     }
 }
@@ -3080,6 +3081,7 @@ fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
         metadata: Some(DocMetadata {
             created_at: doc.metadata.created_at.clone(),
             updated_at: doc.metadata.updated_at.clone(),
+            deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
         }),
     }
 }
@@ -3144,6 +3146,7 @@ fn user_to_proto(user: &crate::user::User) -> ProtoUser {
         git_usernames: user.git_usernames.clone(),
         created_at: user.created_at.clone(),
         updated_at: user.updated_at.clone(),
+        deleted_at: user.deleted_at.clone().unwrap_or_default(),
     }
 }
 
@@ -3166,6 +3169,7 @@ fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest
             merged_at: pr.metadata.merged_at.clone(),
             closed_at: pr.metadata.closed_at.clone(),
             custom_fields: pr.metadata.custom_fields.clone(),
+            deleted_at: pr.metadata.deleted_at.clone().unwrap_or_default(),
         }),
     }
 }

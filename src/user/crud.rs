@@ -57,6 +57,7 @@ pub async fn create_user(
         git_usernames: options.git_usernames,
         created_at: now.clone(),
         updated_at: now,
+        deleted_at: None,
     };
 
     users.push(user.clone());
@@ -90,8 +91,15 @@ pub async fn get_user(project_path: &Path, user_id: &str) -> Result<User, UserEr
 pub async fn list_users(
     project_path: &Path,
     git_username_filter: Option<&str>,
+    include_deleted: bool,
 ) -> Result<Vec<User>, UserError> {
     let users = read_users(project_path).await?;
+
+    let users = if include_deleted {
+        users
+    } else {
+        users.into_iter().filter(|u| u.deleted_at.is_none()).collect()
+    };
 
     if let Some(filter) = git_username_filter {
         Ok(users
@@ -215,4 +223,113 @@ pub async fn delete_user(
     info!("Deleted user: {}", user_id);
 
     Ok(DeleteUserResult { manifest })
+}
+
+/// Result of soft-deleting a user
+pub struct SoftDeleteUserResult {
+    pub user: User,
+    pub manifest: CentyManifest,
+}
+
+/// Soft-delete a user (set deleted_at timestamp)
+pub async fn soft_delete_user(
+    project_path: &Path,
+    user_id: &str,
+) -> Result<SoftDeleteUserResult, UserError> {
+    // Read manifest
+    let mut manifest = read_manifest(project_path)
+        .await
+        .map_err(|_| UserError::NotInitialized)?
+        .ok_or(UserError::NotInitialized)?;
+
+    // Read existing users
+    let mut users = read_users(project_path).await?;
+
+    // Find user
+    let user_idx = users
+        .iter()
+        .position(|u| u.id == user_id)
+        .ok_or_else(|| UserError::UserNotFound(user_id.to_string()))?;
+
+    let user = &mut users[user_idx];
+
+    // Check if already deleted
+    if user.deleted_at.is_some() {
+        return Err(UserError::UserAlreadyDeleted(user_id.to_string()));
+    }
+
+    // Set deleted_at and update updated_at
+    let now = now_iso();
+    user.deleted_at = Some(now.clone());
+    user.updated_at = now;
+
+    let updated_user = user.clone();
+
+    // Write users
+    write_users(project_path, &users).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    info!("Soft-deleted user: {}", user_id);
+
+    Ok(SoftDeleteUserResult {
+        user: updated_user,
+        manifest,
+    })
+}
+
+/// Result of restoring a soft-deleted user
+pub struct RestoreUserResult {
+    pub user: User,
+    pub manifest: CentyManifest,
+}
+
+/// Restore a soft-deleted user (clear deleted_at timestamp)
+pub async fn restore_user(
+    project_path: &Path,
+    user_id: &str,
+) -> Result<RestoreUserResult, UserError> {
+    // Read manifest
+    let mut manifest = read_manifest(project_path)
+        .await
+        .map_err(|_| UserError::NotInitialized)?
+        .ok_or(UserError::NotInitialized)?;
+
+    // Read existing users
+    let mut users = read_users(project_path).await?;
+
+    // Find user
+    let user_idx = users
+        .iter()
+        .position(|u| u.id == user_id)
+        .ok_or_else(|| UserError::UserNotFound(user_id.to_string()))?;
+
+    let user = &mut users[user_idx];
+
+    // Check if actually deleted
+    if user.deleted_at.is_none() {
+        return Err(UserError::UserNotDeleted(user_id.to_string()));
+    }
+
+    // Clear deleted_at and update updated_at
+    user.deleted_at = None;
+    user.updated_at = now_iso();
+
+    let restored_user = user.clone();
+
+    // Write users
+    write_users(project_path, &users).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    info!("Restored user: {}", user_id);
+
+    Ok(RestoreUserResult {
+        user: restored_user,
+        manifest,
+    })
 }
