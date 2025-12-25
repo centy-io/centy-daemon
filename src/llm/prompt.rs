@@ -18,33 +18,37 @@ pub enum PromptError {
 pub enum LlmAction {
     Plan,
     Implement,
+    Deepdive,
 }
 
 impl LlmAction {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             LlmAction::Plan => "plan",
             LlmAction::Implement => "implement",
+            LlmAction::Deepdive => "deepdive",
         }
     }
 
     /// Convert from proto enum value
-    #[must_use] 
+    #[must_use]
     pub fn from_proto(value: i32) -> Option<Self> {
         match value {
             1 => Some(LlmAction::Plan),
             2 => Some(LlmAction::Implement),
+            3 => Some(LlmAction::Deepdive),
             _ => None,
         }
     }
 
     /// Convert to proto enum value
-    #[must_use] 
+    #[must_use]
     pub fn to_proto(&self) -> i32 {
         match self {
             LlmAction::Plan => 1,
             LlmAction::Implement => 2,
+            LlmAction::Deepdive => 3,
         }
     }
 }
@@ -119,6 +123,50 @@ When complete, update the issue status to closed.
 
 ";
 
+/// Base prompt specifically for "deepdive" action
+pub const DEEPDIVE_ACTION_PROMPT: &str = r"## Your Task: Deep Dive Brainstorming
+
+Generate comprehensive questions for brainstorming about this issue. Your questions should help explore:
+
+1. **Requirements & Scope**: What does the user really need? What are the edge cases? What are the acceptance criteria?
+2. **Technical Considerations**: Architecture decisions, dependencies, performance implications, implementation choices
+3. **Risks & Challenges**: What could go wrong? What are the unknowns? What might block progress?
+
+## Output Format
+
+Save your questions to `q&a.md` in this format:
+
+```markdown
+# Deep Dive Q&A: [Issue Title]
+
+## Requirements & Scope
+- Q: [Question about requirements]
+  A:
+
+- Q: [Another question]
+  A:
+
+## Technical Considerations
+- Q: [Technical question]
+  A:
+
+## Risks & Edge Cases
+- Q: [Risk-related question]
+  A:
+```
+
+After creating the file, save it using:
+```bash
+centy add deepdive <ISSUE_ID> --file q&a.md
+rm q&a.md
+```
+
+Use the issue ID from the Issue Details section below (either the UUID or the display number like `1`, `2`, etc.)
+
+---
+
+";
+
 /// Build a complete prompt for an LLM agent
 pub struct PromptBuilder {
     template_engine: TemplateEngine,
@@ -150,6 +198,7 @@ impl PromptBuilder {
         match action {
             LlmAction::Plan => prompt.push_str(PLAN_ACTION_PROMPT),
             LlmAction::Implement => prompt.push_str(IMPLEMENT_ACTION_PROMPT),
+            LlmAction::Deepdive => prompt.push_str(DEEPDIVE_ACTION_PROMPT),
         }
 
         // 3. Issue context
@@ -303,17 +352,20 @@ mod tests {
     fn test_llm_action_as_str() {
         assert_eq!(LlmAction::Plan.as_str(), "plan");
         assert_eq!(LlmAction::Implement.as_str(), "implement");
+        assert_eq!(LlmAction::Deepdive.as_str(), "deepdive");
     }
 
     #[test]
     fn test_llm_action_proto_conversion() {
         assert_eq!(LlmAction::from_proto(1), Some(LlmAction::Plan));
         assert_eq!(LlmAction::from_proto(2), Some(LlmAction::Implement));
+        assert_eq!(LlmAction::from_proto(3), Some(LlmAction::Deepdive));
         assert_eq!(LlmAction::from_proto(0), None);
         assert_eq!(LlmAction::from_proto(99), None);
 
         assert_eq!(LlmAction::Plan.to_proto(), 1);
         assert_eq!(LlmAction::Implement.to_proto(), 2);
+        assert_eq!(LlmAction::Deepdive.to_proto(), 3);
     }
 
     #[test]
@@ -350,10 +402,12 @@ mod tests {
         assert!(!BASE_SYSTEM_PROMPT.is_empty());
         assert!(!PLAN_ACTION_PROMPT.is_empty());
         assert!(!IMPLEMENT_ACTION_PROMPT.is_empty());
+        assert!(!DEEPDIVE_ACTION_PROMPT.is_empty());
 
         // Ensure they contain expected content
         assert!(BASE_SYSTEM_PROMPT.contains("Issue Context"));
         assert!(PLAN_ACTION_PROMPT.contains("Planning"));
         assert!(IMPLEMENT_ACTION_PROMPT.contains("Implementation"));
+        assert!(DEEPDIVE_ACTION_PROMPT.contains("Deep Dive"));
     }
 }

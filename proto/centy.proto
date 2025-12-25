@@ -1340,6 +1340,7 @@ enum LlmAction {
   LLM_ACTION_UNSPECIFIED = 0;
   LLM_ACTION_PLAN = 1;
   LLM_ACTION_IMPLEMENT = 2;
+  LLM_ACTION_DEEPDIVE = 3;
 }
 
 // Agent configuration (stored in config.local.json)

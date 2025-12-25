@@ -2979,6 +2979,16 @@ impl CentyDaemon for CentyDaemonService {
                         keyboard_shortcut: "i".to_string(),
                     });
 
+                    actions.push(EntityAction {
+                        id: "mode:deepdive".to_string(),
+                        label: "Deep Dive".to_string(),
+                        category: ActionCategory::Mode as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "D".to_string(),
+                    });
+
                     // Status actions - contextual based on current status
                     for state in &allowed_states {
                         let is_current = entity_status.as_ref().map(|s| s == state).unwrap_or(false);

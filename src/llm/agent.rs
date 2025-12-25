@@ -73,6 +73,7 @@ pub async fn start_agent(
     let user_template = match action {
         LlmAction::Plan => agent.plan_template.as_deref(),
         LlmAction::Implement => agent.implement_template.as_deref(),
+        LlmAction::Deepdive => None, // Deepdive uses default prompt only
     };
     let prompt = prompt_builder
         .build_prompt(project_path, issue, action, user_template, priority_levels)
