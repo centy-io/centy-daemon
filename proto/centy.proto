@@ -422,6 +422,7 @@ message IssueMetadata {
   bool compacted = 8;             // Whether issue has been compacted into features
   string compacted_at = 9;        // ISO timestamp when compacted (empty if not)
   bool draft = 10;                // Whether this issue is a draft
+  string deleted_at = 11;         // ISO timestamp when soft-deleted (empty if not deleted)
 }
 
 message GetIssueRequest {
@@ -461,6 +462,7 @@ message ListIssuesRequest {
   string status = 2;              // Filter by status (empty = all)
   int32 priority = 3;             // Filter by priority (0 = all)
   optional bool draft = 4;        // Filter by draft status (absent = all, true = drafts only, false = non-drafts only)
+  bool include_deleted = 5;       // Include soft-deleted issues (default: false)
 }
 
 message ListIssuesResponse {
@@ -690,6 +692,7 @@ message GetDocsBySlugResponse {
 
 message ListDocsRequest {
   string project_path = 1;
+  bool include_deleted = 2;       // Include soft-deleted docs (default: false)
 }
 
 message ListDocsResponse {
@@ -708,6 +711,7 @@ message Doc {
 message DocMetadata {
   string created_at = 1;          // ISO timestamp
   string updated_at = 2;          // ISO timestamp
+  string deleted_at = 3;          // ISO timestamp when soft-deleted (empty if not deleted)
 }
 
 message UpdateDocRequest {
@@ -1163,6 +1167,7 @@ message PrMetadata {
   string merged_at = 11;              // ISO timestamp (empty if not merged)
   string closed_at = 12;              // ISO timestamp (empty if not closed)
   map<string, string> custom_fields = 13;
+  string deleted_at = 14;             // ISO timestamp when soft-deleted (empty if not deleted)
 }
 
 message GetPrRequest {
@@ -1203,6 +1208,7 @@ message ListPrsRequest {
   string source_branch = 3;           // Filter by source branch (empty = all)
   string target_branch = 4;           // Filter by target branch (empty = all)
   int32 priority = 5;                 // Filter by priority (0 = all)
+  bool include_deleted = 6;           // Include soft-deleted PRs (default: false)
 }
 
 message ListPrsResponse {
@@ -1581,6 +1587,7 @@ message User {
   repeated string git_usernames = 4;    // Git usernames (e.g., GitHub handles)
   string created_at = 5;                // ISO timestamp
   string updated_at = 6;                // ISO timestamp
+  string deleted_at = 7;                // ISO timestamp when soft-deleted (empty if not deleted)
 }
 
 message CreateUserRequest {
@@ -1606,6 +1613,7 @@ message GetUserRequest {
 message ListUsersRequest {
   string project_path = 1;
   string git_username = 2;              // Optional: filter by git username
+  bool include_deleted = 3;             // Include soft-deleted users (default: false)
 }
 
 message ListUsersResponse {

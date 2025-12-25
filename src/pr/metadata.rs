@@ -19,6 +19,9 @@ pub struct PrMetadata {
     /// Timestamp when PR was closed (empty string if not closed)
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub closed_at: String,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
 }
 
 impl PrMetadata {
@@ -39,6 +42,7 @@ impl PrMetadata {
             reviewers,
             merged_at: String::new(),
             closed_at: String::new(),
+            deleted_at: None,
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
 use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::get_centy_path;
+use crate::utils::{format_markdown, get_centy_path};
 use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
@@ -202,7 +202,7 @@ pub async fn create_issue(
     let metadata_path = issue_folder.join("metadata.json");
     let assets_path = issue_folder.join("assets");
 
-    fs::write(&issue_md_path, &issue_md).await?;
+    fs::write(&issue_md_path, format_markdown(&issue_md)).await?;
     fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
     fs::create_dir_all(&assets_path).await?;
 

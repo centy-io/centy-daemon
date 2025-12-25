@@ -22,6 +22,9 @@ pub struct User {
     pub created_at: String,
     /// ISO timestamp when last updated
     pub updated_at: String,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
 }
 
 /// The users.json file structure
@@ -74,6 +77,12 @@ pub enum UserError {
 
     #[error("User '{0}' already exists")]
     UserAlreadyExists(String),
+
+    #[error("User '{0}' is not soft-deleted")]
+    UserNotDeleted(String),
+
+    #[error("User '{0}' is already soft-deleted")]
+    UserAlreadyDeleted(String),
 
     #[error("Invalid user ID: {0}")]
     InvalidUserId(String),

@@ -185,7 +185,7 @@ async fn test_list_docs_empty() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let docs = list_docs(project_path).await.expect("Should list docs");
+    let docs = list_docs(project_path, false).await.expect("Should list docs");
 
     assert!(docs.is_empty());
 }
@@ -233,7 +233,7 @@ async fn test_list_docs_multiple() {
     .await
     .unwrap();
 
-    let docs = list_docs(project_path).await.expect("Should list docs");
+    let docs = list_docs(project_path, false).await.expect("Should list docs");
 
     assert_eq!(docs.len(), 3);
     // Should be sorted by slug

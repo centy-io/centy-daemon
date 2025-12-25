@@ -294,6 +294,7 @@ mod tests {
                 compacted: false,
                 compacted_at: None,
                 draft: false,
+                deleted_at: None,
             },
         }
     }

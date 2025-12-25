@@ -178,7 +178,7 @@ async fn test_list_prs_empty() {
 
     init_centy_project(project_path).await;
 
-    let prs = list_prs(project_path, None, None, None, None)
+    let prs = list_prs(project_path, None, None, None, None, false)
         .await
         .expect("Should list PRs");
 
@@ -201,7 +201,7 @@ async fn test_list_prs_returns_all() {
         create_pr(project_path, options).await.expect("Should create");
     }
 
-    let prs = list_prs(project_path, None, None, None, None)
+    let prs = list_prs(project_path, None, None, None, None, false)
         .await
         .expect("Should list PRs");
 
@@ -234,7 +234,7 @@ async fn test_list_prs_filter_by_status() {
     };
     create_pr(project_path, options2).await.expect("Should create");
 
-    let open_prs = list_prs(project_path, Some("open"), None, None, None)
+    let open_prs = list_prs(project_path, Some("open"), None, None, None, false)
         .await
         .expect("Should list PRs");
 

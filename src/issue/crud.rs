@@ -36,6 +36,12 @@ pub enum IssueCrudError {
     #[error("Issue with display number {0} not found")]
     IssueDisplayNumberNotFound(u32),
 
+    #[error("Issue {0} is not soft-deleted")]
+    IssueNotDeleted(String),
+
+    #[error("Issue {0} is already soft-deleted")]
+    IssueAlreadyDeleted(String),
+
     #[error("Invalid issue format: {0}")]
     InvalidIssueFormat(String),
 
@@ -88,6 +94,8 @@ pub struct IssueMetadataFlat {
     pub compacted_at: Option<String>,
     /// Whether this issue is a draft
     pub draft: bool,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    pub deleted_at: Option<String>,
 }
 
 /// Options for updating an issue
@@ -113,6 +121,20 @@ pub struct UpdateIssueResult {
 /// Result of issue deletion
 #[derive(Debug, Clone)]
 pub struct DeleteIssueResult {
+    pub manifest: CentyManifest,
+}
+
+/// Result of soft-deleting an issue
+#[derive(Debug, Clone)]
+pub struct SoftDeleteIssueResult {
+    pub issue: Issue,
+    pub manifest: CentyManifest,
+}
+
+/// Result of restoring a soft-deleted issue
+#[derive(Debug, Clone)]
+pub struct RestoreIssueResult {
+    pub issue: Issue,
     pub manifest: CentyManifest,
 }
 
@@ -191,6 +213,7 @@ pub async fn list_issues(
     status_filter: Option<&str>,
     priority_filter: Option<u32>,
     draft_filter: Option<bool>,
+    include_deleted: bool,
 ) -> Result<Vec<Issue>, IssueCrudError> {
     // Check if centy is initialized
     read_manifest(project_path)
@@ -227,8 +250,9 @@ pub async fn list_issues(
                             .is_none_or(|p| issue.metadata.priority == p);
                         let draft_match = draft_filter
                             .is_none_or(|d| issue.metadata.draft == d);
+                        let deleted_match = include_deleted || issue.metadata.deleted_at.is_none();
 
-                        if status_match && priority_match && draft_match {
+                        if status_match && priority_match && draft_match && deleted_match {
                             issues.push(issue);
                         }
                     }
@@ -425,6 +449,7 @@ pub async fn update_issue(
         compacted: current.metadata.compacted,
         compacted_at: current.metadata.compacted_at.clone(),
         draft: new_draft,
+        deleted_at: current.metadata.deleted_at.clone(),
     };
 
     // Generate updated content
@@ -476,6 +501,7 @@ pub async fn update_issue(
             compacted: current.metadata.compacted,
             compacted_at: current.metadata.compacted_at,
             draft: new_draft,
+            deleted_at: current.metadata.deleted_at,
         },
     };
 
@@ -507,6 +533,95 @@ pub async fn delete_issue(
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteIssueResult { manifest })
+}
+
+/// Soft-delete an issue (set deleted_at timestamp)
+pub async fn soft_delete_issue(
+    project_path: &Path,
+    issue_number: &str,
+) -> Result<SoftDeleteIssueResult, IssueCrudError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(IssueCrudError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let issue_path = centy_path.join("issues").join(issue_number);
+
+    if !issue_path.exists() {
+        return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
+    }
+
+    // Read current metadata
+    let metadata_path = issue_path.join("metadata.json");
+    let metadata_content = fs::read_to_string(&metadata_path).await?;
+    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
+
+    // Check if already deleted
+    if metadata.deleted_at.is_some() {
+        return Err(IssueCrudError::IssueAlreadyDeleted(issue_number.to_string()));
+    }
+
+    // Set deleted_at and update updated_at
+    let now = now_iso();
+    metadata.deleted_at = Some(now.clone());
+    metadata.common.updated_at = now;
+
+    // Write updated metadata
+    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the updated issue
+    let issue = read_issue_from_disk(&issue_path, issue_number).await?;
+
+    Ok(SoftDeleteIssueResult { issue, manifest })
+}
+
+/// Restore a soft-deleted issue (clear deleted_at timestamp)
+pub async fn restore_issue(
+    project_path: &Path,
+    issue_number: &str,
+) -> Result<RestoreIssueResult, IssueCrudError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(IssueCrudError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let issue_path = centy_path.join("issues").join(issue_number);
+
+    if !issue_path.exists() {
+        return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
+    }
+
+    // Read current metadata
+    let metadata_path = issue_path.join("metadata.json");
+    let metadata_content = fs::read_to_string(&metadata_path).await?;
+    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
+
+    // Check if actually deleted
+    if metadata.deleted_at.is_none() {
+        return Err(IssueCrudError::IssueNotDeleted(issue_number.to_string()));
+    }
+
+    // Clear deleted_at and update updated_at
+    metadata.deleted_at = None;
+    metadata.common.updated_at = now_iso();
+
+    // Write updated metadata
+    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    // Read and return the restored issue
+    let issue = read_issue_from_disk(&issue_path, issue_number).await?;
+
+    Ok(RestoreIssueResult { issue, manifest })
 }
 
 /// Move an issue to another project
@@ -706,6 +821,7 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
         compacted: false, // Reset compacted status for new issue
         compacted_at: None,
         draft: source_issue.metadata.draft, // Preserve draft status
+        deleted_at: None, // New duplicate is not deleted
     };
     fs::write(
         new_issue_path.join("metadata.json"),
@@ -781,6 +897,7 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
             compacted: metadata.compacted,
             compacted_at: metadata.compacted_at,
             draft: metadata.draft,
+            deleted_at: metadata.deleted_at,
         },
     })
 }
