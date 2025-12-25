@@ -133,6 +133,7 @@ async fn test_doc_create_get_roundtrip() {
         title: "Test Document".to_string(),
         content: "# Test Document\n\nContent here".to_string(),
         template: None,
+        ..Default::default()
     };
 
     let result = create_doc(project_path, options)

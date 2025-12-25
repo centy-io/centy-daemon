@@ -659,6 +659,14 @@ message CreateDocRequest {
   string content = 3;             // Markdown content
   string slug = 4;                // Optional custom slug (auto-generated from title if empty)
   string template = 5;            // Optional template name (without .md extension)
+  bool is_org_doc = 6;            // Create as organization-wide doc (syncs to all org projects)
+}
+
+// Result of syncing an org doc to a project
+message OrgDocSyncResult {
+  string project_path = 1;        // Path of target project
+  bool success = 2;               // Whether sync succeeded
+  string error = 3;               // Error message if failed
 }
 
 message CreateDocResponse {
@@ -667,6 +675,7 @@ message CreateDocResponse {
   string slug = 3;                // The created doc slug
   string created_file = 4;        // Path to created file
   Manifest manifest = 5;
+  repeated OrgDocSyncResult sync_results = 6;  // Results from syncing to other org projects
 }
 
 message GetDocRequest {
@@ -716,6 +725,8 @@ message DocMetadata {
   string created_at = 1;          // ISO timestamp
   string updated_at = 2;          // ISO timestamp
   string deleted_at = 3;          // ISO timestamp when soft-deleted (empty if not deleted)
+  bool is_org_doc = 4;            // Whether this is an organization-level doc
+  string org_slug = 5;            // Organization slug (for org docs)
 }
 
 message UpdateDocRequest {

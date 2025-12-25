@@ -1,7 +1,7 @@
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
-use crate::registry::ProjectInfo;
+use crate::registry::{get_org_projects, get_project_info, ProjectInfo};
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::path::{Path, PathBuf};
@@ -48,6 +48,12 @@ pub enum DocError {
 
     #[error("Cannot move doc to same project")]
     SameProjectMove,
+
+    #[error("Cannot create org doc: project has no organization")]
+    NoOrganization,
+
+    #[error("Registry error: {0}")]
+    RegistryError(String),
 }
 
 /// Full doc data
@@ -68,6 +74,12 @@ pub struct DocMetadata {
     /// ISO timestamp when soft-deleted (None if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
+    /// Whether this doc is organization-level (synced on creation)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_org_doc: bool,
+    /// Organization slug for org docs (for traceability)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_slug: Option<String>,
 }
 
 impl DocMetadata {
@@ -78,6 +90,20 @@ impl DocMetadata {
             created_at: now.clone(),
             updated_at: now,
             deleted_at: None,
+            is_org_doc: false,
+            org_slug: None,
+        }
+    }
+
+    #[must_use]
+    pub fn new_org_doc(org_slug: &str) -> Self {
+        let now = now_iso();
+        Self {
+            created_at: now.clone(),
+            updated_at: now,
+            deleted_at: None,
+            is_org_doc: true,
+            org_slug: Some(org_slug.to_string()),
         }
     }
 }
@@ -96,6 +122,16 @@ pub struct CreateDocOptions {
     pub slug: Option<String>,
     /// Optional template name (without .md extension)
     pub template: Option<String>,
+    /// Create as organization-wide doc (syncs to all org projects)
+    pub is_org_doc: bool,
+}
+
+/// Result of syncing an org doc to another project
+#[derive(Debug, Clone)]
+pub struct OrgDocSyncResult {
+    pub project_path: String,
+    pub success: bool,
+    pub error: Option<String>,
 }
 
 /// Result of doc creation
@@ -104,6 +140,8 @@ pub struct CreateDocResult {
     pub slug: String,
     pub created_file: String,
     pub manifest: CentyManifest,
+    /// Results from syncing to other org projects (empty for non-org docs)
+    pub sync_results: Vec<OrgDocSyncResult>,
 }
 
 /// Options for updating a doc
@@ -231,8 +269,28 @@ pub async fn create_doc(
         return Err(DocError::SlugAlreadyExists(slug));
     }
 
-    // Create metadata
-    let metadata = DocMetadata::new();
+    // Get organization info if this is an org doc
+    let org_slug = if options.is_org_doc {
+        // Get project's organization
+        let project_path_str = project_path.to_string_lossy().to_string();
+        let project_info = get_project_info(&project_path_str)
+            .await
+            .map_err(|e| DocError::RegistryError(e.to_string()))?;
+
+        match project_info.and_then(|p| p.organization_slug) {
+            Some(slug) => Some(slug),
+            None => return Err(DocError::NoOrganization),
+        }
+    } else {
+        None
+    };
+
+    // Create metadata (with or without org info)
+    let metadata = if let Some(ref org) = org_slug {
+        DocMetadata::new_org_doc(org)
+    } else {
+        DocMetadata::new()
+    };
 
     // Generate doc content with frontmatter
     let doc_content = if let Some(ref template_name) = options.template {
@@ -262,11 +320,110 @@ pub async fn create_doc(
 
     let created_file = format!(".centy/docs/{slug}.md");
 
+    // Sync to other org projects if this is an org doc
+    let sync_results = if let Some(ref org) = org_slug {
+        sync_org_doc_to_projects(
+            org,
+            project_path,
+            &slug,
+            &options.title,
+            &options.content,
+        )
+        .await
+    } else {
+        Vec::new()
+    };
+
     Ok(CreateDocResult {
         slug,
         created_file,
         manifest,
+        sync_results,
     })
+}
+
+/// Sync an org doc to all other projects in the organization
+async fn sync_org_doc_to_projects(
+    org_slug: &str,
+    source_project_path: &Path,
+    slug: &str,
+    title: &str,
+    content: &str,
+) -> Vec<OrgDocSyncResult> {
+    let source_path_str = source_project_path.to_string_lossy().to_string();
+
+    // Get all other projects in the org
+    let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
+        Ok(projects) => projects,
+        Err(e) => {
+            // Return a single error result
+            return vec![OrgDocSyncResult {
+                project_path: "<registry>".to_string(),
+                success: false,
+                error: Some(format!("Failed to get org projects: {e}")),
+            }];
+        }
+    };
+
+    let mut results = Vec::new();
+
+    for project in org_projects {
+        let target_path = Path::new(&project.path);
+        let result = create_doc_in_project(target_path, slug, title, content, org_slug).await;
+
+        results.push(OrgDocSyncResult {
+            project_path: project.path.clone(),
+            success: result.is_ok(),
+            error: result.err().map(|e| e.to_string()),
+        });
+    }
+
+    results
+}
+
+/// Create a doc in a specific project (used for org doc sync)
+/// This is a simpler version that doesn't do org sync recursion
+async fn create_doc_in_project(
+    project_path: &Path,
+    slug: &str,
+    title: &str,
+    content: &str,
+    org_slug: &str,
+) -> Result<(), DocError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(DocError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let docs_path = centy_path.join("docs");
+
+    // Ensure docs directory exists
+    if !docs_path.exists() {
+        fs::create_dir_all(&docs_path).await?;
+    }
+
+    let doc_path = docs_path.join(format!("{slug}.md"));
+
+    // Skip if already exists (don't overwrite)
+    if doc_path.exists() {
+        return Err(DocError::SlugAlreadyExists(slug.to_string()));
+    }
+
+    // Create org doc metadata
+    let metadata = DocMetadata::new_org_doc(org_slug);
+
+    // Generate doc content
+    let doc_content = generate_doc_content(title, content, &metadata);
+
+    // Write the doc file (formatted)
+    fs::write(&doc_path, format_markdown(&doc_content)).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    Ok(())
 }
 
 /// Get a single doc by its slug
@@ -426,11 +583,13 @@ pub async fn update_doc(
         _ => None,
     };
 
-    // Create updated metadata
+    // Create updated metadata (preserve org doc fields)
     let updated_metadata = DocMetadata {
         created_at: current.metadata.created_at.clone(),
         updated_at: now_iso(),
         deleted_at: current.metadata.deleted_at.clone(),
+        is_org_doc: current.metadata.is_org_doc,
+        org_slug: current.metadata.org_slug.clone(),
     };
 
     // Generate updated content
@@ -513,12 +672,14 @@ pub async fn soft_delete_doc(project_path: &Path, slug: &str) -> Result<SoftDele
         return Err(DocError::DocAlreadyDeleted(slug.to_string()));
     }
 
-    // Set deleted_at and update updated_at
+    // Set deleted_at and update updated_at (preserve org doc fields)
     let now = now_iso();
     let updated_metadata = DocMetadata {
         created_at: current.metadata.created_at.clone(),
         updated_at: now.clone(),
         deleted_at: Some(now),
+        is_org_doc: current.metadata.is_org_doc,
+        org_slug: current.metadata.org_slug.clone(),
     };
 
     // Regenerate doc content with updated metadata
@@ -557,11 +718,13 @@ pub async fn restore_doc(project_path: &Path, slug: &str) -> Result<RestoreDocRe
         return Err(DocError::DocNotDeleted(slug.to_string()));
     }
 
-    // Clear deleted_at and update updated_at
+    // Clear deleted_at and update updated_at (preserve org doc fields)
     let updated_metadata = DocMetadata {
         created_at: current.metadata.created_at.clone(),
         updated_at: now_iso(),
         deleted_at: None,
+        is_org_doc: current.metadata.is_org_doc,
+        org_slug: current.metadata.org_slug.clone(),
     };
 
     // Regenerate doc content with updated metadata
@@ -765,12 +928,22 @@ fn generate_doc_content(title: &str, content: &str, metadata: &DocMetadata) -> S
     let deleted_line = metadata.deleted_at.as_ref()
         .map(|d| format!("\ndeletedAt: \"{d}\""))
         .unwrap_or_default();
+    let org_doc_line = if metadata.is_org_doc {
+        "\nisOrgDoc: true".to_string()
+    } else {
+        String::new()
+    };
+    let org_slug_line = metadata.org_slug.as_ref()
+        .map(|s| format!("\norgSlug: \"{s}\""))
+        .unwrap_or_default();
     format!(
-        "---\ntitle: \"{}\"\ncreatedAt: \"{}\"\nupdatedAt: \"{}\"{}\n---\n\n# {}\n\n{}",
+        "---\ntitle: \"{}\"\ncreatedAt: \"{}\"\nupdatedAt: \"{}\"{}{}{}\n---\n\n# {}\n\n{}",
         escape_yaml_string(title),
         metadata.created_at,
         metadata.updated_at,
         deleted_line,
+        org_doc_line,
+        org_slug_line,
         title,
         content
     )
@@ -792,6 +965,8 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
             let mut created_at = String::new();
             let mut updated_at = String::new();
             let mut deleted_at: Option<String> = None;
+            let mut is_org_doc = false;
+            let mut org_slug: Option<String> = None;
 
             for line in frontmatter {
                 if let Some(value) = line.strip_prefix("title:") {
@@ -804,6 +979,13 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
                     let v = value.trim().trim_matches('"').to_string();
                     if !v.is_empty() {
                         deleted_at = Some(v);
+                    }
+                } else if let Some(value) = line.strip_prefix("isOrgDoc:") {
+                    is_org_doc = value.trim() == "true";
+                } else if let Some(value) = line.strip_prefix("orgSlug:") {
+                    let v = value.trim().trim_matches('"').to_string();
+                    if !v.is_empty() {
+                        org_slug = Some(v);
                     }
                 }
             }
@@ -831,6 +1013,8 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
                 created_at: if created_at.is_empty() { now_iso() } else { created_at },
                 updated_at: if updated_at.is_empty() { now_iso() } else { updated_at },
                 deleted_at,
+                is_org_doc,
+                org_slug,
             };
 
             return (title, body.trim_end().to_string(), metadata);
@@ -862,6 +1046,8 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         created_at: now_iso(),
         updated_at: now_iso(),
         deleted_at: None,
+        is_org_doc: false,
+        org_slug: None,
     })
 }
 
@@ -969,6 +1155,8 @@ This is the content."#;
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-02T00:00:00Z".to_string(),
             deleted_at: None,
+            is_org_doc: false,
+            org_slug: None,
         };
         let content = generate_doc_content("Test Title", "Body text", &metadata);
 

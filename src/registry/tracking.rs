@@ -451,3 +451,37 @@ pub async fn set_project_user_title(
     // Return enriched project info
     Ok(enrich_project(&canonical_path, &tracked_clone, org_name).await)
 }
+
+/// Get all projects belonging to an organization, optionally excluding a specific project
+///
+/// # Arguments
+/// * `org_slug` - The organization slug to filter by
+/// * `exclude_path` - Optional path to exclude from results (e.g., the calling project)
+///
+/// # Returns
+/// List of initialized projects in the organization
+pub async fn get_org_projects(
+    org_slug: &str,
+    exclude_path: Option<&str>,
+) -> Result<Vec<ProjectInfo>, RegistryError> {
+    let opts = ListProjectsOptions {
+        include_stale: false,
+        include_uninitialized: false,
+        include_archived: false,
+        organization_slug: Some(org_slug),
+        ungrouped_only: false,
+        include_temp: false,
+    };
+
+    let mut projects = list_projects(opts).await?;
+
+    // Exclude the specified path if provided
+    if let Some(exclude) = exclude_path {
+        projects.retain(|p| p.path != exclude);
+    }
+
+    // Only return initialized projects
+    projects.retain(|p| p.initialized);
+
+    Ok(projects)
+}

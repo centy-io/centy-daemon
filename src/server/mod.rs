@@ -71,7 +71,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -736,22 +736,38 @@ impl CentyDaemon for CentyDaemonService {
             content: req.content,
             slug: if req.slug.is_empty() { None } else { Some(req.slug) },
             template: if req.template.is_empty() { None } else { Some(req.template) },
+            is_org_doc: req.is_org_doc,
         };
 
         match create_doc(project_path, options).await {
-            Ok(result) => Ok(Response::new(CreateDocResponse {
-                success: true,
-                error: String::new(),
-                slug: result.slug,
-                created_file: result.created_file,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                // Convert sync results to proto
+                let sync_results: Vec<OrgDocSyncResult> = result
+                    .sync_results
+                    .into_iter()
+                    .map(|r| OrgDocSyncResult {
+                        project_path: r.project_path,
+                        success: r.success,
+                        error: r.error.unwrap_or_default(),
+                    })
+                    .collect();
+
+                Ok(Response::new(CreateDocResponse {
+                    success: true,
+                    error: String::new(),
+                    slug: result.slug,
+                    created_file: result.created_file,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    sync_results,
+                }))
+            }
             Err(e) => Ok(Response::new(CreateDocResponse {
                 success: false,
                 error: e.to_string(),
                 slug: String::new(),
                 created_file: String::new(),
                 manifest: None,
+                sync_results: Vec::new(),
             })),
         }
     }
@@ -3581,6 +3597,8 @@ fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
             created_at: doc.metadata.created_at.clone(),
             updated_at: doc.metadata.updated_at.clone(),
             deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
+            is_org_doc: doc.metadata.is_org_doc,
+            org_slug: doc.metadata.org_slug.clone().unwrap_or_default(),
         }),
     }
 }

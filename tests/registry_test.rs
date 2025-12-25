@@ -221,6 +221,7 @@ async fn test_project_info_counts_docs() {
             content: "Content".to_string(),
             slug: None,
             template: None,
+            is_org_doc: false,
         };
         create_doc(project_path, options)
             .await
