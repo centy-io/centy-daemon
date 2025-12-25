@@ -70,7 +70,7 @@ fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, Wor
             .arg("--")
             .arg("bash")
             .arg("-c")
-            .arg(format!("{}; exec bash", command))
+            .arg(format!("{command}; exec bash"))
             .spawn();
 
         if result.is_ok() {
@@ -86,7 +86,7 @@ fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, Wor
             .arg("-e")
             .arg("bash")
             .arg("-c")
-            .arg(format!("{}; exec bash", command))
+            .arg(format!("{command}; exec bash"))
             .spawn();
 
         if result.is_ok() {
