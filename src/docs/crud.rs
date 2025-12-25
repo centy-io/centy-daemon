@@ -157,6 +157,8 @@ pub struct UpdateDocOptions {
 pub struct UpdateDocResult {
     pub doc: Doc,
     pub manifest: CentyManifest,
+    /// Results from syncing to other org projects (empty for non-org docs)
+    pub sync_results: Vec<OrgDocSyncResult>,
 }
 
 /// Result of doc deletion
@@ -426,6 +428,140 @@ async fn create_doc_in_project(
     Ok(())
 }
 
+/// Sync an org doc update to all other projects in the organization
+/// Creates the doc if it doesn't exist in a project, or updates it if it does
+async fn sync_org_doc_update_to_projects(
+    org_slug: &str,
+    source_project_path: &Path,
+    slug: &str,
+    title: &str,
+    content: &str,
+    old_slug: Option<&str>,
+) -> Vec<OrgDocSyncResult> {
+    let source_path_str = source_project_path.to_string_lossy().to_string();
+
+    // Get all other projects in the org
+    let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
+        Ok(projects) => projects,
+        Err(e) => {
+            // Return a single error result
+            return vec![OrgDocSyncResult {
+                project_path: "<registry>".to_string(),
+                success: false,
+                error: Some(format!("Failed to get org projects: {e}")),
+            }];
+        }
+    };
+
+    let mut results = Vec::new();
+
+    for project in org_projects {
+        let target_path = Path::new(&project.path);
+        let result = update_or_create_doc_in_project(
+            target_path,
+            slug,
+            title,
+            content,
+            org_slug,
+            old_slug,
+        )
+        .await;
+
+        results.push(OrgDocSyncResult {
+            project_path: project.path.clone(),
+            success: result.is_ok(),
+            error: result.err().map(|e| e.to_string()),
+        });
+    }
+
+    results
+}
+
+/// Update or create a doc in a specific project (used for org doc sync on update)
+/// If the doc exists, updates it. If it doesn't exist, creates it.
+/// If old_slug is provided (slug rename), deletes the old doc and creates new.
+async fn update_or_create_doc_in_project(
+    project_path: &Path,
+    slug: &str,
+    title: &str,
+    content: &str,
+    org_slug: &str,
+    old_slug: Option<&str>,
+) -> Result<(), DocError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await?
+        .ok_or(DocError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let docs_path = centy_path.join("docs");
+
+    // Ensure docs directory exists
+    if !docs_path.exists() {
+        fs::create_dir_all(&docs_path).await?;
+    }
+
+    let doc_path = docs_path.join(format!("{slug}.md"));
+
+    // Handle slug rename: delete old file if it exists
+    if let Some(old) = old_slug {
+        if old != slug {
+            let old_doc_path = docs_path.join(format!("{old}.md"));
+            if old_doc_path.exists() {
+                fs::remove_file(&old_doc_path).await?;
+            }
+        }
+    }
+
+    // Check if doc already exists (to preserve created_at)
+    let metadata = if doc_path.exists() {
+        // Read existing to preserve created_at
+        let existing = read_doc_from_disk(&doc_path, slug).await?;
+        DocMetadata {
+            created_at: existing.metadata.created_at,
+            updated_at: now_iso(),
+            deleted_at: None, // Clear any soft-delete on update
+            is_org_doc: true,
+            org_slug: Some(org_slug.to_string()),
+        }
+    } else {
+        // Check if there's an old slug doc to get created_at from
+        let old_created_at = if let Some(old) = old_slug {
+            let old_doc_path = docs_path.join(format!("{old}.md"));
+            if old_doc_path.exists() {
+                read_doc_from_disk(&old_doc_path, old)
+                    .await
+                    .ok()
+                    .map(|d| d.metadata.created_at)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        DocMetadata {
+            created_at: old_created_at.unwrap_or_else(now_iso),
+            updated_at: now_iso(),
+            deleted_at: None,
+            is_org_doc: true,
+            org_slug: Some(org_slug.to_string()),
+        }
+    };
+
+    // Generate doc content
+    let doc_content = generate_doc_content(title, content, &metadata);
+
+    // Write the doc file (formatted)
+    fs::write(&doc_path, format_markdown(&doc_content)).await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    Ok(())
+}
+
 /// Get a single doc by its slug
 pub async fn get_doc(project_path: &Path, slug: &str) -> Result<Doc, DocError> {
     // Check if centy is initialized
@@ -617,13 +753,34 @@ pub async fn update_doc(
     write_manifest(project_path, &manifest).await?;
 
     let doc = Doc {
-        slug: final_slug,
-        title: new_title,
-        content: new_content,
+        slug: final_slug.clone(),
+        title: new_title.clone(),
+        content: new_content.clone(),
         metadata: updated_metadata,
     };
 
-    Ok(UpdateDocResult { doc, manifest })
+    // Sync to other org projects if this is an org doc
+    let sync_results = if doc.metadata.is_org_doc {
+        if let Some(ref org) = doc.metadata.org_slug {
+            // Determine the old slug for rename handling
+            let old_slug_for_sync = new_slug.as_ref().map(|_| slug);
+            sync_org_doc_update_to_projects(
+                org,
+                project_path,
+                &final_slug,
+                &new_title,
+                &new_content,
+                old_slug_for_sync,
+            )
+            .await
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    };
+
+    Ok(UpdateDocResult { doc, manifest, sync_results })
 }
 
 /// Delete a doc

@@ -7,6 +7,7 @@ use crate::llm::{
     self, get_effective_local_config, spawn_agent as llm_spawn_agent, read_work_session,
     record_work_session, clear_work_session, is_process_running, has_global_config, has_project_config,
     write_global_local_config, write_project_local_config, LlmAction, AgentType as InternalAgentType,
+    PromptBuilder,
 };
 use crate::features::{
     get_compact, get_feature_status, get_instruction, list_uncompacted_issues,
@@ -858,17 +859,31 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match update_doc(project_path, &req.slug, options).await {
-            Ok(result) => Ok(Response::new(UpdateDocResponse {
-                success: true,
-                error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                let sync_results: Vec<OrgDocSyncResult> = result
+                    .sync_results
+                    .into_iter()
+                    .map(|r| OrgDocSyncResult {
+                        project_path: r.project_path,
+                        success: r.success,
+                        error: r.error.unwrap_or_default(),
+                    })
+                    .collect();
+
+                Ok(Response::new(UpdateDocResponse {
+                    success: true,
+                    error: String::new(),
+                    doc: Some(doc_to_proto(&result.doc)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    sync_results,
+                }))
+            }
             Err(e) => Ok(Response::new(UpdateDocResponse {
                 success: false,
                 error: e.to_string(),
                 doc: None,
                 manifest: None,
+                sync_results: Vec::new(),
             })),
         }
     }
@@ -2854,11 +2869,22 @@ impl CentyDaemon for CentyDaemonService {
             .as_ref()
             .and_then(|c| c.agents.iter().find(|a| a.name == agent_name).cloned());
 
-        let (agent_command, agent_args) = if let Some(agent) = agent_config {
-            (agent.command, agent.default_args)
+        let (agent_command, agent_args, stdin_prompt_needed) = if let Some(ref agent) = agent_config {
+            (agent.command.clone(), agent.default_args.clone(), agent.stdin_prompt)
         } else {
             // Default to using the agent name as the command
-            (agent_name.clone(), Vec::new())
+            (agent_name.clone(), Vec::new(), false)
+        };
+
+        // Build prompt for stdin-based agents (like claude --print)
+        let stdin_prompt_str = if stdin_prompt_needed {
+            let prompt_builder = PromptBuilder::new();
+            prompt_builder
+                .build_prompt(project_path, &issue, LlmAction::Implement, None, 1)
+                .await
+                .ok()
+        } else {
+            None
         };
 
         // Determine workspace mode
@@ -2918,6 +2944,7 @@ impl CentyDaemon for CentyDaemonService {
             issue.metadata.display_number,
             &agent_command,
             &agent_args,
+            stdin_prompt_str.as_deref(),
         )
         .unwrap_or(false);
 

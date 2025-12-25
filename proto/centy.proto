@@ -744,6 +744,7 @@ message UpdateDocResponse {
   string error = 2;
   Doc doc = 3;                    // The updated doc
   Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results from syncing to other org projects (org docs only)
 }
 
 message DeleteDocRequest {
