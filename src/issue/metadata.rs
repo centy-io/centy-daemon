@@ -32,6 +32,9 @@ pub struct IssueMetadata {
     /// Whether this issue is a draft
     #[serde(default)]
     pub draft: bool,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
 }
 
 impl IssueMetadata {
@@ -53,6 +56,7 @@ impl IssueMetadata {
             compacted: false,
             compacted_at: None,
             draft: false,
+            deleted_at: None,
         }
     }
 
@@ -75,6 +79,7 @@ impl IssueMetadata {
             compacted: false,
             compacted_at: None,
             draft,
+            deleted_at: None,
         }
     }
 }

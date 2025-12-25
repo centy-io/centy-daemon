@@ -124,7 +124,7 @@ async fn search_single_project(
         .to_string();
 
     // List all issues (no filters, we'll apply our own)
-    let issues = list_issues(path, None, None, None)
+    let issues = list_issues(path, None, None, None, false)
         .await
         .map_err(|e| SearchError::IssueError(e.to_string()))?;
 

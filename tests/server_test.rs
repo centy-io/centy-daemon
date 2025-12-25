@@ -64,18 +64,18 @@ async fn test_issue_list_with_filters() {
     }
 
     // List all
-    let all_issues = list_issues(project_path, None, None, None)
+    let all_issues = list_issues(project_path, None, None, None, false)
         .await
         .expect("Should list");
     assert_eq!(all_issues.len(), 5);
 
     // List by status
-    let open_issues = list_issues(project_path, Some("open"), None, None)
+    let open_issues = list_issues(project_path, Some("open"), None, None, false)
         .await
         .expect("Should list");
     assert_eq!(open_issues.len(), 2);
 
-    let closed_issues = list_issues(project_path, Some("closed"), None, None)
+    let closed_issues = list_issues(project_path, Some("closed"), None, None, false)
         .await
         .expect("Should list");
     assert_eq!(closed_issues.len(), 3);
@@ -205,12 +205,12 @@ async fn test_pr_list_with_filters() {
     .await
     .unwrap();
 
-    let all_prs = list_prs(project_path, None, None, None, None)
+    let all_prs = list_prs(project_path, None, None, None, None, false)
         .await
         .expect("Should list");
     assert_eq!(all_prs.len(), 2);
 
-    let draft_prs = list_prs(project_path, Some("draft"), None, None, None)
+    let draft_prs = list_prs(project_path, Some("draft"), None, None, None, false)
         .await
         .expect("Should list");
     assert_eq!(draft_prs.len(), 1);

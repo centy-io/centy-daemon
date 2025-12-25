@@ -32,6 +32,9 @@ pub struct PrMetadata {
     pub closed_at: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
 }
 
 impl PrMetadata {
@@ -58,6 +61,7 @@ impl PrMetadata {
             merged_at: String::new(),
             closed_at: String::new(),
             custom_fields,
+            deleted_at: None,
         }
     }
 }
