@@ -13,6 +13,9 @@ use std::process::Command;
 /// 2. Display an instruction message about the issue
 /// 3. Execute the agent command
 ///
+/// If `stdin_prompt` is provided, it will be piped to the agent via stdin using a heredoc.
+/// This is needed for agents like `claude --print` that expect input on stdin.
+///
 /// Returns Ok(true) if terminal was opened, Ok(false) if terminal is not available,
 /// or Err if terminal failed to open.
 pub fn open_terminal_with_agent(
@@ -20,6 +23,7 @@ pub fn open_terminal_with_agent(
     display_number: u32,
     agent_command: &str,
     agent_args: &[String],
+    stdin_prompt: Option<&str>,
 ) -> Result<bool, WorkspaceError> {
     // Build the agent args string
     let args_str = if agent_args.is_empty() {
@@ -29,9 +33,19 @@ pub fn open_terminal_with_agent(
     };
 
     // Generate the shell script to run in terminal
-    let shell_script = format!(
-        r#"echo ""; echo "=== Centy Issue #{display_number} ==="; echo "Tip: Run 'centy get issue {display_number}' to view issue details"; echo ""; {agent_command}{args_str}"#
-    );
+    let shell_script = if let Some(prompt) = stdin_prompt {
+        // Use heredoc for stdin-based agents (like claude --print)
+        format!(
+            r#"echo ""; echo "=== Centy Issue #{display_number} ==="; cat <<'CENTY_PROMPT_EOF' | {agent_command}{args_str}
+{prompt}
+CENTY_PROMPT_EOF"#
+        )
+    } else {
+        // Original behavior for argument-based agents
+        format!(
+            r#"echo ""; echo "=== Centy Issue #{display_number} ==="; echo "Tip: Run 'centy get issue {display_number}' to view issue details"; echo ""; {agent_command}{args_str}"#
+        )
+    };
 
     open_platform_terminal(working_dir, &shell_script)
 }
