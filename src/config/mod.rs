@@ -63,6 +63,9 @@ pub struct LlmConfig {
     /// If true, LLM may directly edit metadata.json files. If false, use centy CLI
     #[serde(default)]
     pub allow_direct_edits: bool,
+    /// Default workspace mode for agent operations (0=unspecified, 1=temp, 2=current)
+    #[serde(default)]
+    pub default_workspace_mode: i32,
 }
 
 /// Centy configuration

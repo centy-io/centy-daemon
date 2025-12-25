@@ -237,6 +237,9 @@ service CentyDaemon {
   // Open a project in a temporary VS Code workspace
   rpc OpenInTempVscode(OpenInTempVscodeRequest) returns (OpenInTempVscodeResponse);
 
+  // Open an agent in a terminal for working on an issue
+  rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
+
   // List all temp workspaces
   rpc ListTempWorkspaces(ListTempWorkspacesRequest) returns (ListTempWorkspacesResponse);
 
@@ -616,6 +619,7 @@ message LlmConfig {
   bool auto_close_on_complete = 1;    // Auto-close issues when marked complete by LLM
   bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work
   bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
+  WorkspaceMode default_workspace_mode = 4;  // Default workspace mode for agent operations
 }
 
 // Custom link type definition (for custom relationship types)
@@ -1343,6 +1347,13 @@ enum LlmAction {
   LLM_ACTION_DEEPDIVE = 3;
 }
 
+// Workspace mode for agent operations
+enum WorkspaceMode {
+  WORKSPACE_MODE_UNSPECIFIED = 0;       // Use project default or prompt user
+  WORKSPACE_MODE_TEMP = 1;              // Create temporary worktree
+  WORKSPACE_MODE_CURRENT = 2;           // Use current project directory
+}
+
 // Agent configuration (stored in config.local.json)
 message AgentConfig {
   AgentType agent_type = 1;
@@ -1450,6 +1461,26 @@ message OpenInTempVscodeResponse {
   uint32 display_number = 5;            // Issue display number
   string expires_at = 6;                // ISO timestamp when workspace expires
   bool vscode_opened = 7;               // Whether VS Code was successfully opened
+}
+
+// Request to open an agent in a terminal
+message OpenAgentInTerminalRequest {
+  string project_path = 1;              // Source project path
+  string issue_id = 2;                  // Issue UUID or display number
+  string agent_name = 3;                // Agent to use (empty = default)
+  WorkspaceMode workspace_mode = 4;     // Temp worktree or current project
+  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = default, only for temp mode)
+}
+
+message OpenAgentInTerminalResponse {
+  bool success = 1;
+  string error = 2;
+  string working_directory = 3;         // Path where agent was launched
+  string issue_id = 4;                  // Resolved issue UUID
+  uint32 display_number = 5;            // Issue display number
+  string agent_command = 6;             // The agent command that was executed
+  bool terminal_opened = 7;             // Whether terminal was successfully opened
+  string expires_at = 8;                // ISO timestamp (only for temp mode)
 }
 
 // A temporary workspace entry

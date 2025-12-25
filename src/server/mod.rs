@@ -52,6 +52,7 @@ use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
     create_temp_workspace, list_workspaces as internal_list_workspaces,
+    terminal::{is_terminal_available, open_terminal_with_agent},
     vscode::is_vscode_available,
     CreateWorkspaceOptions,
 };
@@ -70,7 +71,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -150,6 +151,7 @@ async fn startup_org_inference() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[tonic::async_trait]
 impl CentyDaemon for CentyDaemonService {
     async fn init(&self, request: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
@@ -632,6 +634,7 @@ impl CentyDaemon for CentyDaemonService {
                     auto_close_on_complete: false,
                     update_status_on_start: false,
                     allow_direct_edits: false,
+                    default_workspace_mode: 0,
                 }),
                 custom_link_types: vec![],
             })),
@@ -2759,6 +2762,167 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn open_agent_in_terminal(
+        &self,
+        request: Request<OpenAgentInTerminalRequest>,
+    ) -> Result<Response<OpenAgentInTerminalResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Resolve issue - try parsing as display number first, then as UUID
+        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
+            match get_issue_by_display_number(project_path, display_num).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(OpenAgentInTerminalResponse {
+                        success: false,
+                        error: format!("Issue not found: {e}"),
+                        working_directory: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        agent_command: String::new(),
+                        terminal_opened: false,
+                        expires_at: String::new(),
+                    }));
+                }
+            }
+        } else {
+            match get_issue(project_path, &req.issue_id).await {
+                Ok(i) => i,
+                Err(e) => {
+                    return Ok(Response::new(OpenAgentInTerminalResponse {
+                        success: false,
+                        error: format!("Issue not found: {e}"),
+                        working_directory: String::new(),
+                        issue_id: String::new(),
+                        display_number: 0,
+                        agent_command: String::new(),
+                        terminal_opened: false,
+                        expires_at: String::new(),
+                    }));
+                }
+            }
+        };
+
+        // Auto-update status to in-progress if configured
+        let config = read_config(project_path).await.ok().flatten();
+        if let Some(ref cfg) = config {
+            if cfg.llm.update_status_on_start {
+                let current_status = &issue.metadata.status;
+                if current_status != "in-progress" && current_status != "closed" {
+                    let update_opts = UpdateIssueOptions {
+                        status: Some("in-progress".to_string()),
+                        ..Default::default()
+                    };
+                    if let Err(e) = update_issue(project_path, &issue.id, update_opts).await {
+                        tracing::warn!("Failed to auto-update status to in-progress: {e}");
+                    }
+                }
+            }
+        }
+
+        // Get effective config to resolve agent name
+        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
+        let agent_name = if req.agent_name.is_empty() {
+            llm_config
+                .as_ref()
+                .and_then(|c| c.default_agent.clone())
+                .unwrap_or_else(|| "claude".to_string())
+        } else {
+            req.agent_name.clone()
+        };
+
+        // Get agent config for the command
+        let agent_config = llm_config
+            .as_ref()
+            .and_then(|c| c.agents.iter().find(|a| a.name == agent_name).cloned());
+
+        let (agent_command, agent_args) = if let Some(agent) = agent_config {
+            (agent.command, agent.default_args)
+        } else {
+            // Default to using the agent name as the command
+            (agent_name.clone(), Vec::new())
+        };
+
+        // Determine workspace mode
+        let workspace_mode = match req.workspace_mode {
+            x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
+            x if x == WorkspaceMode::Current as i32 => WorkspaceMode::Current,
+            _ => {
+                // Check project default from config
+                if let Some(ref cfg) = config {
+                    match cfg.llm.default_workspace_mode {
+                        x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
+                        x if x == WorkspaceMode::Current as i32 => WorkspaceMode::Current,
+                        _ => WorkspaceMode::Current, // Default to current
+                    }
+                } else {
+                    WorkspaceMode::Current
+                }
+            }
+        };
+
+        // Get working directory based on mode
+        let (working_dir, expires_at) = match workspace_mode {
+            WorkspaceMode::Temp => {
+                // Create temp workspace (reuse existing logic)
+                let options = CreateWorkspaceOptions {
+                    source_project_path: project_path.to_path_buf(),
+                    issue: issue.clone(),
+                    action: "agent".to_string(),
+                    agent_name: agent_name.clone(),
+                    ttl_hours: req.ttl_hours,
+                };
+                match create_temp_workspace(options).await {
+                    Ok(result) => (
+                        result.workspace_path,
+                        Some(result.entry.expires_at),
+                    ),
+                    Err(e) => {
+                        return Ok(Response::new(OpenAgentInTerminalResponse {
+                            success: false,
+                            error: format!("Failed to create workspace: {e}"),
+                            working_directory: String::new(),
+                            issue_id: String::new(),
+                            display_number: 0,
+                            agent_command: String::new(),
+                            terminal_opened: false,
+                            expires_at: String::new(),
+                        }));
+                    }
+                }
+            }
+            _ => (project_path.to_path_buf(), None),
+        };
+
+        // Open terminal with agent
+        let terminal_opened = open_terminal_with_agent(
+            &working_dir,
+            issue.metadata.display_number,
+            &agent_command,
+            &agent_args,
+        )
+        .unwrap_or(false);
+
+        let full_command = if agent_args.is_empty() {
+            agent_command.clone()
+        } else {
+            format!("{} {}", agent_command, agent_args.join(" "))
+        };
+
+        Ok(Response::new(OpenAgentInTerminalResponse {
+            success: true,
+            error: String::new(),
+            working_directory: working_dir.to_string_lossy().to_string(),
+            issue_id: issue.id.clone(),
+            display_number: issue.metadata.display_number,
+            agent_command: full_command,
+            terminal_opened,
+            expires_at: expires_at.unwrap_or_default(),
+        }))
+    }
+
     async fn list_temp_workspaces(
         &self,
         request: Request<ListTempWorkspacesRequest>,
@@ -2879,6 +3043,9 @@ impl CentyDaemon for CentyDaemonService {
 
         // Check if VSCode is available
         let vscode_available = is_vscode_available();
+
+        // Check if terminal is available
+        let terminal_available = is_terminal_available();
 
         // Build actions based on entity type and optional entity ID
         let mut actions = Vec::new();
@@ -3020,6 +3187,19 @@ impl CentyDaemon for CentyDaemonService {
                         },
                         destructive: false,
                         keyboard_shortcut: "o".to_string(),
+                    });
+                    actions.push(EntityAction {
+                        id: "open_in_terminal".to_string(),
+                        label: "Open in Terminal".to_string(),
+                        category: ActionCategory::External as i32,
+                        enabled: terminal_available,
+                        disabled_reason: if terminal_available {
+                            String::new()
+                        } else {
+                            "Terminal not available".to_string()
+                        },
+                        destructive: false,
+                        keyboard_shortcut: "t".to_string(),
                     });
                 }
             }
@@ -3254,6 +3434,7 @@ fn config_to_proto(config: &CentyConfig) -> Config {
             auto_close_on_complete: config.llm.auto_close_on_complete,
             update_status_on_start: config.llm.update_status_on_start,
             allow_direct_edits: config.llm.allow_direct_edits,
+            default_workspace_mode: config.llm.default_workspace_mode,
         }),
         custom_link_types: config
             .custom_link_types
@@ -3272,6 +3453,7 @@ fn proto_to_config(proto: &Config) -> CentyConfig {
         auto_close_on_complete: l.auto_close_on_complete,
         update_status_on_start: l.update_status_on_start,
         allow_direct_edits: l.allow_direct_edits,
+        default_workspace_mode: l.default_workspace_mode,
     }).unwrap_or_default();
 
     CentyConfig {

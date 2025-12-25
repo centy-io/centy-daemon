@@ -8,6 +8,7 @@
 pub mod cleanup;
 pub mod create;
 pub mod storage;
+pub mod terminal;
 pub mod types;
 pub mod vscode;
 
@@ -23,6 +24,8 @@ pub use storage::{
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
 #[allow(unused_imports)]
 pub use vscode::{open_vscode, setup_vscode_config};
+#[allow(unused_imports)]
+pub use terminal::{is_terminal_available, open_terminal_with_agent};
 
 use thiserror::Error;
 
@@ -48,6 +51,12 @@ pub enum WorkspaceError {
 
     #[error("VS Code failed to open: {0}")]
     VscodeError(String),
+
+    #[error("Terminal not found")]
+    TerminalNotFound,
+
+    #[error("Terminal failed to open: {0}")]
+    TerminalError(String),
 
     #[error("Workspace not found: {0}")]
     WorkspaceNotFound(String),
