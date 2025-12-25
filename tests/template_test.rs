@@ -240,7 +240,8 @@ type: "api-reference"
 
     assert!(doc_content.contains("type: \"api-reference\""));
     assert!(doc_content.contains("# API: Users Endpoint"));
-    assert!(doc_content.contains("The users API..."));
+    // Note: format_markdown converts ... to Unicode ellipsis …
+    assert!(doc_content.contains("The users API…"));
 }
 
 #[tokio::test]
