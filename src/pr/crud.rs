@@ -235,7 +235,7 @@ pub async fn get_pr_by_display_number(
 
                 if let Ok(content) = fs::read_to_string(&metadata_path).await {
                     if let Ok(metadata) = serde_json::from_str::<PrMetadata>(&content) {
-                        if metadata.display_number == display_number {
+                        if metadata.common.display_number == display_number {
                             return read_pr_from_disk(&entry.path(), folder_name).await;
                         }
                     }
@@ -374,20 +374,22 @@ pub async fn update_pr(
 
     // Create updated metadata
     let updated_metadata = PrMetadata {
-        display_number: current.metadata.display_number,
-        status: new_status.clone(),
+        common: crate::common::CommonMetadata {
+            display_number: current.metadata.display_number,
+            status: new_status.clone(),
+            priority: new_priority,
+            created_at: current.metadata.created_at.clone(),
+            updated_at: now_iso(),
+            custom_fields: new_custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect(),
+        },
         source_branch: new_source_branch.clone(),
         target_branch: new_target_branch.clone(),
         reviewers: new_reviewers.clone(),
-        priority: new_priority,
-        created_at: current.metadata.created_at.clone(),
-        updated_at: now_iso(),
         merged_at: new_merged_at.clone(),
         closed_at: new_closed_at.clone(),
-        custom_fields: new_custom_fields
-            .iter()
-            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-            .collect(),
     };
 
     // Generate updated content
@@ -416,7 +418,7 @@ pub async fn update_pr(
             reviewers: new_reviewers,
             priority: new_priority,
             created_at: current.metadata.created_at,
-            updated_at: updated_metadata.updated_at,
+            updated_at: updated_metadata.common.updated_at,
             merged_at: new_merged_at,
             closed_at: new_closed_at,
             custom_fields: new_custom_fields,
@@ -474,6 +476,7 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
 
     // Convert custom fields to strings
     let custom_fields: HashMap<String, String> = metadata
+        .common
         .custom_fields
         .into_iter()
         .map(|(k, v)| {
@@ -490,14 +493,14 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
         title,
         description,
         metadata: PrMetadataFlat {
-            display_number: metadata.display_number,
-            status: metadata.status,
+            display_number: metadata.common.display_number,
+            status: metadata.common.status,
             source_branch: metadata.source_branch,
             target_branch: metadata.target_branch,
             reviewers: metadata.reviewers,
-            priority: metadata.priority,
-            created_at: metadata.created_at,
-            updated_at: metadata.updated_at,
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at,
+            updated_at: metadata.common.updated_at,
             merged_at: metadata.merged_at,
             closed_at: metadata.closed_at,
             custom_fields,

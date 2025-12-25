@@ -178,7 +178,7 @@ pub async fn create_issue(
             priority,
             priority_label: priority_label(priority, priority_levels),
             status,
-            created_at: metadata.created_at.clone(),
+            created_at: metadata.common.created_at.clone(),
             custom_fields: options.custom_fields.clone(),
         };
         template_engine
@@ -190,7 +190,7 @@ pub async fn create_issue(
     };
 
     // Add planning note if status is "planning"
-    if is_planning_status(&metadata.status) {
+    if is_planning_status(&metadata.common.status) {
         issue_md = add_planning_note(&issue_md);
     }
 

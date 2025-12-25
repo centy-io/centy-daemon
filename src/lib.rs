@@ -1,3 +1,4 @@
+pub mod common;
 pub mod config;
 pub mod docs;
 pub mod features;
@@ -18,6 +19,7 @@ pub mod version;
 pub mod workspace;
 
 // Re-export commonly used types
+pub use common::CommonMetadata;
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use docs::{
     create_doc, delete_doc, get_doc, list_docs, update_doc,

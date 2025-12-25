@@ -282,7 +282,7 @@ pub async fn get_issue_by_display_number(
 
                 if let Ok(content) = fs::read_to_string(&metadata_path).await {
                     if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
-                        if metadata.display_number == display_number {
+                        if metadata.common.display_number == display_number {
                             return read_issue_from_disk(&entry.path(), folder_name).await;
                         }
                     }
@@ -411,15 +411,17 @@ pub async fn update_issue(
 
     // Create updated metadata
     let updated_metadata = IssueMetadata {
-        display_number: current.metadata.display_number,
-        status: new_status.clone(),
-        priority: new_priority,
-        created_at: current.metadata.created_at.clone(),
-        updated_at: now_iso(),
-        custom_fields: new_custom_fields
-            .iter()
-            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-            .collect(),
+        common: crate::common::CommonMetadata {
+            display_number: current.metadata.display_number,
+            status: new_status.clone(),
+            priority: new_priority,
+            created_at: current.metadata.created_at.clone(),
+            updated_at: now_iso(),
+            custom_fields: new_custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect(),
+        },
         compacted: current.metadata.compacted,
         compacted_at: current.metadata.compacted_at.clone(),
         draft: new_draft,
@@ -469,7 +471,7 @@ pub async fn update_issue(
             status: new_status,
             priority: new_priority,
             created_at: current.metadata.created_at,
-            updated_at: updated_metadata.updated_at.clone(),
+            updated_at: updated_metadata.common.updated_at.clone(),
             custom_fields: new_custom_fields,
             compacted: current.metadata.compacted,
             compacted_at: current.metadata.compacted_at,
@@ -579,8 +581,8 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     // Read, update, and write metadata with new display number
     let metadata_content = fs::read_to_string(source_issue_path.join("metadata.json")).await?;
     let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
-    metadata.display_number = new_display_number;
-    metadata.updated_at = now_iso();
+    metadata.common.display_number = new_display_number;
+    metadata.common.updated_at = now_iso();
     fs::write(
         target_issue_path.join("metadata.json"),
         serde_json::to_string_pretty(&metadata)?,
@@ -690,15 +692,17 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
 
     // Create new metadata with fresh timestamps
     let new_metadata = IssueMetadata {
-        display_number: new_display_number,
-        status: source_issue.metadata.status.clone(),
-        priority: source_issue.metadata.priority,
-        created_at: now_iso(),
-        updated_at: now_iso(),
-        custom_fields: source_issue.metadata.custom_fields
-            .iter()
-            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-            .collect(),
+        common: crate::common::CommonMetadata {
+            display_number: new_display_number,
+            status: source_issue.metadata.status.clone(),
+            priority: source_issue.metadata.priority,
+            created_at: now_iso(),
+            updated_at: now_iso(),
+            custom_fields: source_issue.metadata.custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect(),
+        },
         compacted: false, // Reset compacted status for new issue
         compacted_at: None,
         draft: source_issue.metadata.draft, // Preserve draft status
@@ -749,6 +753,7 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
 
     // Convert custom fields to strings
     let custom_fields: HashMap<String, String> = metadata
+        .common
         .custom_fields
         .into_iter()
         .map(|(k, v)| {
@@ -767,11 +772,11 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
         title,
         description,
         metadata: IssueMetadataFlat {
-            display_number: metadata.display_number,
-            status: metadata.status,
-            priority: metadata.priority,
-            created_at: metadata.created_at,
-            updated_at: metadata.updated_at,
+            display_number: metadata.common.display_number,
+            status: metadata.common.status,
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at,
+            updated_at: metadata.common.updated_at,
             custom_fields,
             compacted: metadata.compacted,
             compacted_at: metadata.compacted_at,
