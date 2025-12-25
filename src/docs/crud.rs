@@ -3,7 +3,7 @@ use crate::manifest::{
 };
 use crate::registry::ProjectInfo;
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::fs;
@@ -229,8 +229,8 @@ pub async fn create_doc(
         generate_doc_content(&options.title, &options.content, &metadata)
     };
 
-    // Write the doc file
-    fs::write(&doc_path, &doc_content).await?;
+    // Write the doc file (formatted)
+    fs::write(&doc_path, format_markdown(&doc_content)).await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);

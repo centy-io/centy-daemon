@@ -2,7 +2,7 @@ use crate::config::read_config;
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
-use crate::utils::get_centy_path;
+use crate::utils::{format_markdown, get_centy_path};
 use crate::issue::priority::{default_priority, validate_priority, PriorityError};
 use super::git::{detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError};
 use super::id::generate_pr_id;
@@ -233,7 +233,7 @@ pub async fn create_pr(
     let metadata_path = pr_folder.join("metadata.json");
     let assets_path = pr_folder.join("assets");
 
-    fs::write(&pr_md_path, &pr_md).await?;
+    fs::write(&pr_md_path, format_markdown(&pr_md)).await?;
     fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
     fs::create_dir_all(&assets_path).await?;
 

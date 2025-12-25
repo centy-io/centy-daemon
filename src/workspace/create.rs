@@ -8,7 +8,7 @@ use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
 use crate::issue::{copy_assets_folder, Issue};
 use crate::pr::git::{create_worktree, is_git_repository};
-use crate::utils::now_iso;
+use crate::utils::{format_markdown, now_iso};
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 use tokio::fs;
@@ -169,7 +169,7 @@ async fn create_plan_template(
         .join(".centy/issues")
         .join(issue_id)
         .join("plan.md");
-    fs::write(&plan_path, plan_content).await?;
+    fs::write(&plan_path, format_markdown(&plan_content)).await?;
 
     Ok(())
 }
