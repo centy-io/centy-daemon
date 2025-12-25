@@ -1,3 +1,4 @@
+mod common;
 mod config;
 mod docs;
 mod features;

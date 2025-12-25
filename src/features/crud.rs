@@ -193,7 +193,7 @@ pub async fn mark_issues_compacted(
         // Update compacted fields
         metadata.compacted = true;
         metadata.compacted_at = Some(now.clone());
-        metadata.updated_at.clone_from(&now);
+        metadata.common.updated_at.clone_from(&now);
 
         // Write back
         fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;

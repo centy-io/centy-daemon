@@ -73,8 +73,8 @@ pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, Reconc
 
         prs.push(PrInfo {
             folder_name,
-            display_number: metadata.display_number,
-            created_at: metadata.created_at,
+            display_number: metadata.common.display_number,
+            created_at: metadata.common.created_at,
         });
     }
 
@@ -131,8 +131,8 @@ pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, Reconc
         let content = fs::read_to_string(&metadata_path).await?;
         let mut metadata: PrMetadata = serde_json::from_str(&content)?;
 
-        metadata.display_number = new_display_number;
-        metadata.updated_at = crate::utils::now_iso();
+        metadata.common.display_number = new_display_number;
+        metadata.common.updated_at = crate::utils::now_iso();
 
         let new_content = serde_json::to_string_pretty(&metadata)?;
         fs::write(&metadata_path, new_content).await?;
@@ -173,7 +173,7 @@ pub async fn get_next_pr_display_number(prs_path: &Path) -> Result<u32, Reconcil
 
         if let Ok(content) = fs::read_to_string(&metadata_path).await {
             if let Ok(metadata) = serde_json::from_str::<PrMetadata>(&content) {
-                max_number = max_number.max(metadata.display_number);
+                max_number = max_number.max(metadata.common.display_number);
             }
         }
     }
@@ -285,7 +285,7 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        assert_eq!(metadata1.display_number, 4);
+        assert_eq!(metadata1.common.display_number, 4);
 
         // Check the newer one was reassigned to 6 (max was 5, so next is 6)
         let metadata2: PrMetadata = serde_json::from_str(
@@ -298,7 +298,7 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        assert_eq!(metadata2.display_number, 6);
+        assert_eq!(metadata2.common.display_number, 6);
     }
 
     #[tokio::test]
