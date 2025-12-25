@@ -42,7 +42,7 @@ pub struct AgentConfig {
     #[serde(default)]
     pub default_args: Vec<String>,
     /// If true, the prompt is passed via stdin instead of as a positional argument.
-    /// This is needed for agents like `claude --print` that expect input on stdin.
+    /// This is useful for agents that expect input on stdin rather than as an argument.
     #[serde(default)]
     pub stdin_prompt: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,8 +74,8 @@ impl LocalLlmConfig {
                     agent_type: AgentType::Claude,
                     name: "claude".to_string(),
                     command: "claude".to_string(),
-                    default_args: vec!["--print".to_string()],
-                    stdin_prompt: true,
+                    default_args: vec![],
+                    stdin_prompt: false,
                     plan_template: None,
                     implement_template: None,
                 },
