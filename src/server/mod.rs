@@ -2919,6 +2919,16 @@ impl CentyDaemon for CentyDaemonService {
                 } else {
                     // Entity-specific actions
                     actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create Issue".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+
+                    actions.push(EntityAction {
                         id: "delete".to_string(),
                         label: "Delete".to_string(),
                         category: ActionCategory::Crud as i32,
@@ -3032,6 +3042,16 @@ impl CentyDaemon for CentyDaemonService {
                     });
                 } else {
                     actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create PR".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+
+                    actions.push(EntityAction {
                         id: "delete".to_string(),
                         label: "Delete".to_string(),
                         category: ActionCategory::Crud as i32,
@@ -3080,6 +3100,16 @@ impl CentyDaemon for CentyDaemonService {
                         keyboard_shortcut: "c".to_string(),
                     });
                 } else {
+                    actions.push(EntityAction {
+                        id: "create".to_string(),
+                        label: "Create Doc".to_string(),
+                        category: ActionCategory::Crud as i32,
+                        enabled: true,
+                        disabled_reason: String::new(),
+                        destructive: false,
+                        keyboard_shortcut: "c".to_string(),
+                    });
+
                     actions.push(EntityAction {
                         id: "delete".to_string(),
                         label: "Delete".to_string(),
