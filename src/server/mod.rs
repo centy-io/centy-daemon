@@ -2992,7 +2992,7 @@ impl CentyDaemon for CentyDaemonService {
             // Return early with requires_status_config = true
             return Ok(Response::new(OpenInTempVscodeResponse {
                 success: false,
-                error: String::new(),
+                error: "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string(),
                 workspace_path: String::new(),
                 issue_id: issue.id.clone(),
                 display_number: issue.metadata.display_number,
