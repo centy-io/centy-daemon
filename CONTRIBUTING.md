@@ -25,6 +25,33 @@ cargo test         # Run tests
 cargo run          # Start the daemon
 ```
 
+### Watch Mode (Recommended)
+
+For a faster development experience, install `cargo-watch` to automatically rebuild and restart the daemon on file changes:
+
+```bash
+# Install cargo-watch (one-time)
+cargo install cargo-watch
+
+# Run daemon with auto-reload on changes
+cargo watch -x run
+
+# Type-check on changes (faster, no execution)
+cargo watch -x check
+
+# Run tests on changes
+cargo watch -x test
+
+# Run clippy on changes
+cargo watch -x 'clippy --all-targets'
+```
+
+VS Code users can use the pre-configured tasks via `Cmd/Ctrl+Shift+B`:
+- **Watch Run** - Run daemon with auto-reload
+- **Watch Check** - Type-check on changes
+- **Watch Test** - Run tests on changes
+- **Watch Clippy** - Run lints on changes
+
 ## Development Workflow
 
 ### Branch Naming

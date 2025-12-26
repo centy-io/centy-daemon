@@ -3905,6 +3905,9 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
             draft: issue.metadata.draft,
             deleted_at: issue.metadata.deleted_at.clone().unwrap_or_default(),
+            is_org_issue: issue.metadata.is_org_issue,
+            org_slug: issue.metadata.org_slug.clone().unwrap_or_default(),
+            org_display_number: issue.metadata.org_display_number.unwrap_or(0),
         }),
     }
 }
