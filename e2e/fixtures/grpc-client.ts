@@ -313,6 +313,13 @@ export interface CentyClient {
       response: DeleteOrganizationResponse
     ) => void
   ): void;
+  setProjectOrganization(
+    request: SetProjectOrganizationRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: SetProjectOrganizationResponse
+    ) => void
+  ): void;
 
   // Org Issues
   createOrgIssue(
@@ -495,6 +502,13 @@ export interface CreateIssueRequest {
   status?: string;
   customFields?: Record<string, string>;
   template?: string;
+  isOrgIssue?: boolean;
+}
+
+export interface OrgSyncResult {
+  projectPath: string;
+  success: boolean;
+  error: string;
 }
 
 export interface CreateIssueResponse {
@@ -505,6 +519,8 @@ export interface CreateIssueResponse {
   issueNumber: string;
   createdFiles: string[];
   manifest?: Manifest;
+  orgDisplayNumber?: number;
+  syncResults?: OrgSyncResult[];
 }
 
 export interface GetIssueRequest {
@@ -534,6 +550,9 @@ export interface IssueMetadata {
   updatedAt: string;
   customFields: Record<string, string>;
   priorityLabel: string;
+  isOrgIssue?: boolean;
+  orgSlug?: string;
+  orgDisplayNumber?: number;
 }
 
 export interface ListIssuesRequest {
@@ -562,6 +581,7 @@ export interface UpdateIssueResponse {
   error: string;
   issue?: Issue;
   manifest?: Manifest;
+  syncResults?: OrgSyncResult[];
 }
 
 export interface DeleteIssueRequest {
@@ -1034,6 +1054,16 @@ export interface DeleteOrganizationResponse {
   unassignedProjects: number;
 }
 
+export interface SetProjectOrganizationRequest {
+  projectPath: string;
+  organizationSlug: string;
+}
+
+export interface SetProjectOrganizationResponse {
+  success: boolean;
+  error: string;
+}
+
 // ============ Org Issue Types ============
 
 export interface OrgIssue {
@@ -1432,6 +1462,9 @@ export function promisifyClient(client: CentyClient) {
     ),
     deleteOrganization: promisify<DeleteOrganizationRequest, DeleteOrganizationResponse>(
       client.deleteOrganization
+    ),
+    setProjectOrganization: promisify<SetProjectOrganizationRequest, SetProjectOrganizationResponse>(
+      client.setProjectOrganization
     ),
 
     // Org Issues

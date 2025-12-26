@@ -1,12 +1,16 @@
+use crate::common::{sync_to_org_projects, OrgSyncResult};
 use crate::config::read_config;
 use crate::llm::{generate_title, TitleGenerationError};
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
+use crate::registry::get_project_info;
 use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path};
+use super::crud::{Issue, IssueMetadataFlat};
 use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
+use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
 use super::planning::{add_planning_note, is_planning_status};
@@ -47,6 +51,15 @@ pub enum IssueError {
 
     #[error("Title generation failed: {0}")]
     TitleGenerationFailed(#[from] TitleGenerationError),
+
+    #[error("Cannot create org issue: project has no organization")]
+    NoOrganization,
+
+    #[error("Org registry error: {0}")]
+    OrgRegistryError(#[from] OrgIssueRegistryError),
+
+    #[error("Registry error: {0}")]
+    RegistryError(String),
 }
 
 /// Options for creating an issue
@@ -62,6 +75,8 @@ pub struct CreateIssueOptions {
     pub template: Option<String>,
     /// Whether to create the issue as a draft
     pub draft: Option<bool>,
+    /// Create as organization-wide issue (syncs to all org projects)
+    pub is_org_issue: bool,
 }
 
 /// Result of issue creation
@@ -71,11 +86,15 @@ pub struct CreateIssueResult {
     pub id: String,
     /// Human-readable display number (1, 2, 3...)
     pub display_number: u32,
+    /// Org-level display number (only for org issues)
+    pub org_display_number: Option<u32>,
     /// Legacy field for backward compatibility (same as id)
     #[deprecated(note = "Use `id` instead")]
     pub issue_number: String,
     pub created_files: Vec<String>,
     pub manifest: CentyManifest,
+    /// Results from syncing to other org projects (empty for non-org issues)
+    pub sync_results: Vec<OrgSyncResult>,
 }
 
 /// Create a new issue
@@ -101,6 +120,24 @@ pub async fn create_issue(
     if !issues_path.exists() {
         fs::create_dir_all(&issues_path).await?;
     }
+
+    // Get organization info if this is an org issue
+    let (org_slug, org_display_number) = if options.is_org_issue {
+        let project_path_str = project_path.to_string_lossy().to_string();
+        let project_info = get_project_info(&project_path_str)
+            .await
+            .map_err(|e| IssueError::RegistryError(e.to_string()))?;
+
+        match project_info.and_then(|p| p.organization_slug) {
+            Some(slug) => {
+                let org_num = get_next_org_display_number(&slug).await?;
+                (Some(slug), Some(org_num))
+            }
+            None => return Err(IssueError::NoOrganization),
+        }
+    } else {
+        (None, None)
+    };
 
     // Generate UUID for folder name (prevents git conflicts)
     let issue_id = generate_issue_id();
@@ -159,14 +196,26 @@ pub async fn create_issue(
         custom_field_values.insert(key.clone(), serde_json::Value::String(value.clone()));
     }
 
-    // Create metadata
-    let metadata = IssueMetadata::new_draft(
-        display_number,
-        status.clone(),
-        priority,
-        custom_field_values,
-        options.draft.unwrap_or(false),
-    );
+    // Create metadata (org or regular)
+    let metadata = if let Some(ref org) = org_slug {
+        IssueMetadata::new_org_issue(
+            display_number,
+            org_display_number.unwrap_or(0),
+            status.clone(),
+            priority,
+            org,
+            custom_field_values,
+            options.draft.unwrap_or(false),
+        )
+    } else {
+        IssueMetadata::new_draft(
+            display_number,
+            status.clone(),
+            priority,
+            custom_field_values,
+            options.draft.unwrap_or(false),
+        )
+    };
 
     // Create issue content
     let mut issue_md = if let Some(ref template_name) = options.template {
@@ -217,13 +266,46 @@ pub async fn create_issue(
         format!(".centy/issues/{}/assets/", issue_id),
     ];
 
+    // Sync to other org projects if this is an org issue
+    let sync_results = if options.is_org_issue {
+        // Build the Issue struct for syncing
+        #[allow(deprecated)]
+        let issue = Issue {
+            id: issue_id.clone(),
+            issue_number: issue_id.clone(),
+            title: options.title.clone(),
+            description: options.description.clone(),
+            metadata: IssueMetadataFlat {
+                display_number,
+                status: metadata.common.status.clone(),
+                priority: metadata.common.priority,
+                created_at: metadata.common.created_at.clone(),
+                updated_at: metadata.common.updated_at.clone(),
+                custom_fields: options.custom_fields.clone(),
+                compacted: metadata.compacted,
+                compacted_at: metadata.compacted_at.clone(),
+                draft: metadata.draft,
+                deleted_at: metadata.deleted_at.clone(),
+                is_org_issue: metadata.is_org_issue,
+                org_slug: metadata.org_slug.clone(),
+                org_display_number: metadata.org_display_number,
+            },
+        };
+
+        sync_to_org_projects(&issue, project_path).await
+    } else {
+        Vec::new()
+    };
+
     #[allow(deprecated)]
     Ok(CreateIssueResult {
         id: issue_id.clone(),
         display_number,
+        org_display_number,
         issue_number: issue_id, // Legacy field
         created_files,
         manifest,
+        sync_results,
     })
 }
 

@@ -178,6 +178,9 @@ mod tests {
                 compacted_at: None,
                 draft: false,
                 deleted_at: None,
+                is_org_issue: false,
+                org_slug: None,
+                org_display_number: None,
             },
         }
     }

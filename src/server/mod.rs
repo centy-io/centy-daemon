@@ -309,19 +309,35 @@ impl CentyDaemon for CentyDaemonService {
             custom_fields: req.custom_fields,
             template: if req.template.is_empty() { None } else { Some(req.template) },
             draft: Some(req.draft),
+            is_org_issue: req.is_org_issue,
         };
 
         match create_issue_with_title_generation(project_path, options).await {
             #[allow(deprecated)]
-            Ok(result) => Ok(Response::new(CreateIssueResponse {
-                success: true,
-                error: String::new(),
-                id: result.id.clone(),
-                display_number: result.display_number,
-                issue_number: result.issue_number, // Legacy
-                created_files: result.created_files,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                // Convert sync results to proto (reusing OrgDocSyncResult since structure is identical)
+                let sync_results: Vec<OrgDocSyncResult> = result
+                    .sync_results
+                    .into_iter()
+                    .map(|r| OrgDocSyncResult {
+                        project_path: r.project_path,
+                        success: r.success,
+                        error: r.error.unwrap_or_default(),
+                    })
+                    .collect();
+
+                Ok(Response::new(CreateIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    id: result.id.clone(),
+                    display_number: result.display_number,
+                    issue_number: result.issue_number, // Legacy
+                    created_files: result.created_files,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    org_display_number: result.org_display_number.unwrap_or(0),
+                    sync_results,
+                }))
+            }
             Err(e) => Ok(Response::new(CreateIssueResponse {
                 success: false,
                 error: e.to_string(),
@@ -330,6 +346,8 @@ impl CentyDaemon for CentyDaemonService {
                 issue_number: String::new(),
                 created_files: vec![],
                 manifest: None,
+                org_display_number: 0,
+                sync_results: vec![],
             })),
         }
     }
@@ -465,17 +483,32 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match update_issue(project_path, &req.issue_id, options).await {
-            Ok(result) => Ok(Response::new(UpdateIssueResponse {
-                success: true,
-                error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
+            Ok(result) => {
+                // Convert sync results to proto
+                let sync_results: Vec<OrgDocSyncResult> = result
+                    .sync_results
+                    .into_iter()
+                    .map(|r| OrgDocSyncResult {
+                        project_path: r.project_path,
+                        success: r.success,
+                        error: r.error.unwrap_or_default(),
+                    })
+                    .collect();
+
+                Ok(Response::new(UpdateIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    sync_results,
+                }))
+            }
             Err(e) => Ok(Response::new(UpdateIssueResponse {
                 success: false,
                 error: e.to_string(),
                 issue: None,
                 manifest: None,
+                sync_results: vec![],
             })),
         }
     }

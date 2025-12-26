@@ -3,6 +3,7 @@ pub mod create;
 pub mod crud;
 pub mod id;
 mod metadata;
+pub mod org_registry;
 pub mod planning;
 pub mod priority;
 pub mod reconcile;
