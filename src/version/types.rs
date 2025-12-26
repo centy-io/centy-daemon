@@ -1,9 +1,12 @@
 //! Version types for semantic versioning support.
+//!
+//! This module uses the standard `semver` crate for version handling,
+//! re-exporting `semver::Version` as `SemVer` for API compatibility.
 
-use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
-use std::fmt;
 use thiserror::Error;
+
+/// Re-export semver::Version as SemVer for API compatibility.
+pub use semver::Version as SemVer;
 
 /// Error types for version operations.
 #[derive(Error, Debug)]
@@ -15,71 +18,9 @@ pub enum VersionError {
     NotFound,
 }
 
-/// Represents a semantic version (major.minor.patch).
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct SemVer {
-    pub major: u32,
-    pub minor: u32,
-    pub patch: u32,
-}
-
-impl SemVer {
-    /// Create a new `SemVer` instance.
-    #[must_use] 
-    pub fn new(major: u32, minor: u32, patch: u32) -> Self {
-        Self {
-            major,
-            minor,
-            patch,
-        }
-    }
-
-    /// Parse a version string (e.g., "1.2.3") into a `SemVer`.
-    pub fn parse(s: &str) -> Result<Self, VersionError> {
-        let parts: Vec<&str> = s.split('.').collect();
-        if parts.len() != 3 {
-            return Err(VersionError::InvalidFormat(s.to_string()));
-        }
-
-        let major = parts[0]
-            .parse()
-            .map_err(|_| VersionError::InvalidFormat(s.to_string()))?;
-        let minor = parts[1]
-            .parse()
-            .map_err(|_| VersionError::InvalidFormat(s.to_string()))?;
-        let patch = parts[2]
-            .parse()
-            .map_err(|_| VersionError::InvalidFormat(s.to_string()))?;
-
-        Ok(Self {
-            major,
-            minor,
-            patch,
-        })
-    }
-}
-
-impl fmt::Display for SemVer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
-    }
-}
-
-impl Ord for SemVer {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.major.cmp(&other.major) {
-            Ordering::Equal => match self.minor.cmp(&other.minor) {
-                Ordering::Equal => self.patch.cmp(&other.patch),
-                other => other,
-            },
-            other => other,
-        }
-    }
-}
-
-impl PartialOrd for SemVer {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl From<semver::Error> for VersionError {
+    fn from(err: semver::Error) -> Self {
+        VersionError::InvalidFormat(err.to_string())
     }
 }
 
@@ -152,15 +93,24 @@ mod tests {
 
     #[test]
     fn test_semver_ordering() {
-        let mut versions = [SemVer::new(2, 0, 0),
+        let mut versions = [
+            SemVer::new(2, 0, 0),
             SemVer::new(0, 1, 0),
             SemVer::new(1, 0, 0),
-            SemVer::new(1, 1, 0)];
+            SemVer::new(1, 1, 0),
+        ];
         versions.sort();
 
         assert_eq!(versions[0], SemVer::new(0, 1, 0));
         assert_eq!(versions[1], SemVer::new(1, 0, 0));
         assert_eq!(versions[2], SemVer::new(1, 1, 0));
         assert_eq!(versions[3], SemVer::new(2, 0, 0));
+    }
+
+    #[test]
+    fn test_version_error_from_semver_error() {
+        let err = SemVer::parse("invalid").unwrap_err();
+        let version_err: VersionError = err.into();
+        assert!(matches!(version_err, VersionError::InvalidFormat(_)));
     }
 }

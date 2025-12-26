@@ -23,6 +23,9 @@ pub enum MigrationError {
     #[error("Version error: {0}")]
     VersionError(#[from] crate::version::VersionError),
 
+    #[error("Semver parse error: {0}")]
+    SemverError(#[from] semver::Error),
+
     #[error("No migration path from {0} to {1}")]
     NoMigrationPath(String, String),
 
