@@ -34,8 +34,14 @@ service CentyDaemon {
   // Update an existing issue
   rpc UpdateIssue(UpdateIssueRequest) returns (UpdateIssueResponse);
 
-  // Delete an issue
+  // Delete an issue (hard delete - permanent removal)
   rpc DeleteIssue(DeleteIssueRequest) returns (DeleteIssueResponse);
+
+  // Soft-delete an issue (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteIssue(SoftDeleteIssueRequest) returns (SoftDeleteIssueResponse);
+
+  // Restore a soft-deleted issue (clear deleted_at timestamp)
+  rpc RestoreIssue(RestoreIssueRequest) returns (RestoreIssueResponse);
 
   // Move an issue to another project
   rpc MoveIssue(MoveIssueRequest) returns (MoveIssueResponse);
@@ -75,8 +81,14 @@ service CentyDaemon {
   // Update an existing doc
   rpc UpdateDoc(UpdateDocRequest) returns (UpdateDocResponse);
 
-  // Delete a doc
+  // Delete a doc (hard delete - permanent removal)
   rpc DeleteDoc(DeleteDocRequest) returns (DeleteDocResponse);
+
+  // Soft-delete a doc (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteDoc(SoftDeleteDocRequest) returns (SoftDeleteDocResponse);
+
+  // Restore a soft-deleted doc (clear deleted_at timestamp)
+  rpc RestoreDoc(RestoreDocRequest) returns (RestoreDocResponse);
 
   // Move a doc to another project
   rpc MoveDoc(MoveDocRequest) returns (MoveDocResponse);
@@ -178,8 +190,14 @@ service CentyDaemon {
   // Update an existing PR
   rpc UpdatePr(UpdatePrRequest) returns (UpdatePrResponse);
 
-  // Delete a PR
+  // Delete a PR (hard delete - permanent removal)
   rpc DeletePr(DeletePrRequest) returns (DeletePrResponse);
+
+  // Soft-delete a PR (set deleted_at timestamp - recoverable)
+  rpc SoftDeletePr(SoftDeletePrRequest) returns (SoftDeletePrResponse);
+
+  // Restore a soft-deleted PR (clear deleted_at timestamp)
+  rpc RestorePr(RestorePrRequest) returns (RestorePrResponse);
 
   // Get the next PR number
   rpc GetNextPrNumber(GetNextPrNumberRequest) returns (GetNextPrNumberResponse);
@@ -277,8 +295,14 @@ service CentyDaemon {
   // Update an existing user
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
 
-  // Delete a user
+  // Delete a user (hard delete - permanent removal)
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+  // Soft-delete a user (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
+
+  // Restore a soft-deleted user (clear deleted_at timestamp)
+  rpc RestoreUser(RestoreUserRequest) returns (RestoreUserResponse);
 
   // Sync users from git history
   rpc SyncUsers(SyncUsersRequest) returns (SyncUsersResponse);
@@ -530,6 +554,32 @@ message DeleteIssueResponse {
   Manifest manifest = 3;          // Updated manifest after deletion
 }
 
+// Soft-delete an issue (set deleted_at timestamp)
+message SoftDeleteIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+}
+
+message SoftDeleteIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                // The soft-deleted issue (with deleted_at set)
+  Manifest manifest = 4;          // Updated manifest
+}
+
+// Restore a soft-deleted issue (clear deleted_at timestamp)
+message RestoreIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+}
+
+message RestoreIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                // The restored issue (with deleted_at cleared)
+  Manifest manifest = 4;          // Updated manifest
+}
+
 // ============ Issue Move/Duplicate Messages ============
 
 message MoveIssueRequest {
@@ -756,6 +806,32 @@ message DeleteDocResponse {
   bool success = 1;
   string error = 2;
   Manifest manifest = 3;
+}
+
+// Soft-delete a doc (set deleted_at timestamp)
+message SoftDeleteDocRequest {
+  string project_path = 1;
+  string slug = 2;
+}
+
+message SoftDeleteDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                    // The soft-deleted doc (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted doc (clear deleted_at timestamp)
+message RestoreDocRequest {
+  string project_path = 1;
+  string slug = 2;
+}
+
+message RestoreDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                    // The restored doc (with deleted_at cleared)
+  Manifest manifest = 4;
 }
 
 // ============ Doc Move/Duplicate Messages ============
@@ -1266,6 +1342,32 @@ message DeletePrResponse {
   Manifest manifest = 3;              // Updated manifest after deletion
 }
 
+// Soft-delete a PR (set deleted_at timestamp)
+message SoftDeletePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message SoftDeletePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The soft-deleted PR (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted PR (clear deleted_at timestamp)
+message RestorePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message RestorePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The restored PR (with deleted_at cleared)
+  Manifest manifest = 4;
+}
+
 // ============ Features Messages ============
 
 message GetFeatureStatusRequest {
@@ -1690,6 +1792,32 @@ message DeleteUserResponse {
   bool success = 1;
   string error = 2;
   Manifest manifest = 3;
+}
+
+// Soft-delete a user (set deleted_at timestamp)
+message SoftDeleteUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message SoftDeleteUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The soft-deleted user (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted user (clear deleted_at timestamp)
+message RestoreUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message RestoreUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The restored user (with deleted_at cleared)
+  Manifest manifest = 4;
 }
 
 // Git contributor found in history

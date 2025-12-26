@@ -17,18 +17,21 @@ use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::docs::{
     create_doc, delete_doc, duplicate_doc, get_doc, get_docs_by_slug, list_docs, move_doc, update_doc,
+    soft_delete_doc, restore_doc,
     CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
 use crate::issue::{
     create_issue_with_title_generation, delete_issue, duplicate_issue, get_issue,
     get_issue_by_display_number, get_issues_by_uuid, list_issues, move_issue, priority_label,
-    update_issue, CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
+    update_issue, soft_delete_issue, restore_issue,
+    CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
 };
 use crate::pr::{
     create_pr, delete_pr, get_pr, get_pr_by_display_number, get_prs_by_uuid, list_prs, update_pr,
+    soft_delete_pr, restore_pr,
     CreatePrOptions, UpdatePrOptions,
 };
 use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
@@ -46,6 +49,7 @@ use crate::user::{
     create_user as internal_create_user, delete_user as internal_delete_user,
     get_user as internal_get_user, list_users as internal_list_users,
     sync_users as internal_sync_users, update_user as internal_update_user,
+    soft_delete_user as internal_soft_delete_user, restore_user as internal_restore_user,
     CreateUserOptions, UpdateUserOptions,
 };
 use crate::search::{advanced_search, SearchOptions, SortOptions};
@@ -72,7 +76,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -502,6 +506,62 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn soft_delete_issue(
+        &self,
+        request: Request<SoftDeleteIssueRequest>,
+    ) -> Result<Response<SoftDeleteIssueResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+
+        match soft_delete_issue(project_path, &req.issue_id).await {
+            Ok(result) => Ok(Response::new(SoftDeleteIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(SoftDeleteIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn restore_issue(
+        &self,
+        request: Request<RestoreIssueRequest>,
+    ) -> Result<Response<RestoreIssueResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+
+        match restore_issue(project_path, &req.issue_id).await {
+            Ok(result) => Ok(Response::new(RestoreIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(RestoreIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+                manifest: None,
+            })),
+        }
+    }
+
     async fn move_issue(
         &self,
         request: Request<MoveIssueRequest>,
@@ -905,6 +965,54 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => Ok(Response::new(DeleteDocResponse {
                 success: false,
                 error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn soft_delete_doc(
+        &self,
+        request: Request<SoftDeleteDocRequest>,
+    ) -> Result<Response<SoftDeleteDocResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match soft_delete_doc(project_path, &req.slug).await {
+            Ok(result) => Ok(Response::new(SoftDeleteDocResponse {
+                success: true,
+                error: String::new(),
+                doc: Some(doc_to_proto(&result.doc)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(SoftDeleteDocResponse {
+                success: false,
+                error: e.to_string(),
+                doc: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn restore_doc(
+        &self,
+        request: Request<RestoreDocRequest>,
+    ) -> Result<Response<RestoreDocResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match restore_doc(project_path, &req.slug).await {
+            Ok(result) => Ok(Response::new(RestoreDocResponse {
+                success: true,
+                error: String::new(),
+                doc: Some(doc_to_proto(&result.doc)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(RestoreDocResponse {
+                success: false,
+                error: e.to_string(),
+                doc: None,
                 manifest: None,
             })),
         }
@@ -1898,6 +2006,62 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn soft_delete_pr(
+        &self,
+        request: Request<SoftDeletePrRequest>,
+    ) -> Result<Response<SoftDeletePrResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+
+        match soft_delete_pr(project_path, &req.pr_id).await {
+            Ok(result) => Ok(Response::new(SoftDeletePrResponse {
+                success: true,
+                error: String::new(),
+                pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(SoftDeletePrResponse {
+                success: false,
+                error: e.to_string(),
+                pr: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn restore_pr(
+        &self,
+        request: Request<RestorePrRequest>,
+    ) -> Result<Response<RestorePrResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        // Read config for priority_levels
+        let config = read_config(project_path).await.ok().flatten();
+        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+
+        match restore_pr(project_path, &req.pr_id).await {
+            Ok(result) => Ok(Response::new(RestorePrResponse {
+                success: true,
+                error: String::new(),
+                pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(RestorePrResponse {
+                success: false,
+                error: e.to_string(),
+                pr: None,
+                manifest: None,
+            })),
+        }
+    }
+
     async fn get_next_pr_number(
         &self,
         request: Request<GetNextPrNumberRequest>,
@@ -2562,6 +2726,54 @@ impl CentyDaemon for CentyDaemonService {
             Err(e) => Ok(Response::new(DeleteUserResponse {
                 success: false,
                 error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn soft_delete_user(
+        &self,
+        request: Request<SoftDeleteUserRequest>,
+    ) -> Result<Response<SoftDeleteUserResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_soft_delete_user(project_path, &req.user_id).await {
+            Ok(result) => Ok(Response::new(SoftDeleteUserResponse {
+                success: true,
+                error: String::new(),
+                user: Some(user_to_proto(&result.user)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(SoftDeleteUserResponse {
+                success: false,
+                error: e.to_string(),
+                user: None,
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn restore_user(
+        &self,
+        request: Request<RestoreUserRequest>,
+    ) -> Result<Response<RestoreUserResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_restore_user(project_path, &req.user_id).await {
+            Ok(result) => Ok(Response::new(RestoreUserResponse {
+                success: true,
+                error: String::new(),
+                user: Some(user_to_proto(&result.user)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(RestoreUserResponse {
+                success: false,
+                error: e.to_string(),
+                user: None,
                 manifest: None,
             })),
         }
