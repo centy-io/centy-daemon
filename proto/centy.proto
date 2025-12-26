@@ -457,6 +457,9 @@ message IssueMetadata {
   string compacted_at = 9;        // ISO timestamp when compacted (empty if not)
   bool draft = 10;                // Whether this issue is a draft
   string deleted_at = 11;         // ISO timestamp when soft-deleted (empty if not deleted)
+  bool is_org_issue = 12;         // Whether this is an organization-level issue
+  string org_slug = 13;           // Organization slug (empty if not org issue)
+  uint32 org_display_number = 14; // Org-scoped display number (0 if not org issue)
 }
 
 message GetIssueRequest {

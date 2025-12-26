@@ -150,7 +150,8 @@ describe('Org Issue Sync E2E Tests', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.orgDisplayNumber).toBeUndefined();
+      // Protobuf returns 0 for unset uint32 fields, not undefined
+      expect(result.orgDisplayNumber).toBe(0);
       expect(result.syncResults?.length).toBe(0);
 
       const issue = await project1.client.getIssue({
@@ -159,7 +160,8 @@ describe('Org Issue Sync E2E Tests', () => {
       });
 
       expect(issue.metadata.isOrgIssue).toBeFalsy();
-      expect(issue.metadata.orgSlug).toBeUndefined();
+      // Protobuf returns empty string for unset string fields
+      expect(issue.metadata.orgSlug).toBeFalsy();
     });
 
     it('should not sync regular issues', async () => {
