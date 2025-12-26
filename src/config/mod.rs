@@ -57,9 +57,10 @@ pub struct LlmConfig {
     /// If true, LLM should auto-close issues after completing the work
     #[serde(default)]
     pub auto_close_on_complete: bool,
-    /// If true, LLM should update status to "in-progress" when starting work
-    #[serde(default)]
-    pub update_status_on_start: bool,
+    /// If true, LLM should update status to "in-progress" when starting work.
+    /// If None, the user must be prompted to configure this setting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_status_on_start: Option<bool>,
     /// If true, LLM may directly edit metadata.json files. If false, use centy CLI
     #[serde(default)]
     pub allow_direct_edits: bool,
