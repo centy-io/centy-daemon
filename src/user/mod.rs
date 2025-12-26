@@ -13,8 +13,10 @@ mod types;
 
 #[allow(unused_imports)]
 pub use crud::{
-    create_user, delete_user, get_user, list_users, update_user, CreateUserOptions,
-    CreateUserResult, DeleteUserResult, UpdateUserOptions, UpdateUserResult,
+    create_user, delete_user, get_user, list_users, update_user,
+    soft_delete_user, restore_user,
+    CreateUserOptions, CreateUserResult, DeleteUserResult, UpdateUserOptions, UpdateUserResult,
+    SoftDeleteUserResult, RestoreUserResult,
 };
 #[allow(unused_imports)]
 pub use storage::{find_user_by_email, find_user_by_id, read_users, write_users};

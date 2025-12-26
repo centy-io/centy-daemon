@@ -17,10 +17,10 @@ pub use create::{
 #[allow(unused_imports)]
 pub use crud::{
     delete_issue, duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid,
-    list_issues, move_issue, update_issue,
+    list_issues, move_issue, update_issue, soft_delete_issue, restore_issue,
     DeleteIssueResult, DuplicateIssueOptions, DuplicateIssueResult, GetIssuesByUuidResult,
     Issue, IssueCrudError, IssueWithProject, MoveIssueOptions, MoveIssueResult,
-    UpdateIssueOptions, UpdateIssueResult,
+    UpdateIssueOptions, UpdateIssueResult, SoftDeleteIssueResult, RestoreIssueResult,
 };
 #[allow(unused_imports)]
 pub use metadata::IssueMetadata;
