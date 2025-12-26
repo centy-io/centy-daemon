@@ -376,9 +376,9 @@ fn test_config_hex_color_format() {
 fn test_llm_config_defaults() {
     let llm_config = InternalLlmConfig::default();
 
-    // Default values - all default to false via serde(default)
+    // Default values - bools default to false, Option<bool> defaults to None
     assert!(!llm_config.auto_close_on_complete);
-    assert!(!llm_config.update_status_on_start);
+    assert!(llm_config.update_status_on_start.is_none()); // Defaults to None so user must be prompted
     assert!(!llm_config.allow_direct_edits);
 }
 

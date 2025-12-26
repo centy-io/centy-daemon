@@ -617,7 +617,7 @@ message CustomFieldDefinition {
 
 message LlmConfig {
   bool auto_close_on_complete = 1;    // Auto-close issues when marked complete by LLM
-  bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work
+  optional bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work (null = prompt user)
   bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
   WorkspaceMode default_workspace_mode = 4;  // Default workspace mode for agent operations
 }
@@ -1474,6 +1474,7 @@ message OpenInTempVscodeResponse {
   uint32 display_number = 5;            // Issue display number
   string expires_at = 6;                // ISO timestamp when workspace expires
   bool vscode_opened = 7;               // Whether VS Code was successfully opened
+  bool requires_status_config = 8;      // True if user must configure update_status_on_start setting
 }
 
 // Request to open an agent in a terminal
@@ -1494,6 +1495,7 @@ message OpenAgentInTerminalResponse {
   string agent_command = 6;             // The agent command that was executed
   bool terminal_opened = 7;             // Whether terminal was successfully opened
   string expires_at = 8;                // ISO timestamp (only for temp mode)
+  bool requires_status_config = 9;      // True if user must configure update_status_on_start setting
 }
 
 // A temporary workspace entry

@@ -633,7 +633,7 @@ impl CentyDaemon for CentyDaemonService {
                 priority_colors: std::collections::HashMap::new(),
                 llm: Some(LlmConfig {
                     auto_close_on_complete: false,
-                    update_status_on_start: false,
+                    update_status_on_start: None,
                     allow_direct_edits: false,
                     default_workspace_mode: 0,
                 }),
@@ -2714,6 +2714,7 @@ impl CentyDaemon for CentyDaemonService {
                         display_number: 0,
                         expires_at: String::new(),
                         vscode_opened: false,
+                        requires_status_config: false,
                     }));
                 }
             }
@@ -2729,15 +2730,36 @@ impl CentyDaemon for CentyDaemonService {
                         display_number: 0,
                         expires_at: String::new(),
                         vscode_opened: false,
+                        requires_status_config: false,
                     }));
                 }
             }
         };
 
-        // Auto-update status to in-progress if configured
+        // Check if user configuration is required for auto-status update
         let config = read_config(project_path).await.ok().flatten();
+        let requires_status_config = config
+            .as_ref()
+            .map(|cfg| cfg.llm.update_status_on_start.is_none())
+            .unwrap_or(true); // If no config at all, also need configuration
+
+        if requires_status_config {
+            // Return early with requires_status_config = true
+            return Ok(Response::new(OpenInTempVscodeResponse {
+                success: false,
+                error: String::new(),
+                workspace_path: String::new(),
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                expires_at: String::new(),
+                vscode_opened: false,
+                requires_status_config: true,
+            }));
+        }
+
+        // Auto-update status to in-progress if configured
         if let Some(ref cfg) = config {
-            if cfg.llm.update_status_on_start {
+            if cfg.llm.update_status_on_start == Some(true) {
                 let current_status = &issue.metadata.status;
                 if current_status != "in-progress" && current_status != "closed" {
                     let update_opts = UpdateIssueOptions {
@@ -2780,6 +2802,7 @@ impl CentyDaemon for CentyDaemonService {
                 display_number: issue.metadata.display_number,
                 expires_at: result.entry.expires_at,
                 vscode_opened: result.vscode_opened,
+                requires_status_config: false,
             })),
             Err(e) => Ok(Response::new(OpenInTempVscodeResponse {
                 success: false,
@@ -2789,6 +2812,7 @@ impl CentyDaemon for CentyDaemonService {
                 display_number: 0,
                 expires_at: String::new(),
                 vscode_opened: false,
+                requires_status_config: false,
             })),
         }
     }
@@ -2815,6 +2839,7 @@ impl CentyDaemon for CentyDaemonService {
                         agent_command: String::new(),
                         terminal_opened: false,
                         expires_at: String::new(),
+                        requires_status_config: false,
                     }));
                 }
             }
@@ -2831,15 +2856,37 @@ impl CentyDaemon for CentyDaemonService {
                         agent_command: String::new(),
                         terminal_opened: false,
                         expires_at: String::new(),
+                        requires_status_config: false,
                     }));
                 }
             }
         };
 
-        // Auto-update status to in-progress if configured
+        // Check if user configuration is required for auto-status update
         let config = read_config(project_path).await.ok().flatten();
+        let requires_status_config = config
+            .as_ref()
+            .map(|cfg| cfg.llm.update_status_on_start.is_none())
+            .unwrap_or(true); // If no config at all, also need configuration
+
+        if requires_status_config {
+            // Return early with requires_status_config = true
+            return Ok(Response::new(OpenAgentInTerminalResponse {
+                success: false,
+                error: String::new(),
+                working_directory: String::new(),
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                agent_command: String::new(),
+                terminal_opened: false,
+                expires_at: String::new(),
+                requires_status_config: true,
+            }));
+        }
+
+        // Auto-update status to in-progress if configured
         if let Some(ref cfg) = config {
-            if cfg.llm.update_status_on_start {
+            if cfg.llm.update_status_on_start == Some(true) {
                 let current_status = &issue.metadata.status;
                 if current_status != "in-progress" && current_status != "closed" {
                     let update_opts = UpdateIssueOptions {
@@ -2931,6 +2978,7 @@ impl CentyDaemon for CentyDaemonService {
                             agent_command: String::new(),
                             terminal_opened: false,
                             expires_at: String::new(),
+                            requires_status_config: false,
                         }));
                     }
                 }
@@ -2963,6 +3011,7 @@ impl CentyDaemon for CentyDaemonService {
             agent_command: full_command,
             terminal_opened,
             expires_at: expires_at.unwrap_or_default(),
+            requires_status_config: false,
         }))
     }
 
