@@ -80,6 +80,9 @@ pub struct DocMetadata {
     /// Organization slug for org docs (for traceability)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub org_slug: Option<String>,
+    /// Tags assigned to this doc
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
 }
 
 impl DocMetadata {
@@ -92,6 +95,7 @@ impl DocMetadata {
             deleted_at: None,
             is_org_doc: false,
             org_slug: None,
+            tags: Vec::new(),
         }
     }
 
@@ -104,6 +108,7 @@ impl DocMetadata {
             deleted_at: None,
             is_org_doc: true,
             org_slug: Some(org_slug.to_string()),
+            tags: Vec::new(),
         }
     }
 }
@@ -150,6 +155,8 @@ pub struct UpdateDocOptions {
     pub title: Option<String>,
     pub content: Option<String>,
     pub new_slug: Option<String>,
+    /// Tags to set. None = don't update.
+    pub tags: Option<Vec<String>>,
 }
 
 /// Result of doc update
@@ -523,6 +530,7 @@ async fn update_or_create_doc_in_project(
             deleted_at: None, // Clear any soft-delete on update
             is_org_doc: true,
             org_slug: Some(org_slug.to_string()),
+            tags: existing.metadata.tags, // Preserve existing tags
         }
     } else {
         // Check if there's an old slug doc to get created_at from
@@ -546,6 +554,7 @@ async fn update_or_create_doc_in_project(
             deleted_at: None,
             is_org_doc: true,
             org_slug: Some(org_slug.to_string()),
+            tags: Vec::new(),
         }
     };
 
@@ -719,6 +728,9 @@ pub async fn update_doc(
         _ => None,
     };
 
+    // Apply tags update
+    let new_tags = options.tags.unwrap_or_else(|| current.metadata.tags.clone());
+
     // Create updated metadata (preserve org doc fields)
     let updated_metadata = DocMetadata {
         created_at: current.metadata.created_at.clone(),
@@ -726,6 +738,7 @@ pub async fn update_doc(
         deleted_at: current.metadata.deleted_at.clone(),
         is_org_doc: current.metadata.is_org_doc,
         org_slug: current.metadata.org_slug.clone(),
+        tags: new_tags,
     };
 
     // Generate updated content
@@ -837,6 +850,7 @@ pub async fn soft_delete_doc(project_path: &Path, slug: &str) -> Result<SoftDele
         deleted_at: Some(now),
         is_org_doc: current.metadata.is_org_doc,
         org_slug: current.metadata.org_slug.clone(),
+        tags: current.metadata.tags.clone(),
     };
 
     // Regenerate doc content with updated metadata
@@ -882,6 +896,7 @@ pub async fn restore_doc(project_path: &Path, slug: &str) -> Result<RestoreDocRe
         deleted_at: None,
         is_org_doc: current.metadata.is_org_doc,
         org_slug: current.metadata.org_slug.clone(),
+        tags: current.metadata.tags.clone(),
     };
 
     // Regenerate doc content with updated metadata
@@ -1172,6 +1187,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
                 deleted_at,
                 is_org_doc,
                 org_slug,
+                tags: Vec::new(),
             };
 
             return (title, body.trim_end().to_string(), metadata);
@@ -1205,6 +1221,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         deleted_at: None,
         is_org_doc: false,
         org_slug: None,
+        tags: Vec::new(),
     })
 }
 
@@ -1314,6 +1331,7 @@ This is the content."#;
             deleted_at: None,
             is_org_doc: false,
             org_slug: None,
+            tags: Vec::new(),
         };
         let content = generate_doc_content("Test Title", "Body text", &metadata);
 

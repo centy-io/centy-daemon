@@ -12,6 +12,7 @@ pub mod reconciliation;
 pub mod registry;
 pub mod search;
 pub mod server;
+pub mod tag;
 pub mod template;
 pub mod user;
 pub mod utils;
@@ -72,6 +73,11 @@ pub use user::{
     CreateUserOptions, CreateUserResult, DeleteUserResult, GitContributor,
     SyncUsersFullResult, SyncUsersResult, UpdateUserOptions, UpdateUserResult,
     User, UserError,
+};
+pub use tag::{
+    create_tag, delete_tag, get_tag, list_tags, update_tag,
+    CreateTagOptions, CreateTagResult, DeleteTagResult, UpdateTagOptions, UpdateTagResult,
+    Tag, TagError, TagsFile,
 };
 pub use search::{
     advanced_search, format_query, parse_query,

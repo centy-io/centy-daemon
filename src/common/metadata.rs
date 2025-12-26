@@ -25,6 +25,9 @@ pub struct CommonMetadata {
     pub updated_at: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// Tags assigned to this item
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
 }
 
 impl CommonMetadata {
@@ -43,6 +46,7 @@ impl CommonMetadata {
             created_at: now.clone(),
             updated_at: now,
             custom_fields,
+            tags: Vec::new(),
         }
     }
 }

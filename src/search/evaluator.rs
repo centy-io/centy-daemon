@@ -181,6 +181,7 @@ mod tests {
                 is_org_issue: false,
                 org_slug: None,
                 org_display_number: None,
+                tags: Vec::new(),
             },
         }
     }

@@ -311,6 +311,35 @@ service CentyDaemon {
 
   // Get available actions for an entity (contextual based on entity state)
   rpc GetEntityActions(GetEntityActionsRequest) returns (GetEntityActionsResponse);
+
+  // ============ Tag RPCs ============
+
+  // Create a new tag
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse);
+
+  // Get a single tag by name
+  rpc GetTag(GetTagRequest) returns (Tag);
+
+  // List all tags
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+
+  // Update an existing tag
+  rpc UpdateTag(UpdateTagRequest) returns (UpdateTagResponse);
+
+  // Delete a tag (hard delete - permanent removal)
+  rpc DeleteTag(DeleteTagRequest) returns (DeleteTagResponse);
+
+  // Add a tag to an entity (issue, doc, or PR)
+  rpc AddTagToEntity(AddTagToEntityRequest) returns (AddTagToEntityResponse);
+
+  // Remove a tag from an entity
+  rpc RemoveTagFromEntity(RemoveTagFromEntityRequest) returns (RemoveTagFromEntityResponse);
+
+  // Get all tags for an entity
+  rpc GetEntityTags(GetEntityTagsRequest) returns (GetEntityTagsResponse);
+
+  // Set all tags for an entity (replace existing)
+  rpc SetEntityTags(SetEntityTagsRequest) returns (SetEntityTagsResponse);
 }
 
 // ============ Init Messages ============
@@ -457,6 +486,7 @@ message IssueMetadata {
   string compacted_at = 9;        // ISO timestamp when compacted (empty if not)
   bool draft = 10;                // Whether this issue is a draft
   string deleted_at = 11;         // ISO timestamp when soft-deleted (empty if not deleted)
+  repeated string tags = 12;      // Tags assigned to this issue
 }
 
 message GetIssueRequest {
@@ -541,6 +571,7 @@ message UpdateIssueRequest {
   int32 priority = 6;             // 0 = don't update, otherwise 1-N
   map<string, string> custom_fields = 7;
   optional bool draft = 8;        // Update draft status (absent = don't update)
+  repeated string tags = 9;       // Update tags (empty = don't update)
 }
 
 message UpdateIssueResponse {
@@ -785,6 +816,7 @@ message DocMetadata {
   string deleted_at = 3;          // ISO timestamp when soft-deleted (empty if not deleted)
   bool is_org_doc = 4;            // Whether this is an organization-level doc
   string org_slug = 5;            // Organization slug (for org docs)
+  repeated string tags = 6;       // Tags assigned to this doc
 }
 
 message UpdateDocRequest {
@@ -795,6 +827,7 @@ message UpdateDocRequest {
   string title = 3;
   string content = 4;
   string new_slug = 5;            // Rename the doc (empty = keep current slug)
+  repeated string tags = 6;       // Update tags (empty = don't update)
 }
 
 message UpdateDocResponse {
@@ -1268,6 +1301,7 @@ message PrMetadata {
   string closed_at = 12;              // ISO timestamp (empty if not closed)
   map<string, string> custom_fields = 13;
   string deleted_at = 14;             // ISO timestamp when soft-deleted (empty if not deleted)
+  repeated string tags = 15;          // Tags assigned to this PR
 }
 
 message GetPrRequest {
@@ -1330,6 +1364,7 @@ message UpdatePrRequest {
   repeated string reviewers = 9;
   int32 priority = 10;                // 0 = don't update, otherwise 1-N
   map<string, string> custom_fields = 11;
+  repeated string tags = 12;          // Update tags (empty = don't update)
 }
 
 message UpdatePrResponse {
@@ -1894,4 +1929,129 @@ message GetEntityActionsResponse {
   repeated EntityAction actions = 1;    // Available actions, ordered by category then priority
   bool success = 2;
   string error = 3;
+}
+
+// ============ Tag Messages ============
+
+// A project tag for categorizing items
+message Tag {
+  string name = 1;                      // Tag name (kebab-case, primary key)
+  string color = 2;                     // Optional hex color (e.g., "#ef4444")
+  string created_at = 3;                // ISO timestamp
+  bool is_org_tag = 4;                  // Whether this is an organization-level tag
+  string org_slug = 5;                  // Organization slug (for org tags)
+}
+
+message CreateTagRequest {
+  string project_path = 1;
+  string name = 2;                      // Tag name (will be slugified)
+  string color = 3;                     // Optional hex color
+  bool is_org_tag = 4;                  // Create as org-level tag
+  string org_slug = 5;                  // Organization slug (required if is_org_tag)
+}
+
+message CreateTagResponse {
+  bool success = 1;
+  string error = 2;
+  Tag tag = 3;                          // The created tag
+  Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results of org sync (if org tag)
+}
+
+message GetTagRequest {
+  string project_path = 1;
+  string name = 2;                      // Tag name
+}
+
+message ListTagsRequest {
+  string project_path = 1;
+}
+
+message ListTagsResponse {
+  repeated Tag tags = 1;
+  int32 total_count = 2;
+}
+
+message UpdateTagRequest {
+  string project_path = 1;
+  string name = 2;                      // Current tag name
+  string new_name = 3;                  // Optional: rename the tag (empty = don't rename)
+  string color = 4;                     // Empty = don't update, explicit empty string = clear color
+}
+
+message UpdateTagResponse {
+  bool success = 1;
+  string error = 2;
+  Tag tag = 3;                          // The updated tag
+  Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results of org sync (if org tag)
+}
+
+message DeleteTagRequest {
+  string project_path = 1;
+  string name = 2;                      // Tag name
+}
+
+message DeleteTagResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
+// Add a tag to an entity (issue, doc, or PR)
+message AddTagToEntityRequest {
+  string project_path = 1;
+  LinkTargetType entity_type = 2;       // Reuse existing enum (ISSUE, DOC, PR)
+  string entity_id = 3;                 // Entity identifier (UUID or slug)
+  string tag_name = 4;                  // Tag name to add
+}
+
+message AddTagToEntityResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string tags = 3;             // Updated list of tags on the entity
+  Manifest manifest = 4;
+}
+
+// Remove a tag from an entity
+message RemoveTagFromEntityRequest {
+  string project_path = 1;
+  LinkTargetType entity_type = 2;
+  string entity_id = 3;
+  string tag_name = 4;                  // Tag name to remove
+}
+
+message RemoveTagFromEntityResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string tags = 3;             // Updated list of tags on the entity
+  Manifest manifest = 4;
+}
+
+// Get all tags for an entity
+message GetEntityTagsRequest {
+  string project_path = 1;
+  LinkTargetType entity_type = 2;
+  string entity_id = 3;
+}
+
+message GetEntityTagsResponse {
+  repeated string tags = 1;             // Tag names
+  bool success = 2;
+  string error = 3;
+}
+
+// Set all tags for an entity (replace existing)
+message SetEntityTagsRequest {
+  string project_path = 1;
+  LinkTargetType entity_type = 2;
+  string entity_id = 3;
+  repeated string tags = 4;             // New list of tag names
+}
+
+message SetEntityTagsResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string tags = 3;             // Updated list of tags on the entity
+  Manifest manifest = 4;
 }

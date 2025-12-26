@@ -52,6 +52,12 @@ use crate::user::{
     soft_delete_user as internal_soft_delete_user, restore_user as internal_restore_user,
     CreateUserOptions, UpdateUserOptions,
 };
+use crate::tag::{
+    create_tag as internal_create_tag, delete_tag as internal_delete_tag,
+    get_tag as internal_get_tag, list_tags as internal_list_tags,
+    update_tag as internal_update_tag,
+    CreateTagOptions, UpdateTagOptions, Tag as InternalTag,
+};
 use crate::search::{advanced_search, SearchOptions, SortOptions};
 use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
@@ -76,7 +82,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory, Tag as ProtoTag, CreateTagRequest, CreateTagResponse, GetTagRequest, ListTagsRequest, ListTagsResponse, UpdateTagRequest, UpdateTagResponse, DeleteTagRequest, DeleteTagResponse, AddTagToEntityRequest, AddTagToEntityResponse, RemoveTagFromEntityRequest, RemoveTagFromEntityResponse, GetEntityTagsRequest, GetEntityTagsResponse, SetEntityTagsRequest, SetEntityTagsResponse};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -484,6 +490,7 @@ impl CentyDaemon for CentyDaemonService {
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             custom_fields: req.custom_fields,
             draft: req.draft,
+            tags: if req.tags.is_empty() { None } else { Some(req.tags) },
         };
 
         match update_issue(project_path, &req.issue_id, options).await {
@@ -949,6 +956,7 @@ impl CentyDaemon for CentyDaemonService {
             title: if req.title.is_empty() { None } else { Some(req.title) },
             content: if req.content.is_empty() { None } else { Some(req.content) },
             new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
+            tags: if req.tags.is_empty() { None } else { Some(req.tags) },
         };
 
         match update_doc(project_path, &req.slug, options).await {
@@ -1999,6 +2007,7 @@ impl CentyDaemon for CentyDaemonService {
             reviewers: if req.reviewers.is_empty() { None } else { Some(req.reviewers) },
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             custom_fields: req.custom_fields,
+            tags: if req.tags.is_empty() { None } else { Some(req.tags) },
         };
 
         match update_pr(project_path, &req.pr_id, options).await {
@@ -3685,6 +3694,583 @@ impl CentyDaemon for CentyDaemonService {
             error: String::new(),
         }))
     }
+
+    // ============ Tag RPCs ============
+
+    async fn create_tag(
+        &self,
+        request: Request<CreateTagRequest>,
+    ) -> Result<Response<CreateTagResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let options = CreateTagOptions {
+            name: req.name,
+            color: if req.color.is_empty() { None } else { Some(req.color) },
+            is_org_tag: req.is_org_tag,
+            org_slug: if req.org_slug.is_empty() { None } else { Some(req.org_slug) },
+        };
+
+        match internal_create_tag(project_path, options).await {
+            Ok(result) => Ok(Response::new(CreateTagResponse {
+                success: true,
+                error: String::new(),
+                tag: Some(tag_to_proto(&result.tag)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+                sync_results: result.sync_results.into_iter().map(|r| OrgDocSyncResult {
+                    project_path: r.project_path,
+                    success: r.success,
+                    error: r.error.unwrap_or_default(),
+                }).collect(),
+            })),
+            Err(e) => Ok(Response::new(CreateTagResponse {
+                success: false,
+                error: e.to_string(),
+                tag: None,
+                manifest: None,
+                sync_results: vec![],
+            })),
+        }
+    }
+
+    async fn get_tag(
+        &self,
+        request: Request<GetTagRequest>,
+    ) -> Result<Response<ProtoTag>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_get_tag(project_path, &req.name).await {
+            Ok(tag) => Ok(Response::new(tag_to_proto(&tag))),
+            Err(e) => Err(Status::not_found(e.to_string())),
+        }
+    }
+
+    async fn list_tags(
+        &self,
+        request: Request<ListTagsRequest>,
+    ) -> Result<Response<ListTagsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_list_tags(project_path).await {
+            Ok(tags) => {
+                let proto_tags: Vec<ProtoTag> = tags.iter().map(tag_to_proto).collect();
+                let total_count = proto_tags.len() as i32;
+                Ok(Response::new(ListTagsResponse {
+                    tags: proto_tags,
+                    total_count,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn update_tag(
+        &self,
+        request: Request<UpdateTagRequest>,
+    ) -> Result<Response<UpdateTagResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let options = UpdateTagOptions {
+            new_name: if req.new_name.is_empty() { None } else { Some(req.new_name) },
+            color: if req.color.is_empty() { None } else { Some(req.color) },
+        };
+
+        match internal_update_tag(project_path, &req.name, options).await {
+            Ok(result) => Ok(Response::new(UpdateTagResponse {
+                success: true,
+                error: String::new(),
+                tag: Some(tag_to_proto(&result.tag)),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+                sync_results: result.sync_results.into_iter().map(|r| OrgDocSyncResult {
+                    project_path: r.project_path,
+                    success: r.success,
+                    error: r.error.unwrap_or_default(),
+                }).collect(),
+            })),
+            Err(e) => Ok(Response::new(UpdateTagResponse {
+                success: false,
+                error: e.to_string(),
+                tag: None,
+                manifest: None,
+                sync_results: vec![],
+            })),
+        }
+    }
+
+    async fn delete_tag(
+        &self,
+        request: Request<DeleteTagRequest>,
+    ) -> Result<Response<DeleteTagResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        match internal_delete_tag(project_path, &req.name).await {
+            Ok(result) => Ok(Response::new(DeleteTagResponse {
+                success: true,
+                error: String::new(),
+                manifest: Some(manifest_to_proto(&result.manifest)),
+            })),
+            Err(e) => Ok(Response::new(DeleteTagResponse {
+                success: false,
+                error: e.to_string(),
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn add_tag_to_entity(
+        &self,
+        request: Request<AddTagToEntityRequest>,
+    ) -> Result<Response<AddTagToEntityResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let entity_type = LinkTargetType::try_from(req.entity_type).unwrap_or(LinkTargetType::Issue);
+
+        // Add tag to entity based on type
+        let result = match entity_type {
+            LinkTargetType::Issue => {
+                add_tag_to_issue(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Doc => {
+                add_tag_to_doc(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Pr => {
+                add_tag_to_pr(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Unspecified => Err("Unknown entity type".to_string()),
+        };
+
+        match result {
+            Ok((tags, manifest)) => Ok(Response::new(AddTagToEntityResponse {
+                success: true,
+                error: String::new(),
+                tags,
+                manifest: Some(manifest_to_proto(&manifest)),
+            })),
+            Err(e) => Ok(Response::new(AddTagToEntityResponse {
+                success: false,
+                error: e,
+                tags: vec![],
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn remove_tag_from_entity(
+        &self,
+        request: Request<RemoveTagFromEntityRequest>,
+    ) -> Result<Response<RemoveTagFromEntityResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let entity_type = LinkTargetType::try_from(req.entity_type).unwrap_or(LinkTargetType::Issue);
+
+        // Remove tag from entity based on type
+        let result = match entity_type {
+            LinkTargetType::Issue => {
+                remove_tag_from_issue(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Doc => {
+                remove_tag_from_doc(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Pr => {
+                remove_tag_from_pr(project_path, &req.entity_id, &req.tag_name).await
+            }
+            LinkTargetType::Unspecified => Err("Unknown entity type".to_string()),
+        };
+
+        match result {
+            Ok((tags, manifest)) => Ok(Response::new(RemoveTagFromEntityResponse {
+                success: true,
+                error: String::new(),
+                tags,
+                manifest: Some(manifest_to_proto(&manifest)),
+            })),
+            Err(e) => Ok(Response::new(RemoveTagFromEntityResponse {
+                success: false,
+                error: e,
+                tags: vec![],
+                manifest: None,
+            })),
+        }
+    }
+
+    async fn get_entity_tags(
+        &self,
+        request: Request<GetEntityTagsRequest>,
+    ) -> Result<Response<GetEntityTagsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let entity_type = LinkTargetType::try_from(req.entity_type).unwrap_or(LinkTargetType::Issue);
+
+        // Get tags from entity based on type
+        let result = match entity_type {
+            LinkTargetType::Issue => {
+                get_issue(project_path, &req.entity_id)
+                    .await
+                    .map(|i| i.metadata.tags)
+                    .map_err(|e| e.to_string())
+            }
+            LinkTargetType::Doc => {
+                get_doc(project_path, &req.entity_id)
+                    .await
+                    .map(|d| d.metadata.tags)
+                    .map_err(|e| e.to_string())
+            }
+            LinkTargetType::Pr => {
+                get_pr(project_path, &req.entity_id)
+                    .await
+                    .map(|p| p.metadata.tags)
+                    .map_err(|e| e.to_string())
+            }
+            LinkTargetType::Unspecified => Err("Unknown entity type".to_string()),
+        };
+
+        match result {
+            Ok(tags) => Ok(Response::new(GetEntityTagsResponse {
+                tags,
+                success: true,
+                error: String::new(),
+            })),
+            Err(e) => Ok(Response::new(GetEntityTagsResponse {
+                tags: vec![],
+                success: false,
+                error: e,
+            })),
+        }
+    }
+
+    async fn set_entity_tags(
+        &self,
+        request: Request<SetEntityTagsRequest>,
+    ) -> Result<Response<SetEntityTagsResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let entity_type = LinkTargetType::try_from(req.entity_type).unwrap_or(LinkTargetType::Issue);
+
+        // Set tags on entity based on type
+        let result = match entity_type {
+            LinkTargetType::Issue => {
+                set_tags_on_issue(project_path, &req.entity_id, req.tags.clone()).await
+            }
+            LinkTargetType::Doc => {
+                set_tags_on_doc(project_path, &req.entity_id, req.tags.clone()).await
+            }
+            LinkTargetType::Pr => {
+                set_tags_on_pr(project_path, &req.entity_id, req.tags.clone()).await
+            }
+            LinkTargetType::Unspecified => Err("Unknown entity type".to_string()),
+        };
+
+        match result {
+            Ok((tags, manifest)) => Ok(Response::new(SetEntityTagsResponse {
+                success: true,
+                error: String::new(),
+                tags,
+                manifest: Some(manifest_to_proto(&manifest)),
+            })),
+            Err(e) => Ok(Response::new(SetEntityTagsResponse {
+                success: false,
+                error: e,
+                tags: vec![],
+                manifest: None,
+            })),
+        }
+    }
+}
+
+// ============ Tag Helper Functions ============
+
+fn tag_to_proto(tag: &InternalTag) -> ProtoTag {
+    ProtoTag {
+        name: tag.name.clone(),
+        color: tag.color.clone().unwrap_or_default(),
+        created_at: tag.created_at.clone(),
+        is_org_tag: tag.is_org_tag,
+        org_slug: tag.org_slug.clone().unwrap_or_default(),
+    }
+}
+
+async fn add_tag_to_issue(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::issue::{get_issue, update_issue, UpdateIssueOptions};
+
+    let issue = get_issue(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut tags = issue.metadata.tags.clone();
+    if !tags.contains(&tag_name.to_string()) {
+        tags.push(tag_name.to_string());
+    }
+
+    let options = UpdateIssueOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        custom_fields: std::collections::HashMap::new(),
+        draft: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_issue(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn add_tag_to_doc(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::docs::{get_doc, update_doc, UpdateDocOptions};
+
+    let doc = get_doc(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut tags = doc.metadata.tags.clone();
+    if !tags.contains(&tag_name.to_string()) {
+        tags.push(tag_name.to_string());
+    }
+
+    let options = UpdateDocOptions {
+        title: None,
+        content: None,
+        new_slug: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_doc(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn add_tag_to_pr(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::pr::{get_pr, update_pr, UpdatePrOptions};
+
+    let pr = get_pr(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut tags = pr.metadata.tags.clone();
+    if !tags.contains(&tag_name.to_string()) {
+        tags.push(tag_name.to_string());
+    }
+
+    let options = UpdatePrOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        source_branch: None,
+        target_branch: None,
+        reviewers: None,
+        custom_fields: std::collections::HashMap::new(),
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_pr(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn remove_tag_from_issue(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::issue::{get_issue, update_issue, UpdateIssueOptions};
+
+    let issue = get_issue(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let tags: Vec<String> = issue.metadata.tags
+        .into_iter()
+        .filter(|t| t != tag_name)
+        .collect();
+
+    let options = UpdateIssueOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        custom_fields: std::collections::HashMap::new(),
+        draft: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_issue(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn remove_tag_from_doc(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::docs::{get_doc, update_doc, UpdateDocOptions};
+
+    let doc = get_doc(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let tags: Vec<String> = doc.metadata.tags
+        .into_iter()
+        .filter(|t| t != tag_name)
+        .collect();
+
+    let options = UpdateDocOptions {
+        title: None,
+        content: None,
+        new_slug: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_doc(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn remove_tag_from_pr(
+    project_path: &Path,
+    entity_id: &str,
+    tag_name: &str,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::pr::{get_pr, update_pr, UpdatePrOptions};
+
+    let pr = get_pr(project_path, entity_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let tags: Vec<String> = pr.metadata.tags
+        .into_iter()
+        .filter(|t| t != tag_name)
+        .collect();
+
+    let options = UpdatePrOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        source_branch: None,
+        target_branch: None,
+        reviewers: None,
+        custom_fields: std::collections::HashMap::new(),
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_pr(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn set_tags_on_issue(
+    project_path: &Path,
+    entity_id: &str,
+    tags: Vec<String>,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::issue::{update_issue, UpdateIssueOptions};
+
+    let options = UpdateIssueOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        custom_fields: std::collections::HashMap::new(),
+        draft: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_issue(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn set_tags_on_doc(
+    project_path: &Path,
+    entity_id: &str,
+    tags: Vec<String>,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::docs::{update_doc, UpdateDocOptions};
+
+    let options = UpdateDocOptions {
+        title: None,
+        content: None,
+        new_slug: None,
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_doc(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
+}
+
+async fn set_tags_on_pr(
+    project_path: &Path,
+    entity_id: &str,
+    tags: Vec<String>,
+) -> Result<(Vec<String>, InternalManifest), String> {
+    use crate::pr::{update_pr, UpdatePrOptions};
+
+    let options = UpdatePrOptions {
+        title: None,
+        description: None,
+        status: None,
+        priority: None,
+        source_branch: None,
+        target_branch: None,
+        reviewers: None,
+        custom_fields: std::collections::HashMap::new(),
+        tags: Some(tags.clone()),
+    };
+
+    let result = update_pr(project_path, entity_id, options)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((tags, result.manifest))
 }
 
 /// Helper to capitalize first letter of a string
@@ -3905,6 +4491,7 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
             draft: issue.metadata.draft,
             deleted_at: issue.metadata.deleted_at.clone().unwrap_or_default(),
+            tags: issue.metadata.tags.clone(),
         }),
     }
 }
@@ -3920,6 +4507,7 @@ fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
             deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
             is_org_doc: doc.metadata.is_org_doc,
             org_slug: doc.metadata.org_slug.clone().unwrap_or_default(),
+            tags: doc.metadata.tags.clone(),
         }),
     }
 }
@@ -4008,6 +4596,7 @@ fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest
             closed_at: pr.metadata.closed_at.clone(),
             custom_fields: pr.metadata.custom_fields.clone(),
             deleted_at: pr.metadata.deleted_at.clone().unwrap_or_default(),
+            tags: pr.metadata.tags.clone(),
         }),
     }
 }

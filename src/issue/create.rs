@@ -289,6 +289,7 @@ pub async fn create_issue(
                 is_org_issue: metadata.is_org_issue,
                 org_slug: metadata.org_slug.clone(),
                 org_display_number: metadata.org_display_number,
+                tags: metadata.common.tags.clone(),
             },
         };
 

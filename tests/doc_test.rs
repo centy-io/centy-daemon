@@ -269,6 +269,7 @@ async fn test_update_doc_title() {
             title: Some("New Title".to_string()),
             content: None,
             new_slug: None,
+            tags: None,
         },
     )
     .await
@@ -304,6 +305,7 @@ async fn test_update_doc_content() {
             title: None,
             content: Some("Updated content here".to_string()),
             new_slug: None,
+            tags: None,
         },
     )
     .await
@@ -338,6 +340,7 @@ async fn test_update_doc_rename_slug() {
             title: None,
             content: None,
             new_slug: Some("new-slug".to_string()),
+            tags: None,
         },
     )
     .await
@@ -369,6 +372,7 @@ async fn test_update_doc_not_found() {
             title: Some("New Title".to_string()),
             content: None,
             new_slug: None,
+            tags: None,
         },
     )
     .await;
@@ -416,6 +420,7 @@ async fn test_update_doc_rename_to_existing_slug_fails() {
             title: None,
             content: None,
             new_slug: Some("doc-two".to_string()),
+            tags: None,
         },
     )
     .await;
@@ -583,6 +588,7 @@ async fn test_doc_preserves_metadata_on_update() {
             title: None,
             content: Some("Updated".to_string()),
             new_slug: None,
+            tags: None,
         },
     )
     .await

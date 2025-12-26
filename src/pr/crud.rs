@@ -80,6 +80,8 @@ pub struct PrMetadataFlat {
     pub custom_fields: HashMap<String, String>,
     /// ISO timestamp when soft-deleted (None if not deleted)
     pub deleted_at: Option<String>,
+    /// Tags applied to this PR
+    pub tags: Vec<String>,
 }
 
 /// Options for updating a PR
@@ -94,6 +96,8 @@ pub struct UpdatePrOptions {
     /// Priority as a number (1 = highest). None = don't update.
     pub priority: Option<u32>,
     pub custom_fields: HashMap<String, String>,
+    /// Tags to set. None = don't update.
+    pub tags: Option<Vec<String>>,
 }
 
 /// Result of PR update
@@ -396,6 +400,9 @@ pub async fn update_pr(
         new_custom_fields.insert(key, value);
     }
 
+    // Apply tags update
+    let new_tags = options.tags.unwrap_or_else(|| current.metadata.tags.clone());
+
     // Create updated metadata
     let updated_metadata = PrMetadata {
         common: crate::common::CommonMetadata {
@@ -408,6 +415,7 @@ pub async fn update_pr(
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
                 .collect(),
+            tags: new_tags.clone(),
         },
         source_branch: new_source_branch.clone(),
         target_branch: new_target_branch.clone(),
@@ -448,6 +456,7 @@ pub async fn update_pr(
             closed_at: new_closed_at,
             custom_fields: new_custom_fields,
             deleted_at: current.metadata.deleted_at,
+            tags: new_tags,
         },
     };
 
@@ -620,6 +629,7 @@ async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, P
             closed_at: metadata.closed_at,
             custom_fields,
             deleted_at: metadata.deleted_at,
+            tags: metadata.common.tags,
         },
     })
 }
