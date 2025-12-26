@@ -21,6 +21,16 @@ pub struct IssueMetadata {
     /// ISO timestamp when soft-deleted (None if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
+    /// Whether this issue is an organization-level issue (synced across org projects)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_org_issue: bool,
+    /// Organization slug for org issues (for traceability)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_slug: Option<String>,
+    /// Org-scoped display number (consistent across all org projects)
+    /// Only set for org issues; project-local issues use common.display_number
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_display_number: Option<u32>,
 }
 
 impl IssueMetadata {
@@ -37,6 +47,9 @@ impl IssueMetadata {
             compacted_at: None,
             draft: false,
             deleted_at: None,
+            is_org_issue: false,
+            org_slug: None,
+            org_display_number: None,
         }
     }
 
@@ -54,6 +67,36 @@ impl IssueMetadata {
             compacted_at: None,
             draft,
             deleted_at: None,
+            is_org_issue: false,
+            org_slug: None,
+            org_display_number: None,
+        }
+    }
+
+    /// Create metadata for an organization-level issue.
+    ///
+    /// Org issues are synced across all projects in an organization.
+    /// They have both a local display number (per project) and an org-level
+    /// display number (consistent across all org projects).
+    #[must_use]
+    pub fn new_org_issue(
+        display_number: u32,
+        org_display_number: u32,
+        status: String,
+        priority: u32,
+        org_slug: &str,
+        custom_fields: HashMap<String, serde_json::Value>,
+        draft: bool,
+    ) -> Self {
+        Self {
+            common: CommonMetadata::new(display_number, status, priority, custom_fields),
+            compacted: false,
+            compacted_at: None,
+            draft,
+            deleted_at: None,
+            is_org_issue: true,
+            org_slug: Some(org_slug.to_string()),
+            org_display_number: Some(org_display_number),
         }
     }
 }

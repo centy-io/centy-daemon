@@ -1,9 +1,11 @@
+use async_trait::async_trait;
+use crate::common::{OrgSyncError, OrgSyncable};
 use crate::config::read_config;
 use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
 use crate::registry::ProjectInfo;
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use super::assets::copy_assets_folder;
 use super::id::{generate_issue_id, is_uuid, is_valid_issue_folder};
 use super::metadata::IssueMetadata;
@@ -96,6 +98,12 @@ pub struct IssueMetadataFlat {
     pub draft: bool,
     /// ISO timestamp when soft-deleted (None if not deleted)
     pub deleted_at: Option<String>,
+    /// Whether this issue is an organization-level issue
+    pub is_org_issue: bool,
+    /// Organization slug for org issues
+    pub org_slug: Option<String>,
+    /// Org-scoped display number (consistent across all org projects)
+    pub org_display_number: Option<u32>,
 }
 
 /// Options for updating an issue
@@ -116,6 +124,8 @@ pub struct UpdateIssueOptions {
 pub struct UpdateIssueResult {
     pub issue: Issue,
     pub manifest: CentyManifest,
+    /// Results from syncing to other org projects (empty for non-org issues)
+    pub sync_results: Vec<crate::common::OrgSyncResult>,
 }
 
 /// Result of issue deletion
@@ -433,7 +443,7 @@ pub async fn update_issue(
     // Apply draft update
     let new_draft = options.draft.unwrap_or(current.metadata.draft);
 
-    // Create updated metadata
+    // Create updated metadata (preserving org fields)
     let updated_metadata = IssueMetadata {
         common: crate::common::CommonMetadata {
             display_number: current.metadata.display_number,
@@ -450,6 +460,9 @@ pub async fn update_issue(
         compacted_at: current.metadata.compacted_at.clone(),
         draft: new_draft,
         deleted_at: current.metadata.deleted_at.clone(),
+        is_org_issue: current.metadata.is_org_issue,
+        org_slug: current.metadata.org_slug.clone(),
+        org_display_number: current.metadata.org_display_number,
     };
 
     // Generate updated content
@@ -502,10 +515,20 @@ pub async fn update_issue(
             compacted_at: current.metadata.compacted_at,
             draft: new_draft,
             deleted_at: current.metadata.deleted_at,
+            is_org_issue: current.metadata.is_org_issue,
+            org_slug: current.metadata.org_slug.clone(),
+            org_display_number: current.metadata.org_display_number,
         },
     };
 
-    Ok(UpdateIssueResult { issue, manifest })
+    // Sync to other org projects if this is an org issue
+    let sync_results = if issue.metadata.is_org_issue {
+        crate::common::sync_update_to_org_projects(&issue, project_path, None).await
+    } else {
+        Vec::new()
+    };
+
+    Ok(UpdateIssueResult { issue, manifest, sync_results })
 }
 
 /// Delete an issue
@@ -806,6 +829,7 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
     fs::write(new_issue_path.join("issue.md"), &issue_md).await?;
 
     // Create new metadata with fresh timestamps
+    // Note: Duplicating an org issue creates a local copy, not an org issue
     let new_metadata = IssueMetadata {
         common: crate::common::CommonMetadata {
             display_number: new_display_number,
@@ -822,6 +846,9 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
         compacted_at: None,
         draft: source_issue.metadata.draft, // Preserve draft status
         deleted_at: None, // New duplicate is not deleted
+        is_org_issue: false, // Duplicate is always a local copy
+        org_slug: None,
+        org_display_number: None,
     };
     fs::write(
         new_issue_path.join("metadata.json"),
@@ -898,6 +925,9 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
             compacted_at: metadata.compacted_at,
             draft: metadata.draft,
             deleted_at: metadata.deleted_at,
+            is_org_issue: metadata.is_org_issue,
+            org_slug: metadata.org_slug,
+            org_display_number: metadata.org_display_number,
         },
     })
 }
@@ -947,6 +977,212 @@ fn generate_issue_md(title: &str, description: &str) -> String {
     } else {
         format!("# {title}\n\n{description}\n")
     }
+}
+
+// =============================================================================
+// OrgSyncable implementation for Issue
+// =============================================================================
+
+#[async_trait]
+impl OrgSyncable for Issue {
+    fn item_id(&self) -> &str {
+        &self.id
+    }
+
+    fn is_org_item(&self) -> bool {
+        self.metadata.is_org_issue
+    }
+
+    fn org_slug(&self) -> Option<&str> {
+        self.metadata.org_slug.as_deref()
+    }
+
+    async fn sync_to_project(
+        &self,
+        target_project: &Path,
+        org_slug: &str,
+    ) -> Result<(), OrgSyncError> {
+        create_issue_in_project(
+            target_project,
+            &self.id,
+            &self.title,
+            &self.description,
+            &self.metadata,
+            org_slug,
+        )
+        .await
+    }
+
+    async fn sync_update_to_project(
+        &self,
+        target_project: &Path,
+        org_slug: &str,
+        _old_id: Option<&str>,
+    ) -> Result<(), OrgSyncError> {
+        update_or_create_issue_in_project(
+            target_project,
+            &self.id,
+            &self.title,
+            &self.description,
+            &self.metadata,
+            org_slug,
+        )
+        .await
+    }
+}
+
+/// Create an issue in a specific project (used for org issue sync).
+///
+/// This function does NOT trigger recursive org sync to prevent infinite loops.
+/// If the issue already exists in the target project, it is skipped.
+async fn create_issue_in_project(
+    project_path: &Path,
+    issue_id: &str,
+    title: &str,
+    description: &str,
+    source_metadata: &IssueMetadataFlat,
+    org_slug: &str,
+) -> Result<(), OrgSyncError> {
+    // Check if centy is initialized
+    let mut manifest = read_manifest(project_path)
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?
+        .ok_or_else(|| OrgSyncError::SyncFailed("Target project not initialized".to_string()))?;
+
+    let centy_path = get_centy_path(project_path);
+    let issues_path = centy_path.join("issues");
+    let issue_path = issues_path.join(issue_id);
+
+    // Skip if already exists (don't overwrite local customizations)
+    if issue_path.exists() {
+        return Ok(());
+    }
+
+    // Ensure directories exist
+    fs::create_dir_all(&issue_path).await?;
+    fs::create_dir_all(issue_path.join("assets")).await?;
+
+    // Get local display number for this project
+    let local_display_number = get_next_display_number(&issues_path)
+        .await
+        .map_err(|e| OrgSyncError::SyncFailed(e.to_string()))?;
+
+    // Create metadata with org fields
+    let metadata = IssueMetadata::new_org_issue(
+        local_display_number,
+        source_metadata.org_display_number.unwrap_or(0),
+        source_metadata.status.clone(),
+        source_metadata.priority,
+        org_slug,
+        source_metadata
+            .custom_fields
+            .iter()
+            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+            .collect(),
+        source_metadata.draft,
+    );
+
+    // Write issue.md
+    let issue_md = generate_issue_md(title, description);
+    fs::write(issue_path.join("issue.md"), format_markdown(&issue_md)).await?;
+
+    // Write metadata
+    fs::write(
+        issue_path.join("metadata.json"),
+        serde_json::to_string_pretty(&metadata)?,
+    )
+    .await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest)
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;
+
+    Ok(())
+}
+
+/// Update or create an issue in a project (for org sync on update).
+///
+/// If the issue doesn't exist, it will be created.
+/// If the issue exists, it will be updated with the new content while
+/// preserving local fields like `display_number` and `created_at`.
+async fn update_or_create_issue_in_project(
+    project_path: &Path,
+    issue_id: &str,
+    title: &str,
+    description: &str,
+    source_metadata: &IssueMetadataFlat,
+    org_slug: &str,
+) -> Result<(), OrgSyncError> {
+    let centy_path = get_centy_path(project_path);
+    let issues_path = centy_path.join("issues");
+    let issue_path = issues_path.join(issue_id);
+
+    if !issue_path.exists() {
+        // Issue doesn't exist locally - create it
+        return create_issue_in_project(
+            project_path,
+            issue_id,
+            title,
+            description,
+            source_metadata,
+            org_slug,
+        )
+        .await;
+    }
+
+    // Update existing issue
+    let mut manifest = read_manifest(project_path)
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?
+        .ok_or_else(|| OrgSyncError::SyncFailed("Target project not initialized".to_string()))?;
+
+    // Read existing metadata to preserve local fields
+    let existing_metadata_str = fs::read_to_string(issue_path.join("metadata.json")).await?;
+    let existing: IssueMetadata = serde_json::from_str(&existing_metadata_str)?;
+
+    // Update metadata preserving local fields
+    let updated_metadata = IssueMetadata {
+        common: crate::common::CommonMetadata {
+            display_number: existing.common.display_number, // Keep local display number
+            status: source_metadata.status.clone(),
+            priority: source_metadata.priority,
+            created_at: existing.common.created_at, // Preserve original created_at
+            updated_at: now_iso(),
+            custom_fields: source_metadata
+                .custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect(),
+        },
+        compacted: existing.compacted, // Preserve local compaction state
+        compacted_at: existing.compacted_at,
+        draft: source_metadata.draft,
+        deleted_at: source_metadata.deleted_at.clone(),
+        is_org_issue: true,
+        org_slug: Some(org_slug.to_string()),
+        org_display_number: source_metadata.org_display_number,
+    };
+
+    // Write updated issue.md
+    let issue_md = generate_issue_md(title, description);
+    fs::write(issue_path.join("issue.md"), format_markdown(&issue_md)).await?;
+
+    // Write updated metadata
+    fs::write(
+        issue_path.join("metadata.json"),
+        serde_json::to_string_pretty(&updated_metadata)?,
+    )
+    .await?;
+
+    // Update manifest timestamp
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest)
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;
+
+    Ok(())
 }
 
 #[cfg(test)]

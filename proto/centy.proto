@@ -367,6 +367,7 @@ message CreateIssueRequest {
   map<string, string> custom_fields = 6;
   string template = 7;  // Optional template name (without .md extension)
   bool draft = 8;       // Create as draft (default: false)
+  bool is_org_issue = 9; // Create as organization-wide issue (syncs to all org projects)
 }
 
 message CreateIssueResponse {
@@ -387,6 +388,12 @@ message CreateIssueResponse {
 
   // The updated manifest
   Manifest manifest = 7;
+
+  // Org-level display number (only for org issues, 0 if not an org issue)
+  uint32 org_display_number = 8;
+
+  // Results from syncing to other org projects (org issues only)
+  repeated OrgDocSyncResult sync_results = 9;
 }
 
 message GetNextIssueNumberRequest {
@@ -517,6 +524,7 @@ message UpdateIssueResponse {
   string error = 2;
   Issue issue = 3;                // The updated issue
   Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results from syncing to other org projects (org issues only)
 }
 
 message DeleteIssueRequest {
