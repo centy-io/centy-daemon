@@ -51,7 +51,11 @@ semver = { version = "1", features = ["serde"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+tracing-appender = "0.2"
+
+# Home directory detection
+dirs = "5"
 
 # Async traits and lazy statics
 async-trait = "0.1"
@@ -85,7 +89,6 @@ tonic-build = "0.12"
 
 [dev-dependencies]
 tempfile = "3"
-dirs = "5"
 cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "user-hooks"] }
 
 [lints.rust]

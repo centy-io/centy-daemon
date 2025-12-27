@@ -66,7 +66,8 @@ use std::process::Command;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::{Request, Response, Status};
-use tracing::info;
+use tracing::{info, instrument};
+use crate::metrics::{OperationTimer, generate_request_id};
 
 // Import generated protobuf types
 pub mod proto {
@@ -159,7 +160,13 @@ async fn startup_org_inference() {
 #[allow(clippy::too_many_lines)]
 #[tonic::async_trait]
 impl CentyDaemon for CentyDaemonService {
+    #[instrument(
+        name = "grpc.init",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
     async fn init(&self, request: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
+        let _timer = OperationTimer::new("init");
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -296,10 +303,16 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    #[instrument(
+        name = "grpc.create_issue",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
     async fn create_issue(
         &self,
         request: Request<CreateIssueRequest>,
     ) -> Result<Response<CreateIssueResponse>, Status> {
+        let _timer = OperationTimer::new("create_issue");
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -356,10 +369,16 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    #[instrument(
+        name = "grpc.get_issue",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
     async fn get_issue(
         &self,
         request: Request<GetIssueRequest>,
     ) -> Result<Response<Issue>, Status> {
+        let _timer = OperationTimer::new("get_issue");
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -434,10 +453,16 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    #[instrument(
+        name = "grpc.list_issues",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
     async fn list_issues(
         &self,
         request: Request<ListIssuesRequest>,
     ) -> Result<Response<ListIssuesResponse>, Status> {
+        let _timer = OperationTimer::new("list_issues");
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);

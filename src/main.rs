@@ -5,7 +5,9 @@ mod features;
 mod issue;
 mod link;
 mod llm;
+mod logging;
 mod manifest;
+mod metrics;
 mod migration;
 mod pr;
 mod reconciliation;
@@ -20,15 +22,15 @@ mod workspace;
 
 use clap::Parser;
 use http::Method;
-use tower_http::cors::Any;
+use logging::{init_logging, parse_rotation, LogConfig};
 use server::proto::centy_daemon_server::CentyDaemonServer;
 use server::{CentyDaemonService, ShutdownSignal};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
-use tower_http::cors::{AllowOrigin, CorsLayer};
-use tracing::{info, Level};
-use tracing_subscriber::FmtSubscriber;
+use tower_http::cors::{AllowOrigin, Any, CorsLayer};
+use tracing::info;
 
 const DEFAULT_ADDR: &str = "127.0.0.1:50051";
 const DEFAULT_CORS_ORIGINS: &str = "http://localhost,https://localhost,http://127.0.0.1,https://127.0.0.1,tauri://localhost,https://tauri.localhost";
@@ -51,6 +53,18 @@ struct Args {
         value_delimiter = ','
     )]
     cors_origins: Vec<String>,
+
+    /// Enable JSON log format (for production/log aggregation)
+    #[arg(long, env = "CENTY_LOG_JSON", default_value = "false")]
+    log_json: bool,
+
+    /// Log rotation period: daily, hourly, or never
+    #[arg(long, env = "CENTY_LOG_ROTATION", default_value = "daily")]
+    log_rotation: String,
+
+    /// Custom log directory (default: ~/.centy/logs)
+    #[arg(long, env = "CENTY_LOG_DIR")]
+    log_dir: Option<String>,
 }
 
 // Include the file descriptor set for gRPC reflection
@@ -58,14 +72,25 @@ pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("cent
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)?;
-
-    // Parse CLI arguments
+    // Parse CLI arguments first (before logging, so we can use log config)
     let args = Args::parse();
+
+    // Configure and initialize logging
+    let log_dir = args.log_dir.map(PathBuf::from).unwrap_or_else(|| {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".centy")
+            .join("logs")
+    });
+
+    let log_config = LogConfig {
+        log_dir,
+        json_format: args.log_json,
+        rotation: parse_rotation(&args.log_rotation),
+        ..Default::default()
+    };
+
+    init_logging(log_config)?;
 
     // Parse address
     let addr = args.addr.parse()?;
