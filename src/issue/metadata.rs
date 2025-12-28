@@ -3,6 +3,24 @@ use std::collections::HashMap;
 
 use crate::common::CommonMetadata;
 
+/// Import metadata for externally-sourced issues
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportMetadata {
+    /// Provider name (e.g., "github", "gitlab")
+    pub provider: String,
+    /// Source identifier (e.g., "owner/repo" for GitHub)
+    pub source_id: String,
+    /// External task ID (e.g., "123" for GitHub issue #123)
+    pub external_id: String,
+    /// URL to the original external task
+    pub url: String,
+    /// ISO timestamp when first imported
+    pub imported_at: String,
+    /// ISO timestamp of last sync/update
+    pub last_synced_at: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueMetadata {
@@ -31,6 +49,9 @@ pub struct IssueMetadata {
     /// Only set for org issues; project-local issues use common.display_number
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub org_display_number: Option<u32>,
+    /// Import metadata for externally-sourced issues
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_metadata: Option<ImportMetadata>,
 }
 
 impl IssueMetadata {
@@ -50,6 +71,7 @@ impl IssueMetadata {
             is_org_issue: false,
             org_slug: None,
             org_display_number: None,
+            import_metadata: None,
         }
     }
 
@@ -70,6 +92,7 @@ impl IssueMetadata {
             is_org_issue: false,
             org_slug: None,
             org_display_number: None,
+            import_metadata: None,
         }
     }
 
@@ -97,6 +120,7 @@ impl IssueMetadata {
             is_org_issue: true,
             org_slug: Some(org_slug.to_string()),
             org_display_number: Some(org_display_number),
+            import_metadata: None,
         }
     }
 }

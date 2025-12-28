@@ -9,7 +9,7 @@ use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path};
 use super::crud::{Issue, IssueMetadataFlat};
 use super::id::generate_issue_id;
-use super::metadata::IssueMetadata;
+use super::metadata::{ImportMetadata, IssueMetadata};
 use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
@@ -77,6 +77,8 @@ pub struct CreateIssueOptions {
     pub draft: Option<bool>,
     /// Create as organization-wide issue (syncs to all org projects)
     pub is_org_issue: bool,
+    /// Import metadata for externally-sourced issues
+    pub import_metadata: Option<ImportMetadata>,
 }
 
 /// Result of issue creation
@@ -197,7 +199,7 @@ pub async fn create_issue(
     }
 
     // Create metadata (org or regular)
-    let metadata = if let Some(ref org) = org_slug {
+    let mut metadata = if let Some(ref org) = org_slug {
         IssueMetadata::new_org_issue(
             display_number,
             org_display_number.unwrap_or(0),
@@ -216,6 +218,11 @@ pub async fn create_issue(
             options.draft.unwrap_or(false),
         )
     };
+
+    // Set import metadata if provided
+    if let Some(import_meta) = options.import_metadata {
+        metadata.import_metadata = Some(import_meta);
+    }
 
     // Create issue content
     let mut issue_md = if let Some(ref template_name) = options.template {
@@ -289,6 +296,7 @@ pub async fn create_issue(
                 is_org_issue: metadata.is_org_issue,
                 org_slug: metadata.org_slug.clone(),
                 org_display_number: metadata.org_display_number,
+                import_metadata: metadata.import_metadata.clone(),
             },
         };
 

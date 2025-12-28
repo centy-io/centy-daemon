@@ -15,6 +15,7 @@ pub mod registry;
 pub mod search;
 pub mod server;
 pub mod source_control;
+pub mod task_import;
 pub mod template;
 pub mod user;
 pub mod utils;

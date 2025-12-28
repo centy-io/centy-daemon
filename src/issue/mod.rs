@@ -2,7 +2,7 @@ pub mod assets;
 pub mod create;
 pub mod crud;
 pub mod id;
-mod metadata;
+pub mod metadata;
 pub mod org_registry;
 pub mod planning;
 pub mod priority;
@@ -23,7 +23,7 @@ pub use crud::{
     UpdateIssueOptions, UpdateIssueResult, SoftDeleteIssueResult, RestoreIssueResult,
 };
 #[allow(unused_imports)]
-pub use metadata::IssueMetadata;
+pub use metadata::{ImportMetadata, IssueMetadata};
 #[allow(unused_imports)]
 pub use crud::IssueMetadataFlat;
 pub use priority::priority_label;
