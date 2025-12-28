@@ -376,3 +376,297 @@ async fn test_slug_auto_generation_special_chars() {
     // Cleanup
     let _ = delete_organization(&result.slug).await;
 }
+
+// Project name uniqueness tests
+
+#[tokio::test]
+async fn test_duplicate_project_name_in_same_org() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create two projects with same directory name but different parents
+    let project1_path = temp_dir1.path().join("myapp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    // Create org
+    create_organization(Some("dup-test-org"), "Dup Test Org", None)
+        .await
+        .expect("Should create org");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    // Track both projects
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign first project to org - should succeed
+    set_project_organization(&path1_str, Some("dup-test-org"))
+        .await
+        .expect("Should set org for first project");
+
+    // Try to assign second project with same name to same org - should fail
+    let result = set_project_organization(&path2_str, Some("dup-test-org")).await;
+    assert!(result.is_err(), "Should fail due to duplicate name");
+
+    let error_msg = result.unwrap_err().to_string();
+    assert!(error_msg.contains("myapp"), "Error should mention project name");
+    assert!(error_msg.contains("dup-test-org"), "Error should mention org slug");
+
+    // Cleanup
+    let _ = set_project_organization(&path1_str, None).await;
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+    let _ = delete_organization("dup-test-org").await;
+}
+
+#[tokio::test]
+async fn test_duplicate_project_name_case_insensitive() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create projects with different case
+    let project1_path = temp_dir1.path().join("MyApp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    create_organization(Some("case-test-org"), "Case Test Org", None)
+        .await
+        .expect("Should create org");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign first project
+    set_project_organization(&path1_str, Some("case-test-org"))
+        .await
+        .expect("Should set org for first project");
+
+    // Try to assign second project with different case - should fail
+    let result = set_project_organization(&path2_str, Some("case-test-org")).await;
+    assert!(result.is_err(), "Should fail due to case-insensitive match");
+
+    // Cleanup
+    let _ = set_project_organization(&path1_str, None).await;
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+    let _ = delete_organization("case-test-org").await;
+}
+
+#[tokio::test]
+async fn test_reassign_same_project_idempotent() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_project(project_path).await;
+
+    create_organization(Some("idempotent-org"), "Idempotent Org", None)
+        .await
+        .expect("Should create org");
+
+    let path_str = project_path.to_string_lossy().to_string();
+    track_project(&path_str).await.expect("Should track");
+
+    // Assign to org
+    set_project_organization(&path_str, Some("idempotent-org"))
+        .await
+        .expect("Should set org");
+
+    // Reassign same project to same org - should succeed (idempotent)
+    let result = set_project_organization(&path_str, Some("idempotent-org")).await;
+    assert!(result.is_ok(), "Should succeed when reassigning same project");
+
+    // Cleanup
+    let _ = set_project_organization(&path_str, None).await;
+    let _ = untrack_project(&path_str).await;
+    let _ = delete_organization("idempotent-org").await;
+}
+
+#[tokio::test]
+async fn test_same_name_in_different_orgs() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create projects with same name
+    let project1_path = temp_dir1.path().join("myapp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    // Create two orgs
+    create_organization(Some("org-a"), "Org A", None)
+        .await
+        .expect("Should create org A");
+    create_organization(Some("org-b"), "Org B", None)
+        .await
+        .expect("Should create org B");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign to different orgs - both should succeed
+    set_project_organization(&path1_str, Some("org-a"))
+        .await
+        .expect("Should set org A");
+    set_project_organization(&path2_str, Some("org-b"))
+        .await
+        .expect("Should set org B");
+
+    // Cleanup
+    let _ = set_project_organization(&path1_str, None).await;
+    let _ = set_project_organization(&path2_str, None).await;
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+    let _ = delete_organization("org-a").await;
+    let _ = delete_organization("org-b").await;
+}
+
+#[tokio::test]
+async fn test_move_project_to_org_with_duplicate() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create projects with same name
+    let project1_path = temp_dir1.path().join("myapp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    // Create two orgs
+    create_organization(Some("source-org"), "Source Org", None)
+        .await
+        .expect("Should create source org");
+    create_organization(Some("target-org"), "Target Org", None)
+        .await
+        .expect("Should create target org");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign projects to different orgs
+    set_project_organization(&path1_str, Some("source-org"))
+        .await
+        .expect("Should set source org");
+    set_project_organization(&path2_str, Some("target-org"))
+        .await
+        .expect("Should set target org");
+
+    // Try to move project1 to target-org where myapp already exists - should fail
+    let result = set_project_organization(&path1_str, Some("target-org")).await;
+    assert!(result.is_err(), "Should fail when moving to org with duplicate");
+
+    // Cleanup
+    let _ = set_project_organization(&path1_str, None).await;
+    let _ = set_project_organization(&path2_str, None).await;
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+    let _ = delete_organization("source-org").await;
+    let _ = delete_organization("target-org").await;
+}
+
+#[tokio::test]
+async fn test_unorganized_projects_allow_duplicates() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create projects with same name
+    let project1_path = temp_dir1.path().join("myapp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    // Track both without assigning to org - should succeed
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Both projects exist without org, both named "myapp" - this is allowed
+    // No need to assert anything specific, just that tracking succeeded
+
+    // Cleanup
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+}
+
+#[tokio::test]
+async fn test_remove_from_org_with_duplicate_elsewhere() {
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create projects with same name
+    let project1_path = temp_dir1.path().join("myapp");
+    let project2_path = temp_dir2.path().join("myapp");
+
+    std::fs::create_dir(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    // Create two orgs
+    create_organization(Some("org-remove-1"), "Org 1", None)
+        .await
+        .expect("Should create org 1");
+    create_organization(Some("org-remove-2"), "Org 2", None)
+        .await
+        .expect("Should create org 2");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign to different orgs
+    set_project_organization(&path1_str, Some("org-remove-1"))
+        .await
+        .expect("Should set org 1");
+    set_project_organization(&path2_str, Some("org-remove-2"))
+        .await
+        .expect("Should set org 2");
+
+    // Remove project1 from its org - should succeed even though myapp exists in org 2
+    let result = set_project_organization(&path1_str, None).await;
+    assert!(result.is_ok(), "Should succeed removing from org");
+
+    // Cleanup
+    let _ = set_project_organization(&path2_str, None).await;
+    let _ = untrack_project(&path1_str).await;
+    let _ = untrack_project(&path2_str).await;
+    let _ = delete_organization("org-remove-1").await;
+    let _ = delete_organization("org-remove-2").await;
+}

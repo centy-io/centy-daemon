@@ -3,6 +3,7 @@ mod organizations;
 mod storage;
 mod tracking;
 mod types;
+mod validation;
 
 pub use inference::{infer_organization_from_remote, try_auto_assign_organization, OrgInferenceResult};
 pub use organizations::{

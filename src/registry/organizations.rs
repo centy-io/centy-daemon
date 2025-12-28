@@ -1,5 +1,6 @@
 use super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::types::{Organization, OrganizationInfo, ProjectOrganization, TrackedProject};
+use super::validation::ValidationService;
 use super::RegistryError;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -20,6 +21,12 @@ pub enum OrganizationError {
 
     #[error("Invalid slug: {0}")]
     InvalidSlug(String),
+
+    #[error("Project name '{project_name}' already exists in organization '{org_slug}'")]
+    DuplicateNameInOrganization {
+        project_name: String,
+        org_slug: String,
+    },
 
     #[error("Registry error: {0}")]
     RegistryError(#[from] RegistryError),
@@ -317,6 +324,22 @@ pub async fn set_project_organization(
     } else {
         None
     };
+
+    // Check for duplicate project names within organization (if assigning)
+    if let Some(slug) = org_slug {
+        if !slug.is_empty() {
+            // Extract project name from path
+            if let Some(project_name) = path.file_name() {
+                let project_name_str = project_name.to_string_lossy();
+                ValidationService::validate_unique_project_name(
+                    &registry,
+                    slug,
+                    &canonical_path,
+                    &project_name_str,
+                )?;
+            }
+        }
+    }
 
     // Get or create project entry
     let project = registry
