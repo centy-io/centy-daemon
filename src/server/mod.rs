@@ -53,6 +53,7 @@ use crate::user::{
     CreateUserOptions, UpdateUserOptions,
 };
 use crate::search::{advanced_search, SearchOptions, SortOptions};
+use crate::source_control::{build_folder_url, SourceControlError};
 use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
@@ -3562,6 +3563,51 @@ impl CentyDaemon for CentyDaemonService {
                         },
                         destructive: false,
                         keyboard_shortcut: "t".to_string(),
+                    });
+
+                    // Open in source control action
+                    let (sc_enabled, sc_disabled_reason) = match build_folder_url(
+                        project_path,
+                        &format!(".centy/issues/{}", req.entity_id),
+                    ) {
+                        Ok(url) => {
+                            // Include platform name in label for clarity
+                            let platform_name = url.platform.name();
+                            (true, format!("Open on {platform_name}"))
+                        }
+                        Err(e) => {
+                            let reason = match e {
+                                SourceControlError::NotGitRepository => {
+                                    "Not a git repository".to_string()
+                                }
+                                SourceControlError::NoRemoteOrigin => {
+                                    "No remote origin configured".to_string()
+                                }
+                                SourceControlError::UnsupportedPlatform(_) => {
+                                    "Unsupported source control platform".to_string()
+                                }
+                                _ => "Source control not available".to_string(),
+                            };
+                            (false, reason)
+                        }
+                    };
+
+                    actions.push(EntityAction {
+                        id: "open_in_source_control".to_string(),
+                        label: if sc_enabled {
+                            sc_disabled_reason.clone() // "Open on GitHub" etc.
+                        } else {
+                            "Open in Source Control".to_string()
+                        },
+                        category: ActionCategory::External as i32,
+                        enabled: sc_enabled,
+                        disabled_reason: if sc_enabled {
+                            String::new()
+                        } else {
+                            sc_disabled_reason
+                        },
+                        destructive: false,
+                        keyboard_shortcut: "s".to_string(),
                     });
                 }
             }
