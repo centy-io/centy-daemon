@@ -316,10 +316,13 @@ pub async fn create_temp_workspace(
         Ok(()) => {}
         Err(e) => {
             let error_msg = e.to_string();
-            // Check if the error is "already exists" - this can happen if:
+            // Check if the error indicates the worktree already exists - this can happen if:
             // 1. Worktree exists but not in our registry (orphaned)
             // 2. Race condition between check and create
-            if error_msg.contains("already exists") {
+            // 3. Git has a stale worktree reference but directory is missing
+            let is_worktree_conflict = error_msg.contains("already exists")
+                || error_msg.contains("already registered worktree");
+            if is_worktree_conflict {
                 // The worktree already exists on disk, try to reuse it
                 if workspace_path.exists() {
                     // Copy issue data to workspace (may update stale data)
