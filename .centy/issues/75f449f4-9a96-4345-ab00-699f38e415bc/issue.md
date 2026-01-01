@@ -1,3 +1,101 @@
 # Auto sync centy branch
 
-We want to have dedicated centy branch that will always be in sync will pull and push every time and will be the "db" of all the .centy related files
+We want to have a dedicated centy branch that will always be in sync (pull and push every time) and will be the "db" of all the .centy related files.
+
+## Goals
+
+- **Multi-machine sync**: Sync .centy files across different machines/developers
+- **Branch consistency**: Keep issues consistent across all git branches (main, feature-x, etc.)
+- **Backup/persistence**: Ensure .centy data is backed up to remote
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Daemon (gRPC)                          │
+├─────────────────────────────────────────────────────────────┤
+│   CreateIssue  GetIssue  UpdateIssue  ...                  │
+│       │           │          │                              │
+│       └───────────┴──────────┴──────────────────┐          │
+│                              ┌───────────────────▼────────┐ │
+│                              │     CentySyncManager       │ │
+│                              │  • pull_before_read()      │ │
+│                              │  • commit_and_push()       │ │
+│                              │  • merge_conflicts()       │ │
+│                              └───────────────────┬────────┘ │
+│                              ┌───────────────────▼────────┐ │
+│                              │   Centy Branch Worktree    │ │
+│                              │  ~/.centy/sync/{hash}/     │ │
+│                              │      └── .centy/           │ │
+│                              └───────────────────┬────────┘ │
+│                                         │ git push/pull     │
+│                              ┌──────────▼─────────────────┐ │
+│                              │    Remote: origin/centy    │ │
+│                              └────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Design Decisions
+
+### 1. Orphan Branch
+- Branch named `centy` with no common history with `main`
+- Only contains `.centy/` directory structure
+- Clean separation: code history vs issue tracking history
+
+### 2. Persistent Worktree
+- Use git worktree (like agent workspaces) but persistent
+- Located at `~/.centy/sync/{project-path-hash}/`
+- Always checked out to `centy` branch
+- All daemon operations read/write here
+
+### 3. Sync Protocol
+```
+Read operation:  git pull → read file
+Write operation: git pull → merge → write → commit → push
+```
+
+### 4. Field-Level Merge Strategy
+For JSON files (metadata.json, config.json):
+- Compare base, ours, theirs for each field
+- Non-conflicting changes auto-merged
+- True conflicts stored in `.centy/.conflicts/`
+
+For Markdown files (issue.md):
+- If only one side changed: take that change
+- If both changed: mark as conflict for manual resolution
+
+### 5. Display Number Collisions
+- On sync, if collision detected, renumber to next free number
+- UUID remains primary key (stable identifier)
+- display_number is for human convenience only
+
+### 6. Migration
+- Automatic, no explicit command needed
+- On first sync, if `centy` branch doesn't exist but local `.centy/` does:
+  - Create orphan branch from existing content
+  - Push to remote
+- Seamless upgrade path for existing projects
+
+## Implementation Phases
+
+### Phase 1: Core Infrastructure
+- `src/sync/branch.rs` - Orphan branch operations
+- `src/sync/worktree.rs` - Sync worktree management
+- `src/sync/manager.rs` - Main sync orchestrator
+
+### Phase 2: Merge & Conflict Resolution
+- `src/sync/merge.rs` - Three-way field-level merge
+- `src/sync/conflicts.rs` - Conflict storage/resolution
+
+### Phase 3: Daemon Integration
+- Wrap server operations with sync (create/update/delete/get)
+- Enhance Init to set up centy branch
+
+### Phase 4: Workspace Integration
+- Update temp workspace creation to source from sync worktree
+- Sync changes back on workspace close
+
+### Phase 5: Edge Cases
+- Offline mode with queued operations
+- No remote configured handling
+- Concurrent access with file locking
