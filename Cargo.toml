@@ -68,9 +68,6 @@ regex = "1"
 pulldown-cmark = "0.11"
 pulldown-cmark-to-cmark = "15"
 
-# GitHub API client
-octocrab = "0.40"
-
 # Query parser for advanced search
 pest = "2.8"
 pest_derive = "2.8"

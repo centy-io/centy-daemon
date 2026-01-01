@@ -107,6 +107,47 @@ pub async fn get_workspace(
     Ok(registry.workspaces.get(workspace_path).cloned())
 }
 
+/// Find an existing workspace for a specific issue in a source project.
+///
+/// Returns the workspace path and entry if found and not expired.
+pub async fn find_workspace_for_issue(
+    source_project_path: &str,
+    issue_id: &str,
+) -> Result<Option<(String, TempWorkspaceEntry)>, WorkspaceError> {
+    let registry = read_registry().await?;
+
+    for (path, entry) in &registry.workspaces {
+        // Match by source project and issue ID
+        if entry.source_project_path == source_project_path && entry.issue_id == issue_id {
+            // Check if not expired
+            if !is_expired(entry) {
+                return Ok(Some((path.clone(), entry.clone())));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+/// Update an existing workspace entry's expiration time.
+///
+/// This is used when reopening an existing workspace to extend its TTL.
+pub async fn update_workspace_expiration(
+    workspace_path: &str,
+    new_expires_at: &str,
+) -> Result<(), WorkspaceError> {
+    let _guard = get_lock().lock().await;
+
+    let mut registry = read_registry().await?;
+    if let Some(entry) = registry.workspaces.get_mut(workspace_path) {
+        entry.expires_at = new_expires_at.to_string();
+        registry.updated_at = now_iso();
+        write_registry_unlocked(&registry).await?;
+    }
+
+    Ok(())
+}
+
 /// Check if a workspace has expired
 pub fn is_expired(entry: &TempWorkspaceEntry) -> bool {
     if let Ok(expires_at) = entry.expires_at.parse::<DateTime<Utc>>() {

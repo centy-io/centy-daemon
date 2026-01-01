@@ -18,7 +18,8 @@ pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 pub use create::{create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult};
 #[allow(unused_imports)]
 pub use storage::{
-    add_workspace, get_workspace, list_workspaces, read_registry, remove_workspace, write_registry,
+    add_workspace, find_workspace_for_issue, get_workspace, list_workspaces, read_registry,
+    remove_workspace, update_workspace_expiration, write_registry,
 };
 #[allow(unused_imports)]
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};

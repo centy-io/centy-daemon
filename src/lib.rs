@@ -14,8 +14,6 @@ pub mod reconciliation;
 pub mod registry;
 pub mod search;
 pub mod server;
-pub mod source_control;
-pub mod task_import;
 pub mod template;
 pub mod user;
 pub mod utils;
@@ -81,7 +79,6 @@ pub use search::{
     advanced_search, format_query, parse_query,
     SearchError, SearchOptions, SearchResult, SearchResultIssue, SortField, SortOptions,
 };
-pub use source_control::{build_folder_url, SourceControlError};
 pub use workspace::{
     cleanup_expired_workspaces, cleanup_workspace, create_temp_workspace, list_workspaces,
     CleanupResult, CreateWorkspaceOptions, CreateWorkspaceResult, TempWorkspaceEntry,

@@ -311,23 +311,6 @@ service CentyDaemon {
 
   // Get available actions for an entity (contextual based on entity state)
   rpc GetEntityActions(GetEntityActionsRequest) returns (GetEntityActionsResponse);
-
-  // ============ Task Import RPCs ============
-
-  // Import tasks from an external provider
-  rpc ImportTasks(ImportTasksRequest) returns (ImportTasksResponse);
-
-  // Test provider connection
-  rpc TestProviderConnection(TestProviderConnectionRequest) returns (TestProviderConnectionResponse);
-
-  // List configured providers
-  rpc ListImportProviders(ListImportProvidersRequest) returns (ListImportProvidersResponse);
-
-  // Get provider config
-  rpc GetImportProviderConfig(GetImportProviderConfigRequest) returns (GetImportProviderConfigResponse);
-
-  // Update provider config
-  rpc UpdateImportProviderConfig(UpdateImportProviderConfigRequest) returns (UpdateImportProviderConfigResponse);
 }
 
 // ============ Init Messages ============
@@ -477,16 +460,6 @@ message IssueMetadata {
   bool is_org_issue = 12;         // Whether this is an organization-level issue
   string org_slug = 13;           // Organization slug (empty if not org issue)
   uint32 org_display_number = 14; // Org-scoped display number (0 if not org issue)
-  ImportMetadataProto import_metadata = 15; // Metadata for imported issues (empty if not imported)
-}
-
-message ImportMetadataProto {
-  string provider = 1;            // Provider name (e.g., "github", "gitlab")
-  string source_id = 2;           // Provider-specific source (e.g., "owner/repo")
-  string external_id = 3;         // External issue ID
-  string url = 4;                 // URL to external issue
-  string imported_at = 5;         // ISO timestamp when first imported
-  string last_synced_at = 6;      // ISO timestamp when last synced
 }
 
 message GetIssueRequest {
@@ -1615,6 +1588,8 @@ message OpenInTempVscodeResponse {
   string expires_at = 6;                // ISO timestamp when workspace expires
   bool vscode_opened = 7;               // Whether VS Code was successfully opened
   bool requires_status_config = 8;      // True if user must configure update_status_on_start setting
+  bool workspace_reused = 9;            // True if an existing workspace was reopened instead of creating new
+  string original_created_at = 10;      // Original creation timestamp (only set if workspace_reused is true)
 }
 
 // Request to open an agent in a terminal
@@ -1924,98 +1899,4 @@ message GetEntityActionsResponse {
   repeated EntityAction actions = 1;    // Available actions, ordered by category then priority
   bool success = 2;
   string error = 3;
-}
-
-// ============ Task Import Messages ============
-
-message ImportTasksRequest {
-  string project_path = 1;
-  string provider_name = 2;
-  ImportFilter filter = 3;
-}
-
-message ImportFilter {
-  repeated string labels = 1;
-  repeated string status = 2;
-  uint32 limit = 3;
-}
-
-message ImportTasksResponse {
-  bool success = 1;
-  string error = 2;
-  ImportResult result = 3;
-}
-
-message ImportResult {
-  uint32 total_fetched = 1;
-  repeated string created = 2;
-  repeated string updated = 3;
-  repeated string skipped = 4;
-  repeated ImportError errors = 5;
-}
-
-message ImportError {
-  string external_id = 1;
-  string error = 2;
-}
-
-message TestProviderConnectionRequest {
-  string project_path = 1;
-  string provider_name = 2;
-}
-
-message TestProviderConnectionResponse {
-  bool success = 1;
-  string message = 2;
-  repeated string permissions = 3;
-}
-
-message ListImportProvidersRequest {
-  string project_path = 1;
-}
-
-message ListImportProvidersResponse {
-  repeated ProviderInfo providers = 1;
-}
-
-message ProviderInfo {
-  string name = 1;
-  string provider_type = 2;
-  string source_id = 3;
-  bool authenticated = 4;
-}
-
-message GetImportProviderConfigRequest {
-  string project_path = 1;
-  string provider_name = 2;
-}
-
-message GetImportProviderConfigResponse {
-  bool found = 1;
-  ProviderConfig config = 2;
-}
-
-message UpdateImportProviderConfigRequest {
-  string project_path = 1;
-  string provider_name = 2;
-  ProviderConfig config = 3;
-}
-
-message UpdateImportProviderConfigResponse {
-  bool success = 1;
-  string error = 2;
-}
-
-message ProviderConfig {
-  string provider = 1;
-  string source_id = 2;
-  FieldMappings field_mappings = 3;
-  map<string, string> settings = 4;
-}
-
-message FieldMappings {
-  map<string, string> label_to_custom_field = 1;
-  map<string, string> status_mapping = 2;
-  string default_status = 3;
-  uint32 default_priority = 4;
 }

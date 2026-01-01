@@ -2,7 +2,7 @@
 //!
 //! Handles creating temporary git worktrees with VS Code configuration.
 
-use super::storage::{add_workspace, get_default_ttl};
+use super::storage::{add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration};
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
@@ -41,6 +41,12 @@ pub struct CreateWorkspaceResult {
 
     /// Whether VS Code was successfully opened
     pub vscode_opened: bool,
+
+    /// Whether an existing workspace was reused instead of creating a new one
+    pub workspace_reused: bool,
+
+    /// Original creation timestamp (only set if workspace was reused)
+    pub original_created_at: Option<String>,
 }
 
 /// Extract and sanitize project name from a path.
@@ -232,11 +238,13 @@ async fn copy_issue_data_to_workspace(
 /// Create a temporary workspace for working on an issue.
 ///
 /// This function:
-/// 1. Validates the source project is a git repository
-/// 2. Creates a git worktree at a temporary location
-/// 3. Sets up VS Code configuration with auto-run task
-/// 4. Records the workspace in the registry
-/// 5. Opens VS Code (if available)
+/// 1. Checks if an existing workspace for this issue already exists (reopen if so)
+/// 2. Validates the source project is a git repository
+/// 3. Creates a git worktree at a temporary location
+/// 4. Sets up VS Code configuration with auto-run task
+/// 5. Records the workspace in the registry
+/// 6. Opens VS Code (if available)
+#[allow(clippy::too_many_lines)]
 pub async fn create_temp_workspace(
     options: CreateWorkspaceOptions,
 ) -> Result<CreateWorkspaceResult, WorkspaceError> {
@@ -261,16 +269,112 @@ pub async fn create_temp_workspace(
         options.ttl_hours
     };
 
-    // Generate workspace path with project name for better identification
+    let issue_id = &options.issue.id;
     let display_number = options.issue.metadata.display_number;
+    let source_path_str = source_path.to_string_lossy().to_string();
+
+    // Check for existing workspace for this issue
+    if let Ok(Some((existing_path, existing_entry))) =
+        find_workspace_for_issue(&source_path_str, issue_id).await
+    {
+        let workspace_path = PathBuf::from(&existing_path);
+
+        // Verify the workspace directory still exists on disk
+        if workspace_path.exists() {
+            // Found a valid existing workspace - reopen it
+            let original_created_at = existing_entry.created_at.clone();
+
+            // Extend the expiration time
+            let new_expires_at = calculate_expires_at(ttl_hours);
+            update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+            // Create updated entry with new expiration
+            let updated_entry = TempWorkspaceEntry {
+                expires_at: new_expires_at,
+                ..existing_entry
+            };
+
+            // Try to open VS Code (don't fail if it's not available)
+            let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
+
+            return Ok(CreateWorkspaceResult {
+                workspace_path,
+                entry: updated_entry,
+                vscode_opened,
+                workspace_reused: true,
+                original_created_at: Some(original_created_at),
+            });
+        }
+        // If workspace path doesn't exist on disk, fall through to create new
+    }
+
+    // Generate workspace path with project name for better identification
     let workspace_path = generate_workspace_path(source_path, display_number);
 
-    // Create the git worktree
-    create_worktree(source_path, &workspace_path, "HEAD")
-        .map_err(|e| WorkspaceError::GitError(e.to_string()))?;
+    // Try to create the git worktree
+    match create_worktree(source_path, &workspace_path, "HEAD") {
+        Ok(()) => {}
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Check if the error is "already exists" - this can happen if:
+            // 1. Worktree exists but not in our registry (orphaned)
+            // 2. Race condition between check and create
+            if error_msg.contains("already exists") {
+                // The worktree already exists on disk, try to reuse it
+                if workspace_path.exists() {
+                    // Copy issue data to workspace (may update stale data)
+                    copy_issue_data_to_workspace(source_path, &workspace_path, issue_id).await?;
+
+                    // Set up VS Code configuration
+                    setup_vscode_config(&workspace_path, issue_id, display_number, &options.action)
+                        .await?;
+
+                    // Create plan.md template for plan action
+                    if options.action == "plan" {
+                        create_plan_template(
+                            &workspace_path,
+                            issue_id,
+                            display_number,
+                            &options.issue.title,
+                        )
+                        .await?;
+                    }
+
+                    // Create the registry entry
+                    let entry = TempWorkspaceEntry {
+                        source_project_path: source_path_str.clone(),
+                        issue_id: issue_id.clone(),
+                        issue_display_number: display_number,
+                        issue_title: options.issue.title.clone(),
+                        agent_name: options.agent_name.clone(),
+                        action: options.action.clone(),
+                        created_at: now_iso(),
+                        expires_at: calculate_expires_at(ttl_hours),
+                        worktree_ref: "HEAD".to_string(),
+                    };
+
+                    // Record in registry
+                    let workspace_path_str = workspace_path.to_string_lossy().to_string();
+                    add_workspace(&workspace_path_str, entry.clone()).await?;
+
+                    // Try to open VS Code (don't fail if it's not available)
+                    let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
+
+                    return Ok(CreateWorkspaceResult {
+                        workspace_path,
+                        entry,
+                        vscode_opened,
+                        workspace_reused: true,
+                        original_created_at: None, // Unknown original creation time for orphaned worktree
+                    });
+                }
+            }
+            // For other errors, propagate them
+            return Err(WorkspaceError::GitError(error_msg));
+        }
+    }
 
     // Copy issue data to workspace
-    let issue_id = &options.issue.id;
     copy_issue_data_to_workspace(source_path, &workspace_path, issue_id).await?;
 
     // Set up VS Code configuration
@@ -278,12 +382,13 @@ pub async fn create_temp_workspace(
 
     // Create plan.md template for plan action
     if options.action == "plan" {
-        create_plan_template(&workspace_path, issue_id, display_number, &options.issue.title).await?;
+        create_plan_template(&workspace_path, issue_id, display_number, &options.issue.title)
+            .await?;
     }
 
     // Create the registry entry
     let entry = TempWorkspaceEntry {
-        source_project_path: source_path.to_string_lossy().to_string(),
+        source_project_path: source_path_str,
         issue_id: issue_id.clone(),
         issue_display_number: display_number,
         issue_title: options.issue.title.clone(),
@@ -305,6 +410,8 @@ pub async fn create_temp_workspace(
         workspace_path,
         entry,
         vscode_opened,
+        workspace_reused: false,
+        original_created_at: None,
     })
 }
 

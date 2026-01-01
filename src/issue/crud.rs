@@ -104,8 +104,6 @@ pub struct IssueMetadataFlat {
     pub org_slug: Option<String>,
     /// Org-scoped display number (consistent across all org projects)
     pub org_display_number: Option<u32>,
-    /// Import metadata for externally-sourced issues
-    pub import_metadata: Option<super::metadata::ImportMetadata>,
 }
 
 /// Options for updating an issue
@@ -119,8 +117,6 @@ pub struct UpdateIssueOptions {
     pub custom_fields: HashMap<String, String>,
     /// Whether to mark as draft. None = don't update.
     pub draft: Option<bool>,
-    /// Import metadata for externally-sourced issues. None = don't update.
-    pub import_metadata: Option<super::metadata::ImportMetadata>,
 }
 
 /// Result of issue update
@@ -467,7 +463,6 @@ pub async fn update_issue(
         is_org_issue: current.metadata.is_org_issue,
         org_slug: current.metadata.org_slug.clone(),
         org_display_number: current.metadata.org_display_number,
-        import_metadata: options.import_metadata.or(current.metadata.import_metadata.clone()),
     };
 
     // Generate updated content
@@ -523,7 +518,6 @@ pub async fn update_issue(
             is_org_issue: current.metadata.is_org_issue,
             org_slug: current.metadata.org_slug.clone(),
             org_display_number: current.metadata.org_display_number,
-            import_metadata: updated_metadata.import_metadata.clone(),
         },
     };
 
@@ -855,7 +849,6 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
         is_org_issue: false, // Duplicate is always a local copy
         org_slug: None,
         org_display_number: None,
-        import_metadata: None, // Reset import metadata for duplicated issue
     };
     fs::write(
         new_issue_path.join("metadata.json"),
@@ -935,7 +928,6 @@ async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<I
             is_org_issue: metadata.is_org_issue,
             org_slug: metadata.org_slug,
             org_display_number: metadata.org_display_number,
-            import_metadata: metadata.import_metadata,
         },
     })
 }
@@ -1171,7 +1163,6 @@ async fn update_or_create_issue_in_project(
         is_org_issue: true,
         org_slug: Some(org_slug.to_string()),
         org_display_number: source_metadata.org_display_number,
-        import_metadata: source_metadata.import_metadata.clone(),
     };
 
     // Write updated issue.md

@@ -53,7 +53,6 @@ use crate::user::{
     CreateUserOptions, UpdateUserOptions,
 };
 use crate::search::{advanced_search, SearchOptions, SortOptions};
-use crate::source_control::{build_folder_url, SourceControlError};
 use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
@@ -78,7 +77,7 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory, ImportTasksRequest, ImportTasksResponse, ImportResult, ImportError, TestProviderConnectionRequest, TestProviderConnectionResponse, ListImportProvidersRequest, ListImportProvidersResponse, ProviderInfo, GetImportProviderConfigRequest, GetImportProviderConfigResponse, UpdateImportProviderConfigRequest, UpdateImportProviderConfigResponse, ProviderConfig, FieldMappings};
+use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -328,7 +327,6 @@ impl CentyDaemon for CentyDaemonService {
             template: if req.template.is_empty() { None } else { Some(req.template) },
             draft: Some(req.draft),
             is_org_issue: req.is_org_issue,
-            import_metadata: None,
         };
 
         match create_issue_with_title_generation(project_path, options).await {
@@ -511,7 +509,6 @@ impl CentyDaemon for CentyDaemonService {
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             custom_fields: req.custom_fields,
             draft: req.draft,
-            import_metadata: None,
         };
 
         match update_issue(project_path, &req.issue_id, options).await {
@@ -2988,6 +2985,8 @@ impl CentyDaemon for CentyDaemonService {
                         expires_at: String::new(),
                         vscode_opened: false,
                         requires_status_config: false,
+                        workspace_reused: false,
+                        original_created_at: String::new(),
                     }));
                 }
             }
@@ -3004,6 +3003,8 @@ impl CentyDaemon for CentyDaemonService {
                         expires_at: String::new(),
                         vscode_opened: false,
                         requires_status_config: false,
+                        workspace_reused: false,
+                        original_created_at: String::new(),
                     }));
                 }
             }
@@ -3027,6 +3028,8 @@ impl CentyDaemon for CentyDaemonService {
                 expires_at: String::new(),
                 vscode_opened: false,
                 requires_status_config: true,
+                workspace_reused: false,
+                original_created_at: String::new(),
             }));
         }
 
@@ -3076,6 +3079,8 @@ impl CentyDaemon for CentyDaemonService {
                 expires_at: result.entry.expires_at,
                 vscode_opened: result.vscode_opened,
                 requires_status_config: false,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
             })),
             Err(e) => Ok(Response::new(OpenInTempVscodeResponse {
                 success: false,
@@ -3086,6 +3091,8 @@ impl CentyDaemon for CentyDaemonService {
                 expires_at: String::new(),
                 vscode_opened: false,
                 requires_status_config: false,
+                workspace_reused: false,
+                original_created_at: String::new(),
             })),
         }
     }
@@ -3566,51 +3573,6 @@ impl CentyDaemon for CentyDaemonService {
                         destructive: false,
                         keyboard_shortcut: "t".to_string(),
                     });
-
-                    // Open in source control action
-                    let (sc_enabled, sc_disabled_reason) = match build_folder_url(
-                        project_path,
-                        &format!(".centy/issues/{}", req.entity_id),
-                    ) {
-                        Ok(url) => {
-                            // Include platform name in label for clarity
-                            let platform_name = url.platform.name();
-                            (true, format!("Open on {platform_name}"))
-                        }
-                        Err(e) => {
-                            let reason = match e {
-                                SourceControlError::NotGitRepository => {
-                                    "Not a git repository".to_string()
-                                }
-                                SourceControlError::NoRemoteOrigin => {
-                                    "No remote origin configured".to_string()
-                                }
-                                SourceControlError::UnsupportedPlatform(_) => {
-                                    "Unsupported source control platform".to_string()
-                                }
-                                _ => "Source control not available".to_string(),
-                            };
-                            (false, reason)
-                        }
-                    };
-
-                    actions.push(EntityAction {
-                        id: "open_in_source_control".to_string(),
-                        label: if sc_enabled {
-                            sc_disabled_reason.clone() // "Open on GitHub" etc.
-                        } else {
-                            "Open in Source Control".to_string()
-                        },
-                        category: ActionCategory::External as i32,
-                        enabled: sc_enabled,
-                        disabled_reason: if sc_enabled {
-                            String::new()
-                        } else {
-                            sc_disabled_reason
-                        },
-                        destructive: false,
-                        keyboard_shortcut: "s".to_string(),
-                    });
                 }
             }
 
@@ -3757,299 +3719,6 @@ impl CentyDaemon for CentyDaemonService {
             success: true,
             error: String::new(),
         }))
-    }
-
-    async fn import_tasks(
-        &self,
-        request: Request<ImportTasksRequest>,
-    ) -> Result<Response<ImportTasksResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = PathBuf::from(&req.project_path);
-
-        // Read provider config
-        let provider_config = match crate::task_import::get_provider_config(&project_path, &req.provider_name).await {
-            Ok(Some(config)) => config,
-            Ok(None) => {
-                return Ok(Response::new(ImportTasksResponse {
-                    success: false,
-                    error: format!("Provider '{}' not configured", req.provider_name),
-                    result: None,
-                }));
-            }
-            Err(e) => {
-                return Ok(Response::new(ImportTasksResponse {
-                    success: false,
-                    error: e.to_string(),
-                    result: None,
-                }));
-            }
-        };
-
-        // Read auth credentials
-        let credentials = match crate::task_import::get_provider_credentials(&project_path, &provider_config.provider).await {
-            Ok(Some(creds)) => creds,
-            Ok(None) => crate::task_import::AuthCredentials::None, // Use unauthenticated mode
-            Err(e) => {
-                return Ok(Response::new(ImportTasksResponse {
-                    success: false,
-                    error: format!("Failed to read auth credentials: {}", e),
-                    result: None,
-                }));
-            }
-        };
-
-        // Create provider instance (currently only GitHub)
-        let provider: Box<dyn crate::task_import::TaskProvider> = match provider_config.provider.as_str() {
-            "github" => Box::new(crate::task_import::GitHubProvider::new()),
-            _ => {
-                return Ok(Response::new(ImportTasksResponse {
-                    success: false,
-                    error: format!("Unsupported provider: {}", provider_config.provider),
-                    result: None,
-                }));
-            }
-        };
-
-        // Authenticate
-        if let Err(e) = provider.authenticate(&credentials).await {
-            return Ok(Response::new(ImportTasksResponse {
-                success: false,
-                error: format!("Authentication failed: {}", e),
-                result: None,
-            }));
-        }
-
-        // Convert proto filter to internal filter
-        let filter = req.filter.map(|f| crate::task_import::ImportFilter {
-            labels: if f.labels.is_empty() { None } else { Some(f.labels) },
-            status: if f.status.is_empty() { None } else { Some(f.status) },
-            limit: if f.limit == 0 { None } else { Some(f.limit as usize) },
-        });
-
-        // Import tasks
-        let options = crate::task_import::ImportOptions {
-            project_path,
-            provider_config,
-            filter,
-        };
-
-        match crate::task_import::import_tasks(provider.as_ref(), options).await {
-            Ok(result) => Ok(Response::new(ImportTasksResponse {
-                success: true,
-                error: String::new(),
-                result: Some(ImportResult {
-                    total_fetched: result.total_fetched as u32,
-                    created: result.created,
-                    updated: result.updated,
-                    skipped: result.skipped,
-                    errors: result.errors.into_iter().map(|e| ImportError {
-                        external_id: e.external_id,
-                        error: e.error,
-                    }).collect(),
-                }),
-            })),
-            Err(e) => Ok(Response::new(ImportTasksResponse {
-                success: false,
-                error: e.to_string(),
-                result: None,
-            })),
-        }
-    }
-
-    async fn test_provider_connection(
-        &self,
-        request: Request<TestProviderConnectionRequest>,
-    ) -> Result<Response<TestProviderConnectionResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = PathBuf::from(&req.project_path);
-
-        // Read provider config
-        let provider_config = match crate::task_import::get_provider_config(&project_path, &req.provider_name).await {
-            Ok(Some(config)) => config,
-            Ok(None) => {
-                return Ok(Response::new(TestProviderConnectionResponse {
-                    success: false,
-                    message: format!("Provider '{}' not configured", req.provider_name),
-                    permissions: vec![],
-                }));
-            }
-            Err(e) => {
-                return Ok(Response::new(TestProviderConnectionResponse {
-                    success: false,
-                    message: e.to_string(),
-                    permissions: vec![],
-                }));
-            }
-        };
-
-        // Read auth credentials
-        let credentials = match crate::task_import::get_provider_credentials(&project_path, &provider_config.provider).await {
-            Ok(Some(creds)) => creds,
-            Ok(None) => crate::task_import::AuthCredentials::None, // Use unauthenticated mode
-            Err(e) => {
-                return Ok(Response::new(TestProviderConnectionResponse {
-                    success: false,
-                    message: format!("Failed to read auth credentials: {}", e),
-                    permissions: vec![],
-                }));
-            }
-        };
-
-        // Create provider instance
-        let provider: Box<dyn crate::task_import::TaskProvider> = match provider_config.provider.as_str() {
-            "github" => Box::new(crate::task_import::GitHubProvider::new()),
-            _ => {
-                return Ok(Response::new(TestProviderConnectionResponse {
-                    success: false,
-                    message: format!("Unsupported provider: {}", provider_config.provider),
-                    permissions: vec![],
-                }));
-            }
-        };
-
-        // Authenticate
-        if let Err(e) = provider.authenticate(&credentials).await {
-            return Ok(Response::new(TestProviderConnectionResponse {
-                success: false,
-                message: format!("Authentication failed: {}", e),
-                permissions: vec![],
-            }));
-        }
-
-        // Test connection
-        match provider.test_connection().await {
-            Ok(result) => Ok(Response::new(TestProviderConnectionResponse {
-                success: result.success,
-                message: result.message,
-                permissions: result.permissions,
-            })),
-            Err(e) => Ok(Response::new(TestProviderConnectionResponse {
-                success: false,
-                message: e.to_string(),
-                permissions: vec![],
-            })),
-        }
-    }
-
-    async fn list_import_providers(
-        &self,
-        request: Request<ListImportProvidersRequest>,
-    ) -> Result<Response<ListImportProvidersResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = PathBuf::from(&req.project_path);
-
-        // Read task import config
-        let config = match crate::task_import::read_config(&project_path).await {
-            Ok(config) => config,
-            Err(_) => {
-                return Ok(Response::new(ListImportProvidersResponse {
-                    providers: vec![],
-                }));
-            }
-        };
-
-        // Convert to proto format
-        let providers = config.providers.into_iter().map(|(name, provider_config)| {
-            ProviderInfo {
-                name,
-                provider_type: provider_config.provider,
-                source_id: provider_config.source_id,
-                authenticated: false, // TODO: Check if authenticated
-            }
-        }).collect();
-
-        Ok(Response::new(ListImportProvidersResponse { providers }))
-    }
-
-    async fn get_import_provider_config(
-        &self,
-        request: Request<GetImportProviderConfigRequest>,
-    ) -> Result<Response<GetImportProviderConfigResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = PathBuf::from(&req.project_path);
-
-        match crate::task_import::get_provider_config(&project_path, &req.provider_name).await {
-            Ok(Some(config)) => Ok(Response::new(GetImportProviderConfigResponse {
-                found: true,
-                config: Some(ProviderConfig {
-                    provider: config.provider,
-                    source_id: config.source_id,
-                    field_mappings: Some(FieldMappings {
-                        label_to_custom_field: config.field_mappings.label_to_custom_field,
-                        status_mapping: config.field_mappings.status_mapping,
-                        default_status: config.field_mappings.default_status.unwrap_or_default(),
-                        default_priority: config.field_mappings.default_priority.unwrap_or(3),
-                    }),
-                    settings: config.settings.into_iter().map(|(k, v)| (k, v.to_string())).collect(),
-                }),
-            })),
-            Ok(None) => Ok(Response::new(GetImportProviderConfigResponse {
-                found: false,
-                config: None,
-            })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
-    }
-
-    async fn update_import_provider_config(
-        &self,
-        request: Request<UpdateImportProviderConfigRequest>,
-    ) -> Result<Response<UpdateImportProviderConfigResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = PathBuf::from(&req.project_path);
-
-        let proto_config = match req.config {
-            Some(config) => config,
-            None => {
-                return Ok(Response::new(UpdateImportProviderConfigResponse {
-                    success: false,
-                    error: "Config is required".to_string(),
-                }));
-            }
-        };
-
-        let field_mappings = proto_config.field_mappings.unwrap_or(FieldMappings {
-            label_to_custom_field: std::collections::HashMap::new(),
-            status_mapping: std::collections::HashMap::new(),
-            default_status: String::new(),
-            default_priority: 3,
-        });
-
-        let provider_config = crate::task_import::ProviderConfig {
-            provider: proto_config.provider,
-            source_id: proto_config.source_id,
-            field_mappings: crate::task_import::FieldMappings {
-                label_to_custom_field: field_mappings.label_to_custom_field,
-                status_mapping: field_mappings.status_mapping,
-                default_status: if field_mappings.default_status.is_empty() {
-                    None
-                } else {
-                    Some(field_mappings.default_status)
-                },
-                default_priority: if field_mappings.default_priority == 0 {
-                    None
-                } else {
-                    Some(field_mappings.default_priority)
-                },
-            },
-            settings: proto_config.settings.into_iter().map(|(k, v)| (k, serde_json::Value::String(v))).collect(),
-        };
-
-        match crate::task_import::update_provider_config(&project_path, &req.provider_name, provider_config).await {
-            Ok(_) => Ok(Response::new(UpdateImportProviderConfigResponse {
-                success: true,
-                error: String::new(),
-            })),
-            Err(e) => Ok(Response::new(UpdateImportProviderConfigResponse {
-                success: false,
-                error: e.to_string(),
-            })),
-        }
     }
 }
 
@@ -4274,14 +3943,6 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
             is_org_issue: issue.metadata.is_org_issue,
             org_slug: issue.metadata.org_slug.clone().unwrap_or_default(),
             org_display_number: issue.metadata.org_display_number.unwrap_or(0),
-            import_metadata: issue.metadata.import_metadata.as_ref().map(|im| proto::ImportMetadataProto {
-                provider: im.provider.clone(),
-                source_id: im.source_id.clone(),
-                external_id: im.external_id.clone(),
-                url: im.url.clone(),
-                imported_at: im.imported_at.clone(),
-                last_synced_at: im.last_synced_at.clone(),
-            }),
         }),
     }
 }
