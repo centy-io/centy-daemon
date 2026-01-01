@@ -7,7 +7,7 @@ use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
 use crate::issue::{copy_assets_folder, Issue};
-use crate::pr::git::{create_worktree, is_git_repository};
+use crate::pr::git::{create_worktree, is_git_repository, prune_worktrees};
 use crate::utils::{format_markdown, now_iso};
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
@@ -368,9 +368,23 @@ pub async fn create_temp_workspace(
                         original_created_at: None, // Unknown original creation time for orphaned worktree
                     });
                 }
+
+                // Worktree reference exists in git but directory doesn't exist on disk.
+                // This is an orphaned git worktree reference. Prune it and retry.
+                if prune_worktrees(source_path).is_ok() {
+                    // Retry creating the worktree after pruning
+                    if let Err(retry_err) = create_worktree(source_path, &workspace_path, "HEAD") {
+                        return Err(WorkspaceError::GitError(retry_err.to_string()));
+                    }
+                    // Success after prune+retry, continue with normal setup below
+                } else {
+                    // Prune failed, return the original error
+                    return Err(WorkspaceError::GitError(error_msg));
+                }
+            } else {
+                // For other errors, propagate them
+                return Err(WorkspaceError::GitError(error_msg));
             }
-            // For other errors, propagate them
-            return Err(WorkspaceError::GitError(error_msg));
         }
     }
 
