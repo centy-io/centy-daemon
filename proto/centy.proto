@@ -311,6 +311,26 @@ service CentyDaemon {
 
   // Get available actions for an entity (contextual based on entity state)
   rpc GetEntityActions(GetEntityActionsRequest) returns (GetEntityActionsResponse);
+
+  // ============ Sync RPCs ============
+
+  // List all sync conflicts for a project
+  rpc ListSyncConflicts(ListSyncConflictsRequest) returns (ListSyncConflictsResponse);
+
+  // Get a specific sync conflict by ID
+  rpc GetSyncConflict(GetSyncConflictRequest) returns (GetSyncConflictResponse);
+
+  // Resolve a sync conflict
+  rpc ResolveSyncConflict(ResolveSyncConflictRequest) returns (ResolveSyncConflictResponse);
+
+  // Get sync status for a project
+  rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
+
+  // Manually trigger a sync pull
+  rpc SyncPull(SyncPullRequest) returns (SyncPullResponse);
+
+  // Manually trigger a sync push
+  rpc SyncPush(SyncPushRequest) returns (SyncPushResponse);
 }
 
 // ============ Init Messages ============
@@ -1899,4 +1919,116 @@ message GetEntityActionsResponse {
   repeated EntityAction actions = 1;    // Available actions, ordered by category then priority
   bool success = 2;
   string error = 3;
+}
+
+// ============ Sync Messages ============
+
+// Sync conflict information
+message SyncConflict {
+  string id = 1;                        // Unique conflict ID
+  string item_type = 2;                 // Type of item (issue, doc, pr)
+  string item_id = 3;                   // ID of the item with conflict
+  string file_path = 4;                 // Relative file path within .centy
+  string created_at = 5;                // When the conflict was detected
+  string description = 6;               // Description of the conflict
+  string base_content = 7;              // Base content (common ancestor)
+  string ours_content = 8;              // Our version of the content
+  string theirs_content = 9;            // Their version of the content
+}
+
+// Sync mode enum
+enum SyncMode {
+  SYNC_MODE_UNSPECIFIED = 0;
+  SYNC_MODE_FULL = 1;                   // Full sync with remote
+  SYNC_MODE_LOCAL_ONLY = 2;             // Local-only mode (no remote)
+  SYNC_MODE_DISABLED = 3;               // Sync disabled (not a git repo)
+}
+
+// Request to list sync conflicts
+message ListSyncConflictsRequest {
+  string project_path = 1;
+}
+
+// Response with list of sync conflicts
+message ListSyncConflictsResponse {
+  repeated SyncConflict conflicts = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Request to get a specific sync conflict
+message GetSyncConflictRequest {
+  string project_path = 1;
+  string conflict_id = 2;
+}
+
+// Response with sync conflict details
+message GetSyncConflictResponse {
+  SyncConflict conflict = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Conflict resolution type
+enum ConflictResolutionType {
+  CONFLICT_RESOLUTION_UNSPECIFIED = 0;
+  CONFLICT_RESOLUTION_TAKE_OURS = 1;
+  CONFLICT_RESOLUTION_TAKE_THEIRS = 2;
+  CONFLICT_RESOLUTION_MERGE = 3;
+}
+
+// Request to resolve a sync conflict
+message ResolveSyncConflictRequest {
+  string project_path = 1;
+  string conflict_id = 2;
+  ConflictResolutionType resolution = 3;
+  string merged_content = 4;            // Only used when resolution is MERGE
+}
+
+// Response after resolving a conflict
+message ResolveSyncConflictResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Request to get sync status
+message GetSyncStatusRequest {
+  string project_path = 1;
+}
+
+// Response with sync status
+message GetSyncStatusResponse {
+  SyncMode mode = 1;                    // Current sync mode
+  bool has_pending_changes = 2;         // Whether there are uncommitted changes
+  bool has_pending_push = 3;            // Whether there are unpushed commits
+  int32 conflict_count = 4;             // Number of unresolved conflicts
+  string last_sync_time = 5;            // Last successful sync timestamp
+  bool success = 6;
+  string error = 7;
+}
+
+// Request to manually trigger sync pull
+message SyncPullRequest {
+  string project_path = 1;
+}
+
+// Response from sync pull
+message SyncPullResponse {
+  bool success = 1;
+  string error = 2;
+  bool had_changes = 3;                 // Whether any changes were pulled
+  repeated string conflict_files = 4;   // Files with conflicts (if any)
+}
+
+// Request to manually trigger sync push
+message SyncPushRequest {
+  string project_path = 1;
+  string commit_message = 2;            // Optional custom commit message
+}
+
+// Response from sync push
+message SyncPushResponse {
+  bool success = 1;
+  string error = 2;
+  bool had_changes = 3;                 // Whether any changes were pushed
 }

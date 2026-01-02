@@ -2,6 +2,7 @@ use crate::manifest::{
     create_manifest, read_manifest, write_manifest, update_manifest_timestamp,
     CentyManifest, ManagedFileType,
 };
+use crate::sync::manager::initialize_sync;
 use crate::utils::get_centy_path;
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
@@ -9,6 +10,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
+use tracing::warn;
 
 #[derive(Error, Debug)]
 pub enum ExecuteError {
@@ -96,6 +98,13 @@ pub async fn execute_reconciliation(
 
     // Write manifest
     write_manifest(project_path, &manifest).await?;
+
+    // Initialize sync (centy branch and worktree)
+    // This is done after all files are created so we have content to sync
+    if let Err(e) = initialize_sync(project_path).await {
+        // Log warning but don't fail - sync is optional
+        warn!("Failed to initialize centy sync: {}", e);
+    }
 
     result.manifest = manifest;
     Ok(result)

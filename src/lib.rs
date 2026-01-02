@@ -14,6 +14,7 @@ pub mod reconciliation;
 pub mod registry;
 pub mod search;
 pub mod server;
+pub mod sync;
 pub mod template;
 pub mod user;
 pub mod utils;
@@ -83,4 +84,8 @@ pub use workspace::{
     cleanup_expired_workspaces, cleanup_workspace, create_temp_workspace, list_workspaces,
     CleanupResult, CreateWorkspaceOptions, CreateWorkspaceResult, TempWorkspaceEntry,
     WorkspaceError, WorkspaceRegistry, DEFAULT_TTL_HOURS,
+};
+pub use sync::{
+    CentySyncManager, ConflictInfo, ConflictResolution, MergeResult, PullResult,
+    SyncError, CENTY_BRANCH,
 };
