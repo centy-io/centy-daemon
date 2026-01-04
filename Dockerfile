@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.83-alpine AS builder
+FROM rustlang/rust:nightly-alpine AS builder
 
 RUN apk add --no-cache musl-dev protobuf-dev
 

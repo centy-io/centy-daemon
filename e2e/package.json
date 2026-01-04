@@ -7,6 +7,10 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "docker": "./scripts/run-docker.sh",
+    "docker:watch": "./scripts/run-docker.sh --watch",
+    "docker:build": "./scripts/run-docker.sh --build-only",
+    "docker:clean": "./scripts/run-docker.sh --clean",
     "daemon:build": "cd .. && cargo build --release",
     "daemon:start": "cd .. && cargo run --release"
   },

@@ -1,0 +1,94 @@
+# Docker Compose configuration for E2E testing
+# All e2e testing files are encapsulated in this folder
+#
+# Usage (from e2e folder):
+#   docker compose up --build --abort-on-container-exit
+#   docker compose run --rm e2e-tests
+
+services:
+  # Main E2E test service - runs daemon and tests together
+  e2e-tests:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile
+    container_name: centy-e2e-tests
+    environment:
+      - CENTY_DAEMON_ADDR=127.0.0.1:50051
+      - NODE_ENV=test
+      - CI=true
+      # Enable snapshot testing
+      - E2E_SNAPSHOT_DIR=/app/e2e/test-output/snapshots
+    volumes:
+      # Mount snapshot output for inspection after tests
+      - ./test-output:/app/e2e/test-output
+    tmpfs:
+      # Use tmpfs for test projects to speed up tests
+      - /tmp:mode=1777
+
+  # Optional: Interactive development/debugging container
+  e2e-dev:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile
+    container_name: centy-e2e-dev
+    environment:
+      - CENTY_DAEMON_ADDR=127.0.0.1:50051
+      - NODE_ENV=test
+    volumes:
+      # Mount source for live editing
+      - .:/app/e2e
+      - ../proto:/app/proto
+      - ./test-output:/app/e2e/test-output
+      # Preserve node_modules as a named volume
+      - e2e_node_modules:/app/e2e/node_modules
+    tmpfs:
+      - /tmp:mode=1777
+    # Keep container running for interactive use
+    command: ["sh", "-c", "centy-daemon & tail -f /dev/null"]
+    profiles:
+      - dev
+
+  # Separated daemon service for testing complex scenarios
+  daemon:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile
+    container_name: centy-daemon-e2e
+    environment:
+      - CENTY_DAEMON_ADDR=0.0.0.0:50051
+      - CENTY_LOG_JSON=true
+    ports:
+      - "50051:50051"
+    command: ["centy-daemon"]
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo 'health check'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - separated
+
+  # Test runner that connects to separated daemon
+  test-runner:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile
+    container_name: centy-test-runner
+    environment:
+      - CENTY_DAEMON_ADDR=daemon:50051
+      - NODE_ENV=test
+      - CI=true
+      - E2E_SNAPSHOT_DIR=/app/e2e/test-output/snapshots
+    volumes:
+      - ./test-output:/app/e2e/test-output
+    tmpfs:
+      - /tmp:mode=1777
+    command: ["pnpm", "test"]
+    depends_on:
+      daemon:
+        condition: service_healthy
+    profiles:
+      - separated
+
+volumes:
+  e2e_node_modules:
