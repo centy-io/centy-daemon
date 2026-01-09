@@ -1,0 +1,3 @@
+# Reopen workspace
+
+Instead of \`Git error: Worktree error: Preparing worktree (detached HEAD 76c370c) fatal: ‘/var/folders/ws/sn0syx052q50bbjyj0czg2pc0000gn/T/mobile-issue-55-20260101’ already exists\` we want the user to have an option to reopen the existing workspace, we need to implement it in the app, cli and tui

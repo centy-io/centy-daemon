@@ -1,0 +1,42 @@
+# Use tempfile crate for atomic file operations
+
+Replace manual temp file handling with the `tempfile` crate for safer atomic writes.
+
+## Current State
+
+In `src/workspace/storage.rs`, atomic file writes are implemented manually:
+
+````rust
+let temp_path = path.with_extension("json.tmp");
+fs::write(&temp_path, &content).await?;
+fs::rename(&temp_path, &path).await?;
+````
+
+## Proposed Change
+
+Use the `tempfile` crate (already in dev-dependencies) for more robust temp file handling:
+
+````rust
+use tempfile::NamedTempFile;
+
+let mut temp_file = NamedTempFile::new_in(path.parent().unwrap())?;
+temp_file.write_all(content.as_bytes())?;
+temp_file.persist(&path)?;
+````
+
+## Benefits
+
+* **Automatic cleanup**: Temp files are cleaned up on drop if persist() fails
+* **Security**: Creates files with restricted permissions by default
+* **Edge cases**: Handles race conditions and cleanup better
+* **Cross-platform**: Better handling of platform-specific temp file behavior
+
+## Files to Update
+
+* `src/workspace/storage.rs` - `write_registry` function
+
+## Implementation Notes
+
+* Move `tempfile` from dev-dependencies to dependencies in Cargo.toml
+* Use `NamedTempFile::new_in()` to ensure temp file is on same filesystem as target (required for atomic rename)
+* Handle async context - may need `tokio::task::spawn_blocking` for sync file operations
