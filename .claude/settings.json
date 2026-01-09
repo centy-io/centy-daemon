@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(centy --help:*)",
-      "Bash(centy create:*)"
+      "Bash(centy create:*)",
+      "Bash(git add:*)",
+      "Bash(find:*)"
     ]
   }
 }
