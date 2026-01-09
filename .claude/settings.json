@@ -10,6 +10,7 @@
       "Bash(git status:*)",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
       "Bash(find:*)",
       "Bash(chmod:*)",
       "Bash(cargo fmt:*)",
