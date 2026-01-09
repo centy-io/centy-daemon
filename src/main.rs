@@ -21,6 +21,7 @@ mod version;
 mod workspace;
 
 use clap::Parser;
+use color_eyre::eyre::Result;
 use cors::{build_cors_layer, DEFAULT_CORS_ORIGINS};
 use grpc_logging::GrpcLoggingLayer;
 use logging::{init_logging, parse_rotation, LogConfig};
@@ -70,7 +71,10 @@ struct Args {
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("centy_descriptor");
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
+    // Install color-eyre error hooks for colored error output
+    color_eyre::install()?;
+
     // Parse CLI arguments first (before logging, so we can use log config)
     let args = Args::parse();
 

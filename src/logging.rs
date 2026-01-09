@@ -1,6 +1,8 @@
+use color_eyre::eyre::Result;
 use std::path::PathBuf;
 use tracing::Level;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_error::ErrorLayer;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
@@ -46,7 +48,7 @@ impl Default for LogConfig {
 /// # Errors
 ///
 /// Returns an error if the log directory cannot be created.
-pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
+pub fn init_logging(config: LogConfig) -> Result<()> {
     // Create log directory if it doesn't exist
     std::fs::create_dir_all(&config.log_dir)?;
 
@@ -86,6 +88,7 @@ pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
         tracing_subscriber::registry()
             .with(json_file_layer)
             .with(json_stdout_layer)
+            .with(ErrorLayer::default())
             .init();
     } else {
         // Human-readable format for development
@@ -107,6 +110,7 @@ pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
         tracing_subscriber::registry()
             .with(file_layer)
             .with(stdout_layer)
+            .with(ErrorLayer::default())
             .init();
     }
 
