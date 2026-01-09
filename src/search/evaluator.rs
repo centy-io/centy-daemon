@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::issue::Issue;
+use crate::item::entities::issue::Issue;
 use super::ast::{Condition, Field, Operator, Query, Value};
 
 /// Evaluate a query against an issue
@@ -156,7 +156,7 @@ fn evaluate_date_condition(operator: &Operator, field_value: &NaiveDate, query_v
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::issue::IssueMetadataFlat;
+    use crate::item::entities::issue::IssueMetadataFlat;
     use std::collections::HashMap;
 
     #[allow(deprecated)]

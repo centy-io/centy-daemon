@@ -1,6 +1,6 @@
 mod common;
 
-use centy_daemon::docs::{
+use centy_daemon::item::entities::doc::{
     create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
     CreateDocOptions, DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };

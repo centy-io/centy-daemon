@@ -4,7 +4,7 @@
 
 use super::storage::{is_expired, read_registry, remove_workspace};
 use super::WorkspaceError;
-use crate::pr::git::{prune_worktrees, remove_worktree};
+use crate::item::entities::pr::git::{prune_worktrees, remove_worktree};
 use std::path::Path;
 use tokio::fs;
 use tracing::{info, warn};

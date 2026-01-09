@@ -6,8 +6,8 @@ use super::storage::{add_workspace, find_workspace_for_issue, get_default_ttl, u
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
-use crate::issue::{copy_assets_folder, Issue};
-use crate::pr::git::{create_worktree, is_git_repository, prune_worktrees};
+use crate::item::entities::issue::{copy_assets_folder, Issue};
+use crate::item::entities::pr::git::{create_worktree, is_git_repository, prune_worktrees};
 use crate::utils::{format_markdown, now_iso};
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};

@@ -9,12 +9,12 @@
 //! but don't cause the underlying CRUD operation to fail.
 
 use super::manager::CentySyncManager;
-use crate::docs::{
-    self, CreateDocOptions, CreateDocResult, DeleteDocResult, Doc, DocError,
+use crate::item::entities::doc::{
+    self as docs, CreateDocOptions, CreateDocResult, DeleteDocResult, Doc, DocError,
     DuplicateDocOptions, DuplicateDocResult, MoveDocOptions, MoveDocResult,
     RestoreDocResult, SoftDeleteDocResult, UpdateDocOptions, UpdateDocResult,
 };
-use crate::issue::{
+use crate::item::entities::issue::{
     self,
     create::{CreateIssueOptions, CreateIssueResult, IssueError},
     crud::{
@@ -23,12 +23,12 @@ use crate::issue::{
         UpdateIssueOptions, UpdateIssueResult,
     },
 };
-use crate::pr::{
+use crate::item::entities::pr::{
     self, CreatePrOptions, CreatePrResult, DeletePrResult, PullRequest, UpdatePrOptions,
     UpdatePrResult, RestorePrResult, SoftDeletePrResult,
 };
-use crate::pr::crud::PrCrudError;
-use crate::pr::create::PrError;
+use crate::item::entities::pr::crud::PrCrudError;
+use crate::item::entities::pr::create::PrError;
 use std::path::Path;
 use tracing::{debug, warn};
 

@@ -1,8 +1,8 @@
 #![allow(deprecated)]
 mod common;
 
-use centy_daemon::docs::{create_doc, CreateDocOptions};
-use centy_daemon::issue::{create_issue, CreateIssueOptions};
+use centy_daemon::item::entities::doc::{create_doc, CreateDocOptions};
+use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 use tokio::fs;

@@ -4,7 +4,7 @@ use crate::manifest::{
 };
 use crate::registry::ProjectInfo;
 use crate::utils::{get_centy_path, now_iso};
-use crate::issue::priority::{validate_priority, PriorityError};
+use crate::item::validation::priority::{validate_priority, PriorityError};
 use super::id::{is_uuid, is_valid_pr_folder};
 use super::metadata::PrMetadata;
 use super::reconcile::{reconcile_pr_display_numbers, ReconcileError};

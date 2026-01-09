@@ -1,12 +1,12 @@
 mod common;
 
-use centy_daemon::pr::{
+use centy_daemon::item::entities::pr::{
     create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
     CreatePrOptions, UpdatePrOptions,
 };
-use centy_daemon::pr::create::PrError;
-use centy_daemon::pr::crud::PrCrudError;
-use centy_daemon::issue::is_uuid;
+use centy_daemon::item::entities::pr::create::PrError;
+use centy_daemon::item::entities::pr::crud::PrCrudError;
+use centy_daemon::item::entities::issue::is_uuid;
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -26,6 +26,7 @@ async fn test_create_pr_success() {
         status: Some("draft".to_string()),
         reviewers: vec!["reviewer1".to_string()],
         custom_fields: HashMap::new(),
+        ..Default::default()
     };
 
     let result = create_pr(project_path, options)

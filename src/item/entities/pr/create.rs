@@ -3,7 +3,7 @@ use crate::manifest::{
     read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
 };
 use crate::utils::{format_markdown, get_centy_path};
-use crate::issue::priority::{default_priority, validate_priority, PriorityError};
+use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
 use super::git::{detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError};
 use super::id::generate_pr_id;
 use super::metadata::PrMetadata;
@@ -43,6 +43,15 @@ pub enum PrError {
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
+
+    #[error("Not a git repository")]
+    NotGitRepository,
+
+    #[error("Source branch '{0}' does not exist")]
+    SourceBranchNotFound(String),
+
+    #[error("Target branch '{0}' does not exist")]
+    TargetBranchNotFound(String),
 }
 
 /// Options for creating a PR
@@ -61,6 +70,8 @@ pub struct CreatePrOptions {
     /// Initial status. Defaults to "draft".
     pub status: Option<String>,
     pub custom_fields: HashMap<String, String>,
+    /// Optional template name (without .md extension)
+    pub template: Option<String>,
 }
 
 /// Result of PR creation

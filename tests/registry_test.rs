@@ -173,7 +173,7 @@ async fn test_project_info_shows_issue_and_doc_counts() {
 
 #[tokio::test]
 async fn test_project_info_counts_issues() {
-    use centy_daemon::issue::{create_issue, CreateIssueOptions};
+    use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
@@ -206,7 +206,7 @@ async fn test_project_info_counts_issues() {
 
 #[tokio::test]
 async fn test_project_info_counts_docs() {
-    use centy_daemon::docs::{create_doc, CreateDocOptions};
+    use centy_daemon::item::entities::doc::{create_doc, CreateDocOptions};
 
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();

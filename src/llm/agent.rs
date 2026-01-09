@@ -5,7 +5,7 @@ use tracing::info;
 
 use super::config::{AgentConfig, LocalLlmConfig};
 use super::prompt::{LlmAction, PromptBuilder};
-use crate::issue::Issue;
+use crate::item::entities::issue::Issue;
 
 /// Mode for starting the agent process
 #[derive(Debug, Clone, Copy, Default)]

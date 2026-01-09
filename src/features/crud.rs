@@ -1,6 +1,6 @@
 //! Feature CRUD operations (WIP - not yet integrated)
 
-use crate::issue::{list_issues, Issue};
+use crate::item::entities::issue::{list_issues, Issue};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -28,7 +28,7 @@ pub enum FeatureError {
     FeaturesNotInitialized,
 
     #[error("Issue CRUD error: {0}")]
-    IssueCrudError(#[from] crate::issue::IssueCrudError),
+    IssueCrudError(#[from] crate::item::entities::issue::IssueCrudError),
 }
 
 /// Get the status of the features system
@@ -188,7 +188,7 @@ pub async fn mark_issues_compacted(
 
         // Read current metadata
         let content = fs::read_to_string(&metadata_path).await?;
-        let mut metadata: crate::issue::IssueMetadata = serde_json::from_str(&content)?;
+        let mut metadata: crate::item::entities::issue::IssueMetadata = serde_json::from_str(&content)?;
 
         // Update compacted fields
         metadata.compacted = true;

@@ -1,12 +1,12 @@
 mod common;
 
 use centy_daemon::config::{CentyConfig, CustomFieldDefinition, LlmConfig as InternalLlmConfig};
-use centy_daemon::docs::{create_doc, get_doc, CreateDocOptions};
-use centy_daemon::issue::{
+use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
+use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
 };
 use centy_daemon::link::CustomLinkTypeDefinition;
-use centy_daemon::pr::{create_pr, get_pr, list_prs, update_pr, CreatePrOptions, UpdatePrOptions};
+use centy_daemon::item::entities::pr::{create_pr, get_pr, list_prs, update_pr, CreatePrOptions, UpdatePrOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -444,7 +444,7 @@ fn test_custom_link_type_definition() {
 
 #[test]
 fn test_priority_label_3_levels() {
-    use centy_daemon::issue::priority_label;
+    use centy_daemon::item::entities::issue::priority_label;
 
     assert_eq!(priority_label(1, 3), "high");
     assert_eq!(priority_label(2, 3), "medium");
@@ -453,7 +453,7 @@ fn test_priority_label_3_levels() {
 
 #[test]
 fn test_priority_label_4_levels() {
-    use centy_daemon::issue::priority_label;
+    use centy_daemon::item::entities::issue::priority_label;
 
     // 4 levels: critical, high, medium, low
     assert_eq!(priority_label(1, 4), "critical");
@@ -464,7 +464,7 @@ fn test_priority_label_4_levels() {
 
 #[test]
 fn test_priority_label_5_plus_levels() {
-    use centy_daemon::issue::priority_label;
+    use centy_daemon::item::entities::issue::priority_label;
 
     // 5+ levels: returns P{n} format
     assert_eq!(priority_label(1, 5), "P1");
@@ -474,7 +474,7 @@ fn test_priority_label_5_plus_levels() {
 
 #[test]
 fn test_priority_label_out_of_range() {
-    use centy_daemon::issue::priority_label;
+    use centy_daemon::item::entities::issue::priority_label;
 
     // For 3 levels, anything > 2 returns "low"
     assert_eq!(priority_label(10, 3), "low");

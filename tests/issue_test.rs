@@ -1,6 +1,6 @@
 mod common;
 
-use centy_daemon::issue::{
+use centy_daemon::item::entities::issue::{
     create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues,
     move_issue, update_issue, CreateIssueOptions, DuplicateIssueOptions, IssueError,
     IssueCrudError, MoveIssueOptions, UpdateIssueOptions,

@@ -1,7 +1,7 @@
 use std::path::Path;
 use thiserror::Error;
 
-use crate::issue::{priority_label, Issue};
+use crate::item::entities::issue::{priority_label, Issue};
 use crate::template::{LlmTemplateContext, TemplateEngine, TemplateError, TemplateType};
 
 #[derive(Error, Debug)]
@@ -319,7 +319,7 @@ impl TemplateEngineExt for TemplateEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::issue::IssueMetadataFlat;
+    use crate::item::entities::issue::IssueMetadataFlat;
     use std::collections::HashMap;
 
     #[allow(deprecated)]

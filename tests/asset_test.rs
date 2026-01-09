@@ -1,6 +1,6 @@
 mod common;
 
-use centy_daemon::issue::{
+use centy_daemon::item::entities::issue::{
     add_asset, create_issue, delete_asset, get_asset, list_assets, list_shared_assets,
     AssetError, AssetScope, CreateIssueOptions,
 };

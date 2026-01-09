@@ -1,6 +1,6 @@
 mod common;
 
-use centy_daemon::issue::{create_issue, CreateIssueOptions};
+use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use centy_daemon::link::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
     CustomLinkTypeDefinition, DeleteLinkOptions, LinkError, TargetType,

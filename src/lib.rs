@@ -1,15 +1,13 @@
+pub mod item;
 pub mod common;
 pub mod config;
-pub mod docs;
 pub mod features;
-pub mod issue;
 pub mod link;
 pub mod llm;
 pub mod logging;
 pub mod manifest;
 pub mod metrics;
 pub mod migration;
-pub mod pr;
 pub mod reconciliation;
 pub mod registry;
 pub mod search;
@@ -24,7 +22,7 @@ pub mod workspace;
 // Re-export commonly used types
 pub use common::CommonMetadata;
 pub use config::{CentyConfig, CustomFieldDefinition};
-pub use docs::{
+pub use item::entities::doc::{
     create_doc, delete_doc, get_doc, list_docs, update_doc,
     CreateDocOptions, CreateDocResult, DeleteDocResult, Doc, DocError, DocMetadata,
     UpdateDocOptions, UpdateDocResult,
@@ -34,7 +32,7 @@ pub use features::{
     get_instruction, list_uncompacted_issues, mark_issues_compacted, save_migration, update_compact,
     CompactedIssueRef, FeatureError, FeatureStatus, MigrationFrontmatter, DEFAULT_INSTRUCTION_CONTENT,
 };
-pub use issue::{
+pub use item::entities::issue::{
     create_issue, delete_issue, get_issue, list_issues, update_issue,
     CreateIssueOptions, CreateIssueResult, DeleteIssueResult, Issue,
     IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
@@ -44,7 +42,7 @@ pub use link::{
     CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,
     DeleteLinkResult, Link, LinkError, LinksFile, LinkTypeInfo, TargetType,
 };
-pub use pr::{
+pub use item::entities::pr::{
     create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
     CreatePrOptions, CreatePrResult, DeletePrResult, PrMetadataFlat, PullRequest,
     UpdatePrOptions, UpdatePrResult,

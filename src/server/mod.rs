@@ -15,7 +15,7 @@ use crate::features::{
 };
 use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
-use crate::docs::{
+use crate::item::entities::doc::{
     get_docs_by_slug,
     CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
@@ -24,7 +24,7 @@ use crate::sync::sync_aware::{
     create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
     soft_delete_doc, restore_doc,
 };
-use crate::issue::{
+use crate::item::entities::issue::{
     get_issues_by_uuid, priority_label,
     CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
@@ -37,7 +37,7 @@ use crate::sync::sync_aware::{
     get_issue_by_display_number, list_issues, move_issue, update_issue,
     soft_delete_issue, restore_issue,
 };
-use crate::pr::{
+use crate::item::entities::pr::{
     get_prs_by_uuid,
     CreatePrOptions, UpdatePrOptions,
 };
@@ -718,7 +718,7 @@ impl CentyDaemon for CentyDaemonService {
         let issues_path = get_centy_path(project_path).join("issues");
 
         #[allow(deprecated)]
-        match crate::issue::create::get_next_issue_number(&issues_path).await {
+        match crate::item::entities::issue::create::get_next_issue_number(&issues_path).await {
             Ok(issue_number) => Ok(Response::new(GetNextIssueNumberResponse { issue_number })),
             Err(e) => Err(Status::internal(e.to_string())),
         }
@@ -1884,6 +1884,7 @@ impl CentyDaemon for CentyDaemonService {
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             status: if req.status.is_empty() { None } else { Some(req.status) },
             custom_fields: req.custom_fields,
+            template: if req.template.is_empty() { None } else { Some(req.template) },
         };
 
         match create_pr(project_path, options).await {
@@ -2141,7 +2142,7 @@ impl CentyDaemon for CentyDaemonService {
         let project_path = Path::new(&req.project_path);
         let prs_path = get_centy_path(project_path).join("prs");
 
-        match crate::pr::reconcile::get_next_pr_display_number(&prs_path).await {
+        match crate::item::entities::pr::reconcile::get_next_pr_display_number(&prs_path).await {
             Ok(next_number) => Ok(Response::new(GetNextPrNumberResponse { next_number })),
             Err(e) => Err(Status::internal(e.to_string())),
         }
@@ -4178,7 +4179,7 @@ fn validate_config(config: &CentyConfig) -> Result<(), String> {
 }
 
 #[allow(deprecated)]
-fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
+fn issue_to_proto(issue: &crate::item::entities::issue::Issue, priority_levels: u32) -> Issue {
     Issue {
         id: issue.id.clone(),
         display_number: issue.metadata.display_number,
@@ -4204,7 +4205,7 @@ fn issue_to_proto(issue: &crate::issue::Issue, priority_levels: u32) -> Issue {
     }
 }
 
-fn doc_to_proto(doc: &crate::docs::Doc) -> Doc {
+fn doc_to_proto(doc: &crate::item::entities::doc::Doc) -> Doc {
     Doc {
         slug: doc.slug.clone(),
         title: doc.title.clone(),
@@ -4283,7 +4284,7 @@ fn user_to_proto(user: &crate::user::User) -> ProtoUser {
     }
 }
 
-fn pr_to_proto(pr: &crate::pr::PullRequest, priority_levels: u32) -> PullRequest {
+fn pr_to_proto(pr: &crate::item::entities::pr::PullRequest, priority_levels: u32) -> PullRequest {
     PullRequest {
         id: pr.id.clone(),
         display_number: pr.metadata.display_number,

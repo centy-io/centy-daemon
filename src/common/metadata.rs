@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
-use crate::issue::priority::migrate_string_priority;
+use crate::item::entities::issue::priority::migrate_string_priority;
 
 /// Default priority levels for migration when config is not available
 const DEFAULT_PRIORITY_LEVELS: u32 = 3;

@@ -17,6 +17,9 @@ pub enum GitError {
     #[error("Failed to execute git command: {0}")]
     CommandError(String),
 
+    #[error("Branch '{0}' does not exist")]
+    BranchNotFound(String),
+
     #[error("Failed to detect current branch")]
     CurrentBranchNotFound,
 

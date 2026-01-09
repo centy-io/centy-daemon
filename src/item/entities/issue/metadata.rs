@@ -35,6 +35,25 @@ pub struct IssueMetadata {
 
 impl IssueMetadata {
     #[must_use]
+    pub fn new(
+        display_number: u32,
+        status: String,
+        priority: u32,
+        custom_fields: HashMap<String, serde_json::Value>,
+    ) -> Self {
+        Self {
+            common: CommonMetadata::new(display_number, status, priority, custom_fields),
+            compacted: false,
+            compacted_at: None,
+            draft: false,
+            deleted_at: None,
+            is_org_issue: false,
+            org_slug: None,
+            org_display_number: None,
+        }
+    }
+
+    #[must_use]
     pub fn new_draft(
         display_number: u32,
         status: String,
@@ -116,14 +135,14 @@ mod tests {
 
     #[test]
     fn test_serialize_priority_as_number() {
-        let metadata = IssueMetadata::new_draft(1, "open".to_string(), 2, HashMap::new(), false);
+        let metadata = IssueMetadata::new(1, "open".to_string(), 2, HashMap::new());
         let json = serde_json::to_string(&metadata).unwrap();
         assert!(json.contains(r#""priority":2"#));
     }
 
     #[test]
-    fn test_metadata_new_draft() {
-        let metadata = IssueMetadata::new_draft(1, "open".to_string(), 1, HashMap::new(), false);
+    fn test_metadata_new() {
+        let metadata = IssueMetadata::new(1, "open".to_string(), 1, HashMap::new());
         assert_eq!(metadata.common.display_number, 1);
         assert_eq!(metadata.common.status, "open");
         assert_eq!(metadata.common.priority, 1);
@@ -141,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_serialize_display_number() {
-        let metadata = IssueMetadata::new_draft(42, "open".to_string(), 1, HashMap::new(), false);
+        let metadata = IssueMetadata::new(42, "open".to_string(), 1, HashMap::new());
         let json = serde_json::to_string(&metadata).unwrap();
         assert!(json.contains(r#""displayNumber":42"#));
     }
@@ -149,7 +168,7 @@ mod tests {
     #[test]
     fn test_flatten_produces_flat_json() {
         // Verify that #[serde(flatten)] produces flat JSON, not nested under "common"
-        let metadata = IssueMetadata::new_draft(1, "open".to_string(), 2, HashMap::new(), false);
+        let metadata = IssueMetadata::new(1, "open".to_string(), 2, HashMap::new());
         let json = serde_json::to_string(&metadata).unwrap();
         // Should NOT contain "common" as a key
         assert!(!json.contains(r#""common""#));

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::path::Path;
 
-use crate::issue::{list_issues, Issue};
+use crate::item::entities::issue::{list_issues, Issue};
 use crate::registry::{list_projects, ListProjectsOptions};
 use crate::utils::format_display_path;
 

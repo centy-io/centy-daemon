@@ -54,7 +54,7 @@ pub enum WorkspaceError {
     TerminalError(String),
 
     #[error("Issue error: {0}")]
-    IssueError(#[from] crate::issue::IssueCrudError),
+    IssueError(#[from] crate::item::entities::issue::IssueCrudError),
 
     #[error("Config error: {0}")]
     ConfigError(#[from] crate::llm::LocalConfigError),
