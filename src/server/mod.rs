@@ -74,8 +74,7 @@ use crate::user::{
     sync_users as internal_sync_users, update_user as internal_update_user, CreateUserOptions,
     UpdateUserOptions,
 };
-use crate::utils::{format_display_path, get_centy_path};
-use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
+use crate::utils::{format_display_path, get_centy_path, CENTY_VERSION};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired,
     cleanup_workspace as internal_cleanup_workspace, create_temp_workspace,
@@ -1893,8 +1892,8 @@ impl CentyDaemon for CentyDaemonService {
             Ok(v) => v,
             Err(e) => return Err(Status::invalid_argument(e.to_string())),
         };
-        let daemon_ver = semver::Version::parse(CENTY_VERSION)
-            .expect("CENTY_VERSION should be valid semver");
+        let daemon_ver =
+            semver::Version::parse(CENTY_VERSION).expect("CENTY_VERSION should be valid semver");
 
         let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
             std::cmp::Ordering::Equal => ("equal", false),

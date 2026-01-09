@@ -13,7 +13,8 @@ static FROM_VERSION: std::sync::LazyLock<Version> =
     std::sync::LazyLock::new(|| Version::new(0, 0, 0));
 
 /// Lazy static for the "to" version (0.1.0).
-static TO_VERSION: std::sync::LazyLock<Version> = std::sync::LazyLock::new(|| Version::new(0, 1, 0));
+static TO_VERSION: std::sync::LazyLock<Version> =
+    std::sync::LazyLock::new(|| Version::new(0, 1, 0));
 
 /// Initial migration that establishes version tracking for existing projects.
 ///
