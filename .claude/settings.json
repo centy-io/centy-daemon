@@ -16,7 +16,21 @@
       "Bash(cargo build:*)",
       "Bash(cargo test:*)",
       "Bash(cargo tarpaulin:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:lib.rs)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:rust-lang.org)",
+      "WebFetch(domain:rust-lang.github.io)",
+      "WebFetch(domain:clippy.rs)",
+      "WebFetch(domain:github.github.io)",
+      "WebFetch(domain:mdn.com)",
+      "WebFetch(domain:python.org)",
+      "WebFetch(domain:git-scm.com)",
+      "WebFetch(domain:cli.github.com)",
+      "WebSearch",
+      "Skill(tupe:ultrathink)"
     ]
   }
 }
