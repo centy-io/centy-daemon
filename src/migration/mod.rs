@@ -55,7 +55,7 @@ pub fn create_registry() -> Arc<MigrationRegistry> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::version::SemVer;
+    use semver::Version;
 
     #[test]
     fn test_create_registry() {
@@ -70,8 +70,8 @@ mod tests {
     #[test]
     fn test_migration_path_exists() {
         let registry = create_registry();
-        let from = SemVer::new(0, 0, 0);
-        let to = SemVer::new(0, 1, 0);
+        let from = Version::new(0, 0, 0);
+        let to = Version::new(0, 1, 0);
 
         let result = registry.get_migration_path(&from, &to);
         assert!(result.is_ok());

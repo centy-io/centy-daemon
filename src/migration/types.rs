@@ -1,7 +1,7 @@
 //! Types for the migration system.
 
-use crate::version::SemVer;
 use async_trait::async_trait;
+use semver::Version;
 use std::path::Path;
 use thiserror::Error;
 
@@ -13,9 +13,6 @@ pub enum MigrationError {
 
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
-
-    #[error("Version error: {0}")]
-    VersionError(#[from] crate::version::VersionError),
 
     #[error("Semver parse error: {0}")]
     SemverError(#[from] semver::Error),
@@ -34,10 +31,10 @@ pub enum MigrationError {
 #[async_trait]
 pub trait Migration: Send + Sync {
     /// The version this migration upgrades FROM.
-    fn from_version(&self) -> &SemVer;
+    fn from_version(&self) -> &Version;
 
     /// The version this migration upgrades TO.
-    fn to_version(&self) -> &SemVer;
+    fn to_version(&self) -> &Version;
 
     /// Human-readable description of what this migration does.
     fn description(&self) -> &str;

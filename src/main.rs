@@ -17,7 +17,6 @@ mod server;
 mod template;
 mod user;
 mod utils;
-mod version;
 mod workspace;
 
 use clap::Parser;

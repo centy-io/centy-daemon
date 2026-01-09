@@ -15,7 +15,6 @@ pub mod server;
 pub mod template;
 pub mod user;
 pub mod utils;
-pub mod version;
 pub mod workspace;
 
 // Re-export commonly used types
@@ -61,7 +60,6 @@ pub use migration::{
     create_registry, Migration, MigrationDirection, MigrationError, MigrationExecutor,
     MigrationRegistry, MigrationResult,
 };
-pub use version::{compare_versions, daemon_version, SemVer, VersionComparison, VersionError};
 pub use llm::{
     spawn_agent, start_agent, get_effective_local_config, read_work_session, clear_work_session,
     record_work_session, AgentConfig, AgentSpawnMode, AgentType, LocalLlmConfig, LlmAction,
