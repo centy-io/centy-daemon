@@ -1,14 +1,14 @@
-use crate::config::read_config;
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
+use super::git::{
+    detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError,
 };
-use crate::utils::{format_markdown, get_centy_path};
-use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
-use super::git::{detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError};
 use super::id::generate_pr_id;
 use super::metadata::PrMetadata;
 use super::reconcile::{get_next_pr_display_number, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
+use crate::config::read_config;
+use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::utils::{format_markdown, get_centy_path};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -127,9 +127,10 @@ pub async fn create_pr(
         Some(branch) if !branch.is_empty() => {
             // Validate branch exists if in git repo
             if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
-                    warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
-                }
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true)
+            {
+                warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
+            }
             branch
         }
         _ => {
@@ -147,9 +148,10 @@ pub async fn create_pr(
         Some(branch) if !branch.is_empty() => {
             // Validate branch exists if in git repo
             if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
-                    warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
-                }
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true)
+            {
+                warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
+            }
             branch
         }
         _ => {

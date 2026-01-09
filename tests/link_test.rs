@@ -195,7 +195,10 @@ async fn test_create_link_source_not_found() {
     };
 
     let result = create_link(project_path, options, &[]).await;
-    assert!(matches!(result.unwrap_err(), LinkError::SourceNotFound(_, _)));
+    assert!(matches!(
+        result.unwrap_err(),
+        LinkError::SourceNotFound(_, _)
+    ));
 }
 
 #[tokio::test]
@@ -224,7 +227,10 @@ async fn test_create_link_target_not_found() {
     };
 
     let result = create_link(project_path, options, &[]).await;
-    assert!(matches!(result.unwrap_err(), LinkError::TargetNotFound(_, _)));
+    assert!(matches!(
+        result.unwrap_err(),
+        LinkError::TargetNotFound(_, _)
+    ));
 }
 
 #[tokio::test]
@@ -263,7 +269,9 @@ async fn test_create_link_already_exists() {
     };
 
     // Create first link
-    create_link(project_path, options.clone(), &[]).await.unwrap();
+    create_link(project_path, options.clone(), &[])
+        .await
+        .unwrap();
 
     // Try to create duplicate
     let result = create_link(project_path, options, &[]).await;
@@ -305,7 +313,9 @@ async fn test_delete_link_success() {
         target_type: TargetType::Issue,
         link_type: "blocks".to_string(),
     };
-    create_link(project_path, create_options, &[]).await.unwrap();
+    create_link(project_path, create_options, &[])
+        .await
+        .unwrap();
 
     // Delete link
     let delete_options = DeleteLinkOptions {
@@ -549,7 +559,10 @@ async fn test_list_links_entity_not_found() {
     init_centy_project(project_path).await;
 
     let result = list_links(project_path, "nonexistent-uuid", TargetType::Issue).await;
-    assert!(matches!(result.unwrap_err(), LinkError::SourceNotFound(_, _)));
+    assert!(matches!(
+        result.unwrap_err(),
+        LinkError::SourceNotFound(_, _)
+    ));
 }
 
 #[tokio::test]

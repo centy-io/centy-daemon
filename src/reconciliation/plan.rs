@@ -1,6 +1,6 @@
+use super::managed_files::get_managed_files;
 use crate::manifest::ManagedFileType;
 use crate::utils::{compute_file_hash, compute_hash, get_centy_path};
-use super::managed_files::get_managed_files;
 use std::collections::HashSet;
 use std::path::Path;
 use thiserror::Error;
@@ -42,14 +42,16 @@ pub struct ReconciliationPlan {
 
 impl ReconciliationPlan {
     /// Check if user decisions are needed
-    #[must_use] 
+    #[must_use]
     pub fn needs_decisions(&self) -> bool {
         !self.to_restore.is_empty() || !self.to_reset.is_empty()
     }
 }
 
 /// Build a reconciliation plan for the given project path
-pub async fn build_reconciliation_plan(project_path: &Path) -> Result<ReconciliationPlan, PlanError> {
+pub async fn build_reconciliation_plan(
+    project_path: &Path,
+) -> Result<ReconciliationPlan, PlanError> {
     let centy_path = get_centy_path(project_path);
     let managed_templates = get_managed_files();
 
@@ -74,9 +76,10 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
                 .as_ref()
                 .map(|c| compute_hash(c))
                 .unwrap_or_default(),
-            content_preview: template.content.as_ref().map(|c| {
-                c.chars().take(100).collect::<String>()
-            }),
+            content_preview: template
+                .content
+                .as_ref()
+                .map(|c| c.chars().take(100).collect::<String>()),
         };
 
         if exists_on_disk {

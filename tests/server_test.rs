@@ -5,8 +5,10 @@ use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
 };
+use centy_daemon::item::entities::pr::{
+    create_pr, get_pr, list_prs, update_pr, CreatePrOptions, UpdatePrOptions,
+};
 use centy_daemon::link::CustomLinkTypeDefinition;
-use centy_daemon::item::entities::pr::{create_pr, get_pr, list_prs, update_pr, CreatePrOptions, UpdatePrOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -28,8 +30,12 @@ async fn test_issue_create_get_roundtrip() {
         ..Default::default()
     };
 
-    let result = create_issue(project_path, options).await.expect("Should create");
-    let issue = get_issue(project_path, &result.id).await.expect("Should get");
+    let result = create_issue(project_path, options)
+        .await
+        .expect("Should create");
+    let issue = get_issue(project_path, &result.id)
+        .await
+        .expect("Should get");
 
     assert_eq!(issue.title, "Server Test Issue");
     assert_eq!(issue.description, "Testing issue operations");
@@ -139,7 +145,9 @@ async fn test_doc_create_get_roundtrip() {
     let result = create_doc(project_path, options)
         .await
         .expect("Should create doc");
-    let doc = get_doc(project_path, &result.slug).await.expect("Should get doc");
+    let doc = get_doc(project_path, &result.slug)
+        .await
+        .expect("Should get doc");
 
     assert_eq!(doc.slug, "test-doc");
     assert_eq!(doc.title, "Test Document");
@@ -166,7 +174,9 @@ async fn test_pr_create_get_roundtrip() {
         ..Default::default()
     };
 
-    let result = create_pr(project_path, options).await.expect("Should create");
+    let result = create_pr(project_path, options)
+        .await
+        .expect("Should create");
     let pr = get_pr(project_path, &result.id).await.expect("Should get");
 
     assert_eq!(pr.title, "Add feature");
@@ -391,7 +401,10 @@ fn test_requires_status_config_when_none() {
     // The check used in the server: cfg.llm.update_status_on_start.is_none()
     let requires_status_config = config.llm.update_status_on_start.is_none();
 
-    assert!(requires_status_config, "Should require status config when update_status_on_start is None");
+    assert!(
+        requires_status_config,
+        "Should require status config when update_status_on_start is None"
+    );
 }
 
 #[test]
@@ -402,7 +415,10 @@ fn test_requires_status_config_when_set_true() {
 
     let requires_status_config = config.llm.update_status_on_start.is_none();
 
-    assert!(!requires_status_config, "Should not require status config when update_status_on_start is Some(true)");
+    assert!(
+        !requires_status_config,
+        "Should not require status config when update_status_on_start is Some(true)"
+    );
 }
 
 #[test]
@@ -413,7 +429,10 @@ fn test_requires_status_config_when_set_false() {
 
     let requires_status_config = config.llm.update_status_on_start.is_none();
 
-    assert!(!requires_status_config, "Should not require status config when update_status_on_start is Some(false)");
+    assert!(
+        !requires_status_config,
+        "Should not require status config when update_status_on_start is Some(false)"
+    );
 }
 
 #[test]
@@ -422,9 +441,18 @@ fn test_status_config_error_message_not_empty() {
     // This is the fix for the empty error dialog bug
     let error_message = "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.";
 
-    assert!(!error_message.is_empty(), "Error message should not be empty");
-    assert!(error_message.contains("update-status-on-start"), "Error message should mention the config option");
-    assert!(error_message.contains("centy config"), "Error message should provide the command to fix");
+    assert!(
+        !error_message.is_empty(),
+        "Error message should not be empty"
+    );
+    assert!(
+        error_message.contains("update-status-on-start"),
+        "Error message should mention the config option"
+    );
+    assert!(
+        error_message.contains("centy config"),
+        "Error message should provide the command to fix"
+    );
 }
 
 #[test]

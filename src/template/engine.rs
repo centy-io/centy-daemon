@@ -26,20 +26,20 @@ pub struct TemplateEngine {
 }
 
 impl TemplateEngine {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         let handlebars = Handlebars::new();
         Self { handlebars }
     }
 
     /// Get the templates directory path
-    #[must_use] 
+    #[must_use]
     pub fn get_templates_path(project_path: &Path) -> std::path::PathBuf {
         get_centy_path(project_path).join("templates")
     }
 
     /// Get the path for a specific template type's folder
-    #[must_use] 
+    #[must_use]
     pub fn get_template_type_path(
         project_path: &Path,
         template_type: TemplateType,

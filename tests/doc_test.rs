@@ -73,7 +73,10 @@ async fn test_create_doc_empty_title_fails() {
     .await;
 
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Title is required"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Title is required"));
 }
 
 #[tokio::test]
@@ -185,7 +188,9 @@ async fn test_list_docs_empty() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let docs = list_docs(project_path, false).await.expect("Should list docs");
+    let docs = list_docs(project_path, false)
+        .await
+        .expect("Should list docs");
 
     assert!(docs.is_empty());
 }
@@ -233,7 +238,9 @@ async fn test_list_docs_multiple() {
     .await
     .unwrap();
 
-    let docs = list_docs(project_path, false).await.expect("Should list docs");
+    let docs = list_docs(project_path, false)
+        .await
+        .expect("Should list docs");
 
     assert_eq!(docs.len(), 3);
     // Should be sorted by slug
@@ -498,7 +505,10 @@ async fn test_delete_doc_removes_file() {
     let _delete_result = delete_doc(project_path, "test-doc").await.unwrap();
 
     // Doc file should be deleted
-    assert!(!doc_path.exists(), "Doc file should not exist after deletion");
+    assert!(
+        !doc_path.exists(),
+        "Doc file should not exist after deletion"
+    );
 }
 
 // ============ Slug Generation Tests ============
@@ -543,7 +553,10 @@ async fn test_slug_handles_special_characters() {
     .unwrap();
 
     // Should only contain alphanumeric and hyphens
-    assert!(result.slug.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'));
+    assert!(result
+        .slug
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-'));
     assert!(!result.slug.starts_with('-'));
     assert!(!result.slug.ends_with('-'));
 }

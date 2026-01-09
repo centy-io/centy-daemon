@@ -88,11 +88,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
     }
 
     // Step 3: Find max display number for reassignment
-    let max_display_number = issues
-        .iter()
-        .map(|i| i.display_number)
-        .max()
-        .unwrap_or(0);
+    let max_display_number = issues.iter().map(|i| i.display_number).max().unwrap_or(0);
 
     // Step 4: Process duplicates
     let mut reassignments: Vec<(String, u32)> = Vec::new(); // (folder_name, new_display_number)

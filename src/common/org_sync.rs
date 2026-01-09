@@ -197,7 +197,9 @@ pub async fn sync_update_to_org_projects<T: OrgSyncable>(
 
     for project in org_projects {
         let target_path = Path::new(&project.path);
-        let result = item.sync_update_to_project(target_path, org_slug, old_id).await;
+        let result = item
+            .sync_update_to_project(target_path, org_slug, old_id)
+            .await;
 
         results.push(OrgSyncResult {
             project_path: project.path.clone(),

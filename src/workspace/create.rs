@@ -2,7 +2,9 @@
 //!
 //! Handles creating temporary git worktrees with VS Code configuration.
 
-use super::storage::{add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration};
+use super::storage::{
+    add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration,
+};
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
@@ -399,8 +401,13 @@ pub async fn create_temp_workspace(
 
     // Create plan.md template for plan action
     if options.action == "plan" {
-        create_plan_template(&workspace_path, issue_id, display_number, &options.issue.title)
-            .await?;
+        create_plan_template(
+            &workspace_path,
+            issue_id,
+            display_number,
+            &options.issue.title,
+        )
+        .await?;
     }
 
     // Create the registry entry

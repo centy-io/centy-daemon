@@ -9,7 +9,8 @@ use async_trait::async_trait;
 use std::path::Path;
 
 /// Lazy static for the "from" version (0.0.0).
-static FROM_VERSION: std::sync::LazyLock<SemVer> = std::sync::LazyLock::new(|| SemVer::new(0, 0, 0));
+static FROM_VERSION: std::sync::LazyLock<SemVer> =
+    std::sync::LazyLock::new(|| SemVer::new(0, 0, 0));
 
 /// Lazy static for the "to" version (0.1.0).
 static TO_VERSION: std::sync::LazyLock<SemVer> = std::sync::LazyLock::new(|| SemVer::new(0, 1, 0));
@@ -23,7 +24,7 @@ pub struct InitialVersionMigration;
 
 impl InitialVersionMigration {
     /// Create a new initial version migration.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

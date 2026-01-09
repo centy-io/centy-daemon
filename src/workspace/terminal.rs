@@ -143,16 +143,9 @@ fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, Wor
     }
 
     // Fallback to cmd.exe
-    let cmd_script = format!(
-        "cd /d \"{}\" && {}",
-        working_dir.display(),
-        command
-    );
+    let cmd_script = format!("cd /d \"{}\" && {}", working_dir.display(), command);
 
-    let result = Command::new("cmd")
-        .arg("/k")
-        .arg(&cmd_script)
-        .spawn();
+    let result = Command::new("cmd").arg("/k").arg(&cmd_script).spawn();
 
     match result {
         Ok(_) => Ok(true),

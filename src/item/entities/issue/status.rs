@@ -13,10 +13,7 @@ pub fn validate_status(status: &str, allowed_states: &[String]) -> Result<(), St
         Ok(())
     } else {
         let allowed_list = allowed_states.join(", ");
-        Err(StatusError::InvalidStatus(
-            status.to_string(),
-            allowed_list,
-        ))
+        Err(StatusError::InvalidStatus(status.to_string(), allowed_list))
     }
 }
 

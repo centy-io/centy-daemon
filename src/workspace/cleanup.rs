@@ -127,7 +127,10 @@ pub async fn cleanup_expired_workspaces() -> Result<Vec<CleanupResult>, Workspac
         .map(|(path, _)| path.clone())
         .collect();
 
-    info!("Found {} expired workspaces to clean up", expired_paths.len());
+    info!(
+        "Found {} expired workspaces to clean up",
+        expired_paths.len()
+    );
 
     for path in expired_paths {
         let result = cleanup_workspace(&path, true).await;
@@ -151,10 +154,7 @@ pub async fn cleanup_expired_workspaces() -> Result<Vec<CleanupResult>, Workspac
 /// Count successfully cleaned workspaces
 #[allow(dead_code)] // Utility for workspace cleanup reporting
 pub fn count_cleaned(results: &[CleanupResult]) -> u32 {
-    results
-        .iter()
-        .filter(|r| r.error.is_none())
-        .count() as u32
+    results.iter().filter(|r| r.error.is_none()).count() as u32
 }
 
 /// Get paths that failed to clean

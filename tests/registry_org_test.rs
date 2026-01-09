@@ -221,7 +221,9 @@ async fn test_delete_organization_success() {
         .await
         .expect("Should delete");
 
-    let org = get_organization("delete-test").await.expect("Should complete");
+    let org = get_organization("delete-test")
+        .await
+        .expect("Should complete");
     assert!(org.is_none());
 }
 
@@ -369,7 +371,10 @@ async fn test_slug_auto_generation_special_chars() {
         .expect("Should create");
 
     // Should be kebab-case without special chars
-    assert!(result.slug.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'));
+    assert!(result
+        .slug
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'));
     assert!(!result.slug.starts_with('-'));
     assert!(!result.slug.ends_with('-'));
 
@@ -416,8 +421,14 @@ async fn test_duplicate_project_name_in_same_org() {
     assert!(result.is_err(), "Should fail due to duplicate name");
 
     let error_msg = result.unwrap_err().to_string();
-    assert!(error_msg.contains("myapp"), "Error should mention project name");
-    assert!(error_msg.contains("dup-test-org"), "Error should mention org slug");
+    assert!(
+        error_msg.contains("myapp"),
+        "Error should mention project name"
+    );
+    assert!(
+        error_msg.contains("dup-test-org"),
+        "Error should mention org slug"
+    );
 
     // Cleanup
     let _ = set_project_organization(&path1_str, None).await;
@@ -488,7 +499,10 @@ async fn test_reassign_same_project_idempotent() {
 
     // Reassign same project to same org - should succeed (idempotent)
     let result = set_project_organization(&path_str, Some("idempotent-org")).await;
-    assert!(result.is_ok(), "Should succeed when reassigning same project");
+    assert!(
+        result.is_ok(),
+        "Should succeed when reassigning same project"
+    );
 
     // Cleanup
     let _ = set_project_organization(&path_str, None).await;
@@ -581,7 +595,10 @@ async fn test_move_project_to_org_with_duplicate() {
 
     // Try to move project1 to target-org where myapp already exists - should fail
     let result = set_project_organization(&path1_str, Some("target-org")).await;
-    assert!(result.is_err(), "Should fail when moving to org with duplicate");
+    assert!(
+        result.is_err(),
+        "Should fail when moving to org with duplicate"
+    );
 
     // Cleanup
     let _ = set_project_organization(&path1_str, None).await;

@@ -2,7 +2,7 @@ mod format;
 mod hash;
 
 pub use format::format_markdown;
-pub use hash::{compute_hash, compute_file_hash};
+pub use hash::{compute_file_hash, compute_hash};
 
 use std::path::Path;
 
@@ -16,13 +16,13 @@ pub const MANIFEST_FILE: &str = ".centy-manifest.json";
 pub const CENTY_VERSION: &str = "0.1.0";
 
 /// Get the path to the .centy folder
-#[must_use] 
+#[must_use]
 pub fn get_centy_path(project_path: &Path) -> std::path::PathBuf {
     project_path.join(CENTY_FOLDER)
 }
 
 /// Get the path to the manifest file
-#[must_use] 
+#[must_use]
 pub fn get_manifest_path(project_path: &Path) -> std::path::PathBuf {
     get_centy_path(project_path).join(MANIFEST_FILE)
 }

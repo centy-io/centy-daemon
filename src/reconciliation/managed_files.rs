@@ -229,7 +229,7 @@ const CSPELL_JSON_CONTENT: &str = r#"{
 "#;
 
 /// Get the list of managed files with their templates
-#[must_use] 
+#[must_use]
 pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     let mut files = HashMap::new();
 

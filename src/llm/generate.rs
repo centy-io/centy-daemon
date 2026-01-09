@@ -102,19 +102,14 @@ pub async fn generate_title(
     // Build prompt
     let prompt = TITLE_GENERATION_PROMPT.replace("{description}", description);
 
-    info!(
-        "Generating title for issue using agent '{}'",
-        agent.name
-    );
+    info!("Generating title for issue using agent '{}'", agent.name);
 
     // Execute command and get title
     let title = execute_title_generation(&config, agent, &prompt, project_path).await?;
 
     info!("Generated title: {}", title);
 
-    Ok(GeneratedTitle {
-        title,
-    })
+    Ok(GeneratedTitle { title })
 }
 
 /// Execute the LLM command and capture output

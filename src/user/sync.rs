@@ -41,8 +41,8 @@ fn get_git_contributors(project_path: &Path) -> Result<Vec<GitContributor>, User
         return Err(UserError::GitError(stderr.to_string()));
     }
 
-    let log_output =
-        String::from_utf8(output.stdout).map_err(|_| UserError::GitError("Invalid UTF-8 in git log output".to_string()))?;
+    let log_output = String::from_utf8(output.stdout)
+        .map_err(|_| UserError::GitError("Invalid UTF-8 in git log output".to_string()))?;
 
     // Use a HashSet to deduplicate by email (case-insensitive)
     let mut seen_emails: HashSet<String> = HashSet::new();
@@ -130,7 +130,8 @@ pub async fn sync_users(
                 Err(e) => {
                     // If user already exists with this ID, try with email suffix
                     if matches!(e, UserError::UserAlreadyExists(_)) {
-                        let email_slug = slugify(contributor.email.split('@').next().unwrap_or("user"));
+                        let email_slug =
+                            slugify(contributor.email.split('@').next().unwrap_or("user"));
                         let fallback_id = format!("{id}-{email_slug}");
 
                         match create_user(

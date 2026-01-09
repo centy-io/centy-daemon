@@ -98,7 +98,10 @@ pub async fn list_users(
     let users = if include_deleted {
         users
     } else {
-        users.into_iter().filter(|u| u.deleted_at.is_none()).collect()
+        users
+            .into_iter()
+            .filter(|u| u.deleted_at.is_none())
+            .collect()
     };
 
     if let Some(filter) = git_username_filter {
