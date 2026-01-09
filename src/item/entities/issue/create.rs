@@ -97,93 +97,59 @@ pub struct CreateIssueResult {
     pub sync_results: Vec<OrgSyncResult>,
 }
 
-/// Create a new issue
-#[allow(clippy::too_many_lines)]
-pub async fn create_issue(
+/// Resolve organization info for an org issue.
+async fn resolve_org_info(
     project_path: &Path,
-    options: CreateIssueOptions,
-) -> Result<CreateIssueResult, IssueError> {
-    // Validate title
-    if options.title.trim().is_empty() {
-        return Err(IssueError::TitleRequired);
+    is_org_issue: bool,
+) -> Result<(Option<String>, Option<u32>), IssueError> {
+    if !is_org_issue {
+        return Ok((None, None));
     }
 
-    // Check if centy is initialized
-    let manifest = read_manifest(project_path)
-        .await?
-        .ok_or(IssueError::NotInitialized)?;
+    let project_path_str = project_path.to_string_lossy().to_string();
+    let project_info = get_project_info(&project_path_str)
+        .await
+        .map_err(|e| IssueError::RegistryError(e.to_string()))?;
 
-    let centy_path = get_centy_path(project_path);
-    let issues_path = centy_path.join("issues");
-
-    // Ensure issues directory exists
-    if !issues_path.exists() {
-        fs::create_dir_all(&issues_path).await?;
-    }
-
-    // Get organization info if this is an org issue
-    let (org_slug, org_display_number) = if options.is_org_issue {
-        let project_path_str = project_path.to_string_lossy().to_string();
-        let project_info = get_project_info(&project_path_str)
-            .await
-            .map_err(|e| IssueError::RegistryError(e.to_string()))?;
-
-        match project_info.and_then(|p| p.organization_slug) {
-            Some(slug) => {
-                let org_num = get_next_org_display_number(&slug).await?;
-                (Some(slug), Some(org_num))
-            }
-            None => return Err(IssueError::NoOrganization),
+    match project_info.and_then(|p| p.organization_slug) {
+        Some(slug) => {
+            let org_num = get_next_org_display_number(&slug).await?;
+            Ok((Some(slug), Some(org_num)))
         }
-    } else {
-        (None, None)
-    };
+        None => Err(IssueError::NoOrganization),
+    }
+}
 
-    // Generate UUID for folder name (prevents git conflicts)
-    let issue_id = generate_issue_id();
-
-    // Get next display number for human-readable reference
-    let display_number = get_next_display_number(&issues_path).await?;
-
-    // Read config for defaults and priority_levels
-    let config = read_config(project_path).await.ok().flatten();
-    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
-
-    // Determine priority
-    let priority = match options.priority {
+/// Resolve priority from options or config defaults.
+fn resolve_priority(
+    priority_opt: Option<u32>,
+    config: Option<&crate::config::CentyConfig>,
+    priority_levels: u32,
+) -> Result<u32, IssueError> {
+    match priority_opt {
         Some(p) => {
             validate_priority(p, priority_levels)?;
-            p
+            Ok(p)
         }
-        None => {
-            // Try config defaults first, then use calculated default
-            config
-                .as_ref()
-                .and_then(|c| c.defaults.get("priority"))
-                .and_then(|p| p.parse::<u32>().ok())
-                .unwrap_or_else(|| default_priority(priority_levels))
-        }
-    };
-
-    // Determine status - use provided value, config.default_state, or fallback to "open"
-    let status = options.status.unwrap_or_else(|| {
-        config
-            .as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
-    });
-
-    // Strict validation: reject if status is not in allowed_states
-    if let Some(ref config) = config {
-        validate_status(&status, &config.allowed_states)?;
+        None => Ok(config
+            .and_then(|c| c.defaults.get("priority"))
+            .and_then(|p| p.parse::<u32>().ok())
+            .unwrap_or_else(|| default_priority(priority_levels))),
     }
+}
 
-    // Build custom fields with defaults from config
-    let mut custom_field_values: HashMap<String, serde_json::Value> = HashMap::new();
+/// Build custom fields from config defaults and provided values.
+fn build_custom_fields(
+    config: Option<&crate::config::CentyConfig>,
+    provided_fields: &HashMap<String, String>,
+) -> HashMap<String, serde_json::Value> {
+    let mut fields: HashMap<String, serde_json::Value> = HashMap::new();
 
-    if let Some(ref config) = config {
-        // Apply defaults from config
+    // Apply defaults from config
+    if let Some(config) = config {
         for field in &config.custom_fields {
             if let Some(default_value) = &field.default_value {
-                custom_field_values.insert(
+                fields.insert(
                     field.name.clone(),
                     serde_json::Value::String(default_value.clone()),
                 );
@@ -191,71 +157,133 @@ pub async fn create_issue(
         }
     }
 
-    // Override with provided custom fields
-    for (key, value) in &options.custom_fields {
-        custom_field_values.insert(key.clone(), serde_json::Value::String(value.clone()));
+    // Override with provided values
+    for (key, value) in provided_fields {
+        fields.insert(key.clone(), serde_json::Value::String(value.clone()));
     }
 
-    // Create metadata (org or regular)
-    let metadata = if let Some(ref org) = org_slug {
-        IssueMetadata::new_org_issue(
-            display_number,
-            org_display_number.unwrap_or(0),
-            status.clone(),
-            priority,
-            org,
-            custom_field_values,
-            options.draft.unwrap_or(false),
-        )
-    } else {
-        IssueMetadata::new_draft(
-            display_number,
-            status.clone(),
-            priority,
-            custom_field_values,
-            options.draft.unwrap_or(false),
-        )
-    };
+    fields
+}
 
-    // Create issue content
-    let mut issue_md = if let Some(ref template_name) = options.template {
-        // Use template engine
+/// Generate issue markdown content from template or default format.
+async fn generate_issue_content(
+    project_path: &Path,
+    options: &CreateIssueOptions,
+    priority: u32,
+    priority_levels: u32,
+    status: &str,
+    created_at: &str,
+) -> Result<String, IssueError> {
+    let md = if let Some(ref template_name) = options.template {
         let template_engine = TemplateEngine::new();
         let context = IssueTemplateContext {
             title: options.title.clone(),
             description: options.description.clone(),
             priority,
             priority_label: priority_label(priority, priority_levels),
-            status,
-            created_at: metadata.common.created_at.clone(),
+            status: status.to_string(),
+            created_at: created_at.to_string(),
             custom_fields: options.custom_fields.clone(),
         };
         template_engine
             .render_issue(project_path, template_name, &context)
             .await?
     } else {
-        // Use default format
         generate_issue_md(&options.title, &options.description)
     };
+    Ok(md)
+}
 
-    // Add planning note if status is "planning"
+/// Build Issue struct for org sync from creation data.
+fn build_issue_for_sync(
+    issue_id: &str,
+    options: &CreateIssueOptions,
+    display_number: u32,
+    metadata: &IssueMetadata,
+) -> Issue {
+    #[allow(deprecated)]
+    Issue {
+        id: issue_id.to_string(),
+        issue_number: issue_id.to_string(),
+        title: options.title.clone(),
+        description: options.description.clone(),
+        metadata: IssueMetadataFlat {
+            display_number,
+            status: metadata.common.status.clone(),
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at.clone(),
+            updated_at: metadata.common.updated_at.clone(),
+            custom_fields: options.custom_fields.clone(),
+            compacted: metadata.compacted,
+            compacted_at: metadata.compacted_at.clone(),
+            draft: metadata.draft,
+            deleted_at: metadata.deleted_at.clone(),
+            is_org_issue: metadata.is_org_issue,
+            org_slug: metadata.org_slug.clone(),
+            org_display_number: metadata.org_display_number,
+        },
+    }
+}
+
+/// Create a new issue
+pub async fn create_issue(
+    project_path: &Path,
+    options: CreateIssueOptions,
+) -> Result<CreateIssueResult, IssueError> {
+    if options.title.trim().is_empty() {
+        return Err(IssueError::TitleRequired);
+    }
+
+    let manifest = read_manifest(project_path)
+        .await?
+        .ok_or(IssueError::NotInitialized)?;
+
+    let centy_path = get_centy_path(project_path);
+    let issues_path = centy_path.join("issues");
+    fs::create_dir_all(&issues_path).await?;
+
+    let (org_slug, org_display_number) = resolve_org_info(project_path, options.is_org_issue).await?;
+    let issue_id = generate_issue_id();
+    let display_number = get_next_display_number(&issues_path).await?;
+
+    let config = read_config(project_path).await.ok().flatten();
+    let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+    let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
+
+    let status = options.status.clone().unwrap_or_else(|| {
+        config.as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
+    });
+    if let Some(ref config) = config {
+        validate_status(&status, &config.allowed_states)?;
+    }
+
+    let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
+
+    let metadata = if let Some(ref org) = org_slug {
+        IssueMetadata::new_org_issue(
+            display_number, org_display_number.unwrap_or(0), status.clone(),
+            priority, org, custom_field_values, options.draft.unwrap_or(false),
+        )
+    } else {
+        IssueMetadata::new_draft(
+            display_number, status.clone(), priority,
+            custom_field_values, options.draft.unwrap_or(false),
+        )
+    };
+
+    let mut issue_md = generate_issue_content(
+        project_path, &options, priority, priority_levels, &status, &metadata.common.created_at,
+    ).await?;
     if is_planning_status(&metadata.common.status) {
         issue_md = add_planning_note(&issue_md);
     }
 
-    // Write files (using UUID as folder name)
     let issue_folder = issues_path.join(&issue_id);
     fs::create_dir_all(&issue_folder).await?;
+    fs::write(issue_folder.join("issue.md"), format_markdown(&issue_md)).await?;
+    fs::write(issue_folder.join("metadata.json"), serde_json::to_string_pretty(&metadata)?).await?;
+    fs::create_dir_all(issue_folder.join("assets")).await?;
 
-    let issue_md_path = issue_folder.join("issue.md");
-    let metadata_path = issue_folder.join("metadata.json");
-    let assets_path = issue_folder.join("assets");
-
-    fs::write(&issue_md_path, format_markdown(&issue_md)).await?;
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
-    fs::create_dir_all(&assets_path).await?;
-
-    // Update manifest timestamp
     let mut manifest = manifest;
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
@@ -266,32 +294,8 @@ pub async fn create_issue(
         format!(".centy/issues/{}/assets/", issue_id),
     ];
 
-    // Sync to other org projects if this is an org issue
     let sync_results = if options.is_org_issue {
-        // Build the Issue struct for syncing
-        #[allow(deprecated)]
-        let issue = Issue {
-            id: issue_id.clone(),
-            issue_number: issue_id.clone(),
-            title: options.title.clone(),
-            description: options.description.clone(),
-            metadata: IssueMetadataFlat {
-                display_number,
-                status: metadata.common.status.clone(),
-                priority: metadata.common.priority,
-                created_at: metadata.common.created_at.clone(),
-                updated_at: metadata.common.updated_at.clone(),
-                custom_fields: options.custom_fields.clone(),
-                compacted: metadata.compacted,
-                compacted_at: metadata.compacted_at.clone(),
-                draft: metadata.draft,
-                deleted_at: metadata.deleted_at.clone(),
-                is_org_issue: metadata.is_org_issue,
-                org_slug: metadata.org_slug.clone(),
-                org_display_number: metadata.org_display_number,
-            },
-        };
-
+        let issue = build_issue_for_sync(&issue_id, &options, display_number, &metadata);
         sync_to_org_projects(&issue, project_path).await
     } else {
         Vec::new()
@@ -302,7 +306,7 @@ pub async fn create_issue(
         id: issue_id.clone(),
         display_number,
         org_display_number,
-        issue_number: issue_id, // Legacy field
+        issue_number: issue_id,
         created_files,
         manifest,
         sync_results,

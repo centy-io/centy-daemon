@@ -87,171 +87,121 @@ pub struct CreatePrResult {
     pub detected_source_branch: String,
 }
 
+/// Resolve source branch from options or auto-detect.
+fn resolve_source_branch(
+    project_path: &Path,
+    source_opt: Option<String>,
+) -> Result<String, PrError> {
+    match source_opt {
+        Some(branch) if !branch.is_empty() => {
+            if is_git_repository(project_path)
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+                warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
+            }
+            Ok(branch)
+        }
+        _ if is_git_repository(project_path) => Ok(detect_current_branch(project_path)?),
+        _ => Err(PrError::SourceBranchRequired),
+    }
+}
+
+/// Resolve target branch from options or use default.
+fn resolve_target_branch(project_path: &Path, target_opt: Option<String>) -> String {
+    match target_opt {
+        Some(branch) if !branch.is_empty() => {
+            if is_git_repository(project_path)
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+                warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
+            }
+            branch
+        }
+        _ if is_git_repository(project_path) => get_default_branch(project_path),
+        _ => "main".to_string(),
+    }
+}
+
+/// Build custom fields from config defaults and provided values.
+fn build_pr_custom_fields(
+    config: Option<&crate::config::CentyConfig>,
+    provided_fields: &HashMap<String, String>,
+) -> HashMap<String, serde_json::Value> {
+    let mut fields: HashMap<String, serde_json::Value> = HashMap::new();
+    if let Some(config) = config {
+        for field in &config.custom_fields {
+            if let Some(default_value) = &field.default_value {
+                fields.insert(field.name.clone(), serde_json::Value::String(default_value.clone()));
+            }
+        }
+    }
+    for (key, value) in provided_fields {
+        fields.insert(key.clone(), serde_json::Value::String(value.clone()));
+    }
+    fields
+}
+
 /// Create a new PR
-#[allow(clippy::too_many_lines)]
 pub async fn create_pr(
     project_path: &Path,
     options: CreatePrOptions,
 ) -> Result<CreatePrResult, PrError> {
-    // Validate title
     if options.title.trim().is_empty() {
         return Err(PrError::TitleRequired);
     }
 
-    // Check if centy is initialized
-    let manifest = read_manifest(project_path)
-        .await?
-        .ok_or(PrError::NotInitialized)?;
+    let manifest = read_manifest(project_path).await?.ok_or(PrError::NotInitialized)?;
 
-    // Check if this is a git repository
     if !is_git_repository(project_path) {
         warn!("Creating PR in a non-git directory. Branch validation will be skipped.");
     }
 
     let centy_path = get_centy_path(project_path);
     let prs_path = centy_path.join("prs");
+    fs::create_dir_all(&prs_path).await?;
 
-    // Ensure prs directory exists
-    if !prs_path.exists() {
-        fs::create_dir_all(&prs_path).await?;
-    }
-
-    // Generate UUID for folder name (prevents git conflicts)
     let pr_id = generate_pr_id();
-
-    // Get next display number for human-readable reference
     let display_number = get_next_pr_display_number(&prs_path).await?;
 
-    // Determine source branch
-    let source_branch = match options.source_branch {
-        Some(branch) if !branch.is_empty() => {
-            // Validate branch exists if in git repo
-            if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
-                    warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
-                }
-            branch
-        }
-        _ => {
-            // Try to auto-detect current branch
-            if is_git_repository(project_path) {
-                detect_current_branch(project_path)?
-            } else {
-                return Err(PrError::SourceBranchRequired);
-            }
-        }
-    };
+    let source_branch = resolve_source_branch(project_path, options.source_branch)?;
+    let target_branch = resolve_target_branch(project_path, options.target_branch);
 
-    // Determine target branch
-    let target_branch = match options.target_branch {
-        Some(branch) if !branch.is_empty() => {
-            // Validate branch exists if in git repo
-            if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
-                    warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
-                }
-            branch
-        }
-        _ => {
-            // Use default branch (main or master)
-            if is_git_repository(project_path) {
-                get_default_branch(project_path)
-            } else {
-                "main".to_string()
-            }
-        }
-    };
-
-    // Read config for defaults and priority_levels
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
-
-    // Determine priority
     let priority = match options.priority {
-        Some(p) => {
-            validate_priority(p, priority_levels)?;
-            p
-        }
-        None => {
-            // Try config defaults first, then use calculated default
-            config
-                .as_ref()
-                .and_then(|c| c.defaults.get("priority"))
-                .and_then(|p| p.parse::<u32>().ok())
-                .unwrap_or_else(|| default_priority(priority_levels))
-        }
+        Some(p) => { validate_priority(p, priority_levels)?; p }
+        None => config.as_ref()
+            .and_then(|c| c.defaults.get("priority"))
+            .and_then(|p| p.parse::<u32>().ok())
+            .unwrap_or_else(|| default_priority(priority_levels)),
     };
 
-    // Determine status - use provided value or default to "draft"
     let status = options.status.unwrap_or_else(|| "draft".to_string());
+    validate_pr_status(&status, &default_pr_statuses());
 
-    // Get allowed PR statuses from config or use defaults
-    let allowed_statuses = default_pr_statuses();
+    let custom_field_values = build_pr_custom_fields(config.as_ref(), &options.custom_fields);
 
-    // Lenient validation: log warning if status is not in allowed_states
-    validate_pr_status(&status, &allowed_statuses);
-
-    // Build custom fields with defaults from config
-    let mut custom_field_values: HashMap<String, serde_json::Value> = HashMap::new();
-
-    if let Some(ref config) = config {
-        // Apply defaults from config
-        for field in &config.custom_fields {
-            if let Some(default_value) = &field.default_value {
-                custom_field_values.insert(
-                    field.name.clone(),
-                    serde_json::Value::String(default_value.clone()),
-                );
-            }
-        }
-    }
-
-    // Override with provided custom fields
-    for (key, value) in &options.custom_fields {
-        custom_field_values.insert(key.clone(), serde_json::Value::String(value.clone()));
-    }
-
-    // Create metadata
     let metadata = PrMetadata::new(
-        display_number,
-        status,
-        source_branch.clone(),
-        target_branch,
-        options.reviewers,
-        priority,
-        custom_field_values,
+        display_number, status, source_branch.clone(), target_branch,
+        options.reviewers, priority, custom_field_values,
     );
 
-    // Create PR content
-    let pr_md = generate_pr_md(&options.title, &options.description);
-
-    // Write files (using UUID as folder name)
     let pr_folder = prs_path.join(&pr_id);
     fs::create_dir_all(&pr_folder).await?;
+    fs::write(pr_folder.join("pr.md"), format_markdown(&generate_pr_md(&options.title, &options.description))).await?;
+    fs::write(pr_folder.join("metadata.json"), serde_json::to_string_pretty(&metadata)?).await?;
+    fs::create_dir_all(pr_folder.join("assets")).await?;
 
-    let pr_md_path = pr_folder.join("pr.md");
-    let metadata_path = pr_folder.join("metadata.json");
-    let assets_path = pr_folder.join("assets");
-
-    fs::write(&pr_md_path, format_markdown(&pr_md)).await?;
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
-    fs::create_dir_all(&assets_path).await?;
-
-    // Update manifest timestamp
     let mut manifest = manifest;
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    let created_files = vec![
-        format!(".centy/prs/{}/pr.md", pr_id),
-        format!(".centy/prs/{}/metadata.json", pr_id),
-        format!(".centy/prs/{}/assets/", pr_id),
-    ];
-
     Ok(CreatePrResult {
-        id: pr_id,
+        id: pr_id.clone(),
         display_number,
-        created_files,
+        created_files: vec![
+            format!(".centy/prs/{}/pr.md", pr_id),
+            format!(".centy/prs/{}/metadata.json", pr_id),
+            format!(".centy/prs/{}/assets/", pr_id),
+        ],
         manifest,
         detected_source_branch: source_branch,
     })

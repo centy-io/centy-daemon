@@ -237,175 +237,25 @@ async fn copy_issue_data_to_workspace(
 
 /// Create a temporary workspace for working on an issue.
 ///
-/// This function:
-/// 1. Checks if an existing workspace for this issue already exists (reopen if so)
-/// 2. Validates the source project is a git repository
-/// 3. Creates a git worktree at a temporary location
-/// 4. Sets up VS Code configuration with auto-run task
-/// 5. Records the workspace in the registry
-/// 6. Opens VS Code (if available)
-#[allow(clippy::too_many_lines)]
-pub async fn create_temp_workspace(
-    options: CreateWorkspaceOptions,
-) -> Result<CreateWorkspaceResult, WorkspaceError> {
-    let source_path = &options.source_project_path;
-
-    // Validate source is a git repository
-    if !is_git_repository(source_path) {
-        return Err(WorkspaceError::NotGitRepository);
-    }
-
-    // Validate source project exists
-    if !source_path.exists() {
-        return Err(WorkspaceError::SourceProjectNotFound(
-            source_path.to_string_lossy().to_string(),
-        ));
-    }
-
-    // Get effective TTL
-    let ttl_hours = if options.ttl_hours == 0 {
-        get_default_ttl().await.unwrap_or(DEFAULT_TTL_HOURS)
-    } else {
-        options.ttl_hours
-    };
-
+/// Set up a workspace with issue data, VS Code config, and registry entry.
+async fn setup_new_workspace(
+    source_path: &Path,
+    workspace_path: &Path,
+    options: &CreateWorkspaceOptions,
+    ttl_hours: u32,
+) -> Result<TempWorkspaceEntry, WorkspaceError> {
     let issue_id = &options.issue.id;
     let display_number = options.issue.metadata.display_number;
-    let source_path_str = source_path.to_string_lossy().to_string();
 
-    // Check for existing workspace for this issue
-    if let Ok(Some((existing_path, existing_entry))) =
-        find_workspace_for_issue(&source_path_str, issue_id).await
-    {
-        let workspace_path = PathBuf::from(&existing_path);
+    copy_issue_data_to_workspace(source_path, workspace_path, issue_id).await?;
+    setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
 
-        // Verify the workspace directory still exists on disk
-        if workspace_path.exists() {
-            // Found a valid existing workspace - reopen it
-            let original_created_at = existing_entry.created_at.clone();
-
-            // Extend the expiration time
-            let new_expires_at = calculate_expires_at(ttl_hours);
-            update_workspace_expiration(&existing_path, &new_expires_at).await?;
-
-            // Create updated entry with new expiration
-            let updated_entry = TempWorkspaceEntry {
-                expires_at: new_expires_at,
-                ..existing_entry
-            };
-
-            // Try to open VS Code (don't fail if it's not available)
-            let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
-
-            return Ok(CreateWorkspaceResult {
-                workspace_path,
-                entry: updated_entry,
-                vscode_opened,
-                workspace_reused: true,
-                original_created_at: Some(original_created_at),
-            });
-        }
-        // If workspace path doesn't exist on disk, fall through to create new
-    }
-
-    // Generate workspace path with project name for better identification
-    let workspace_path = generate_workspace_path(source_path, display_number);
-
-    // Try to create the git worktree
-    match create_worktree(source_path, &workspace_path, "HEAD") {
-        Ok(()) => {}
-        Err(e) => {
-            let error_msg = e.to_string();
-            // Check if the error indicates the worktree already exists - this can happen if:
-            // 1. Worktree exists but not in our registry (orphaned)
-            // 2. Race condition between check and create
-            // 3. Git has a stale worktree reference but directory is missing
-            let is_worktree_conflict = error_msg.contains("already exists")
-                || error_msg.contains("already registered worktree");
-            if is_worktree_conflict {
-                // The worktree already exists on disk, try to reuse it
-                if workspace_path.exists() {
-                    // Copy issue data to workspace (may update stale data)
-                    copy_issue_data_to_workspace(source_path, &workspace_path, issue_id).await?;
-
-                    // Set up VS Code configuration
-                    setup_vscode_config(&workspace_path, issue_id, display_number, &options.action)
-                        .await?;
-
-                    // Create plan.md template for plan action
-                    if options.action == "plan" {
-                        create_plan_template(
-                            &workspace_path,
-                            issue_id,
-                            display_number,
-                            &options.issue.title,
-                        )
-                        .await?;
-                    }
-
-                    // Create the registry entry
-                    let entry = TempWorkspaceEntry {
-                        source_project_path: source_path_str.clone(),
-                        issue_id: issue_id.clone(),
-                        issue_display_number: display_number,
-                        issue_title: options.issue.title.clone(),
-                        agent_name: options.agent_name.clone(),
-                        action: options.action.clone(),
-                        created_at: now_iso(),
-                        expires_at: calculate_expires_at(ttl_hours),
-                        worktree_ref: "HEAD".to_string(),
-                    };
-
-                    // Record in registry
-                    let workspace_path_str = workspace_path.to_string_lossy().to_string();
-                    add_workspace(&workspace_path_str, entry.clone()).await?;
-
-                    // Try to open VS Code (don't fail if it's not available)
-                    let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
-
-                    return Ok(CreateWorkspaceResult {
-                        workspace_path,
-                        entry,
-                        vscode_opened,
-                        workspace_reused: true,
-                        original_created_at: None, // Unknown original creation time for orphaned worktree
-                    });
-                }
-
-                // Worktree reference exists in git but directory doesn't exist on disk.
-                // This is an orphaned git worktree reference. Prune it and retry.
-                if prune_worktrees(source_path).is_ok() {
-                    // Retry creating the worktree after pruning
-                    if let Err(retry_err) = create_worktree(source_path, &workspace_path, "HEAD") {
-                        return Err(WorkspaceError::GitError(retry_err.to_string()));
-                    }
-                    // Success after prune+retry, continue with normal setup below
-                } else {
-                    // Prune failed, return the original error
-                    return Err(WorkspaceError::GitError(error_msg));
-                }
-            } else {
-                // For other errors, propagate them
-                return Err(WorkspaceError::GitError(error_msg));
-            }
-        }
-    }
-
-    // Copy issue data to workspace
-    copy_issue_data_to_workspace(source_path, &workspace_path, issue_id).await?;
-
-    // Set up VS Code configuration
-    setup_vscode_config(&workspace_path, issue_id, display_number, &options.action).await?;
-
-    // Create plan.md template for plan action
     if options.action == "plan" {
-        create_plan_template(&workspace_path, issue_id, display_number, &options.issue.title)
-            .await?;
+        create_plan_template(workspace_path, issue_id, display_number, &options.issue.title).await?;
     }
 
-    // Create the registry entry
     let entry = TempWorkspaceEntry {
-        source_project_path: source_path_str,
+        source_project_path: source_path.to_string_lossy().to_string(),
         issue_id: issue_id.clone(),
         issue_display_number: display_number,
         issue_title: options.issue.title.clone(),
@@ -416,18 +266,94 @@ pub async fn create_temp_workspace(
         worktree_ref: "HEAD".to_string(),
     };
 
-    // Record in registry
-    let workspace_path_str = workspace_path.to_string_lossy().to_string();
-    add_workspace(&workspace_path_str, entry.clone()).await?;
+    add_workspace(workspace_path.to_string_lossy().as_ref(), entry.clone()).await?;
+    Ok(entry)
+}
 
-    // Try to open VS Code (don't fail if it's not available)
+/// Handle worktree creation, including conflict resolution.
+fn handle_worktree_creation(
+    source_path: &Path,
+    workspace_path: &Path,
+) -> Result<bool, WorkspaceError> {
+    match create_worktree(source_path, workspace_path, "HEAD") {
+        Ok(()) => Ok(false), // Not reused
+        Err(e) => {
+            let error_msg = e.to_string();
+            let is_conflict = error_msg.contains("already exists")
+                || error_msg.contains("already registered worktree");
+
+            if is_conflict && workspace_path.exists() {
+                return Ok(true); // Reusing existing worktree
+            }
+
+            if is_conflict && prune_worktrees(source_path).is_ok() {
+                return create_worktree(source_path, workspace_path, "HEAD")
+                    .map(|()| false)
+                    .map_err(|e| WorkspaceError::GitError(e.to_string()));
+            }
+
+            Err(WorkspaceError::GitError(error_msg))
+        }
+    }
+}
+
+/// This function:
+/// 1. Checks if an existing workspace for this issue already exists (reopen if so)
+/// 2. Validates the source project is a git repository
+/// 3. Creates a git worktree at a temporary location
+/// 4. Sets up VS Code configuration with auto-run task
+/// 5. Records the workspace in the registry
+/// 6. Opens VS Code (if available)
+pub async fn create_temp_workspace(
+    options: CreateWorkspaceOptions,
+) -> Result<CreateWorkspaceResult, WorkspaceError> {
+    let source_path = &options.source_project_path;
+
+    if !is_git_repository(source_path) {
+        return Err(WorkspaceError::NotGitRepository);
+    }
+    if !source_path.exists() {
+        return Err(WorkspaceError::SourceProjectNotFound(source_path.to_string_lossy().to_string()));
+    }
+
+    let ttl_hours = if options.ttl_hours == 0 {
+        get_default_ttl().await.unwrap_or(DEFAULT_TTL_HOURS)
+    } else {
+        options.ttl_hours
+    };
+
+    let issue_id = &options.issue.id;
+    let source_path_str = source_path.to_string_lossy().to_string();
+
+    // Check for existing workspace for this issue
+    if let Ok(Some((existing_path, existing_entry))) = find_workspace_for_issue(&source_path_str, issue_id).await {
+        let workspace_path = PathBuf::from(&existing_path);
+        if workspace_path.exists() {
+            let original_created_at = existing_entry.created_at.clone();
+            let new_expires_at = calculate_expires_at(ttl_hours);
+            update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+            return Ok(CreateWorkspaceResult {
+                workspace_path: workspace_path.clone(),
+                entry: TempWorkspaceEntry { expires_at: new_expires_at, ..existing_entry },
+                vscode_opened: open_vscode(&workspace_path).unwrap_or(false),
+                workspace_reused: true,
+                original_created_at: Some(original_created_at),
+            });
+        }
+    }
+
+    let workspace_path = generate_workspace_path(source_path, options.issue.metadata.display_number);
+    let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
+
+    let entry = setup_new_workspace(source_path, &workspace_path, &options, ttl_hours).await?;
     let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
 
     Ok(CreateWorkspaceResult {
         workspace_path,
         entry,
         vscode_opened,
-        workspace_reused: false,
+        workspace_reused: worktree_reused,
         original_created_at: None,
     })
 }

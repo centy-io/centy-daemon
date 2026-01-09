@@ -331,7 +331,6 @@ pub async fn get_prs_by_uuid(
 }
 
 /// Update an existing PR
-#[allow(clippy::too_many_lines)]
 pub async fn update_pr(
     project_path: &Path,
     pr_id: &str,

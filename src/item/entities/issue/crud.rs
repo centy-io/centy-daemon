@@ -657,7 +657,6 @@ pub async fn restore_issue(
 ///
 /// # Returns
 /// The moved issue with updated display number, plus both manifests
-#[allow(clippy::too_many_lines)]
 pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
     // Verify not same project
     if options.source_project_path == options.target_project_path {

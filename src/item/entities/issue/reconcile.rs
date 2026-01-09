@@ -36,7 +36,6 @@ struct IssueInfo {
 /// issue (by `created_at`) keeps its original number.
 ///
 /// Returns the number of issues that were reassigned.
-#[allow(clippy::too_many_lines)]
 pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, ReconcileError> {
     if !issues_path.exists() {
         return Ok(0);
