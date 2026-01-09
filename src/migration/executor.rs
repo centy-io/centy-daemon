@@ -3,7 +3,7 @@
 use super::registry::MigrationRegistry;
 use super::types::{Migration, MigrationDirection, MigrationError, MigrationResult};
 use crate::config::{read_config, write_config};
-use crate::version::SemVer;
+use semver::Version;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::{error, info};
@@ -31,11 +31,10 @@ impl MigrationExecutor {
     /// 3. Executes each migration in order
     /// 4. Rolls back on failure
     /// 5. Updates the config with the new version on success
-    #[allow(clippy::too_many_lines)]
     pub async fn migrate(
         &self,
         project_path: &Path,
-        target_version: &SemVer,
+        target_version: &Version,
     ) -> Result<MigrationResult, MigrationError> {
         // Read current config to get project version
         let config = read_config(project_path)
@@ -45,9 +44,9 @@ impl MigrationExecutor {
         let current_version = config
             .as_ref()
             .and_then(|c| c.version.as_ref())
-            .map(|v| SemVer::parse(v))
+            .map(|v| Version::parse(v))
             .transpose()?
-            .unwrap_or_else(|| SemVer::new(0, 0, 0)); // Unversioned projects start at 0.0.0
+            .unwrap_or_else(|| Version::new(0, 0, 0)); // Unversioned projects start at 0.0.0
 
         info!(
             from = %current_version,
@@ -180,18 +179,18 @@ mod tests {
 
     // Mock migration for testing
     struct MockMigration {
-        from: SemVer,
-        to: SemVer,
+        from: Version,
+        to: Version,
         description: &'static str,
     }
 
     #[async_trait]
     impl Migration for MockMigration {
-        fn from_version(&self) -> &SemVer {
+        fn from_version(&self) -> &Version {
             &self.from
         }
 
-        fn to_version(&self) -> &SemVer {
+        fn to_version(&self) -> &Version {
             &self.to
         }
 
@@ -210,17 +209,17 @@ mod tests {
 
     // Failing migration for testing rollback
     struct FailingMigration {
-        from: SemVer,
-        to: SemVer,
+        from: Version,
+        to: Version,
     }
 
     #[async_trait]
     impl Migration for FailingMigration {
-        fn from_version(&self) -> &SemVer {
+        fn from_version(&self) -> &Version {
             &self.from
         }
 
-        fn to_version(&self) -> &SemVer {
+        fn to_version(&self) -> &Version {
             &self.to
         }
 
@@ -269,7 +268,7 @@ mod tests {
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(1, 0, 0))
+            .migrate(temp_dir.path(), &Version::new(1, 0, 0))
             .await
             .expect("Should migrate");
 
@@ -298,15 +297,15 @@ mod tests {
 
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
             description: "Initial setup",
         }));
 
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(0, 1, 0))
+            .migrate(temp_dir.path(), &Version::new(0, 1, 0))
             .await
             .expect("Should migrate");
 
@@ -333,15 +332,15 @@ mod tests {
 
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
             description: "Test migration",
         }));
 
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         executor
-            .migrate(temp_dir.path(), &SemVer::new(0, 1, 0))
+            .migrate(temp_dir.path(), &Version::new(0, 1, 0))
             .await
             .expect("Should migrate");
 
@@ -371,20 +370,20 @@ mod tests {
 
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
             description: "Step 1",
         }));
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 1, 0),
-            to: SemVer::new(0, 2, 0),
+            from: Version::new(0, 1, 0),
+            to: Version::new(0, 2, 0),
             description: "Step 2",
         }));
 
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(0, 2, 0))
+            .migrate(temp_dir.path(), &Version::new(0, 2, 0))
             .await
             .expect("Should migrate");
 
@@ -410,14 +409,14 @@ mod tests {
 
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(FailingMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
         }));
 
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(0, 1, 0))
+            .migrate(temp_dir.path(), &Version::new(0, 1, 0))
             .await
             .expect("Should return result");
 
@@ -447,7 +446,7 @@ mod tests {
         let executor = MigrationExecutor::new(Arc::new(registry));
 
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(1, 0, 0))
+            .migrate(temp_dir.path(), &Version::new(1, 0, 0))
             .await;
 
         assert!(result.is_err());
@@ -472,8 +471,8 @@ mod tests {
 
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
             description: "Test",
         }));
 
@@ -481,7 +480,7 @@ mod tests {
 
         // Should handle missing version gracefully (treats as 0.0.0)
         let result = executor
-            .migrate(temp_dir.path(), &SemVer::new(0, 1, 0))
+            .migrate(temp_dir.path(), &Version::new(0, 1, 0))
             .await
             .expect("Should migrate");
 

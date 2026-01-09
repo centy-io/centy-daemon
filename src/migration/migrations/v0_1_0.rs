@@ -4,16 +4,17 @@
 //! to the first versioned state (0.1.0).
 
 use crate::migration::types::{Migration, MigrationError};
-use crate::version::SemVer;
 use async_trait::async_trait;
+use semver::Version;
 use std::path::Path;
 
 /// Lazy static for the "from" version (0.0.0).
-static FROM_VERSION: std::sync::LazyLock<SemVer> =
-    std::sync::LazyLock::new(|| SemVer::new(0, 0, 0));
+static FROM_VERSION: std::sync::LazyLock<Version> =
+    std::sync::LazyLock::new(|| Version::new(0, 0, 0));
 
 /// Lazy static for the "to" version (0.1.0).
-static TO_VERSION: std::sync::LazyLock<SemVer> = std::sync::LazyLock::new(|| SemVer::new(0, 1, 0));
+static TO_VERSION: std::sync::LazyLock<Version> =
+    std::sync::LazyLock::new(|| Version::new(0, 1, 0));
 
 /// Initial migration that establishes version tracking for existing projects.
 ///
@@ -38,11 +39,11 @@ impl Default for InitialVersionMigration {
 
 #[async_trait]
 impl Migration for InitialVersionMigration {
-    fn from_version(&self) -> &SemVer {
+    fn from_version(&self) -> &Version {
         &FROM_VERSION
     }
 
-    fn to_version(&self) -> &SemVer {
+    fn to_version(&self) -> &Version {
         &TO_VERSION
     }
 
@@ -70,8 +71,8 @@ mod tests {
     #[test]
     fn test_migration_versions() {
         let migration = InitialVersionMigration::new();
-        assert_eq!(migration.from_version(), &SemVer::new(0, 0, 0));
-        assert_eq!(migration.to_version(), &SemVer::new(0, 1, 0));
+        assert_eq!(migration.from_version(), &Version::new(0, 0, 0));
+        assert_eq!(migration.to_version(), &Version::new(0, 1, 0));
     }
 
     #[test]

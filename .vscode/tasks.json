@@ -2,65 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Watch Run",
+      "label": "Plan Issue #113",
       "type": "shell",
-      "command": "cargo",
-      "args": ["watch", "-x", "run"],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
+      "command": "centy",
+      "args": ["issue", "d6d89011-3941-499e-82eb-02d66194dc69", "--action", "plan"],
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "focus": true,
-        "clear": true
+        "panel": "new",
+        "focus": true
       },
-      "problemMatcher": "$rustc-watch",
-      "isBackground": true
-    },
-    {
-      "label": "Watch Check",
-      "type": "shell",
-      "command": "cargo",
-      "args": ["watch", "-x", "check"],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": false,
-        "clear": true
-      },
-      "problemMatcher": "$rustc-watch",
-      "isBackground": true
-    },
-    {
-      "label": "Watch Test",
-      "type": "shell",
-      "command": "cargo",
-      "args": ["watch", "-x", "test"],
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": false,
-        "clear": true
-      },
-      "problemMatcher": "$rustc-watch",
-      "isBackground": true
-    },
-    {
-      "label": "Watch Clippy",
-      "type": "shell",
-      "command": "cargo",
-      "args": ["watch", "-x", "clippy --all-targets"],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": false,
-        "clear": true
-      },
-      "problemMatcher": "$rustc-watch",
-      "isBackground": true
+      "problemMatcher": []
     }
   ]
 }

@@ -15,7 +15,6 @@ pub mod server;
 pub mod template;
 pub mod user;
 pub mod utils;
-pub mod version;
 pub mod workspace;
 
 // Re-export commonly used types
@@ -76,7 +75,6 @@ pub use user::{
     CreateUserResult, DeleteUserResult, GitContributor, SyncUsersFullResult, SyncUsersResult,
     UpdateUserOptions, UpdateUserResult, User, UserError,
 };
-pub use version::{compare_versions, daemon_version, SemVer, VersionComparison, VersionError};
 pub use workspace::{
     cleanup_expired_workspaces, cleanup_workspace, create_temp_workspace, list_workspaces,
     CleanupResult, CreateWorkspaceOptions, CreateWorkspaceResult, TempWorkspaceEntry,

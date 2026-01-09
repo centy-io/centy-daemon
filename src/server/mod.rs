@@ -74,8 +74,7 @@ use crate::user::{
     sync_users as internal_sync_users, update_user as internal_update_user, CreateUserOptions,
     UpdateUserOptions,
 };
-use crate::utils::{format_display_path, get_centy_path};
-use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
+use crate::utils::{format_display_path, get_centy_path, CENTY_VERSION};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired,
     cleanup_workspace as internal_cleanup_workspace, create_temp_workspace,
@@ -165,6 +164,212 @@ pub enum ShutdownSignal {
     Restart,
 }
 
+// ============ Helper functions for common operations ============
+
+/// Resolve an issue by display number or UUID.
+async fn resolve_issue(
+    project_path: &Path,
+    issue_id: &str,
+) -> Result<crate::item::entities::issue::Issue, String> {
+    if let Ok(display_num) = issue_id.parse::<u32>() {
+        get_issue_by_display_number(project_path, display_num)
+            .await
+            .map_err(|e| format!("Issue not found: {e}"))
+    } else {
+        get_issue(project_path, issue_id)
+            .await
+            .map_err(|e| format!("Issue not found: {e}"))
+    }
+}
+
+/// Create a simple EntityAction.
+fn make_action(
+    id: &str,
+    label: &str,
+    category: i32,
+    shortcut: &str,
+    destructive: bool,
+) -> EntityAction {
+    EntityAction {
+        id: id.to_string(),
+        label: label.to_string(),
+        category,
+        enabled: true,
+        disabled_reason: String::new(),
+        destructive,
+        keyboard_shortcut: shortcut.to_string(),
+    }
+}
+
+/// Create a status action with enabled/disabled logic.
+fn make_status_action(state: &str, entity_status: Option<&String>, is_pr: bool) -> EntityAction {
+    let is_current = entity_status.map(|s| s == state).unwrap_or(false);
+    let (enabled, reason) = if is_pr {
+        let is_terminal = state == "merged" || state == "closed";
+        let current_is_terminal = entity_status
+            .map(|s| s == "merged" || s == "closed")
+            .unwrap_or(false);
+        if is_current {
+            (false, "Already in this status".to_string())
+        } else if current_is_terminal && !is_terminal {
+            (false, "Cannot reopen after merge/close".to_string())
+        } else {
+            (true, String::new())
+        }
+    } else if is_current {
+        (false, "Already in this status".to_string())
+    } else {
+        (true, String::new())
+    };
+
+    EntityAction {
+        id: format!("status:{state}"),
+        label: format!("Mark as {}", capitalize_first(state)),
+        category: ActionCategory::Status as i32,
+        enabled,
+        disabled_reason: reason,
+        destructive: false,
+        keyboard_shortcut: String::new(),
+    }
+}
+
+/// Build issue-specific actions.
+fn build_issue_actions(
+    entity_status: Option<&String>,
+    allowed_states: &[String],
+    vscode_available: bool,
+    terminal_available: bool,
+    has_entity_id: bool,
+) -> Vec<EntityAction> {
+    let mut actions = vec![make_action(
+        "create",
+        "Create Issue",
+        ActionCategory::Crud as i32,
+        "c",
+        false,
+    )];
+
+    if has_entity_id {
+        actions.extend([
+            make_action("delete", "Delete", ActionCategory::Crud as i32, "d", true),
+            make_action(
+                "duplicate",
+                "Duplicate",
+                ActionCategory::Crud as i32,
+                "D",
+                false,
+            ),
+            make_action(
+                "move",
+                "Move to Project",
+                ActionCategory::Crud as i32,
+                "m",
+                false,
+            ),
+            make_action("mode:plan", "Plan", ActionCategory::Mode as i32, "p", false),
+            make_action(
+                "mode:implement",
+                "Implement",
+                ActionCategory::Mode as i32,
+                "i",
+                false,
+            ),
+            make_action(
+                "mode:deepdive",
+                "Deep Dive",
+                ActionCategory::Mode as i32,
+                "D",
+                false,
+            ),
+        ]);
+        for state in allowed_states {
+            actions.push(make_status_action(state, entity_status, false));
+        }
+        actions.push(EntityAction {
+            id: "open_in_vscode".to_string(),
+            label: "Open in VSCode".to_string(),
+            category: ActionCategory::External as i32,
+            enabled: vscode_available,
+            disabled_reason: if vscode_available {
+                String::new()
+            } else {
+                "VSCode not available".to_string()
+            },
+            destructive: false,
+            keyboard_shortcut: "o".to_string(),
+        });
+        actions.push(EntityAction {
+            id: "open_in_terminal".to_string(),
+            label: "Open in Terminal".to_string(),
+            category: ActionCategory::External as i32,
+            enabled: terminal_available,
+            disabled_reason: if terminal_available {
+                String::new()
+            } else {
+                "Terminal not available".to_string()
+            },
+            destructive: false,
+            keyboard_shortcut: "t".to_string(),
+        });
+    }
+    actions
+}
+
+/// Build PR-specific actions.
+fn build_pr_actions(entity_status: Option<&String>, has_entity_id: bool) -> Vec<EntityAction> {
+    let mut actions = vec![make_action(
+        "create",
+        "Create PR",
+        ActionCategory::Crud as i32,
+        "c",
+        false,
+    )];
+    if has_entity_id {
+        actions.push(make_action(
+            "delete",
+            "Delete",
+            ActionCategory::Crud as i32,
+            "d",
+            true,
+        ));
+        for state in ["draft", "open", "merged", "closed"] {
+            actions.push(make_status_action(state, entity_status, true));
+        }
+    }
+    actions
+}
+
+/// Build doc-specific actions.
+fn build_doc_actions(has_entity_id: bool) -> Vec<EntityAction> {
+    let mut actions = vec![make_action(
+        "create",
+        "Create Doc",
+        ActionCategory::Crud as i32,
+        "c",
+        false,
+    )];
+    if has_entity_id {
+        actions.extend([
+            make_action("delete", "Delete", ActionCategory::Crud as i32, "d", true),
+            make_action(
+                "duplicate",
+                "Duplicate",
+                ActionCategory::Crud as i32,
+                "D",
+                false,
+            ),
+            make_action(
+                "move",
+                "Move to Project",
+                ActionCategory::Crud as i32,
+                "m",
+                false,
+            ),
+        ]);
+    }
+    actions
+}
+
 pub struct CentyDaemonService {
     shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,
     exe_path: Option<PathBuf>,
@@ -238,7 +443,6 @@ async fn startup_org_inference() {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 #[tonic::async_trait]
 impl CentyDaemon for CentyDaemonService {
     #[instrument(
@@ -1862,14 +2066,13 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         _request: Request<GetDaemonInfoRequest>,
     ) -> Result<Response<DaemonInfo>, Status> {
-        let daemon_ver = daemon_version();
         let registry = create_registry();
         let binary_path = std::env::current_exe()
             .map(|p| format_display_path(&p.to_string_lossy()))
             .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
-            version: daemon_ver.to_string(),
+            version: CENTY_VERSION.to_string(),
             available_versions: registry.available_versions(),
             binary_path,
             vscode_available: is_vscode_available(),
@@ -1888,24 +2091,24 @@ impl CentyDaemon for CentyDaemonService {
         let project_ver_str = config
             .as_ref()
             .and_then(|c| c.version.clone())
-            .unwrap_or_else(|| crate::utils::CENTY_VERSION.to_string());
+            .unwrap_or_else(|| CENTY_VERSION.to_string());
 
-        let project_ver = match SemVer::parse(&project_ver_str) {
+        let project_ver = match semver::Version::parse(&project_ver_str) {
             Ok(v) => v,
             Err(e) => return Err(Status::invalid_argument(e.to_string())),
         };
-        let daemon_ver = daemon_version();
+        let daemon_ver =
+            semver::Version::parse(CENTY_VERSION).expect("CENTY_VERSION should be valid semver");
 
-        let comparison = compare_versions(&project_ver, &daemon_ver);
-        let (comparison_str, degraded) = match comparison {
-            VersionComparison::Equal => ("equal", false),
-            VersionComparison::ProjectBehind => ("project_behind", false),
-            VersionComparison::ProjectAhead => ("project_ahead", true),
+        let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
+            std::cmp::Ordering::Equal => ("equal", false),
+            std::cmp::Ordering::Less => ("project_behind", false),
+            std::cmp::Ordering::Greater => ("project_ahead", true),
         };
 
         Ok(Response::new(ProjectVersionInfo {
             project_version: project_ver_str,
-            daemon_version: daemon_ver.to_string(),
+            daemon_version: CENTY_VERSION.to_string(),
             comparison: comparison_str.to_string(),
             degraded_mode: degraded,
         }))
@@ -1919,7 +2122,7 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        let target = match SemVer::parse(&req.target_version) {
+        let target = match semver::Version::parse(&req.target_version) {
             Ok(v) => v,
             Err(e) => {
                 return Ok(Response::new(UpdateVersionResponse {
@@ -2557,7 +2760,6 @@ impl CentyDaemon for CentyDaemonService {
 
     // ============ LLM Agent RPCs ============
 
-    #[allow(clippy::too_many_lines)]
     async fn spawn_agent(
         &self,
         request: Request<SpawnAgentRequest>,
@@ -2566,83 +2768,47 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        // Parse action
+        let err_response = |error: String| {
+            Ok(Response::new(SpawnAgentResponse {
+                success: false,
+                error,
+                agent_name: String::new(),
+                issue_id: String::new(),
+                display_number: 0,
+                prompt_preview: String::new(),
+            }))
+        };
+
         let action = match LlmAction::from_proto(req.action) {
             Some(a) => a,
             None => {
-                return Ok(Response::new(SpawnAgentResponse {
-                    success: false,
-                    error: "Invalid action. Must be 1 (plan) or 2 (implement).".to_string(),
-                    agent_name: String::new(),
-                    issue_id: String::new(),
-                    display_number: 0,
-                    prompt_preview: String::new(),
-                }));
+                return err_response(
+                    "Invalid action. Must be 1 (plan) or 2 (implement).".to_string(),
+                )
             }
         };
 
-        // Resolve issue - try parsing as display number first, then as UUID
-        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
-            match get_issue_by_display_number(project_path, display_num).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(SpawnAgentResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        agent_name: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        prompt_preview: String::new(),
-                    }));
-                }
-            }
-        } else {
-            match get_issue(project_path, &req.issue_id).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(SpawnAgentResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        agent_name: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        prompt_preview: String::new(),
-                    }));
-                }
-            }
+        let issue = match resolve_issue(project_path, &req.issue_id).await {
+            Ok(i) => i,
+            Err(e) => return err_response(e),
         };
 
-        // Get effective config
         let llm_config = match get_effective_local_config(Some(project_path)).await {
             Ok(c) => c,
-            Err(e) => {
-                return Ok(Response::new(SpawnAgentResponse {
-                    success: false,
-                    error: format!("Failed to load LLM config: {e}"),
-                    agent_name: String::new(),
-                    issue_id: String::new(),
-                    display_number: 0,
-                    prompt_preview: String::new(),
-                }));
-            }
+            Err(e) => return err_response(format!("Failed to load LLM config: {e}")),
         };
 
-        // Get project config for priority levels
         let project_config = read_config(project_path)
             .await
             .ok()
             .flatten()
             .unwrap_or_default();
-        let priority_levels = project_config.priority_levels;
-
-        // Resolve agent name
         let agent_name = if req.agent_name.is_empty() {
             None
         } else {
             Some(req.agent_name.as_str())
         };
 
-        // Spawn agent
         match llm_spawn_agent(
             project_path,
             &llm_config,
@@ -2650,12 +2816,11 @@ impl CentyDaemon for CentyDaemonService {
             action,
             agent_name,
             req.extra_args,
-            priority_levels,
+            project_config.priority_levels,
         )
         .await
         {
             Ok(result) => {
-                // Record work session
                 let _ = record_work_session(
                     project_path,
                     &issue.id,
@@ -2666,7 +2831,6 @@ impl CentyDaemon for CentyDaemonService {
                     result.pid,
                 )
                 .await;
-
                 Ok(Response::new(SpawnAgentResponse {
                     success: true,
                     error: String::new(),
@@ -2676,14 +2840,7 @@ impl CentyDaemon for CentyDaemonService {
                     prompt_preview: result.prompt_preview,
                 }))
             }
-            Err(e) => Ok(Response::new(SpawnAgentResponse {
-                success: false,
-                error: e.to_string(),
-                agent_name: String::new(),
-                issue_id: String::new(),
-                display_number: 0,
-                prompt_preview: String::new(),
-            })),
+            Err(e) => err_response(e.to_string()),
         }
     }
 
@@ -3265,92 +3422,61 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        // Parse action (default to Plan)
+        let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
+            Ok(Response::new(OpenInTempVscodeResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                issue_id,
+                display_number: dn,
+                expires_at: String::new(),
+                vscode_opened: false,
+                requires_status_config: req_cfg,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
         let action_str = match req.action {
             1 => "plan",
             2 => "implement",
-            _ => "plan", // Default to plan
+            _ => "plan",
         };
 
-        // Resolve issue - try parsing as display number first, then as UUID
-        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
-            match get_issue_by_display_number(project_path, display_num).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(OpenInTempVscodeResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        workspace_path: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        expires_at: String::new(),
-                        vscode_opened: false,
-                        requires_status_config: false,
-                        workspace_reused: false,
-                        original_created_at: String::new(),
-                    }));
-                }
-            }
-        } else {
-            match get_issue(project_path, &req.issue_id).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(OpenInTempVscodeResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        workspace_path: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        expires_at: String::new(),
-                        vscode_opened: false,
-                        requires_status_config: false,
-                        workspace_reused: false,
-                        original_created_at: String::new(),
-                    }));
-                }
-            }
+        let issue = match resolve_issue(project_path, &req.issue_id).await {
+            Ok(i) => i,
+            Err(e) => return err_response(e, String::new(), 0, false),
         };
 
-        // Check if user configuration is required for auto-status update
         let config = read_config(project_path).await.ok().flatten();
         let requires_status_config = config
             .as_ref()
-            .map(|cfg| cfg.llm.update_status_on_start.is_none())
-            .unwrap_or(true); // If no config at all, also need configuration
-
+            .map(|c| c.llm.update_status_on_start.is_none())
+            .unwrap_or(true);
         if requires_status_config {
-            // Return early with requires_status_config = true
-            return Ok(Response::new(OpenInTempVscodeResponse {
-                success: false,
-                error: "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string(),
-                workspace_path: String::new(),
-                issue_id: issue.id.clone(),
-                display_number: issue.metadata.display_number,
-                expires_at: String::new(),
-                vscode_opened: false,
-                requires_status_config: true,
-                workspace_reused: false,
-                original_created_at: String::new(),
-            }));
+            return err_response(
+                "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string(),
+                issue.id.clone(), issue.metadata.display_number, true,
+            );
         }
 
-        // Auto-update status to in-progress if configured
         if let Some(ref cfg) = config {
-            if cfg.llm.update_status_on_start == Some(true) {
-                let current_status = &issue.metadata.status;
-                if current_status != "in-progress" && current_status != "closed" {
-                    let update_opts = UpdateIssueOptions {
+            if cfg.llm.update_status_on_start == Some(true)
+                && issue.metadata.status != "in-progress"
+                && issue.metadata.status != "closed"
+            {
+                let _ = update_issue(
+                    project_path,
+                    &issue.id,
+                    UpdateIssueOptions {
                         status: Some("in-progress".to_string()),
                         ..Default::default()
-                    };
-                    if let Err(e) = update_issue(project_path, &issue.id, update_opts).await {
-                        tracing::warn!("Failed to auto-update status to in-progress: {e}");
-                    }
-                }
+                    },
+                )
+                .await;
             }
         }
 
-        // Get effective config to resolve agent name
         let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
             llm_config
@@ -3361,16 +3487,15 @@ impl CentyDaemon for CentyDaemonService {
             req.agent_name.clone()
         };
 
-        // Create the workspace
-        let options = CreateWorkspaceOptions {
+        match create_temp_workspace(CreateWorkspaceOptions {
             source_project_path: project_path.to_path_buf(),
             issue: issue.clone(),
             action: action_str.to_string(),
             agent_name,
             ttl_hours: req.ttl_hours,
-        };
-
-        match create_temp_workspace(options).await {
+        })
+        .await
+        {
             Ok(result) => Ok(Response::new(OpenInTempVscodeResponse {
                 success: true,
                 error: String::new(),
@@ -3383,18 +3508,7 @@ impl CentyDaemon for CentyDaemonService {
                 workspace_reused: result.workspace_reused,
                 original_created_at: result.original_created_at.unwrap_or_default(),
             })),
-            Err(e) => Ok(Response::new(OpenInTempVscodeResponse {
-                success: false,
-                error: e.to_string(),
-                workspace_path: String::new(),
-                issue_id: String::new(),
-                display_number: 0,
-                expires_at: String::new(),
-                vscode_opened: false,
-                requires_status_config: false,
-                workspace_reused: false,
-                original_created_at: String::new(),
-            })),
+            Err(e) => err_response(e.to_string(), String::new(), 0, false),
         }
     }
 
@@ -3406,82 +3520,56 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        // Resolve issue - try parsing as display number first, then as UUID
-        let issue = if let Ok(display_num) = req.issue_id.parse::<u32>() {
-            match get_issue_by_display_number(project_path, display_num).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(OpenAgentInTerminalResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        working_directory: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        agent_command: String::new(),
-                        terminal_opened: false,
-                        expires_at: String::new(),
-                        requires_status_config: false,
-                    }));
-                }
-            }
-        } else {
-            match get_issue(project_path, &req.issue_id).await {
-                Ok(i) => i,
-                Err(e) => {
-                    return Ok(Response::new(OpenAgentInTerminalResponse {
-                        success: false,
-                        error: format!("Issue not found: {e}"),
-                        working_directory: String::new(),
-                        issue_id: String::new(),
-                        display_number: 0,
-                        agent_command: String::new(),
-                        terminal_opened: false,
-                        expires_at: String::new(),
-                        requires_status_config: false,
-                    }));
-                }
-            }
-        };
-
-        // Check if user configuration is required for auto-status update
-        let config = read_config(project_path).await.ok().flatten();
-        let requires_status_config = config
-            .as_ref()
-            .map(|cfg| cfg.llm.update_status_on_start.is_none())
-            .unwrap_or(true); // If no config at all, also need configuration
-
-        if requires_status_config {
-            // Return early with requires_status_config = true
-            return Ok(Response::new(OpenAgentInTerminalResponse {
+        let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
+            Ok(Response::new(OpenAgentInTerminalResponse {
                 success: false,
-                error: String::new(),
+                error,
                 working_directory: String::new(),
-                issue_id: issue.id.clone(),
-                display_number: issue.metadata.display_number,
+                issue_id,
+                display_number: dn,
                 agent_command: String::new(),
                 terminal_opened: false,
                 expires_at: String::new(),
-                requires_status_config: true,
-            }));
+                requires_status_config: req_cfg,
+            }))
+        };
+
+        let issue = match resolve_issue(project_path, &req.issue_id).await {
+            Ok(i) => i,
+            Err(e) => return err_response(e, String::new(), 0, false),
+        };
+
+        let config = read_config(project_path).await.ok().flatten();
+        let requires_status_config = config
+            .as_ref()
+            .map(|c| c.llm.update_status_on_start.is_none())
+            .unwrap_or(true);
+        if requires_status_config {
+            return err_response(
+                String::new(),
+                issue.id.clone(),
+                issue.metadata.display_number,
+                true,
+            );
         }
 
-        // Auto-update status to in-progress if configured
         if let Some(ref cfg) = config {
-            if cfg.llm.update_status_on_start == Some(true) {
-                let current_status = &issue.metadata.status;
-                if current_status != "in-progress" && current_status != "closed" {
-                    let update_opts = UpdateIssueOptions {
+            if cfg.llm.update_status_on_start == Some(true)
+                && issue.metadata.status != "in-progress"
+                && issue.metadata.status != "closed"
+            {
+                let _ = update_issue(
+                    project_path,
+                    &issue.id,
+                    UpdateIssueOptions {
                         status: Some("in-progress".to_string()),
                         ..Default::default()
-                    };
-                    if let Err(e) = update_issue(project_path, &issue.id, update_opts).await {
-                        tracing::warn!("Failed to auto-update status to in-progress: {e}");
-                    }
-                }
+                    },
+                )
+                .await;
             }
         }
 
-        // Get effective config to resolve agent name
         let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
             llm_config
@@ -3492,27 +3580,16 @@ impl CentyDaemon for CentyDaemonService {
             req.agent_name.clone()
         };
 
-        // Get agent config for the command
         let agent_config = llm_config
             .as_ref()
             .and_then(|c| c.agents.iter().find(|a| a.name == agent_name).cloned());
+        let (agent_command, agent_args, stdin_prompt_needed) = agent_config
+            .as_ref()
+            .map(|a| (a.command.clone(), a.default_args.clone(), a.stdin_prompt))
+            .unwrap_or_else(|| (agent_name.clone(), Vec::new(), false));
 
-        let (agent_command, agent_args, stdin_prompt_needed) = if let Some(ref agent) = agent_config
-        {
-            (
-                agent.command.clone(),
-                agent.default_args.clone(),
-                agent.stdin_prompt,
-            )
-        } else {
-            // Default to using the agent name as the command
-            (agent_name.clone(), Vec::new(), false)
-        };
-
-        // Build prompt for stdin-based agents (like claude --print)
         let stdin_prompt_str = if stdin_prompt_needed {
-            let prompt_builder = PromptBuilder::new();
-            prompt_builder
+            PromptBuilder::new()
                 .build_prompt(project_path, &issue, LlmAction::Implement, None, 1)
                 .await
                 .ok()
@@ -3520,56 +3597,41 @@ impl CentyDaemon for CentyDaemonService {
             None
         };
 
-        // Determine workspace mode
         let workspace_mode = match req.workspace_mode {
             x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
             x if x == WorkspaceMode::Current as i32 => WorkspaceMode::Current,
-            _ => {
-                // Check project default from config
-                if let Some(ref cfg) = config {
-                    match cfg.llm.default_workspace_mode {
-                        x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
-                        x if x == WorkspaceMode::Current as i32 => WorkspaceMode::Current,
-                        _ => WorkspaceMode::Current, // Default to current
-                    }
-                } else {
-                    WorkspaceMode::Current
-                }
-            }
+            _ => config
+                .as_ref()
+                .map(|c| match c.llm.default_workspace_mode {
+                    x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
+                    _ => WorkspaceMode::Current,
+                })
+                .unwrap_or(WorkspaceMode::Current),
         };
 
-        // Get working directory based on mode
         let (working_dir, expires_at) = match workspace_mode {
-            WorkspaceMode::Temp => {
-                // Create temp workspace (reuse existing logic)
-                let options = CreateWorkspaceOptions {
-                    source_project_path: project_path.to_path_buf(),
-                    issue: issue.clone(),
-                    action: "agent".to_string(),
-                    agent_name: agent_name.clone(),
-                    ttl_hours: req.ttl_hours,
-                };
-                match create_temp_workspace(options).await {
-                    Ok(result) => (result.workspace_path, Some(result.entry.expires_at)),
-                    Err(e) => {
-                        return Ok(Response::new(OpenAgentInTerminalResponse {
-                            success: false,
-                            error: format!("Failed to create workspace: {e}"),
-                            working_directory: String::new(),
-                            issue_id: String::new(),
-                            display_number: 0,
-                            agent_command: String::new(),
-                            terminal_opened: false,
-                            expires_at: String::new(),
-                            requires_status_config: false,
-                        }));
-                    }
+            WorkspaceMode::Temp => match create_temp_workspace(CreateWorkspaceOptions {
+                source_project_path: project_path.to_path_buf(),
+                issue: issue.clone(),
+                action: "agent".to_string(),
+                agent_name: agent_name.clone(),
+                ttl_hours: req.ttl_hours,
+            })
+            .await
+            {
+                Ok(r) => (r.workspace_path, Some(r.entry.expires_at)),
+                Err(e) => {
+                    return err_response(
+                        format!("Failed to create workspace: {e}"),
+                        String::new(),
+                        0,
+                        false,
+                    )
                 }
-            }
+            },
             _ => (project_path.to_path_buf(), None),
         };
 
-        // Open terminal with agent
         let terminal_opened = open_terminal_with_agent(
             &working_dir,
             issue.metadata.display_number,
@@ -3578,9 +3640,8 @@ impl CentyDaemon for CentyDaemonService {
             stdin_prompt_str.as_deref(),
         )
         .unwrap_or(false);
-
         let full_command = if agent_args.is_empty() {
-            agent_command.clone()
+            agent_command
         } else {
             format!("{} {}", agent_command, agent_args.join(" "))
         };
@@ -3700,7 +3761,6 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     async fn get_entity_actions(
         &self,
         request: Request<GetEntityActionsRequest>,
@@ -3709,7 +3769,6 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        // Read project config for allowed states and other settings
         let config = read_config(project_path).await.ok().flatten();
         let allowed_states = config
             .as_ref()
@@ -3722,311 +3781,53 @@ impl CentyDaemon for CentyDaemonService {
                 ]
             });
 
-        // Check if VSCode is available
-        let vscode_available = is_vscode_available();
+        let has_entity_id = !req.entity_id.is_empty();
 
-        // Check if terminal is available
-        let terminal_available = is_terminal_available();
-
-        // Build actions based on entity type and optional entity ID
-        let mut actions = Vec::new();
-
-        match req.entity_type {
-            // Issue actions
+        let actions = match req.entity_type {
             t if t == EntityType::Issue as i32 => {
-                // Fetch entity if ID provided for contextual actions
-                let entity_status = if req.entity_id.is_empty() {
+                let entity_status = if has_entity_id {
+                    resolve_issue(project_path, &req.entity_id)
+                        .await
+                        .ok()
+                        .map(|i| i.metadata.status)
+                } else {
                     None
-                } else {
-                    // Try to get the issue to determine its current state
-                    if let Ok(display_num) = req.entity_id.parse::<u32>() {
-                        get_issue_by_display_number(project_path, display_num)
-                            .await
-                            .ok()
-                            .map(|i| i.metadata.status)
-                    } else {
-                        get_issue(project_path, &req.entity_id)
-                            .await
-                            .ok()
-                            .map(|i| i.metadata.status)
-                    }
                 };
-
-                // CRUD actions
-                if req.entity_id.is_empty() {
-                    // General actions (no specific entity)
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create Issue".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
-                } else {
-                    // Entity-specific actions
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create Issue".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "delete".to_string(),
-                        label: "Delete".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: true,
-                        keyboard_shortcut: "d".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "duplicate".to_string(),
-                        label: "Duplicate".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "D".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "move".to_string(),
-                        label: "Move to Project".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "m".to_string(),
-                    });
-
-                    // Mode actions (Plan/Implement) - only for issues with entity_id
-                    actions.push(EntityAction {
-                        id: "mode:plan".to_string(),
-                        label: "Plan".to_string(),
-                        category: ActionCategory::Mode as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "p".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "mode:implement".to_string(),
-                        label: "Implement".to_string(),
-                        category: ActionCategory::Mode as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "i".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "mode:deepdive".to_string(),
-                        label: "Deep Dive".to_string(),
-                        category: ActionCategory::Mode as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "D".to_string(),
-                    });
-
-                    // Status actions - contextual based on current status
-                    for state in &allowed_states {
-                        let is_current =
-                            entity_status.as_ref().map(|s| s == state).unwrap_or(false);
-                        actions.push(EntityAction {
-                            id: format!("status:{state}"),
-                            label: format!("Mark as {}", capitalize_first(state)),
-                            category: ActionCategory::Status as i32,
-                            enabled: !is_current,
-                            disabled_reason: if is_current {
-                                "Already in this status".to_string()
-                            } else {
-                                String::new()
-                            },
-                            destructive: false,
-                            keyboard_shortcut: String::new(),
-                        });
-                    }
-
-                    // External actions
-                    actions.push(EntityAction {
-                        id: "open_in_vscode".to_string(),
-                        label: "Open in VSCode".to_string(),
-                        category: ActionCategory::External as i32,
-                        enabled: vscode_available,
-                        disabled_reason: if vscode_available {
-                            String::new()
-                        } else {
-                            "VSCode not available".to_string()
-                        },
-                        destructive: false,
-                        keyboard_shortcut: "o".to_string(),
-                    });
-                    actions.push(EntityAction {
-                        id: "open_in_terminal".to_string(),
-                        label: "Open in Terminal".to_string(),
-                        category: ActionCategory::External as i32,
-                        enabled: terminal_available,
-                        disabled_reason: if terminal_available {
-                            String::new()
-                        } else {
-                            "Terminal not available".to_string()
-                        },
-                        destructive: false,
-                        keyboard_shortcut: "t".to_string(),
-                    });
-                }
+                build_issue_actions(
+                    entity_status.as_ref(),
+                    &allowed_states,
+                    is_vscode_available(),
+                    is_terminal_available(),
+                    has_entity_id,
+                )
             }
-
-            // PR actions
             t if t == EntityType::Pr as i32 => {
-                let entity_status = if req.entity_id.is_empty() {
-                    None
-                } else if let Ok(display_num) = req.entity_id.parse::<u32>() {
-                    get_pr_by_display_number(project_path, display_num)
-                        .await
-                        .ok()
-                        .map(|p| p.metadata.status)
-                } else {
-                    get_pr(project_path, &req.entity_id)
-                        .await
-                        .ok()
-                        .map(|p| p.metadata.status)
-                };
-
-                if req.entity_id.is_empty() {
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create PR".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
-                } else {
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create PR".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "delete".to_string(),
-                        label: "Delete".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: true,
-                        keyboard_shortcut: "d".to_string(),
-                    });
-
-                    // PR status actions
-                    let pr_states = vec!["draft", "open", "merged", "closed"];
-                    for state in &pr_states {
-                        let is_current =
-                            entity_status.as_ref().map(|s| s == *state).unwrap_or(false);
-                        let is_terminal = *state == "merged" || *state == "closed";
-                        let current_is_terminal = entity_status
-                            .as_ref()
-                            .map(|s| s == "merged" || s == "closed")
-                            .unwrap_or(false);
-
-                        actions.push(EntityAction {
-                            id: format!("status:{state}"),
-                            label: format!("Mark as {}", capitalize_first(state)),
-                            category: ActionCategory::Status as i32,
-                            enabled: !is_current && (is_terminal || !current_is_terminal),
-                            disabled_reason: if is_current {
-                                "Already in this status".to_string()
-                            } else if current_is_terminal && !is_terminal {
-                                "Cannot reopen after merge/close".to_string()
-                            } else {
-                                String::new()
-                            },
-                            destructive: false,
-                            keyboard_shortcut: String::new(),
-                        });
+                let entity_status = if has_entity_id {
+                    if let Ok(n) = req.entity_id.parse::<u32>() {
+                        get_pr_by_display_number(project_path, n)
+                            .await
+                            .ok()
+                            .map(|p| p.metadata.status)
+                    } else {
+                        get_pr(project_path, &req.entity_id)
+                            .await
+                            .ok()
+                            .map(|p| p.metadata.status)
                     }
-                }
-            }
-
-            // Doc actions
-            t if t == EntityType::Doc as i32 => {
-                if req.entity_id.is_empty() {
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create Doc".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
                 } else {
-                    actions.push(EntityAction {
-                        id: "create".to_string(),
-                        label: "Create Doc".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "c".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "delete".to_string(),
-                        label: "Delete".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: true,
-                        keyboard_shortcut: "d".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "duplicate".to_string(),
-                        label: "Duplicate".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "D".to_string(),
-                    });
-
-                    actions.push(EntityAction {
-                        id: "move".to_string(),
-                        label: "Move to Project".to_string(),
-                        category: ActionCategory::Crud as i32,
-                        enabled: true,
-                        disabled_reason: String::new(),
-                        destructive: false,
-                        keyboard_shortcut: "m".to_string(),
-                    });
-                }
+                    None
+                };
+                build_pr_actions(entity_status.as_ref(), has_entity_id)
             }
-
-            // Unknown entity type
+            t if t == EntityType::Doc as i32 => build_doc_actions(has_entity_id),
             _ => {
                 return Ok(Response::new(GetEntityActionsResponse {
                     actions: vec![],
                     success: false,
                     error: "Unknown entity type".to_string(),
-                }));
+                }))
             }
-        }
+        };
 
         Ok(Response::new(GetEntityActionsResponse {
             actions,

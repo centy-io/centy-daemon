@@ -40,6 +40,8 @@ replace-homedir = "0.1"
 # Error handling
 thiserror = "1"
 anyhow = "1"
+color-eyre = "0.6"
+tracing-error = "0.2"
 
 # Template engine
 handlebars = "6"
@@ -90,7 +92,7 @@ tonic-build = "0.12"
 
 [dev-dependencies]
 tempfile = "3"
-cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "user-hooks"] }
+cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "prepush-hook", "user-hooks"] }
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -132,6 +134,7 @@ manual_let_else = "allow"
 unused_async = "allow"
 struct_field_names = "allow"
 trivially_copy_pass_by_ref = "allow"
+too_many_lines = "allow"
 
 [[bin]]
 name = "centy-daemon"

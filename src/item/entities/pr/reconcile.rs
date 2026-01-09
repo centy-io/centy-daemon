@@ -36,7 +36,6 @@ struct PrInfo {
 /// PR (by `created_at`) keeps its original number.
 ///
 /// Returns the number of PRs that were reassigned.
-#[allow(clippy::too_many_lines)]
 pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, ReconcileError> {
     if !prs_path.exists() {
         return Ok(0);

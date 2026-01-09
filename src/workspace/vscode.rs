@@ -1,16 +1,13 @@
 //! VS Code integration for temporary workspaces.
 //!
-//! Handles setting up VS Code with auto-running tasks and opening the editor.
+//! Handles setting up VS Code with tasks and opening the editor.
 
 use super::WorkspaceError;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::fs;
 
-/// Generate the VS Code tasks.json content for auto-running an agent.
-///
-/// The task will automatically run when the folder is opened in VS Code.
-/// User must have `"task.allowAutomaticTasks": "on"` in VS Code settings.
+/// Generate the VS Code tasks.json content for running an agent.
 pub fn generate_tasks_json(issue_id: &str, display_number: u32, action: &str) -> String {
     let action_display = match action {
         "plan" => "Plan",
@@ -32,9 +29,6 @@ pub fn generate_tasks_json(issue_id: &str, display_number: u32, action: &str) ->
         "panel": "new",
         "focus": true
       }},
-      "runOptions": {{
-        "runOn": "folderOpen"
-      }},
       "problemMatcher": []
     }}
   ]
@@ -44,7 +38,7 @@ pub fn generate_tasks_json(issue_id: &str, display_number: u32, action: &str) ->
 
 /// Set up VS Code configuration in the workspace.
 ///
-/// Creates `.vscode/tasks.json` with an auto-run task for the agent.
+/// Creates `.vscode/tasks.json` with a task for the agent.
 pub async fn setup_vscode_config(
     workspace_path: &Path,
     issue_id: &str,
@@ -189,7 +183,6 @@ mod tests {
         assert!(json.contains(r#""command": "centy""#));
         assert!(json.contains(r#""issue", "uuid-1234""#));
         assert!(json.contains(r#""--action", "plan""#));
-        assert!(json.contains(r#""runOn": "folderOpen""#));
     }
 
     #[test]
