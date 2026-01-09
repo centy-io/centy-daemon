@@ -3,7 +3,7 @@
 //! Manages central tracking of display numbers for org-level issues.
 //! Stored at ~/.centy/org-issues-registry.json
 
-use crate::utils::now_iso;
+use crate::utils::{atomic_write, now_iso};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -98,11 +98,9 @@ async fn write_registry_unlocked(
         fs::create_dir_all(parent).await?;
     }
 
-    // Write atomically using temp file + rename
-    let temp_path = path.with_extension("json.tmp");
+    // Write atomically using tempfile crate (auto-cleanup on failure)
     let content = serde_json::to_string_pretty(registry)?;
-    fs::write(&temp_path, &content).await?;
-    fs::rename(&temp_path, &path).await?;
+    atomic_write(&path, &content).await?;
 
     Ok(())
 }

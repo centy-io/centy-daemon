@@ -1,6 +1,6 @@
 use super::types::{ProjectRegistry, CURRENT_SCHEMA_VERSION};
 use super::RegistryError;
-use crate::utils::now_iso;
+use crate::utils::{atomic_write, now_iso};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::fs;
@@ -90,11 +90,9 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
         fs::create_dir_all(parent).await?;
     }
 
-    // Write atomically using temp file + rename
-    let temp_path = path.with_extension("json.tmp");
+    // Write atomically using tempfile crate (auto-cleanup on failure)
     let content = serde_json::to_string_pretty(registry)?;
-    fs::write(&temp_path, &content).await?;
-    fs::rename(&temp_path, &path).await?;
+    atomic_write(&path, &content).await?;
 
     Ok(())
 }

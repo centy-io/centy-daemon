@@ -1,6 +1,8 @@
+mod atomic;
 mod format;
 mod hash;
 
+pub use atomic::atomic_write;
 pub use format::format_markdown;
 pub use hash::{compute_hash, compute_file_hash};
 

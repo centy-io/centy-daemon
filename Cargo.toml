@@ -84,11 +84,13 @@ which = "6"
 # Shell escaping for command construction
 shell-escape = "0.1"
 
+# Temporary file handling for atomic writes
+tempfile = "3"
+
 [build-dependencies]
 tonic-build = "0.12"
 
 [dev-dependencies]
-tempfile = "3"
 cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "user-hooks"] }
 
 [lints.rust]
