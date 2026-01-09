@@ -16,35 +16,25 @@ use crate::features::{
 use crate::migration::{create_registry, MigrationExecutor};
 use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::item::entities::doc::{
-    get_docs_by_slug,
+    get_docs_by_slug, create_doc, delete_doc, duplicate_doc, get_doc, list_docs,
+    move_doc, update_doc, soft_delete_doc, restore_doc,
     CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
-};
-// Sync-aware doc CRUD (automatically pulls before reads, commits+pushes after writes)
-use crate::sync::sync_aware::{
-    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
-    soft_delete_doc, restore_doc,
 };
 use crate::item::entities::issue::{
     get_issues_by_uuid, priority_label,
+    create_issue_with_title_generation, delete_issue, duplicate_issue, get_issue,
+    get_issue_by_display_number, list_issues, move_issue, update_issue,
+    soft_delete_issue, restore_issue,
     CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
     add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
     AssetInfo, AssetScope,
 };
-// Sync-aware issue CRUD (automatically pulls before reads, commits+pushes after writes)
-use crate::sync::sync_aware::{
-    create_issue_with_title_generation, delete_issue, duplicate_issue, get_issue,
-    get_issue_by_display_number, list_issues, move_issue, update_issue,
-    soft_delete_issue, restore_issue,
-};
 use crate::item::entities::pr::{
     get_prs_by_uuid,
-    CreatePrOptions, UpdatePrOptions,
-};
-// Sync-aware PR CRUD (automatically pulls before reads, commits+pushes after writes)
-use crate::sync::sync_aware::{
     create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
-    soft_delete_pr as sync_aware_soft_delete_pr, restore_pr as sync_aware_restore_pr,
+    soft_delete_pr, restore_pr,
+    CreatePrOptions, UpdatePrOptions,
 };
 use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
 use crate::reconciliation::{
@@ -65,7 +55,6 @@ use crate::user::{
     CreateUserOptions, UpdateUserOptions,
 };
 use crate::search::{advanced_search, SearchOptions, SortOptions};
-use crate::sync::{self, CentySyncManager, ConflictResolution};
 use crate::utils::{format_display_path, get_centy_path};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
@@ -2089,7 +2078,7 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match sync_aware_soft_delete_pr(project_path, &req.pr_id).await {
+        match soft_delete_pr(project_path, &req.pr_id).await {
             Ok(result) => Ok(Response::new(SoftDeletePrResponse {
                 success: true,
                 error: String::new(),
@@ -2117,7 +2106,7 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match sync_aware_restore_pr(project_path, &req.pr_id).await {
+        match restore_pr(project_path, &req.pr_id).await {
             Ok(result) => Ok(Response::new(RestorePrResponse {
                 success: true,
                 error: String::new(),
@@ -3734,53 +3723,18 @@ impl CentyDaemon for CentyDaemonService {
         }))
     }
 
-    // ============ Sync RPCs ============
+    // ============ Sync RPCs (Stubbed - sync feature removed) ============
 
     async fn list_sync_conflicts(
         &self,
-        request: Request<proto::ListSyncConflictsRequest>,
+        _request: Request<proto::ListSyncConflictsRequest>,
     ) -> Result<Response<proto::ListSyncConflictsResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                match sync::conflicts::list_conflicts(&manager.centy_path()).await {
-                    Ok(conflicts) => {
-                        let proto_conflicts: Vec<proto::SyncConflict> = conflicts
-                            .into_iter()
-                            .map(|c| proto::SyncConflict {
-                                id: c.id,
-                                item_type: c.item_type,
-                                item_id: c.item_id,
-                                file_path: c.file_path,
-                                created_at: c.created_at,
-                                description: c.description.unwrap_or_default(),
-                                base_content: c.base_content.unwrap_or_default(),
-                                ours_content: c.ours_content,
-                                theirs_content: c.theirs_content,
-                            })
-                            .collect();
-
-                        Ok(Response::new(proto::ListSyncConflictsResponse {
-                            conflicts: proto_conflicts,
-                            success: true,
-                            error: String::new(),
-                        }))
-                    }
-                    Err(e) => Ok(Response::new(proto::ListSyncConflictsResponse {
-                        conflicts: vec![],
-                        success: false,
-                        error: e.to_string(),
-                    })),
-                }
-            }
-            Err(e) => Ok(Response::new(proto::ListSyncConflictsResponse {
-                conflicts: vec![],
-                success: false,
-                error: e.to_string(),
-            })),
-        }
+        // Sync feature removed - return empty list
+        Ok(Response::new(proto::ListSyncConflictsResponse {
+            conflicts: vec![],
+            success: true,
+            error: String::new(),
+        }))
     }
 
     async fn get_sync_conflict(
@@ -3788,195 +3742,64 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<proto::GetSyncConflictRequest>,
     ) -> Result<Response<proto::GetSyncConflictResponse>, Status> {
         let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                match sync::conflicts::get_conflict(&manager.centy_path(), &req.conflict_id).await {
-                    Ok(Some(conflict)) => {
-                        Ok(Response::new(proto::GetSyncConflictResponse {
-                            conflict: Some(proto::SyncConflict {
-                                id: conflict.id,
-                                item_type: conflict.item_type,
-                                item_id: conflict.item_id,
-                                file_path: conflict.file_path,
-                                created_at: conflict.created_at,
-                                description: conflict.description.unwrap_or_default(),
-                                base_content: conflict.base_content.unwrap_or_default(),
-                                ours_content: conflict.ours_content,
-                                theirs_content: conflict.theirs_content,
-                            }),
-                            success: true,
-                            error: String::new(),
-                        }))
-                    }
-                    Ok(None) => Ok(Response::new(proto::GetSyncConflictResponse {
-                        conflict: None,
-                        success: false,
-                        error: format!("Conflict not found: {}", req.conflict_id),
-                    })),
-                    Err(e) => Ok(Response::new(proto::GetSyncConflictResponse {
-                        conflict: None,
-                        success: false,
-                        error: e.to_string(),
-                    })),
-                }
-            }
-            Err(e) => Ok(Response::new(proto::GetSyncConflictResponse {
-                conflict: None,
-                success: false,
-                error: e.to_string(),
-            })),
-        }
+        // Sync feature removed - conflict not found
+        Ok(Response::new(proto::GetSyncConflictResponse {
+            conflict: None,
+            success: false,
+            error: format!("Sync feature disabled. Conflict not found: {}", req.conflict_id),
+        }))
     }
 
     async fn resolve_sync_conflict(
         &self,
-        request: Request<proto::ResolveSyncConflictRequest>,
+        _request: Request<proto::ResolveSyncConflictRequest>,
     ) -> Result<Response<proto::ResolveSyncConflictResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        let resolution = match req.resolution {
-            1 => ConflictResolution::TakeOurs,
-            2 => ConflictResolution::TakeTheirs,
-            3 => ConflictResolution::Merge { content: req.merged_content },
-            _ => return Ok(Response::new(proto::ResolveSyncConflictResponse {
-                success: false,
-                error: "Invalid resolution type".to_string(),
-            })),
-        };
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                match sync::conflicts::resolve_conflict(&manager.centy_path(), &req.conflict_id, resolution).await {
-                    Ok(()) => Ok(Response::new(proto::ResolveSyncConflictResponse {
-                        success: true,
-                        error: String::new(),
-                    })),
-                    Err(e) => Ok(Response::new(proto::ResolveSyncConflictResponse {
-                        success: false,
-                        error: e.to_string(),
-                    })),
-                }
-            }
-            Err(e) => Ok(Response::new(proto::ResolveSyncConflictResponse {
-                success: false,
-                error: e.to_string(),
-            })),
-        }
+        // Sync feature removed - cannot resolve conflicts
+        Ok(Response::new(proto::ResolveSyncConflictResponse {
+            success: false,
+            error: "Sync feature is disabled".to_string(),
+        }))
     }
 
     async fn get_sync_status(
         &self,
-        request: Request<proto::GetSyncStatusRequest>,
+        _request: Request<proto::GetSyncStatusRequest>,
     ) -> Result<Response<proto::GetSyncStatusResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                let mode = match manager.mode() {
-                    sync::manager::SyncMode::Full => proto::SyncMode::Full as i32,
-                    sync::manager::SyncMode::LocalOnly => proto::SyncMode::LocalOnly as i32,
-                    sync::manager::SyncMode::Disabled => proto::SyncMode::Disabled as i32,
-                };
-
-                let has_pending_push = manager.has_pending_push().await.unwrap_or(false);
-                let conflict_count = sync::conflicts::list_conflicts(&manager.centy_path())
-                    .await
-                    .map(|c| c.len() as i32)
-                    .unwrap_or(0);
-
-                Ok(Response::new(proto::GetSyncStatusResponse {
-                    mode,
-                    has_pending_changes: false, // TODO: Check git status
-                    has_pending_push,
-                    conflict_count,
-                    last_sync_time: String::new(), // TODO: Track last sync time
-                    success: true,
-                    error: String::new(),
-                }))
-            }
-            Err(e) => Ok(Response::new(proto::GetSyncStatusResponse {
-                mode: proto::SyncMode::Disabled as i32,
-                has_pending_changes: false,
-                has_pending_push: false,
-                conflict_count: 0,
-                last_sync_time: String::new(),
-                success: false,
-                error: e.to_string(),
-            })),
-        }
+        // Sync feature removed - return disabled status
+        Ok(Response::new(proto::GetSyncStatusResponse {
+            mode: proto::SyncMode::Disabled as i32,
+            has_pending_changes: false,
+            has_pending_push: false,
+            conflict_count: 0,
+            last_sync_time: String::new(),
+            success: true,
+            error: String::new(),
+        }))
     }
 
     async fn sync_pull(
         &self,
-        request: Request<proto::SyncPullRequest>,
+        _request: Request<proto::SyncPullRequest>,
     ) -> Result<Response<proto::SyncPullResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                match manager.pull_before_read().await {
-                    Ok(()) => Ok(Response::new(proto::SyncPullResponse {
-                        success: true,
-                        error: String::new(),
-                        had_changes: true, // TODO: Track actual changes
-                        conflict_files: vec![],
-                    })),
-                    Err(e) => Ok(Response::new(proto::SyncPullResponse {
-                        success: false,
-                        error: e.to_string(),
-                        had_changes: false,
-                        conflict_files: vec![],
-                    })),
-                }
-            }
-            Err(e) => Ok(Response::new(proto::SyncPullResponse {
-                success: false,
-                error: e.to_string(),
-                had_changes: false,
-                conflict_files: vec![],
-            })),
-        }
+        // Sync feature removed - no-op success
+        Ok(Response::new(proto::SyncPullResponse {
+            success: true,
+            error: String::new(),
+            had_changes: false,
+            conflict_files: vec![],
+        }))
     }
 
     async fn sync_push(
         &self,
-        request: Request<proto::SyncPushRequest>,
+        _request: Request<proto::SyncPushRequest>,
     ) -> Result<Response<proto::SyncPushResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        let message = if req.commit_message.is_empty() {
-            "Manual sync push"
-        } else {
-            &req.commit_message
-        };
-
-        match CentySyncManager::new(project_path).await {
-            Ok(manager) => {
-                match manager.commit_and_push(message).await {
-                    Ok(()) => Ok(Response::new(proto::SyncPushResponse {
-                        success: true,
-                        error: String::new(),
-                        had_changes: true, // TODO: Track actual changes
-                    })),
-                    Err(e) => Ok(Response::new(proto::SyncPushResponse {
-                        success: false,
-                        error: e.to_string(),
-                        had_changes: false,
-                    })),
-                }
-            }
-            Err(e) => Ok(Response::new(proto::SyncPushResponse {
-                success: false,
-                error: e.to_string(),
-                had_changes: false,
-            })),
-        }
+        // Sync feature removed - no-op success
+        Ok(Response::new(proto::SyncPushResponse {
+            success: true,
+            error: String::new(),
+            had_changes: false,
+        }))
     }
 }
 
