@@ -40,6 +40,8 @@ replace-homedir = "0.1"
 # Error handling
 thiserror = "1"
 anyhow = "1"
+color-eyre = "0.6"
+tracing-error = "0.2"
 
 # Template engine
 handlebars = "6"

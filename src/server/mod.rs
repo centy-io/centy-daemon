@@ -74,8 +74,7 @@ use crate::user::{
     sync_users as internal_sync_users, update_user as internal_update_user, CreateUserOptions,
     UpdateUserOptions,
 };
-use crate::utils::CENTY_VERSION;
-use crate::utils::{format_display_path, get_centy_path};
+use crate::utils::{format_display_path, get_centy_path, CENTY_VERSION};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired,
     cleanup_workspace as internal_cleanup_workspace, create_temp_workspace,
