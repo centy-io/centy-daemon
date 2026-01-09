@@ -1,7 +1,9 @@
 mod common;
 mod config;
+mod cors;
 mod docs;
 mod features;
+mod grpc_logging;
 mod issue;
 mod link;
 mod llm;
@@ -22,7 +24,8 @@ mod version;
 mod workspace;
 
 use clap::Parser;
-use http::Method;
+use cors::{build_cors_layer, DEFAULT_CORS_ORIGINS};
+use grpc_logging::GrpcLoggingLayer;
 use logging::{init_logging, parse_rotation, LogConfig};
 use server::proto::centy_daemon_server::CentyDaemonServer;
 use server::{CentyDaemonService, ShutdownSignal};
@@ -30,11 +33,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
-use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use tracing::info;
 
 const DEFAULT_ADDR: &str = "127.0.0.1:50051";
-const DEFAULT_CORS_ORIGINS: &str = "http://localhost,https://localhost,http://127.0.0.1,https://127.0.0.1,tauri://localhost,https://tauri.localhost";
 
 /// Centy Daemon - Local-first issue and documentation tracker service
 #[derive(Parser, Debug)]
@@ -115,6 +116,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     );
 
+    // Configure CORS for gRPC-Web
+    let cors = build_cors_layer(cors_origins);
+
     // Create shutdown signal channel
     let (shutdown_tx, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(shutdown_tx);
@@ -129,40 +133,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1()?;
 
-    // Configure CORS for gRPC-Web
-    // Always allow *.centy.io origins, plus any configured origins
-    let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::predicate(move |origin, _| {
-            if allow_all_origins {
-                return true;
-            }
-
-            if let Ok(origin_str) = origin.to_str() {
-                // Always allow *.centy.io
-                if origin_str.ends_with(".centy.io")
-                    || origin_str == "https://centy.io"
-                    || origin_str == "http://centy.io"
-                {
-                    return true;
-                }
-
-                // Check configured origins
-                cors_origins
-                    .iter()
-                    .any(|allowed| origin_str.starts_with(allowed))
-            } else {
-                false
-            }
-        }))
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(Any)
-        .expose_headers(Any);
-
     info!("Starting Centy daemon on {} (gRPC + gRPC-Web)", addr);
 
     Server::builder()
         .accept_http1(true) // Required for gRPC-Web
         .layer(cors)
+        .layer(GrpcLoggingLayer)
         .layer(tonic_web::GrpcWebLayer::new())
         .add_service(reflection_service)
         .add_service(CentyDaemonServer::new(service))
