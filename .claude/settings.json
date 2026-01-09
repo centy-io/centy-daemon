@@ -4,7 +4,12 @@
       "Bash(centy --help:*)",
       "Bash(centy create:*)",
       "Bash(git add:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo tarpaulin:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
