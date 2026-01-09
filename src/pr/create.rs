@@ -43,15 +43,6 @@ pub enum PrError {
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
-
-    #[error("Not a git repository")]
-    NotGitRepository,
-
-    #[error("Source branch '{0}' does not exist")]
-    SourceBranchNotFound(String),
-
-    #[error("Target branch '{0}' does not exist")]
-    TargetBranchNotFound(String),
 }
 
 /// Options for creating a PR
@@ -70,8 +61,6 @@ pub struct CreatePrOptions {
     /// Initial status. Defaults to "draft".
     pub status: Option<String>,
     pub custom_fields: HashMap<String, String>,
-    /// Optional template name (without .md extension)
-    pub template: Option<String>,
 }
 
 /// Result of PR creation

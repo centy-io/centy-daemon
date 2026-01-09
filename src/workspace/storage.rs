@@ -47,6 +47,7 @@ pub async fn read_registry() -> Result<WorkspaceRegistry, WorkspaceError> {
 }
 
 /// Write the workspace registry to disk with locking and atomic write
+#[allow(dead_code)] // Part of workspace management infrastructure
 pub async fn write_registry(registry: &WorkspaceRegistry) -> Result<(), WorkspaceError> {
     let _guard = get_lock().lock().await;
     write_registry_unlocked(registry).await
@@ -196,6 +197,7 @@ pub async fn list_workspaces(
 }
 
 /// Count expired workspaces
+#[allow(dead_code)] // Part of workspace management infrastructure
 pub async fn count_expired() -> Result<u32, WorkspaceError> {
     let registry = read_registry().await?;
 

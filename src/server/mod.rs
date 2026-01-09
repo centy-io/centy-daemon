@@ -1884,7 +1884,6 @@ impl CentyDaemon for CentyDaemonService {
             priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
             status: if req.status.is_empty() { None } else { Some(req.status) },
             custom_fields: req.custom_fields,
-            template: if req.template.is_empty() { None } else { Some(req.template) },
         };
 
         match create_pr(project_path, options).await {

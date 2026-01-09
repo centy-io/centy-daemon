@@ -43,7 +43,7 @@ impl LlmAction {
     }
 
     /// Convert to proto enum value
-    #[must_use]
+    #[cfg(test)]
     pub fn to_proto(&self) -> i32 {
         match self {
             LlmAction::Plan => 1,

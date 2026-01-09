@@ -100,6 +100,7 @@ impl CentySyncManager {
     /// Create a new sync manager in local-only mode.
     ///
     /// This is used when there's no remote origin configured.
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub async fn new_local_only(project_path: &Path) -> Result<Self, SyncError> {
         let project_path = project_path.to_path_buf();
 
@@ -133,13 +134,13 @@ impl CentySyncManager {
     }
 
     /// Get the sync worktree path
-    #[must_use]
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn worktree_path(&self) -> &Path {
         &self.sync_worktree
     }
 
     /// Get the original project path
-    #[must_use]
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn project_path(&self) -> &Path {
         &self.project_path
     }
@@ -157,7 +158,7 @@ impl CentySyncManager {
     }
 
     /// Check if remote sync is available
-    #[must_use]
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn has_remote(&self) -> bool {
         self.mode == SyncMode::Full
     }
@@ -301,6 +302,7 @@ impl CentySyncManager {
     }
 
     /// Process any pending push operations
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub async fn process_pending_push(&self) -> Result<bool, SyncError> {
         if self.mode != SyncMode::Full {
             return Ok(false);
@@ -386,6 +388,7 @@ impl CentySyncManager {
     }
 
     /// Repair the sync worktree if it's corrupted
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub async fn repair(&mut self) -> Result<(), SyncError> {
         if self.mode == SyncMode::Disabled {
             return Ok(());

@@ -149,6 +149,7 @@ pub async fn cleanup_expired_workspaces() -> Result<Vec<CleanupResult>, Workspac
 }
 
 /// Count successfully cleaned workspaces
+#[allow(dead_code)] // Utility for workspace cleanup reporting
 pub fn count_cleaned(results: &[CleanupResult]) -> u32 {
     results
         .iter()
@@ -157,6 +158,7 @@ pub fn count_cleaned(results: &[CleanupResult]) -> u32 {
 }
 
 /// Get paths that failed to clean
+#[allow(dead_code)] // Utility for workspace cleanup reporting
 pub fn get_failed_paths(results: &[CleanupResult]) -> Vec<String> {
     results
         .iter()
@@ -166,6 +168,7 @@ pub fn get_failed_paths(results: &[CleanupResult]) -> Vec<String> {
 }
 
 /// Get paths that were successfully cleaned
+#[allow(dead_code)] // Utility for workspace cleanup reporting
 pub fn get_cleaned_paths(results: &[CleanupResult]) -> Vec<String> {
     results
         .iter()

@@ -5,9 +5,6 @@ pub enum SearchError {
     #[error("Query parse error: {0}")]
     ParseError(String),
 
-    #[error("Invalid field '{0}': {1}")]
-    InvalidField(String, String),
-
     #[error("Invalid operator '{0}' for field '{1}'")]
     InvalidOperator(String, String),
 
@@ -19,9 +16,6 @@ pub enum SearchError {
 
     #[error("Invalid regex pattern '{0}': {1}")]
     InvalidRegex(String, String),
-
-    #[error("Project not found: {0}")]
-    ProjectNotFound(String),
 
     #[error("Issue error: {0}")]
     IssueError(String),

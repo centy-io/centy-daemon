@@ -985,14 +985,6 @@ fn generate_issue_md(title: &str, description: &str) -> String {
 
 #[async_trait]
 impl OrgSyncable for Issue {
-    fn item_id(&self) -> &str {
-        &self.id
-    }
-
-    fn is_org_item(&self) -> bool {
-        self.metadata.is_org_issue
-    }
-
     fn org_slug(&self) -> Option<&str> {
         self.metadata.org_slug.as_deref()
     }

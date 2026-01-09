@@ -37,6 +37,7 @@ pub struct ConflictInfo {
 
 impl ConflictInfo {
     /// Create a new conflict info
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn new(
         item_type: &str,
         item_id: &str,
@@ -59,7 +60,7 @@ impl ConflictInfo {
     }
 
     /// Set a description for the conflict
-    #[must_use]
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn with_description(mut self, description: &str) -> Self {
         self.description = Some(description.to_string());
         self
@@ -86,6 +87,7 @@ fn get_conflicts_dir(sync_path: &Path) -> PathBuf {
 /// Store a conflict for later resolution.
 ///
 /// Returns the path where the conflict was stored.
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn store_conflict(
     sync_path: &Path,
     item_type: &str,
@@ -223,6 +225,7 @@ pub async fn resolve_conflict(
 }
 
 /// Get conflicts for a specific item
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn get_conflicts_for_item(
     sync_path: &Path,
     item_type: &str,
@@ -237,6 +240,7 @@ pub async fn get_conflicts_for_item(
 }
 
 /// Check if an item has any unresolved conflicts
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn has_conflicts(
     sync_path: &Path,
     item_type: &str,
@@ -247,6 +251,7 @@ pub async fn has_conflicts(
 }
 
 /// Clear all conflicts (use with caution)
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn clear_all_conflicts(sync_path: &Path) -> Result<usize, SyncError> {
     let conflicts_dir = get_conflicts_dir(sync_path);
 

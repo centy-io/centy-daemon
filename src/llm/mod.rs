@@ -22,23 +22,3 @@ pub use work::{
 };
 #[allow(unused_imports)]
 pub use generate::{generate_title, GeneratedTitle, TitleGenerationError};
-
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum LlmError {
-    #[error("Config error: {0}")]
-    ConfigError(#[from] LocalConfigError),
-
-    #[error("Agent error: {0}")]
-    AgentError(#[from] AgentError),
-
-    #[error("Prompt error: {0}")]
-    PromptError(#[from] PromptError),
-
-    #[error("Work tracking error: {0}")]
-    WorkTrackingError(#[from] WorkTrackingError),
-
-    #[error("Issue error: {0}")]
-    IssueError(#[from] crate::issue::IssueCrudError),
-}

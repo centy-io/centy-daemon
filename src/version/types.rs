@@ -13,9 +13,6 @@ pub use semver::Version as SemVer;
 pub enum VersionError {
     #[error("Invalid version format: {0}")]
     InvalidFormat(String),
-
-    #[error("Version not found in config")]
-    NotFound,
 }
 
 impl From<semver::Error> for VersionError {

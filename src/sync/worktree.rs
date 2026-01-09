@@ -103,6 +103,7 @@ pub async fn ensure_sync_worktree(project_path: &Path) -> Result<PathBuf, SyncEr
 }
 
 /// Remove sync worktree and prune references
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn remove_sync_worktree(project_path: &Path) -> Result<(), SyncError> {
     let worktree_path = get_sync_worktree_path(project_path)?;
 
@@ -146,12 +147,14 @@ pub async fn remove_sync_worktree(project_path: &Path) -> Result<(), SyncError> 
 /// Get the .centy path within sync worktree.
 ///
 /// Returns: `{sync_worktree}/.centy/`
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub fn get_sync_centy_path(project_path: &Path) -> Result<PathBuf, SyncError> {
     let worktree_path = get_sync_worktree_path(project_path)?;
     Ok(worktree_path.join(".centy"))
 }
 
 /// Validate that a worktree is properly set up
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub fn validate_worktree(worktree_path: &Path) -> Result<bool, SyncError> {
     // Check .git file exists (worktrees have a .git file, not directory)
     let git_file = worktree_path.join(".git");
@@ -170,6 +173,7 @@ pub fn validate_worktree(worktree_path: &Path) -> Result<bool, SyncError> {
 }
 
 /// Repair a corrupted worktree by recreating it
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn repair_worktree(project_path: &Path) -> Result<PathBuf, SyncError> {
     // Remove existing worktree
     remove_sync_worktree(project_path).await?;

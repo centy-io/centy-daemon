@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 /// Result of a merge operation
+#[allow(dead_code)] // Part of sync feature infrastructure
 #[derive(Debug, Clone)]
 pub enum MergeResult<T> {
     /// Clean merge, no conflicts
@@ -27,7 +28,7 @@ pub enum MergeResult<T> {
 
 impl<T> MergeResult<T> {
     /// Check if the merge was clean (no conflicts)
-    #[must_use]
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn is_clean(&self) -> bool {
         matches!(
             self,
@@ -36,6 +37,7 @@ impl<T> MergeResult<T> {
     }
 
     /// Get the merged value if the merge was clean
+    #[allow(dead_code)] // Part of sync feature infrastructure
     pub fn into_value(self) -> Option<T> {
         match self {
             MergeResult::Clean(v) | MergeResult::TakeOurs(v) | MergeResult::TakeTheirs(v) => {
@@ -53,6 +55,7 @@ impl<T> MergeResult<T> {
 /// - If base == theirs && base != ours → take ours
 /// - If base != ours && base != theirs && ours != theirs → conflict
 /// - If ours == theirs → take either (same)
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub fn merge_json_metadata(base: &Value, ours: &Value, theirs: &Value) -> MergeResult<Value> {
     // If ours == theirs, no conflict
     if ours == theirs {
@@ -90,6 +93,7 @@ pub fn merge_json_metadata(base: &Value, ours: &Value, theirs: &Value) -> MergeR
 }
 
 /// Merge two JSON objects field by field
+#[allow(dead_code)] // Part of sync feature infrastructure
 fn merge_json_objects(
     base: &Map<String, Value>,
     ours: &Map<String, Value>,
@@ -197,6 +201,7 @@ fn merge_json_objects(
 ///
 /// If only one side changed, take that change.
 /// If both sides changed, return a conflict.
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub fn merge_markdown(base: &str, ours: &str, theirs: &str) -> MergeResult<String> {
     // If ours == theirs, no conflict
     if ours == theirs {
@@ -221,7 +226,7 @@ pub fn merge_markdown(base: &str, ours: &str, theirs: &str) -> MergeResult<Strin
 }
 
 /// Check if content has git conflict markers
-#[must_use]
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub fn has_conflict_markers(content: &str) -> bool {
     content.contains("<<<<<<<") && content.contains("=======") && content.contains(">>>>>>>")
 }
@@ -230,6 +235,7 @@ pub fn has_conflict_markers(content: &str) -> bool {
 ///
 /// When merging, two issues might end up with the same display number.
 /// This function detects and resolves such collisions by renumbering.
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn resolve_display_number_collisions(
     sync_path: &std::path::Path,
 ) -> Result<Vec<RenumberedItem>, super::SyncError> {
@@ -311,6 +317,7 @@ pub async fn resolve_display_number_collisions(
 }
 
 /// Information about a renumbered item after collision resolution
+#[allow(dead_code)] // Part of sync feature infrastructure
 #[derive(Debug, Clone)]
 pub struct RenumberedItem {
     /// The issue/doc/PR ID

@@ -60,7 +60,6 @@ pub use worktree::{
     sync_worktree_exists,
 };
 
-use std::path::PathBuf;
 use thiserror::Error;
 
 /// The name of the centy sync branch
@@ -69,23 +68,11 @@ pub const CENTY_BRANCH: &str = "centy";
 /// Error types for sync operations
 #[derive(Error, Debug)]
 pub enum SyncError {
-    #[error("Not a git repository")]
-    NotGitRepository,
-
-    #[error("No remote 'origin' configured")]
-    NoRemote,
-
     #[error("Worktree error: {0}")]
     WorktreeError(String),
 
     #[error("Git command failed: {0}")]
     GitCommandFailed(String),
-
-    #[error("Merge conflict in {file}")]
-    MergeConflict {
-        file: String,
-        conflict_path: PathBuf,
-    },
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
@@ -95,9 +82,6 @@ pub enum SyncError {
 
     #[error("Home directory not found")]
     HomeDirNotFound,
-
-    #[error("Sync is disabled for this project (local-only mode)")]
-    SyncDisabled,
 
     #[error("Conflict not found: {0}")]
     ConflictNotFound(String),

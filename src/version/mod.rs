@@ -34,6 +34,7 @@ pub fn compare_versions(project_version: &SemVer, daemon_version: &SemVer) -> Ve
 /// a warning if the project version is newer than the daemon version.
 ///
 /// Returns the version comparison result.
+#[allow(dead_code)] // Reserved for version compatibility checks
 pub async fn check_version_for_operation(project_path: &Path) -> VersionComparison {
     let daemon_ver = daemon_version();
 

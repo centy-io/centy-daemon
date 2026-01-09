@@ -12,14 +12,8 @@ use crate::registry::{get_org_projects, RegistryError};
 /// Error types for org sync operations
 #[derive(Error, Debug)]
 pub enum OrgSyncError {
-    #[error("Project has no organization")]
-    NoOrganization,
-
     #[error("Registry error: {0}")]
     RegistryError(#[from] RegistryError),
-
-    #[error("Item not found: {0}")]
-    ItemNotFound(String),
 
     #[error("Sync failed: {0}")]
     SyncFailed(String),
@@ -76,12 +70,6 @@ pub struct OrgSyncResult {
 /// ```
 #[async_trait]
 pub trait OrgSyncable: Sized + Send + Sync {
-    /// The unique identifier for this item (e.g., UUID for issues, slug for docs)
-    fn item_id(&self) -> &str;
-
-    /// Whether this item is an organization-level item
-    fn is_org_item(&self) -> bool;
-
     /// The organization slug, if this is an org item
     fn org_slug(&self) -> Option<&str>;
 

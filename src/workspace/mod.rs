@@ -47,20 +47,11 @@ pub enum WorkspaceError {
     #[error("Git error: {0}")]
     GitError(String),
 
-    #[error("VS Code not found in PATH")]
-    VscodeNotFound,
-
     #[error("VS Code failed to open: {0}")]
     VscodeError(String),
 
-    #[error("Terminal not found")]
-    TerminalNotFound,
-
     #[error("Terminal failed to open: {0}")]
     TerminalError(String),
-
-    #[error("Workspace not found: {0}")]
-    WorkspaceNotFound(String),
 
     #[error("Issue error: {0}")]
     IssueError(#[from] crate::issue::IssueCrudError),

@@ -351,7 +351,6 @@ fn format_operator(op: &Operator) -> String {
         Operator::Lt => "<".to_string(),
         Operator::Gte => ">=".to_string(),
         Operator::Lte => "<=".to_string(),
-        Operator::Wildcard => ":".to_string(),
     }
 }
 

@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+//! Common test utilities
 
 use std::path::Path;
 use tempfile::TempDir;
@@ -19,6 +19,7 @@ pub async fn init_centy_project(project_path: &Path) {
 }
 
 /// Verify that the .centy folder exists with expected structure
+#[allow(dead_code)] // Test utility for integration tests
 pub fn verify_centy_structure(project_path: &Path) {
     let centy_path = project_path.join(".centy");
     assert!(centy_path.exists(), ".centy folder should exist");

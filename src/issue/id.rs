@@ -30,17 +30,6 @@ pub fn generate_issue_id() -> String {
     Uuid::new_v4().to_string()
 }
 
-/// Get the short form of an issue ID (first 8 characters)
-/// Useful for display purposes
-#[must_use] 
-pub fn short_id(id: &str) -> &str {
-    if id.len() >= 8 {
-        &id[..8]
-    } else {
-        id
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,10 +84,4 @@ mod tests {
         assert_ne!(id, id2);
     }
 
-    #[test]
-    fn test_short_id() {
-        assert_eq!(short_id("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c"), "a3f2b1c9");
-        assert_eq!(short_id("0001"), "0001");
-        assert_eq!(short_id("abc"), "abc");
-    }
 }
