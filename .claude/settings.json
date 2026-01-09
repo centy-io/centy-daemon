@@ -15,6 +15,7 @@
       "Bash(gh --version:*)",
       "Bash(find:*)",
       "Bash(chmod:*)",
+      "Bash(grep:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo build:*)",
       "Bash(cargo test:*)",
