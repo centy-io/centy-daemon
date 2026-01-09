@@ -1,14 +1,12 @@
-use crate::config::read_config;
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
-};
-use crate::registry::ProjectInfo;
-use crate::utils::{get_centy_path, now_iso};
-use crate::item::validation::priority::{validate_priority, PriorityError};
 use super::id::{is_uuid, is_valid_pr_folder};
 use super::metadata::PrMetadata;
 use super::reconcile::{reconcile_pr_display_numbers, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
+use crate::config::read_config;
+use crate::item::validation::priority::{validate_priority, PriorityError};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::registry::ProjectInfo;
+use crate::utils::{get_centy_path, now_iso};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -139,10 +137,7 @@ pub struct GetPrsByUuidResult {
 }
 
 /// Get a single PR by its ID (UUID)
-pub async fn get_pr(
-    project_path: &Path,
-    pr_id: &str,
-) -> Result<PullRequest, PrCrudError> {
+pub async fn get_pr(project_path: &Path, pr_id: &str) -> Result<PullRequest, PrCrudError> {
     // Check if centy is initialized
     read_manifest(project_path)
         .await?
@@ -195,17 +190,21 @@ pub async fn list_prs(
                 match read_pr_from_disk(&entry.path(), folder_name).await {
                     Ok(pr) => {
                         // Apply filters
-                        let status_match = status_filter
-                            .is_none_or(|s| pr.metadata.status == s);
-                        let source_match = source_branch_filter
-                            .is_none_or(|s| pr.metadata.source_branch == s);
-                        let target_match = target_branch_filter
-                            .is_none_or(|t| pr.metadata.target_branch == t);
-                        let priority_match = priority_filter
-                            .is_none_or(|p| pr.metadata.priority == p);
+                        let status_match = status_filter.is_none_or(|s| pr.metadata.status == s);
+                        let source_match =
+                            source_branch_filter.is_none_or(|s| pr.metadata.source_branch == s);
+                        let target_match =
+                            target_branch_filter.is_none_or(|t| pr.metadata.target_branch == t);
+                        let priority_match =
+                            priority_filter.is_none_or(|p| pr.metadata.priority == p);
                         let deleted_match = include_deleted || pr.metadata.deleted_at.is_none();
 
-                        if status_match && source_match && target_match && priority_match && deleted_match {
+                        if status_match
+                            && source_match
+                            && target_match
+                            && priority_match
+                            && deleted_match
+                        {
                             prs.push(pr);
                         }
                     }
@@ -360,8 +359,12 @@ pub async fn update_pr(
     let new_title = options.title.unwrap_or(current.title);
     let new_description = options.description.unwrap_or(current.description);
     let new_status = options.status.unwrap_or(current.metadata.status);
-    let new_source_branch = options.source_branch.unwrap_or(current.metadata.source_branch);
-    let new_target_branch = options.target_branch.unwrap_or(current.metadata.target_branch);
+    let new_source_branch = options
+        .source_branch
+        .unwrap_or(current.metadata.source_branch);
+    let new_target_branch = options
+        .target_branch
+        .unwrap_or(current.metadata.target_branch);
     let new_reviewers = options.reviewers.unwrap_or(current.metadata.reviewers);
 
     // Get allowed PR statuses from config or use defaults
@@ -425,7 +428,11 @@ pub async fn update_pr(
     let metadata_path = pr_path.join("metadata.json");
 
     fs::write(&pr_md_path, &pr_md).await?;
-    fs::write(&metadata_path, serde_json::to_string_pretty(&updated_metadata)?).await?;
+    fs::write(
+        &metadata_path,
+        serde_json::to_string_pretty(&updated_metadata)?,
+    )
+    .await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -455,10 +462,7 @@ pub async fn update_pr(
 }
 
 /// Delete a PR
-pub async fn delete_pr(
-    project_path: &Path,
-    pr_id: &str,
-) -> Result<DeletePrResult, PrCrudError> {
+pub async fn delete_pr(project_path: &Path, pr_id: &str) -> Result<DeletePrResult, PrCrudError> {
     // Check if centy is initialized
     let mut manifest = read_manifest(project_path)
         .await?
@@ -527,10 +531,7 @@ pub async fn soft_delete_pr(
 }
 
 /// Restore a soft-deleted PR (clear deleted_at timestamp)
-pub async fn restore_pr(
-    project_path: &Path,
-    pr_id: &str,
-) -> Result<RestorePrResult, PrCrudError> {
+pub async fn restore_pr(project_path: &Path, pr_id: &str) -> Result<RestorePrResult, PrCrudError> {
     // Check if centy is initialized
     let mut manifest = read_manifest(project_path)
         .await?
@@ -668,7 +669,10 @@ mod tests {
         let content = "# My PR Title\n\nThis is the description.\nWith multiple lines.";
         let (title, description) = parse_pr_md(content);
         assert_eq!(title, "My PR Title");
-        assert_eq!(description, "This is the description.\nWith multiple lines.");
+        assert_eq!(
+            description,
+            "This is the description.\nWith multiple lines."
+        );
     }
 
     #[test]

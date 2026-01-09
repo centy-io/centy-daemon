@@ -22,11 +22,11 @@ pub use storage::{
     remove_workspace, update_workspace_expiration, write_registry,
 };
 #[allow(unused_imports)]
+pub use terminal::{is_terminal_available, open_terminal_with_agent};
+#[allow(unused_imports)]
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
 #[allow(unused_imports)]
 pub use vscode::{open_vscode, setup_vscode_config};
-#[allow(unused_imports)]
-pub use terminal::{is_terminal_available, open_terminal_with_agent};
 
 use thiserror::Error;
 

@@ -25,7 +25,7 @@ pub fn validate_priority(priority: u32, max_levels: u32) -> Result<(), PriorityE
 /// - `priority_levels=3` -> 2 (medium)
 /// - `priority_levels=4` -> 2 (high-medium)
 /// - `priority_levels=5` -> 3 (medium)
-#[must_use] 
+#[must_use]
 pub fn default_priority(priority_levels: u32) -> u32 {
     if priority_levels == 0 {
         return 1;
@@ -41,7 +41,7 @@ pub fn default_priority(priority_levels: u32) -> u32 {
 /// - 3 levels: high (1), medium (2), low (3)
 /// - 4 levels: critical (1), high (2), medium (3), low (4)
 /// - 5+ levels: P1, P2, P3, etc.
-#[must_use] 
+#[must_use]
 pub fn priority_label(priority: u32, max_levels: u32) -> String {
     match max_levels {
         0 | 1 => "normal".to_string(),
@@ -66,7 +66,7 @@ pub fn priority_label(priority: u32, max_levels: u32) -> String {
 
 /// Convert a string priority label to a numeric priority
 /// Returns None if the label is not recognized
-#[must_use] 
+#[must_use]
 pub fn label_to_priority(label: &str, max_levels: u32) -> Option<u32> {
     match label.to_lowercase().as_str() {
         "critical" | "urgent" => Some(1),
@@ -95,7 +95,7 @@ pub fn label_to_priority(label: &str, max_levels: u32) -> Option<u32> {
 ///
 /// Handles legacy priority strings like "high", "medium", "low"
 /// and falls back to the default priority for unrecognized values
-#[must_use] 
+#[must_use]
 pub fn migrate_string_priority(priority_str: &str, max_levels: u32) -> u32 {
     label_to_priority(priority_str, max_levels).unwrap_or_else(|| default_priority(max_levels))
 }

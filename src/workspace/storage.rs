@@ -79,7 +79,9 @@ pub async fn add_workspace(
     let _guard = get_lock().lock().await;
 
     let mut registry = read_registry().await?;
-    registry.workspaces.insert(workspace_path.to_string(), entry);
+    registry
+        .workspaces
+        .insert(workspace_path.to_string(), entry);
     registry.updated_at = now_iso();
 
     write_registry_unlocked(&registry).await

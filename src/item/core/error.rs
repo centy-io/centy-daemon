@@ -24,7 +24,10 @@ pub enum ItemError {
     JsonError(#[from] serde_json::Error),
 
     #[error("Invalid status '{status}'. Allowed: {allowed:?}")]
-    InvalidStatus { status: String, allowed: Vec<String> },
+    InvalidStatus {
+        status: String,
+        allowed: Vec<String>,
+    },
 
     #[error("Invalid priority {priority}. Must be between 1 and {max}")]
     InvalidPriority { priority: u32, max: u32 },

@@ -1,9 +1,9 @@
 mod common;
 
 use centy_daemon::item::entities::issue::{
-    create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues,
-    move_issue, update_issue, CreateIssueOptions, DuplicateIssueOptions, IssueError,
-    IssueCrudError, MoveIssueOptions, UpdateIssueOptions,
+    create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues, move_issue,
+    update_issue, CreateIssueOptions, DuplicateIssueOptions, IssueCrudError, IssueError,
+    MoveIssueOptions, UpdateIssueOptions,
 };
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
@@ -54,7 +54,9 @@ async fn test_create_issue_increments_display_number() {
         title: "First Issue".to_string(),
         ..Default::default()
     };
-    let result1 = create_issue(project_path, options1).await.expect("Should create");
+    let result1 = create_issue(project_path, options1)
+        .await
+        .expect("Should create");
     assert!(is_uuid(&result1.id), "Issue ID should be a UUID");
     assert_eq!(result1.display_number, 1);
 
@@ -63,7 +65,9 @@ async fn test_create_issue_increments_display_number() {
         title: "Second Issue".to_string(),
         ..Default::default()
     };
-    let result2 = create_issue(project_path, options2).await.expect("Should create");
+    let result2 = create_issue(project_path, options2)
+        .await
+        .expect("Should create");
     assert!(is_uuid(&result2.id), "Issue ID should be a UUID");
     assert_eq!(result2.display_number, 2);
 
@@ -72,7 +76,9 @@ async fn test_create_issue_increments_display_number() {
         title: "Third Issue".to_string(),
         ..Default::default()
     };
-    let result3 = create_issue(project_path, options3).await.expect("Should create");
+    let result3 = create_issue(project_path, options3)
+        .await
+        .expect("Should create");
     assert!(is_uuid(&result3.id), "Issue ID should be a UUID");
     assert_eq!(result3.display_number, 3);
 
@@ -128,11 +134,15 @@ async fn test_create_issue_default_priority_and_status() {
         ..Default::default()
     };
 
-    let result = create_issue(project_path, options).await.expect("Should create");
+    let result = create_issue(project_path, options)
+        .await
+        .expect("Should create");
 
     // Get the issue and verify defaults
     // Default priority with 3 levels (high/medium/low) is 2 (medium)
-    let issue = get_issue(project_path, &result.id).await.expect("Should get issue");
+    let issue = get_issue(project_path, &result.id)
+        .await
+        .expect("Should get issue");
     assert_eq!(issue.metadata.priority, 2); // medium
     assert_eq!(issue.metadata.status, "open");
 }
@@ -153,10 +163,14 @@ async fn test_get_issue_success() {
         custom_fields: HashMap::new(),
         ..Default::default()
     };
-    let result = create_issue(project_path, options).await.expect("Should create");
+    let result = create_issue(project_path, options)
+        .await
+        .expect("Should create");
 
     // Get the issue by UUID
-    let issue = get_issue(project_path, &result.id).await.expect("Should get issue");
+    let issue = get_issue(project_path, &result.id)
+        .await
+        .expect("Should get issue");
 
     assert!(is_uuid(&issue.id), "Issue ID should be a UUID");
     assert_eq!(issue.metadata.display_number, 1);
@@ -208,7 +222,9 @@ async fn test_list_issues_returns_all() {
             title: format!("Issue {i}"),
             ..Default::default()
         };
-        create_issue(project_path, options).await.expect("Should create");
+        create_issue(project_path, options)
+            .await
+            .expect("Should create");
     }
 
     let issues = list_issues(project_path, None, None, None, false)
@@ -471,7 +487,9 @@ async fn test_delete_issue_success() {
     assert!(!issue_path.exists());
 
     // Verify not in list
-    let issues = list_issues(project_path, None, None, None, false).await.unwrap();
+    let issues = list_issues(project_path, None, None, None, false)
+        .await
+        .unwrap();
     assert!(issues.is_empty());
 }
 
@@ -495,15 +513,27 @@ async fn test_delete_issue_removes_files() {
 
     // Verify issue directory exists
     let issue_path = project_path.join(".centy").join("issues").join(&created.id);
-    assert!(issue_path.exists(), "Issue directory should exist after creation");
-    assert!(issue_path.join("issue.md").exists(), "Issue file should exist");
-    assert!(issue_path.join("metadata.json").exists(), "Metadata file should exist");
+    assert!(
+        issue_path.exists(),
+        "Issue directory should exist after creation"
+    );
+    assert!(
+        issue_path.join("issue.md").exists(),
+        "Issue file should exist"
+    );
+    assert!(
+        issue_path.join("metadata.json").exists(),
+        "Metadata file should exist"
+    );
 
     // Delete issue
     let _result = delete_issue(project_path, &created.id).await.unwrap();
 
     // Verify issue directory is removed
-    assert!(!issue_path.exists(), "Issue directory should be removed after deletion");
+    assert!(
+        !issue_path.exists(),
+        "Issue directory should be removed after deletion"
+    );
 }
 
 #[tokio::test]
@@ -620,7 +650,10 @@ async fn test_create_issue_validates_priority_range() {
 
     let result = create_issue(project_path, options).await;
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), IssueError::InvalidPriority(_)));
+    assert!(matches!(
+        result.unwrap_err(),
+        IssueError::InvalidPriority(_)
+    ));
 }
 
 #[tokio::test]
@@ -961,7 +994,10 @@ async fn test_create_issue_with_planning_status_adds_note() {
         .join("issue.md");
     let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
 
-    assert!(content.contains("> **Planning Mode**"), "Should contain planning note");
+    assert!(
+        content.contains("> **Planning Mode**"),
+        "Should contain planning note"
+    );
     assert!(content.contains("# Planning Issue"), "Should contain title");
 }
 
@@ -991,8 +1027,14 @@ async fn test_create_issue_without_planning_status_no_note() {
         .join("issue.md");
     let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
 
-    assert!(!content.contains("> **Planning Mode**"), "Should NOT contain planning note");
-    assert!(content.starts_with("# Regular Issue"), "Should start with title");
+    assert!(
+        !content.contains("> **Planning Mode**"),
+        "Should NOT contain planning note"
+    );
+    assert!(
+        content.starts_with("# Regular Issue"),
+        "Should start with title"
+    );
 }
 
 #[tokio::test]
@@ -1036,7 +1078,10 @@ async fn test_update_issue_to_planning_adds_note() {
 
     // Verify planning note was added
     let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
-    assert!(updated_content.contains("> **Planning Mode**"), "Should add planning note");
+    assert!(
+        updated_content.contains("> **Planning Mode**"),
+        "Should add planning note"
+    );
 }
 
 #[tokio::test]
@@ -1080,8 +1125,14 @@ async fn test_update_issue_from_planning_removes_note() {
 
     // Verify planning note was removed
     let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
-    assert!(!updated_content.contains("> **Planning Mode**"), "Should remove planning note");
-    assert!(updated_content.starts_with("# Test Issue"), "Should start with title");
+    assert!(
+        !updated_content.contains("> **Planning Mode**"),
+        "Should remove planning note"
+    );
+    assert!(
+        updated_content.starts_with("# Test Issue"),
+        "Should start with title"
+    );
 }
 
 #[tokio::test]
@@ -1167,7 +1218,10 @@ async fn test_duplicate_issue_preserves_planning_note() {
         .join("issue.md");
     let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
 
-    assert!(content.contains("> **Planning Mode**"), "Duplicate should have planning note");
+    assert!(
+        content.contains("> **Planning Mode**"),
+        "Duplicate should have planning note"
+    );
     assert_eq!(result.issue.metadata.status, "planning");
 }
 
@@ -1192,7 +1246,9 @@ async fn test_planning_note_parsing_extracts_correct_title() {
     .unwrap();
 
     // Get the issue and verify title is parsed correctly (not the planning note)
-    let issue = get_issue(project_path, &created.id).await.expect("Should get issue");
+    let issue = get_issue(project_path, &created.id)
+        .await
+        .expect("Should get issue");
     assert_eq!(issue.title, "My Planning Issue");
     assert_eq!(issue.description, "Some description");
 }

@@ -188,7 +188,8 @@ pub async fn mark_issues_compacted(
 
         // Read current metadata
         let content = fs::read_to_string(&metadata_path).await?;
-        let mut metadata: crate::item::entities::issue::IssueMetadata = serde_json::from_str(&content)?;
+        let mut metadata: crate::item::entities::issue::IssueMetadata =
+            serde_json::from_str(&content)?;
 
         // Update compacted fields
         metadata.compacted = true;
@@ -240,7 +241,7 @@ async fn count_migration_files(migrations_path: &Path) -> Result<u32, std::io::E
 }
 
 /// Build compacted issue references from issues
-#[must_use] 
+#[must_use]
 pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
     issues
         .iter()
@@ -253,7 +254,7 @@ pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
 }
 
 /// Generate migration frontmatter
-#[must_use] 
+#[must_use]
 pub fn generate_migration_frontmatter(issues: &[Issue]) -> MigrationFrontmatter {
     MigrationFrontmatter {
         timestamp: now_iso(),

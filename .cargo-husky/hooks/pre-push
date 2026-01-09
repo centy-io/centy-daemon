@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+echo "Pre-push checks starting..."
+
+echo "[1/5] Checking formatting..."
+cargo fmt --all -- --check
+
+echo "[2/5] Running Clippy..."
+cargo clippy --all-targets -- -D warnings
+
+echo "[3/5] Type checking..."
+cargo check --all-targets
+
+echo "[4/5] Building project..."
+cargo build --all-targets
+
+echo "[5/5] Running tests..."
+cargo test --all-targets
+
+echo "Pre-push checks passed!"

@@ -1,7 +1,8 @@
 mod common;
 
 use centy_daemon::registry::{
-    get_project_info, list_projects, track_project, untrack_project, RegistryError, ListProjectsOptions,
+    get_project_info, list_projects, track_project, untrack_project, ListProjectsOptions,
+    RegistryError,
 };
 use common::{create_test_dir, init_centy_project};
 use std::path::Path;
@@ -9,7 +10,8 @@ use std::path::Path;
 /// Helper to get canonical path for comparison
 fn canonical_path(path: &str) -> String {
     Path::new(path)
-        .canonicalize().map_or_else(|_| path.to_string(), |p| p.to_string_lossy().to_string())
+        .canonicalize()
+        .map_or_else(|_| path.to_string(), |p| p.to_string_lossy().to_string())
 }
 
 #[tokio::test]
@@ -19,7 +21,9 @@ async fn test_track_project_creates_entry() {
     let canonical = canonical_path(&project_path);
 
     // Track the project
-    track_project(&project_path).await.expect("Should track project");
+    track_project(&project_path)
+        .await
+        .expect("Should track project");
 
     // Verify it's in the list (compare canonical paths)
     let projects = list_projects(ListProjectsOptions {
@@ -28,7 +32,9 @@ async fn test_track_project_creates_entry() {
         include_archived: true,
         include_temp: true, // Tests run in temp directory
         ..Default::default()
-    }).await.expect("Should list projects");
+    })
+    .await
+    .expect("Should list projects");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Project should be in list"
@@ -49,14 +55,22 @@ async fn test_track_project_updates_last_accessed() {
         .expect("Should find project");
 
     // Verify first and last accessed are set
-    assert!(!info1.first_accessed.is_empty(), "first_accessed should be set");
-    assert!(!info1.last_accessed.is_empty(), "last_accessed should be set");
+    assert!(
+        !info1.first_accessed.is_empty(),
+        "first_accessed should be set"
+    );
+    assert!(
+        !info1.last_accessed.is_empty(),
+        "last_accessed should be set"
+    );
 
     // Small delay to ensure timestamp changes
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     // Track again
-    track_project(&project_path).await.expect("Should track again");
+    track_project(&project_path)
+        .await
+        .expect("Should track again");
 
     let info2 = get_project_info(&project_path)
         .await
@@ -81,10 +95,14 @@ async fn test_untrack_project_removes_entry() {
 
     // Track then untrack
     track_project(&project_path).await.expect("Should track");
-    untrack_project(&project_path).await.expect("Should untrack");
+    untrack_project(&project_path)
+        .await
+        .expect("Should untrack");
 
     // Verify it's gone
-    let info = get_project_info(&project_path).await.expect("Should get info");
+    let info = get_project_info(&project_path)
+        .await
+        .expect("Should get info");
     assert!(info.is_none(), "Project should not be found after untrack");
 }
 
@@ -92,7 +110,10 @@ async fn test_untrack_project_removes_entry() {
 async fn test_untrack_nonexistent_project_returns_error() {
     let result = untrack_project("/nonexistent/path/12345").await;
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), RegistryError::ProjectNotFound(_)));
+    assert!(matches!(
+        result.unwrap_err(),
+        RegistryError::ProjectNotFound(_)
+    ));
 }
 
 #[tokio::test]
@@ -111,7 +132,9 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_archived: true,
         include_temp: true, // Tests run in temp directory
         ..Default::default()
-    }).await.expect("Should list");
+    })
+    .await
+    .expect("Should list");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Project should be in non-stale list"
@@ -127,7 +150,9 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_archived: true,
         include_temp: true, // Tests run in temp directory
         ..Default::default()
-    }).await.expect("Should list");
+    })
+    .await
+    .expect("Should list");
     assert!(
         !projects.iter().any(|p| p.path == canonical),
         "Stale project should be excluded"
@@ -140,7 +165,9 @@ async fn test_list_projects_excludes_stale_by_default() {
         include_archived: true,
         include_temp: true, // Tests run in temp directory
         ..Default::default()
-    }).await.expect("Should list");
+    })
+    .await
+    .expect("Should list");
     assert!(
         projects.iter().any(|p| p.path == canonical),
         "Stale project should be included when requested"
@@ -157,7 +184,9 @@ async fn test_project_info_shows_issue_and_doc_counts() {
 
     // Track the project
     let project_path_str = project_path.to_string_lossy().to_string();
-    track_project(&project_path_str).await.expect("Should track");
+    track_project(&project_path_str)
+        .await
+        .expect("Should track");
 
     // Get info - should show initialized with 0 issues/docs
     let info = get_project_info(&project_path_str)
@@ -194,7 +223,9 @@ async fn test_project_info_counts_issues() {
 
     // Track and get info
     let project_path_str = project_path.to_string_lossy().to_string();
-    track_project(&project_path_str).await.expect("Should track");
+    track_project(&project_path_str)
+        .await
+        .expect("Should track");
 
     let info = get_project_info(&project_path_str)
         .await
@@ -230,7 +261,9 @@ async fn test_project_info_counts_docs() {
 
     // Track and get info
     let project_path_str = project_path.to_string_lossy().to_string();
-    track_project(&project_path_str).await.expect("Should track");
+    track_project(&project_path_str)
+        .await
+        .expect("Should track");
 
     let info = get_project_info(&project_path_str)
         .await
@@ -261,7 +294,9 @@ async fn test_list_projects_sorted_by_last_accessed() {
         include_archived: true,
         include_temp: true, // Tests run in temp directory
         ..Default::default()
-    }).await.expect("Should list");
+    })
+    .await
+    .expect("Should list");
 
     // Find indices
     let idx1 = projects.iter().position(|p| p.path == path1);

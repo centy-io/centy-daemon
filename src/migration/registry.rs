@@ -14,7 +14,7 @@ pub struct MigrationRegistry {
 
 impl MigrationRegistry {
     /// Create a new empty registry.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             migrations: Vec::new(),
@@ -32,7 +32,7 @@ impl MigrationRegistry {
     }
 
     /// Get all available versions that can be migrated to.
-    #[must_use] 
+    #[must_use]
     pub fn available_versions(&self) -> Vec<String> {
         let mut versions: Vec<SemVer> = self
             .migrations
@@ -42,7 +42,10 @@ impl MigrationRegistry {
 
         versions.sort();
         versions.dedup();
-        versions.iter().map(std::string::ToString::to_string).collect()
+        versions
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect()
     }
 
     /// Get the migrations needed to go from one version to another.

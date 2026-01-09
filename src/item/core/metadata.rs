@@ -81,7 +81,8 @@ mod tests {
 
     #[test]
     fn test_deserialize_priority_number() {
-        let json = r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
+        let json =
+            r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
         let metadata: CommonMetadata = serde_json::from_str(json).unwrap();
         assert_eq!(metadata.priority, 1);
     }
@@ -117,7 +118,8 @@ mod tests {
     #[test]
     fn test_deserialize_legacy_without_display_number() {
         // Legacy entities without display_number should default to 0
-        let json = r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
+        let json =
+            r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
         let metadata: CommonMetadata = serde_json::from_str(json).unwrap();
         assert_eq!(metadata.display_number, 0);
     }

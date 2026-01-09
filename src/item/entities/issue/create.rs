@@ -1,20 +1,18 @@
-use crate::common::{sync_to_org_projects, OrgSyncResult};
-use crate::config::read_config;
-use crate::llm::{generate_title, TitleGenerationError};
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
-};
-use crate::registry::get_project_info;
-use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{format_markdown, get_centy_path};
 use super::crud::{Issue, IssueMetadataFlat};
 use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
 use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
+use super::planning::{add_planning_note, is_planning_status};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
-use super::planning::{add_planning_note, is_planning_status};
 use super::status::{validate_status, StatusError};
+use crate::common::{sync_to_org_projects, OrgSyncResult};
+use crate::config::read_config;
+use crate::llm::{generate_title, TitleGenerationError};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::registry::get_project_info;
+use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
+use crate::utils::{format_markdown, get_centy_path};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -168,7 +166,8 @@ pub async fn create_issue(
     // Determine status - use provided value, config.default_state, or fallback to "open"
     let status = options.status.unwrap_or_else(|| {
         config
-            .as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
+            .as_ref()
+            .map_or_else(|| "open".to_string(), |c| c.default_state.clone())
     });
 
     // Strict validation: reject if status is not in allowed_states
@@ -377,10 +376,7 @@ pub async fn create_issue_with_title_generation(
     };
 
     // Create issue with (possibly generated) title
-    let options_with_title = CreateIssueOptions {
-        title,
-        ..options
-    };
+    let options_with_title = CreateIssueOptions { title, ..options };
 
     create_issue(project_path, options_with_title).await
 }

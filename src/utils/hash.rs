@@ -3,7 +3,7 @@ use std::path::Path;
 use tokio::fs;
 
 /// Compute SHA-256 hash of a string
-#[must_use] 
+#[must_use]
 pub fn compute_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
