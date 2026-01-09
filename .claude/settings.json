@@ -4,10 +4,15 @@
       "Bash(centy --help:*)",
       "Bash(centy create:*)",
       "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
       "Bash(find:*)",
       "Bash(chmod:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
       "Bash(cargo tarpaulin:*)",
       "WebFetch(domain:github.com)"
     ]
