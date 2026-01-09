@@ -23,6 +23,9 @@ fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -33,6 +36,9 @@ fn get_git_contributors(project_path: &Path) -> Result<Vec<GitContributor>, User
     let output = Command::new("git")
         .args(["log", "--format=%an|%ae"])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| UserError::GitError(e.to_string()))?;
 

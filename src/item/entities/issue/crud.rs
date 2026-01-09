@@ -383,6 +383,7 @@ pub async fn get_issues_by_uuid(
 }
 
 /// Update an existing issue
+#[allow(clippy::too_many_lines)]
 pub async fn update_issue(
     project_path: &Path,
     issue_number: &str,

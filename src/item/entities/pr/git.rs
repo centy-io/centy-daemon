@@ -40,6 +40,9 @@ pub fn detect_current_branch(project_path: &Path) -> Result<String, GitError> {
     let output = Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -71,6 +74,9 @@ pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool,
     let output = Command::new("git")
         .args(["rev-parse", "--verify", &format!("refs/heads/{branch}")])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -83,6 +89,9 @@ pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool,
                 &format!("refs/remotes/origin/{branch}"),
             ])
             .current_dir(project_path)
+            // Clear GIT_DIR to avoid being affected by git hooks environment
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
             .output()
             .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -98,6 +107,9 @@ pub fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -110,6 +122,9 @@ pub fn get_remote_origin_url(project_path: &Path) -> Result<String, GitError> {
     let output = Command::new("git")
         .args(["remote", "get-url", "origin"])
         .current_dir(project_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -174,6 +189,9 @@ pub fn create_worktree(
             git_ref,
         ])
         .current_dir(source_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -202,6 +220,9 @@ pub fn remove_worktree(source_path: &Path, worktree_path: &Path) -> Result<(), G
             &worktree_path.to_string_lossy(),
         ])
         .current_dir(source_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -224,6 +245,9 @@ pub fn prune_worktrees(source_path: &Path) -> Result<(), GitError> {
     let output = Command::new("git")
         .args(["worktree", "prune"])
         .current_dir(source_path)
+        // Clear GIT_DIR to avoid being affected by git hooks environment
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .map_err(|e| GitError::CommandError(e.to_string()))?;
 
@@ -250,8 +274,9 @@ mod tests {
 
     #[test]
     fn test_non_git_directory() {
-        // /tmp is typically not a git repository
-        let non_git = Path::new("/tmp");
+        // Use root directory which is definitely not inside a git repository
+        // (git won't traverse above /)
+        let non_git = Path::new("/");
         assert!(!is_git_repository(non_git));
     }
 }

@@ -210,3 +210,293 @@ pub async fn set_project_title(
     metadata.title = title;
     write_project_metadata(project_path, &metadata).await
 }
+
+#[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_priority_levels() {
+        assert_eq!(default_priority_levels(), 3);
+    }
+
+    #[test]
+    fn test_default_allowed_states() {
+        let states = default_allowed_states();
+        assert_eq!(states.len(), 4);
+        assert!(states.contains(&"open".to_string()));
+        assert!(states.contains(&"planning".to_string()));
+        assert!(states.contains(&"in-progress".to_string()));
+        assert!(states.contains(&"closed".to_string()));
+    }
+
+    #[test]
+    fn test_default_state() {
+        assert_eq!(default_state(), "open");
+    }
+
+    #[test]
+    fn test_centy_config_default() {
+        let config = CentyConfig::default();
+
+        assert!(config.version.is_none());
+        assert_eq!(config.priority_levels, 3);
+        assert!(config.custom_fields.is_empty());
+        assert!(config.defaults.is_empty());
+        assert_eq!(config.allowed_states.len(), 4);
+        assert_eq!(config.default_state, "open");
+        assert!(config.state_colors.is_empty());
+        assert!(config.priority_colors.is_empty());
+        assert!(config.custom_link_types.is_empty());
+    }
+
+    #[test]
+    fn test_centy_config_effective_version_with_version() {
+        let mut config = CentyConfig::default();
+        config.version = Some("1.0.0".to_string());
+
+        assert_eq!(config.effective_version(), "1.0.0");
+    }
+
+    #[test]
+    fn test_centy_config_effective_version_without_version() {
+        let config = CentyConfig::default();
+
+        // Should return the daemon version when no version is set
+        assert_eq!(config.effective_version(), crate::utils::CENTY_VERSION);
+    }
+
+    #[test]
+    fn test_centy_config_serialization_deserialization() {
+        let mut config = CentyConfig::default();
+        config.version = Some("1.2.3".to_string());
+        config.priority_levels = 5;
+        config.default_state = "in-progress".to_string();
+
+        let json = serde_json::to_string(&config).expect("Should serialize");
+        let deserialized: CentyConfig = serde_json::from_str(&json).expect("Should deserialize");
+
+        assert_eq!(deserialized.version, Some("1.2.3".to_string()));
+        assert_eq!(deserialized.priority_levels, 5);
+        assert_eq!(deserialized.default_state, "in-progress");
+    }
+
+    #[test]
+    fn test_centy_config_json_uses_camel_case() {
+        let config = CentyConfig::default();
+        let json = serde_json::to_string(&config).expect("Should serialize");
+
+        // Check for camelCase keys
+        assert!(json.contains("priorityLevels"));
+        assert!(json.contains("customFields"));
+        assert!(json.contains("allowedStates"));
+        assert!(json.contains("defaultState"));
+        assert!(json.contains("stateColors"));
+        assert!(json.contains("priorityColors"));
+
+        // Should NOT contain snake_case
+        assert!(!json.contains("priority_levels"));
+        assert!(!json.contains("custom_fields"));
+        assert!(!json.contains("allowed_states"));
+    }
+
+    #[test]
+    fn test_llm_config_default() {
+        let llm_config = LlmConfig::default();
+
+        assert!(!llm_config.auto_close_on_complete);
+        assert!(llm_config.update_status_on_start.is_none());
+        assert!(!llm_config.allow_direct_edits);
+        assert_eq!(llm_config.default_workspace_mode, 0);
+    }
+
+    #[test]
+    fn test_llm_config_serialization() {
+        let mut llm_config = LlmConfig::default();
+        llm_config.auto_close_on_complete = true;
+        llm_config.update_status_on_start = Some(true);
+        llm_config.allow_direct_edits = true;
+        llm_config.default_workspace_mode = 1;
+
+        let json = serde_json::to_string(&llm_config).expect("Should serialize");
+        let deserialized: LlmConfig = serde_json::from_str(&json).expect("Should deserialize");
+
+        assert!(deserialized.auto_close_on_complete);
+        assert_eq!(deserialized.update_status_on_start, Some(true));
+        assert!(deserialized.allow_direct_edits);
+        assert_eq!(deserialized.default_workspace_mode, 1);
+    }
+
+    #[test]
+    fn test_custom_field_definition_serialization() {
+        let field = CustomFieldDefinition {
+            name: "environment".to_string(),
+            field_type: "enum".to_string(),
+            required: true,
+            default_value: Some("dev".to_string()),
+            enum_values: vec!["dev".to_string(), "staging".to_string(), "prod".to_string()],
+        };
+
+        let json = serde_json::to_string(&field).expect("Should serialize");
+        let deserialized: CustomFieldDefinition =
+            serde_json::from_str(&json).expect("Should deserialize");
+
+        assert_eq!(deserialized.name, "environment");
+        assert_eq!(deserialized.field_type, "enum");
+        assert!(deserialized.required);
+        assert_eq!(deserialized.default_value, Some("dev".to_string()));
+        assert_eq!(deserialized.enum_values.len(), 3);
+    }
+
+    #[test]
+    fn test_custom_field_definition_json_uses_camel_case() {
+        let field = CustomFieldDefinition {
+            name: "test".to_string(),
+            field_type: "string".to_string(),
+            required: false,
+            default_value: None,
+            enum_values: vec![],
+        };
+
+        let json = serde_json::to_string(&field).expect("Should serialize");
+
+        // Check for camelCase keys (type becomes "type" due to rename attribute)
+        assert!(json.contains("\"type\""));
+        assert!(json.contains("\"name\""));
+        assert!(json.contains("\"required\""));
+
+        // Should NOT contain snake_case for field_type
+        assert!(!json.contains("field_type"));
+    }
+
+    #[test]
+    fn test_project_metadata_default() {
+        let metadata = ProjectMetadata::default();
+        assert!(metadata.title.is_none());
+    }
+
+    #[test]
+    fn test_project_metadata_serialization() {
+        let mut metadata = ProjectMetadata::default();
+        metadata.title = Some("My Project".to_string());
+
+        let json = serde_json::to_string(&metadata).expect("Should serialize");
+        let deserialized: ProjectMetadata =
+            serde_json::from_str(&json).expect("Should deserialize");
+
+        assert_eq!(deserialized.title, Some("My Project".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_read_config_nonexistent_returns_none() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let result = read_config(temp_dir.path())
+            .await
+            .expect("Should not error");
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_read_write_config_roundtrip() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        let mut config = CentyConfig::default();
+        config.version = Some("2.0.0".to_string());
+        config.priority_levels = 4;
+
+        write_config(temp_dir.path(), &config)
+            .await
+            .expect("Should write");
+        let read_config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+
+        assert_eq!(read_config.version, Some("2.0.0".to_string()));
+        assert_eq!(read_config.priority_levels, 4);
+    }
+
+    #[tokio::test]
+    async fn test_read_project_metadata_nonexistent_returns_none() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let result = read_project_metadata(temp_dir.path())
+            .await
+            .expect("Should not error");
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_read_write_project_metadata_roundtrip() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        let mut metadata = ProjectMetadata::default();
+        metadata.title = Some("Test Project".to_string());
+
+        write_project_metadata(temp_dir.path(), &metadata)
+            .await
+            .expect("Should write");
+        let read_metadata = read_project_metadata(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Metadata should exist");
+
+        assert_eq!(read_metadata.title, Some("Test Project".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_get_project_title_nonexistent() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let title = get_project_title(temp_dir.path()).await;
+
+        assert!(title.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_set_and_get_project_title() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Set title
+        set_project_title(temp_dir.path(), Some("My Awesome Project".to_string()))
+            .await
+            .expect("Should set title");
+
+        // Get title
+        let title = get_project_title(temp_dir.path()).await;
+        assert_eq!(title, Some("My Awesome Project".to_string()));
+
+        // Clear title
+        set_project_title(temp_dir.path(), None)
+            .await
+            .expect("Should clear title");
+
+        let title = get_project_title(temp_dir.path()).await;
+        assert!(title.is_none());
+    }
+}
