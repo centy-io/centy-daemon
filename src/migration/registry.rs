@@ -1,7 +1,7 @@
 //! Migration registry for managing and querying available migrations.
 
 use super::types::{Migration, MigrationDirection, MigrationError};
-use crate::version::SemVer;
+use semver::Version;
 use std::sync::Arc;
 
 /// Registry of all available migrations.
@@ -34,7 +34,7 @@ impl MigrationRegistry {
     /// Get all available versions that can be migrated to.
     #[must_use]
     pub fn available_versions(&self) -> Vec<String> {
-        let mut versions: Vec<SemVer> = self
+        let mut versions: Vec<Version> = self
             .migrations
             .iter()
             .flat_map(|m| vec![m.from_version().clone(), m.to_version().clone()])
@@ -55,8 +55,8 @@ impl MigrationRegistry {
     /// we're upgrading or downgrading.
     pub fn get_migration_path(
         &self,
-        from: &SemVer,
-        to: &SemVer,
+        from: &Version,
+        to: &Version,
     ) -> Result<(Vec<Arc<dyn Migration>>, MigrationDirection), MigrationError> {
         if from == to {
             return Ok((Vec::new(), MigrationDirection::Up));
@@ -118,17 +118,17 @@ mod tests {
 
     // Mock migration for testing
     struct MockMigration {
-        from: SemVer,
-        to: SemVer,
+        from: Version,
+        to: Version,
     }
 
     #[async_trait::async_trait]
     impl Migration for MockMigration {
-        fn from_version(&self) -> &SemVer {
+        fn from_version(&self) -> &Version {
             &self.from
         }
 
-        fn to_version(&self) -> &SemVer {
+        fn to_version(&self) -> &Version {
             &self.to
         }
 
@@ -148,8 +148,8 @@ mod tests {
     #[test]
     fn test_empty_registry() {
         let registry = MigrationRegistry::new();
-        let from = SemVer::new(0, 0, 0);
-        let to = SemVer::new(0, 0, 0);
+        let from = Version::new(0, 0, 0);
+        let to = Version::new(0, 0, 0);
 
         let (path, _) = registry.get_migration_path(&from, &to).unwrap();
         assert!(path.is_empty());
@@ -159,12 +159,12 @@ mod tests {
     fn test_single_upgrade() {
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
         }));
 
-        let from = SemVer::new(0, 0, 0);
-        let to = SemVer::new(0, 1, 0);
+        let from = Version::new(0, 0, 0);
+        let to = Version::new(0, 1, 0);
 
         let (path, direction) = registry.get_migration_path(&from, &to).unwrap();
         assert_eq!(path.len(), 1);
@@ -175,12 +175,12 @@ mod tests {
     fn test_single_downgrade() {
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
         }));
 
-        let from = SemVer::new(0, 1, 0);
-        let to = SemVer::new(0, 0, 0);
+        let from = Version::new(0, 1, 0);
+        let to = Version::new(0, 0, 0);
 
         let (path, direction) = registry.get_migration_path(&from, &to).unwrap();
         assert_eq!(path.len(), 1);
@@ -191,16 +191,16 @@ mod tests {
     fn test_multi_step_upgrade() {
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
         }));
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 1, 0),
-            to: SemVer::new(0, 2, 0),
+            from: Version::new(0, 1, 0),
+            to: Version::new(0, 2, 0),
         }));
 
-        let from = SemVer::new(0, 0, 0);
-        let to = SemVer::new(0, 2, 0);
+        let from = Version::new(0, 0, 0);
+        let to = Version::new(0, 2, 0);
 
         let (path, direction) = registry.get_migration_path(&from, &to).unwrap();
         assert_eq!(path.len(), 2);
@@ -210,8 +210,8 @@ mod tests {
     #[test]
     fn test_no_path_error() {
         let registry = MigrationRegistry::new();
-        let from = SemVer::new(0, 0, 0);
-        let to = SemVer::new(0, 1, 0);
+        let from = Version::new(0, 0, 0);
+        let to = Version::new(0, 1, 0);
 
         let result = registry.get_migration_path(&from, &to);
         assert!(result.is_err());
@@ -221,12 +221,12 @@ mod tests {
     fn test_available_versions() {
         let mut registry = MigrationRegistry::new();
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 0, 0),
-            to: SemVer::new(0, 1, 0),
+            from: Version::new(0, 0, 0),
+            to: Version::new(0, 1, 0),
         }));
         registry.register(Arc::new(MockMigration {
-            from: SemVer::new(0, 1, 0),
-            to: SemVer::new(0, 2, 0),
+            from: Version::new(0, 1, 0),
+            to: Version::new(0, 2, 0),
         }));
 
         let versions = registry.available_versions();

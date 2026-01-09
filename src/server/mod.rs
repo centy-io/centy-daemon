@@ -1862,14 +1862,13 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         _request: Request<GetDaemonInfoRequest>,
     ) -> Result<Response<DaemonInfo>, Status> {
-        let daemon_ver = daemon_version();
         let registry = create_registry();
         let binary_path = std::env::current_exe()
             .map(|p| format_display_path(&p.to_string_lossy()))
             .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
-            version: daemon_ver.to_string(),
+            version: CENTY_VERSION.to_string(),
             available_versions: registry.available_versions(),
             binary_path,
             vscode_available: is_vscode_available(),
@@ -1888,24 +1887,24 @@ impl CentyDaemon for CentyDaemonService {
         let project_ver_str = config
             .as_ref()
             .and_then(|c| c.version.clone())
-            .unwrap_or_else(|| crate::utils::CENTY_VERSION.to_string());
+            .unwrap_or_else(|| CENTY_VERSION.to_string());
 
-        let project_ver = match SemVer::parse(&project_ver_str) {
+        let project_ver = match semver::Version::parse(&project_ver_str) {
             Ok(v) => v,
             Err(e) => return Err(Status::invalid_argument(e.to_string())),
         };
-        let daemon_ver = daemon_version();
+        let daemon_ver = semver::Version::parse(CENTY_VERSION)
+            .expect("CENTY_VERSION should be valid semver");
 
-        let comparison = compare_versions(&project_ver, &daemon_ver);
-        let (comparison_str, degraded) = match comparison {
-            VersionComparison::Equal => ("equal", false),
-            VersionComparison::ProjectBehind => ("project_behind", false),
-            VersionComparison::ProjectAhead => ("project_ahead", true),
+        let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
+            std::cmp::Ordering::Equal => ("equal", false),
+            std::cmp::Ordering::Less => ("project_behind", false),
+            std::cmp::Ordering::Greater => ("project_ahead", true),
         };
 
         Ok(Response::new(ProjectVersionInfo {
             project_version: project_ver_str,
-            daemon_version: daemon_ver.to_string(),
+            daemon_version: CENTY_VERSION.to_string(),
             comparison: comparison_str.to_string(),
             degraded_mode: degraded,
         }))
@@ -1919,7 +1918,7 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        let target = match SemVer::parse(&req.target_version) {
+        let target = match semver::Version::parse(&req.target_version) {
             Ok(v) => v,
             Err(e) => {
                 return Ok(Response::new(UpdateVersionResponse {

@@ -3,7 +3,7 @@
 use super::registry::MigrationRegistry;
 use super::types::{Migration, MigrationDirection, MigrationError, MigrationResult};
 use crate::config::{read_config, write_config};
-use crate::version::SemVer;
+use semver::Version;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::{error, info};
@@ -35,7 +35,7 @@ impl MigrationExecutor {
     pub async fn migrate(
         &self,
         project_path: &Path,
-        target_version: &SemVer,
+        target_version: &Version,
     ) -> Result<MigrationResult, MigrationError> {
         // Read current config to get project version
         let config = read_config(project_path)
@@ -45,9 +45,9 @@ impl MigrationExecutor {
         let current_version = config
             .as_ref()
             .and_then(|c| c.version.as_ref())
-            .map(|v| SemVer::parse(v))
+            .map(|v| Version::parse(v))
             .transpose()?
-            .unwrap_or_else(|| SemVer::new(0, 0, 0)); // Unversioned projects start at 0.0.0
+            .unwrap_or_else(|| Version::new(0, 0, 0)); // Unversioned projects start at 0.0.0
 
         info!(
             from = %current_version,
