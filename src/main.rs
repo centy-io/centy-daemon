@@ -132,7 +132,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting Centy daemon on {} (gRPC + gRPC-Web)", addr);
 
-    Server::builder()
+    let server_result = Server::builder()
         .accept_http1(true) // Required for gRPC-Web
         .layer(cors)
         .layer(GrpcLoggingLayer)
@@ -156,7 +156,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         })
-        .await?;
+        .await;
+
+    if let Err(e) = server_result {
+        let err_string = format!("{e:?}");
+        if err_string.contains("AddrInUse") {
+            eprintln!();
+            eprintln!("Error: Failed to start server - address {addr} is already in use");
+            eprintln!();
+            eprintln!("Another instance of centy-daemon may already be running.");
+            eprintln!();
+            eprintln!("Options:");
+            eprintln!("  1. Kill the existing process:   pkill centy-daemon");
+            eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
+            eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
+            eprintln!();
+            std::process::exit(1);
+        }
+        return Err(e.into());
+    }
 
     info!("Centy daemon stopped");
     Ok(())
