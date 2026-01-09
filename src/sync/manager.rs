@@ -10,17 +10,16 @@ use super::branch::{
 };
 use super::worktree::{ensure_sync_worktree, repair_worktree};
 use super::{has_remote_origin, is_git_repository, SyncError};
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, info, warn};
 
 /// Global lock map for sync operations by project path
-static SYNC_LOCKS: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static SYNC_LOCKS: LazyLock<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Mode of operation for the sync manager
 #[derive(Debug, Clone, PartialEq, Eq)]

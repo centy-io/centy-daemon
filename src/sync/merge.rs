@@ -255,7 +255,7 @@ pub async fn resolve_display_number_collisions(
                         if let Some(display_num) = json
                             .get("common")
                             .and_then(|c| c.get("display_number"))
-                            .and_then(|n| n.as_u64())
+                            .and_then(serde_json::Value::as_u64)
                         {
                             let display_num = display_num as u32;
                             let issue_id = entry.file_name().to_string_lossy().to_string();

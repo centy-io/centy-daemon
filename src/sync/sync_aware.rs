@@ -200,8 +200,8 @@ pub async fn delete_issue(
     let result = issue::delete_issue(project_path, issue_id).await?;
 
     let msg = match display_number {
-        Some(num) => format!("centy: Delete issue #{} ({})", num, issue_id),
-        None => format!("centy: Delete issue {}", issue_id),
+        Some(num) => format!("centy: Delete issue #{num} ({issue_id})"),
+        None => format!("centy: Delete issue {issue_id}"),
     };
     sync_after_write(project_path, &msg).await;
 
@@ -364,7 +364,7 @@ pub async fn update_doc(
 
     let result = docs::update_doc(project_path, slug, options).await?;
 
-    sync_after_write(project_path, &format!("centy: Update doc '{}'", slug)).await;
+    sync_after_write(project_path, &format!("centy: Update doc '{slug}'")).await;
 
     Ok(result)
 }
@@ -375,7 +375,7 @@ pub async fn update_doc(
 pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResult, DocError> {
     let result = docs::delete_doc(project_path, slug).await?;
 
-    sync_after_write(project_path, &format!("centy: Delete doc '{}'", slug)).await;
+    sync_after_write(project_path, &format!("centy: Delete doc '{slug}'")).await;
 
     Ok(result)
 }
@@ -391,7 +391,7 @@ pub async fn soft_delete_doc(
 
     let result = docs::soft_delete_doc(project_path, slug).await?;
 
-    sync_after_write(project_path, &format!("centy: Soft-delete doc '{}'", slug)).await;
+    sync_after_write(project_path, &format!("centy: Soft-delete doc '{slug}'")).await;
 
     Ok(result)
 }
@@ -404,7 +404,7 @@ pub async fn restore_doc(project_path: &Path, slug: &str) -> Result<RestoreDocRe
 
     let result = docs::restore_doc(project_path, slug).await?;
 
-    sync_after_write(project_path, &format!("centy: Restore doc '{}'", slug)).await;
+    sync_after_write(project_path, &format!("centy: Restore doc '{slug}'")).await;
 
     Ok(result)
 }
@@ -560,8 +560,8 @@ pub async fn delete_pr(project_path: &Path, pr_id: &str) -> Result<DeletePrResul
     let result = pr::delete_pr(project_path, pr_id).await?;
 
     let msg = match display_number {
-        Some(num) => format!("centy: Delete PR #{} ({})", num, pr_id),
-        None => format!("centy: Delete PR {}", pr_id),
+        Some(num) => format!("centy: Delete PR #{num} ({pr_id})"),
+        None => format!("centy: Delete PR {pr_id}"),
     };
     sync_after_write(project_path, &msg).await;
 

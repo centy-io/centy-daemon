@@ -40,16 +40,21 @@ pub mod merge;
 pub mod sync_aware;
 pub mod worktree;
 
+// Re-exports for library API (not all used by the binary)
+#[allow(unused_imports)]
 pub use branch::{
     centy_branch_exists, create_orphan_centy_branch, fetch_centy_branch, pull_centy_branch,
     push_centy_branch, remote_centy_branch_exists, PullResult,
 };
+#[allow(unused_imports)]
 pub use conflicts::{
     get_conflict, list_conflicts, resolve_conflict, store_conflict, ConflictInfo,
     ConflictResolution,
 };
 pub use manager::CentySyncManager;
+#[allow(unused_imports)]
 pub use merge::{merge_json_metadata, merge_markdown, MergeResult};
+#[allow(unused_imports)]
 pub use worktree::{
     ensure_sync_worktree, get_sync_centy_path, get_sync_worktree_path, remove_sync_worktree,
     sync_worktree_exists,
