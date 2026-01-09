@@ -137,19 +137,6 @@ pub async fn get_next_org_display_number(
     Ok(next)
 }
 
-/// Get the current (last used) org display number for an organization.
-///
-/// Returns 0 if no org issues have been created for this organization yet.
-pub async fn get_current_org_display_number(
-    org_slug: &str,
-) -> Result<u32, OrgIssueRegistryError> {
-    let registry = read_org_issue_registry().await?;
-
-    // The registry stores "next" number, so current is next - 1
-    let next = *registry.next_display_number.get(org_slug).unwrap_or(&1);
-    Ok(next.saturating_sub(1))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

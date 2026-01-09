@@ -4,9 +4,6 @@ use thiserror::Error;
 pub enum PriorityError {
     #[error("Priority {0} is out of range. Valid values: 1 to {1}")]
     OutOfRange(u32, u32),
-
-    #[error("Unknown priority label: {0}")]
-    UnknownLabel(String),
 }
 
 /// Validate that priority is within the configured range

@@ -81,8 +81,6 @@ pub enum Operator {
     Gte,
     /// Less than or equal (`<=`)
     Lte,
-    /// Wildcard pattern (`:` with `*` or `?`)
-    Wildcard,
 }
 
 impl Operator {

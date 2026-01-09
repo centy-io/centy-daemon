@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+//! Feature CRUD operations (WIP - not yet integrated)
 
 use crate::issue::{list_issues, Issue};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};

@@ -14,12 +14,6 @@ pub enum MigrationError {
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
 
-    #[error("Migration {0} failed: {1}")]
-    MigrationFailed(String, String),
-
-    #[error("Rollback failed for migration {0}: {1}")]
-    RollbackFailed(String, String),
-
     #[error("Version error: {0}")]
     VersionError(#[from] crate::version::VersionError),
 

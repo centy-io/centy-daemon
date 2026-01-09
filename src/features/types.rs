@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+//! Feature types (WIP - not yet integrated)
 
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ pub struct MigrationFrontmatter {
 
 impl MigrationFrontmatter {
     /// Parse frontmatter from markdown content
-    #[must_use] 
+    #[allow(dead_code)] // Part of WIP features module
     pub fn parse(content: &str) -> Option<Self> {
         let lines: Vec<&str> = content.lines().collect();
 
@@ -53,7 +53,7 @@ impl MigrationFrontmatter {
     }
 
     /// Generate YAML frontmatter string
-    #[must_use] 
+    #[allow(dead_code)] // Part of WIP features module
     pub fn to_yaml(&self) -> String {
         serde_yaml::to_string(self).unwrap_or_default()
     }

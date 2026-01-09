@@ -89,7 +89,6 @@ fn evaluate_string_condition(operator: &Operator, field_value: &str, query_value
                 Operator::Lt => field_lower < query_lower,
                 Operator::Gte => field_lower >= query_lower,
                 Operator::Lte => field_lower <= query_lower,
-                Operator::Wildcard => false, // Handled by Pattern
             }
         }
         Value::Pattern(pattern) => {
@@ -112,7 +111,7 @@ fn evaluate_number_condition(operator: &Operator, field_value: i64, query_value:
                 Operator::Gte => field_value >= *n,
                 Operator::Lte => field_value <= *n,
                 // These don't make sense for numbers
-                Operator::Contains | Operator::StartsWith | Operator::EndsWith | Operator::Wildcard => false,
+                Operator::Contains | Operator::StartsWith | Operator::EndsWith => false,
             }
         }
         // Other value types don't match numbers
@@ -146,7 +145,7 @@ fn evaluate_date_condition(operator: &Operator, field_value: &NaiveDate, query_v
                 Operator::Gte => field_value >= d,
                 Operator::Lte => field_value <= d,
                 // These don't make sense for dates
-                Operator::Contains | Operator::StartsWith | Operator::EndsWith | Operator::Wildcard => false,
+                Operator::Contains | Operator::StartsWith | Operator::EndsWith => false,
             }
         }
         // Other value types don't match dates

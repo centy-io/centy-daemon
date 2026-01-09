@@ -26,7 +26,6 @@ async fn test_create_pr_success() {
         status: Some("draft".to_string()),
         reviewers: vec!["reviewer1".to_string()],
         custom_fields: HashMap::new(),
-        ..Default::default()
     };
 
     let result = create_pr(project_path, options)

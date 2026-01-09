@@ -94,8 +94,6 @@ cargo-husky = { version = "1", default-features = false, features = ["precommit-
 
 [lints.rust]
 unsafe_code = "forbid"
-# Allow dead code since many items are exported for library use
-dead_code = "allow"
 
 [lints.clippy]
 # Enable pedantic lints

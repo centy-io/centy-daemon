@@ -123,19 +123,6 @@ pub fn is_process_running(_pid: u32) -> bool {
     true
 }
 
-/// Check if there's active work and if the process is still running
-pub async fn get_active_work_status(
-    project_path: &Path,
-) -> Result<Option<(LlmWorkSession, bool)>, WorkTrackingError> {
-    match read_work_session(project_path).await? {
-        Some(session) => {
-            let is_running = session.pid.is_some_and(is_process_running);
-            Ok(Some((session, is_running)))
-        }
-        None => Ok(None),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

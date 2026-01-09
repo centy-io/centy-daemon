@@ -22,12 +22,6 @@ impl LinksFile {
         Self { links: Vec::new() }
     }
 
-    /// Create a links file with the given links
-    #[must_use]
-    pub fn with_links(links: Vec<Link>) -> Self {
-        Self { links }
-    }
-
     /// Add a link to this file
     pub fn add_link(&mut self, link: Link) {
         self.links.push(link);
@@ -56,14 +50,6 @@ impl LinksFile {
         self.links
             .iter()
             .any(|link| link.target_id == target_id && link.link_type == link_type)
-    }
-
-    /// Get all links of a specific type
-    pub fn links_of_type(&self, link_type: &str) -> Vec<&Link> {
-        self.links
-            .iter()
-            .filter(|link| link.link_type == link_type)
-            .collect()
     }
 }
 

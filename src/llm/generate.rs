@@ -72,7 +72,6 @@ struct LlmTitleResponse {
 #[derive(Debug, Clone)]
 pub struct GeneratedTitle {
     pub title: String,
-    pub agent_name: String,
 }
 
 /// Generate an issue title using the configured LLM agent
@@ -115,7 +114,6 @@ pub async fn generate_title(
 
     Ok(GeneratedTitle {
         title,
-        agent_name: agent.name.clone(),
     })
 }
 

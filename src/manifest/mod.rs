@@ -14,9 +14,6 @@ pub enum ManifestError {
 
     #[error("Failed to parse manifest: {0}")]
     ParseError(#[from] serde_json::Error),
-
-    #[error("Manifest not found at {0}")]
-    NotFound(String),
 }
 
 /// Read the manifest from the project path

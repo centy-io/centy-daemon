@@ -16,6 +16,7 @@ pub enum AgentSpawnMode {
     /// Replace current process with agent (CLI mode)
     /// Unix: uses exec(), never returns on success
     /// Windows: falls back to waiting for process completion
+    #[allow(dead_code)] // Reserved for CLI use cases
     ReplaceProcess,
 }
 
@@ -472,26 +473,16 @@ fn exec_agent_with_stdin(
 }
 
 /// Check if an agent command exists and is executable
-#[must_use] 
+#[must_use]
 pub fn check_agent_available(agent: &AgentConfig) -> bool {
     // Try to find the command
     which::which(&agent.command).is_ok()
 }
 
-/// Get list of available agents (those whose commands exist)
-#[must_use] 
-pub fn get_available_agents(config: &LocalLlmConfig) -> Vec<&AgentConfig> {
-    config
-        .agents
-        .iter()
-        .filter(|agent| check_agent_available(agent))
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::llm::config::{AgentType, LocalLlmConfig};
+    use crate::llm::config::AgentType;
 
     #[test]
     fn test_check_agent_not_found() {
@@ -506,40 +497,6 @@ mod tests {
         };
 
         assert!(!check_agent_available(&agent));
-    }
-
-    #[test]
-    fn test_get_available_agents() {
-        let config = LocalLlmConfig {
-            default_agent: Some("nonexistent".to_string()),
-            agents: vec![
-                AgentConfig {
-                    agent_type: AgentType::Custom,
-                    name: "nonexistent".to_string(),
-                    command: "nonexistent-command-xyz".to_string(),
-                    default_args: vec![],
-                    stdin_prompt: false,
-                    plan_template: None,
-                    implement_template: None,
-                },
-                // This one might exist on the system
-                AgentConfig {
-                    agent_type: AgentType::Custom,
-                    name: "ls-test".to_string(),
-                    command: "ls".to_string(), // ls should exist on most systems
-                    default_args: vec![],
-                    stdin_prompt: false,
-                    plan_template: None,
-                    implement_template: None,
-                },
-            ],
-            env_vars: Default::default(),
-        };
-
-        let available = get_available_agents(&config);
-        // At least ls should be available on most systems
-        // The nonexistent command should not be available
-        assert!(available.iter().all(|a| a.name != "nonexistent"));
     }
 
     #[test]

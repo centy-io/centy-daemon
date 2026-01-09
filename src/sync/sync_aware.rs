@@ -123,6 +123,7 @@ pub async fn get_issue_by_display_number(
 /// Create a new issue (sync-aware).
 ///
 /// Commits and pushes after creation.
+#[allow(dead_code)] // Part of sync feature infrastructure
 pub async fn create_issue(
     project_path: &Path,
     options: CreateIssueOptions,

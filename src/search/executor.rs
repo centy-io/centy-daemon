@@ -65,8 +65,6 @@ impl std::str::FromStr for SortField {
 pub struct SearchResult {
     /// Matching issues with project info
     pub results: Vec<SearchResultIssue>,
-    /// Total count of results
-    pub total_count: usize,
     /// Debug: the parsed query representation
     pub parsed_query: String,
 }
@@ -101,11 +99,8 @@ pub async fn advanced_search(options: SearchOptions) -> Result<SearchResult, Sea
         sort_results(&mut results, sort);
     }
 
-    let total_count = results.len();
-
     Ok(SearchResult {
         results,
-        total_count,
         parsed_query,
     })
 }
