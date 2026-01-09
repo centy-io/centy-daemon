@@ -109,7 +109,7 @@ pub struct CentyConfig {
 
 impl CentyConfig {
     /// Get the effective version (config version or daemon default).
-    #[must_use] 
+    #[must_use]
     pub fn effective_version(&self) -> String {
         self.version
             .clone()
@@ -165,7 +165,9 @@ pub struct ProjectMetadata {
 }
 
 /// Read the project metadata file (.centy/project.json)
-pub async fn read_project_metadata(project_path: &Path) -> Result<Option<ProjectMetadata>, ConfigError> {
+pub async fn read_project_metadata(
+    project_path: &Path,
+) -> Result<Option<ProjectMetadata>, ConfigError> {
     let metadata_path = get_centy_path(project_path).join("project.json");
 
     if !metadata_path.exists() {
@@ -178,7 +180,10 @@ pub async fn read_project_metadata(project_path: &Path) -> Result<Option<Project
 }
 
 /// Write the project metadata file (.centy/project.json)
-pub async fn write_project_metadata(project_path: &Path, metadata: &ProjectMetadata) -> Result<(), ConfigError> {
+pub async fn write_project_metadata(
+    project_path: &Path,
+    metadata: &ProjectMetadata,
+) -> Result<(), ConfigError> {
     let metadata_path = get_centy_path(project_path).join("project.json");
     let content = serde_json::to_string_pretty(metadata)?;
     fs::write(&metadata_path, content).await?;
@@ -195,7 +200,10 @@ pub async fn get_project_title(project_path: &Path) -> Option<String> {
 }
 
 /// Set the project-scope title in .centy/project.json
-pub async fn set_project_title(project_path: &Path, title: Option<String>) -> Result<(), ConfigError> {
+pub async fn set_project_title(
+    project_path: &Path,
+    title: Option<String>,
+) -> Result<(), ConfigError> {
     let mut metadata = read_project_metadata(project_path)
         .await?
         .unwrap_or_default();

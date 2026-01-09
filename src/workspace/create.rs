@@ -2,7 +2,9 @@
 //!
 //! Handles creating temporary git worktrees with VS Code configuration.
 
-use super::storage::{add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration};
+use super::storage::{
+    add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration,
+};
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
@@ -251,7 +253,13 @@ async fn setup_new_workspace(
     setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
 
     if options.action == "plan" {
-        create_plan_template(workspace_path, issue_id, display_number, &options.issue.title).await?;
+        create_plan_template(
+            workspace_path,
+            issue_id,
+            display_number,
+            &options.issue.title,
+        )
+        .await?;
     }
 
     let entry = TempWorkspaceEntry {
@@ -313,7 +321,9 @@ pub async fn create_temp_workspace(
         return Err(WorkspaceError::NotGitRepository);
     }
     if !source_path.exists() {
-        return Err(WorkspaceError::SourceProjectNotFound(source_path.to_string_lossy().to_string()));
+        return Err(WorkspaceError::SourceProjectNotFound(
+            source_path.to_string_lossy().to_string(),
+        ));
     }
 
     let ttl_hours = if options.ttl_hours == 0 {
@@ -326,7 +336,9 @@ pub async fn create_temp_workspace(
     let source_path_str = source_path.to_string_lossy().to_string();
 
     // Check for existing workspace for this issue
-    if let Ok(Some((existing_path, existing_entry))) = find_workspace_for_issue(&source_path_str, issue_id).await {
+    if let Ok(Some((existing_path, existing_entry))) =
+        find_workspace_for_issue(&source_path_str, issue_id).await
+    {
         let workspace_path = PathBuf::from(&existing_path);
         if workspace_path.exists() {
             let original_created_at = existing_entry.created_at.clone();
@@ -335,7 +347,10 @@ pub async fn create_temp_workspace(
 
             return Ok(CreateWorkspaceResult {
                 workspace_path: workspace_path.clone(),
-                entry: TempWorkspaceEntry { expires_at: new_expires_at, ..existing_entry },
+                entry: TempWorkspaceEntry {
+                    expires_at: new_expires_at,
+                    ..existing_entry
+                },
                 vscode_opened: open_vscode(&workspace_path).unwrap_or(false),
                 workspace_reused: true,
                 original_created_at: Some(original_created_at),
@@ -343,7 +358,8 @@ pub async fn create_temp_workspace(
         }
     }
 
-    let workspace_path = generate_workspace_path(source_path, options.issue.metadata.display_number);
+    let workspace_path =
+        generate_workspace_path(source_path, options.issue.metadata.display_number);
     let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
 
     let entry = setup_new_workspace(source_path, &workspace_path, &options, ttl_hours).await?;

@@ -33,12 +33,16 @@ fn parse_query_inner(pair: pest::iterators::Pair<Rule>) -> Result<Query, SearchE
     match pair.as_rule() {
         Rule::query => {
             // query -> expr -> or_expr -> ...
-            let inner = pair.into_inner().next()
+            let inner = pair
+                .into_inner()
+                .next()
                 .ok_or_else(|| SearchError::ParseError("Empty query".to_string()))?;
             parse_query_inner(inner)
         }
         Rule::expr => {
-            let inner = pair.into_inner().next()
+            let inner = pair
+                .into_inner()
+                .next()
                 .ok_or_else(|| SearchError::ParseError("Empty expr".to_string()))?;
             parse_query_inner(inner)
         }
@@ -65,9 +69,9 @@ fn parse_or_expr(pair: pest::iterators::Pair<Rule>) -> Result<Query, SearchError
     while let Some(next) = inner.next() {
         // Skip the OR operator token
         if next.as_rule() == Rule::or_op {
-            let right_expr = inner
-                .next()
-                .ok_or_else(|| SearchError::ParseError("Expected expression after OR".to_string()))?;
+            let right_expr = inner.next().ok_or_else(|| {
+                SearchError::ParseError("Expected expression after OR".to_string())
+            })?;
             let right = parse_query_inner(right_expr)?;
             result = Query::Or(Box::new(result), Box::new(right));
         } else {
@@ -91,9 +95,9 @@ fn parse_and_expr(pair: pest::iterators::Pair<Rule>) -> Result<Query, SearchErro
     while let Some(next) = inner.next() {
         // Skip the AND operator token
         if next.as_rule() == Rule::and_op {
-            let right_expr = inner
-                .next()
-                .ok_or_else(|| SearchError::ParseError("Expected expression after AND".to_string()))?;
+            let right_expr = inner.next().ok_or_else(|| {
+                SearchError::ParseError("Expected expression after AND".to_string())
+            })?;
             let right = parse_query_inner(right_expr)?;
             result = Query::And(Box::new(result), Box::new(right));
         } else {
@@ -113,9 +117,9 @@ fn parse_not_expr(pair: pest::iterators::Pair<Rule>) -> Result<Query, SearchErro
     if let Some(first) = inner.peek() {
         if first.as_rule() == Rule::not_op {
             inner.next(); // consume NOT
-            let operand = inner
-                .next()
-                .ok_or_else(|| SearchError::ParseError("Expected expression after NOT".to_string()))?;
+            let operand = inner.next().ok_or_else(|| {
+                SearchError::ParseError("Expected expression after NOT".to_string())
+            })?;
             let inner_query = parse_query_inner(operand)?;
             return Ok(Query::Not(Box::new(inner_query)));
         }
@@ -465,9 +469,7 @@ mod tests {
 
     #[test]
     fn test_complex_query() {
-        let result = parse_query(
-            "(status:open OR status:planning) AND priority<=2"
-        ).unwrap();
+        let result = parse_query("(status:open OR status:planning) AND priority<=2").unwrap();
         assert!(result.is_some());
     }
 }

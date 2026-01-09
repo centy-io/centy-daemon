@@ -3,7 +3,7 @@
 //! Provides functionality to add, list, retrieve, and delete assets (images, videos, etc.)
 //! attached to issues. Assets can be either issue-specific or shared across all issues.
 
-use crate::manifest::{read_manifest, write_manifest, update_manifest_timestamp};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
 use sha2::{Digest, Sha256};
 use std::path::Path;

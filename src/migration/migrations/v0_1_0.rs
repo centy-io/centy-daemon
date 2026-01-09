@@ -9,10 +9,12 @@ use semver::Version;
 use std::path::Path;
 
 /// Lazy static for the "from" version (0.0.0).
-static FROM_VERSION: std::sync::LazyLock<Version> = std::sync::LazyLock::new(|| Version::new(0, 0, 0));
+static FROM_VERSION: std::sync::LazyLock<Version> =
+    std::sync::LazyLock::new(|| Version::new(0, 0, 0));
 
 /// Lazy static for the "to" version (0.1.0).
-static TO_VERSION: std::sync::LazyLock<Version> = std::sync::LazyLock::new(|| Version::new(0, 1, 0));
+static TO_VERSION: std::sync::LazyLock<Version> =
+    std::sync::LazyLock::new(|| Version::new(0, 1, 0));
 
 /// Initial migration that establishes version tracking for existing projects.
 ///
@@ -23,7 +25,7 @@ pub struct InitialVersionMigration;
 
 impl InitialVersionMigration {
     /// Create a new initial version migration.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

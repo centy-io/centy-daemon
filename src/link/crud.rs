@@ -76,7 +76,11 @@ pub struct LinkTypeInfo {
 }
 
 /// Get the path to an entity's folder
-fn get_entity_path(project_path: &Path, entity_id: &str, entity_type: TargetType) -> std::path::PathBuf {
+fn get_entity_path(
+    project_path: &Path,
+    entity_id: &str,
+    entity_type: TargetType,
+) -> std::path::PathBuf {
     get_centy_path(project_path)
         .join(entity_type.folder_name())
         .join(entity_id)
@@ -147,11 +151,7 @@ pub async fn create_link(
     );
 
     // Create inverse link
-    let inverse_link = Link::new(
-        options.source_id.clone(),
-        options.source_type,
-        inverse_type,
-    );
+    let inverse_link = Link::new(options.source_id.clone(), options.source_type, inverse_type);
 
     // Add links
     source_links.add_link(forward_link.clone());

@@ -18,7 +18,7 @@ pub struct MigrationExecutor {
 
 impl MigrationExecutor {
     /// Create a new executor with the given registry.
-    #[must_use] 
+    #[must_use]
     pub fn new(registry: Arc<MigrationRegistry>) -> Self {
         Self { registry }
     }
@@ -100,8 +100,9 @@ impl MigrationExecutor {
                     );
                     info!(migration = %rollback_name, "Rolling back migration");
 
-                    if let Err(rollback_err) =
-                        self.rollback_migration(project_path, applied_migration, direction).await
+                    if let Err(rollback_err) = self
+                        .rollback_migration(project_path, applied_migration, direction)
+                        .await
                     {
                         error!(
                             migration = %rollback_name,

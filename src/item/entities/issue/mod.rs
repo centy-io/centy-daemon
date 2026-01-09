@@ -9,37 +9,37 @@ pub mod priority;
 pub mod reconcile;
 pub mod status;
 
-#[allow(deprecated)]
-#[allow(unused_imports)]
-pub use create::{
-    create_issue, create_issue_with_title_generation, CreateIssueOptions, CreateIssueResult,
-};
-#[allow(unused_imports)]
-pub use crud::{
-    delete_issue, duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid,
-    list_issues, move_issue, update_issue, soft_delete_issue, restore_issue,
-    DeleteIssueResult, DuplicateIssueOptions, DuplicateIssueResult, GetIssuesByUuidResult,
-    Issue, IssueCrudError, IssueWithProject, MoveIssueOptions, MoveIssueResult,
-    UpdateIssueOptions, UpdateIssueResult, SoftDeleteIssueResult, RestoreIssueResult,
-};
-#[allow(unused_imports)]
-pub use metadata::IssueMetadata;
-#[allow(unused_imports)]
-pub use crud::IssueMetadataFlat;
-pub use priority::priority_label;
-#[allow(unused_imports)]
-pub use status::StatusError;
-#[allow(unused_imports)]
-pub use planning::{
-    add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
-    PLANNING_NOTE, PLANNING_STATUS,
-};
 #[allow(unused_imports)]
 pub use assets::{
     add_asset, copy_assets_folder, delete_asset, get_asset, list_assets, list_shared_assets,
     AssetError, AssetInfo, AssetScope,
 };
 #[allow(unused_imports)]
+pub use create::IssueError;
+#[allow(deprecated)]
+#[allow(unused_imports)]
+pub use create::{
+    create_issue, create_issue_with_title_generation, CreateIssueOptions, CreateIssueResult,
+};
+#[allow(unused_imports)]
+pub use crud::IssueMetadataFlat;
+#[allow(unused_imports)]
+pub use crud::{
+    delete_issue, duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid,
+    list_issues, move_issue, restore_issue, soft_delete_issue, update_issue, DeleteIssueResult,
+    DuplicateIssueOptions, DuplicateIssueResult, GetIssuesByUuidResult, Issue, IssueCrudError,
+    IssueWithProject, MoveIssueOptions, MoveIssueResult, RestoreIssueResult, SoftDeleteIssueResult,
+    UpdateIssueOptions, UpdateIssueResult,
+};
+#[allow(unused_imports)]
 pub use id::is_uuid;
 #[allow(unused_imports)]
-pub use create::IssueError;
+pub use metadata::IssueMetadata;
+#[allow(unused_imports)]
+pub use planning::{
+    add_planning_note, has_planning_note, is_planning_status, remove_planning_note, PLANNING_NOTE,
+    PLANNING_STATUS,
+};
+pub use priority::priority_label;
+#[allow(unused_imports)]
+pub use status::StatusError;

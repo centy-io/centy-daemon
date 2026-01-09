@@ -1,14 +1,14 @@
-use crate::config::read_config;
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
+use super::git::{
+    detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError,
 };
-use crate::utils::{format_markdown, get_centy_path};
-use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
-use super::git::{detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError};
 use super::id::generate_pr_id;
 use super::metadata::PrMetadata;
 use super::reconcile::{get_next_pr_display_number, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
+use crate::config::read_config;
+use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::utils::{format_markdown, get_centy_path};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -95,7 +95,8 @@ fn resolve_source_branch(
     match source_opt {
         Some(branch) if !branch.is_empty() => {
             if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true)
+            {
                 warn!(branch = %branch, "Source branch does not exist. Creating PR anyway.");
             }
             Ok(branch)
@@ -110,7 +111,8 @@ fn resolve_target_branch(project_path: &Path, target_opt: Option<String>) -> Str
     match target_opt {
         Some(branch) if !branch.is_empty() => {
             if is_git_repository(project_path)
-                && !validate_branch_exists(project_path, &branch).unwrap_or(true) {
+                && !validate_branch_exists(project_path, &branch).unwrap_or(true)
+            {
                 warn!(branch = %branch, "Target branch does not exist. Creating PR anyway.");
             }
             branch
@@ -129,7 +131,10 @@ fn build_pr_custom_fields(
     if let Some(config) = config {
         for field in &config.custom_fields {
             if let Some(default_value) = &field.default_value {
-                fields.insert(field.name.clone(), serde_json::Value::String(default_value.clone()));
+                fields.insert(
+                    field.name.clone(),
+                    serde_json::Value::String(default_value.clone()),
+                );
             }
         }
     }
@@ -148,7 +153,9 @@ pub async fn create_pr(
         return Err(PrError::TitleRequired);
     }
 
-    let manifest = read_manifest(project_path).await?.ok_or(PrError::NotInitialized)?;
+    let manifest = read_manifest(project_path)
+        .await?
+        .ok_or(PrError::NotInitialized)?;
 
     if !is_git_repository(project_path) {
         warn!("Creating PR in a non-git directory. Branch validation will be skipped.");
@@ -167,8 +174,12 @@ pub async fn create_pr(
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
     let priority = match options.priority {
-        Some(p) => { validate_priority(p, priority_levels)?; p }
-        None => config.as_ref()
+        Some(p) => {
+            validate_priority(p, priority_levels)?;
+            p
+        }
+        None => config
+            .as_ref()
             .and_then(|c| c.defaults.get("priority"))
             .and_then(|p| p.parse::<u32>().ok())
             .unwrap_or_else(|| default_priority(priority_levels)),
@@ -180,14 +191,27 @@ pub async fn create_pr(
     let custom_field_values = build_pr_custom_fields(config.as_ref(), &options.custom_fields);
 
     let metadata = PrMetadata::new(
-        display_number, status, source_branch.clone(), target_branch,
-        options.reviewers, priority, custom_field_values,
+        display_number,
+        status,
+        source_branch.clone(),
+        target_branch,
+        options.reviewers,
+        priority,
+        custom_field_values,
     );
 
     let pr_folder = prs_path.join(&pr_id);
     fs::create_dir_all(&pr_folder).await?;
-    fs::write(pr_folder.join("pr.md"), format_markdown(&generate_pr_md(&options.title, &options.description))).await?;
-    fs::write(pr_folder.join("metadata.json"), serde_json::to_string_pretty(&metadata)?).await?;
+    fs::write(
+        pr_folder.join("pr.md"),
+        format_markdown(&generate_pr_md(&options.title, &options.description)),
+    )
+    .await?;
+    fs::write(
+        pr_folder.join("metadata.json"),
+        serde_json::to_string_pretty(&metadata)?,
+    )
+    .await?;
     fs::create_dir_all(pr_folder.join("assets")).await?;
 
     let mut manifest = manifest;

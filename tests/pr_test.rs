@@ -1,12 +1,12 @@
 mod common;
 
-use centy_daemon::item::entities::pr::{
-    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
-    CreatePrOptions, UpdatePrOptions,
-};
+use centy_daemon::item::entities::issue::is_uuid;
 use centy_daemon::item::entities::pr::create::PrError;
 use centy_daemon::item::entities::pr::crud::PrCrudError;
-use centy_daemon::item::entities::issue::is_uuid;
+use centy_daemon::item::entities::pr::{
+    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr, CreatePrOptions,
+    UpdatePrOptions,
+};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -56,7 +56,9 @@ async fn test_create_pr_increments_display_number() {
         source_branch: Some("feature/first".to_string()),
         ..Default::default()
     };
-    let result1 = create_pr(project_path, options1).await.expect("Should create");
+    let result1 = create_pr(project_path, options1)
+        .await
+        .expect("Should create");
     assert_eq!(result1.display_number, 1);
 
     let options2 = CreatePrOptions {
@@ -64,7 +66,9 @@ async fn test_create_pr_increments_display_number() {
         source_branch: Some("feature/second".to_string()),
         ..Default::default()
     };
-    let result2 = create_pr(project_path, options2).await.expect("Should create");
+    let result2 = create_pr(project_path, options2)
+        .await
+        .expect("Should create");
     assert_eq!(result2.display_number, 2);
 
     assert_ne!(result1.id, result2.id);
@@ -121,9 +125,13 @@ async fn test_get_pr_success() {
         reviewers: vec!["alice".to_string(), "bob".to_string()],
         ..Default::default()
     };
-    let result = create_pr(project_path, options).await.expect("Should create");
+    let result = create_pr(project_path, options)
+        .await
+        .expect("Should create");
 
-    let pr = get_pr(project_path, &result.id).await.expect("Should get PR");
+    let pr = get_pr(project_path, &result.id)
+        .await
+        .expect("Should get PR");
 
     assert!(is_uuid(&pr.id), "PR ID should be a UUID");
     assert_eq!(pr.metadata.display_number, 1);
@@ -157,16 +165,22 @@ async fn test_get_pr_by_display_number() {
         source_branch: Some("feature/first".to_string()),
         ..Default::default()
     };
-    create_pr(project_path, options1).await.expect("Should create");
+    create_pr(project_path, options1)
+        .await
+        .expect("Should create");
 
     let options2 = CreatePrOptions {
         title: "Second PR".to_string(),
         source_branch: Some("feature/second".to_string()),
         ..Default::default()
     };
-    create_pr(project_path, options2).await.expect("Should create");
+    create_pr(project_path, options2)
+        .await
+        .expect("Should create");
 
-    let pr = get_pr_by_display_number(project_path, 2).await.expect("Should get PR");
+    let pr = get_pr_by_display_number(project_path, 2)
+        .await
+        .expect("Should get PR");
     assert_eq!(pr.title, "Second PR");
     assert_eq!(pr.metadata.display_number, 2);
 }
@@ -198,7 +212,9 @@ async fn test_list_prs_returns_all() {
             source_branch: Some(format!("feature/pr-{i}")),
             ..Default::default()
         };
-        create_pr(project_path, options).await.expect("Should create");
+        create_pr(project_path, options)
+            .await
+            .expect("Should create");
     }
 
     let prs = list_prs(project_path, None, None, None, None, false)
@@ -224,7 +240,9 @@ async fn test_list_prs_filter_by_status() {
         status: Some("open".to_string()),
         ..Default::default()
     };
-    create_pr(project_path, options1).await.expect("Should create");
+    create_pr(project_path, options1)
+        .await
+        .expect("Should create");
 
     let options2 = CreatePrOptions {
         title: "Draft PR".to_string(),
@@ -232,7 +250,9 @@ async fn test_list_prs_filter_by_status() {
         status: Some("draft".to_string()),
         ..Default::default()
     };
-    create_pr(project_path, options2).await.expect("Should create");
+    create_pr(project_path, options2)
+        .await
+        .expect("Should create");
 
     let open_prs = list_prs(project_path, Some("open"), None, None, None, false)
         .await
@@ -255,7 +275,9 @@ async fn test_update_pr_success() {
         source_branch: Some("feature/test".to_string()),
         ..Default::default()
     };
-    let result = create_pr(project_path, options).await.expect("Should create");
+    let result = create_pr(project_path, options)
+        .await
+        .expect("Should create");
 
     let update_options = UpdatePrOptions {
         title: Some("Updated Title".to_string()),
@@ -300,12 +322,16 @@ async fn test_delete_pr_success() {
         source_branch: Some("feature/test".to_string()),
         ..Default::default()
     };
-    let result = create_pr(project_path, options).await.expect("Should create");
+    let result = create_pr(project_path, options)
+        .await
+        .expect("Should create");
 
     let pr_path = project_path.join(format!(".centy/prs/{}", result.id));
     assert!(pr_path.exists());
 
-    delete_pr(project_path, &result.id).await.expect("Should delete");
+    delete_pr(project_path, &result.id)
+        .await
+        .expect("Should delete");
 
     assert!(!pr_path.exists());
 }

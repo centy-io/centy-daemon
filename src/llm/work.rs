@@ -90,7 +90,7 @@ pub async fn clear_work_session(project_path: &Path) -> Result<(), WorkTrackingE
 
 /// Check if a PID is still running (Unix)
 #[cfg(unix)]
-#[must_use] 
+#[must_use]
 pub fn is_process_running(pid: u32) -> bool {
     use std::process::Command;
 

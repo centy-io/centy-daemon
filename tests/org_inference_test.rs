@@ -97,7 +97,10 @@ async fn test_infer_org_from_gitlab_url() {
 #[tokio::test]
 async fn test_infer_org_from_self_hosted() {
     let temp_dir = create_test_dir();
-    setup_git_repo_with_remote(&temp_dir, "https://git.company.internal/platform/service.git");
+    setup_git_repo_with_remote(
+        &temp_dir,
+        "https://git.company.internal/platform/service.git",
+    );
 
     let result = infer_organization_from_remote(temp_dir.path(), None).await;
 

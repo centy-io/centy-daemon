@@ -1,20 +1,18 @@
-use crate::common::{sync_to_org_projects, OrgSyncResult};
-use crate::config::read_config;
-use crate::llm::{generate_title, TitleGenerationError};
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
-};
-use crate::registry::get_project_info;
-use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{format_markdown, get_centy_path};
 use super::crud::{Issue, IssueMetadataFlat};
 use super::id::generate_issue_id;
 use super::metadata::IssueMetadata;
 use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
+use super::planning::{add_planning_note, is_planning_status};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
-use super::planning::{add_planning_note, is_planning_status};
 use super::status::{validate_status, StatusError};
+use crate::common::{sync_to_org_projects, OrgSyncResult};
+use crate::config::read_config;
+use crate::llm::{generate_title, TitleGenerationError};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::registry::get_project_info;
+use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
+use crate::utils::{format_markdown, get_centy_path};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -242,7 +240,8 @@ pub async fn create_issue(
     let issues_path = centy_path.join("issues");
     fs::create_dir_all(&issues_path).await?;
 
-    let (org_slug, org_display_number) = resolve_org_info(project_path, options.is_org_issue).await?;
+    let (org_slug, org_display_number) =
+        resolve_org_info(project_path, options.is_org_issue).await?;
     let issue_id = generate_issue_id();
     let display_number = get_next_display_number(&issues_path).await?;
 
@@ -251,7 +250,9 @@ pub async fn create_issue(
     let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
 
     let status = options.status.clone().unwrap_or_else(|| {
-        config.as_ref().map_or_else(|| "open".to_string(), |c| c.default_state.clone())
+        config
+            .as_ref()
+            .map_or_else(|| "open".to_string(), |c| c.default_state.clone())
     });
     if let Some(ref config) = config {
         validate_status(&status, &config.allowed_states)?;
@@ -261,19 +262,33 @@ pub async fn create_issue(
 
     let metadata = if let Some(ref org) = org_slug {
         IssueMetadata::new_org_issue(
-            display_number, org_display_number.unwrap_or(0), status.clone(),
-            priority, org, custom_field_values, options.draft.unwrap_or(false),
+            display_number,
+            org_display_number.unwrap_or(0),
+            status.clone(),
+            priority,
+            org,
+            custom_field_values,
+            options.draft.unwrap_or(false),
         )
     } else {
         IssueMetadata::new_draft(
-            display_number, status.clone(), priority,
-            custom_field_values, options.draft.unwrap_or(false),
+            display_number,
+            status.clone(),
+            priority,
+            custom_field_values,
+            options.draft.unwrap_or(false),
         )
     };
 
     let mut issue_md = generate_issue_content(
-        project_path, &options, priority, priority_levels, &status, &metadata.common.created_at,
-    ).await?;
+        project_path,
+        &options,
+        priority,
+        priority_levels,
+        &status,
+        &metadata.common.created_at,
+    )
+    .await?;
     if is_planning_status(&metadata.common.status) {
         issue_md = add_planning_note(&issue_md);
     }
@@ -281,7 +296,11 @@ pub async fn create_issue(
     let issue_folder = issues_path.join(&issue_id);
     fs::create_dir_all(&issue_folder).await?;
     fs::write(issue_folder.join("issue.md"), format_markdown(&issue_md)).await?;
-    fs::write(issue_folder.join("metadata.json"), serde_json::to_string_pretty(&metadata)?).await?;
+    fs::write(
+        issue_folder.join("metadata.json"),
+        serde_json::to_string_pretty(&metadata)?,
+    )
+    .await?;
     fs::create_dir_all(issue_folder.join("assets")).await?;
 
     let mut manifest = manifest;
@@ -381,10 +400,7 @@ pub async fn create_issue_with_title_generation(
     };
 
     // Create issue with (possibly generated) title
-    let options_with_title = CreateIssueOptions {
-        title,
-        ..options
-    };
+    let options_with_title = CreateIssueOptions { title, ..options };
 
     create_issue(project_path, options_with_title).await
 }

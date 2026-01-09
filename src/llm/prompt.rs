@@ -173,7 +173,7 @@ pub struct PromptBuilder {
 }
 
 impl PromptBuilder {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             template_engine: TemplateEngine::new(),
@@ -285,7 +285,7 @@ impl PromptBuilder {
     }
 
     /// Get a preview of the prompt (first N characters)
-    #[must_use] 
+    #[must_use]
     pub fn preview(prompt: &str, max_chars: usize) -> String {
         if prompt.len() > max_chars {
             format!("{}...", &prompt[..max_chars])

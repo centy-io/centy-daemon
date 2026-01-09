@@ -39,7 +39,7 @@ use std::sync::Arc;
 /// This function creates a new registry and registers all migrations
 /// in the correct order. Call this to get the standard registry for
 /// migration operations.
-#[must_use] 
+#[must_use]
 pub fn create_registry() -> Arc<MigrationRegistry> {
     let mut registry = MigrationRegistry::new();
 

@@ -1,6 +1,4 @@
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
-};
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
 use crate::registry::{get_org_projects, get_project_info, ProjectInfo};
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
@@ -324,14 +322,7 @@ pub async fn create_doc(
 
     // Sync to other org projects if this is an org doc
     let sync_results = if let Some(ref org) = org_slug {
-        sync_org_doc_to_projects(
-            org,
-            project_path,
-            &slug,
-            &options.title,
-            &options.content,
-        )
-        .await
+        sync_org_doc_to_projects(org, project_path, &slug, &options.title, &options.content).await
     } else {
         Vec::new()
     };
@@ -457,15 +448,9 @@ async fn sync_org_doc_update_to_projects(
 
     for project in org_projects {
         let target_path = Path::new(&project.path);
-        let result = update_or_create_doc_in_project(
-            target_path,
-            slug,
-            title,
-            content,
-            org_slug,
-            old_slug,
-        )
-        .await;
+        let result =
+            update_or_create_doc_in_project(target_path, slug, title, content, org_slug, old_slug)
+                .await;
 
         results.push(OrgDocSyncResult {
             project_path: project.path.clone(),
@@ -780,7 +765,11 @@ pub async fn update_doc(
         Vec::new()
     };
 
-    Ok(UpdateDocResult { doc, manifest, sync_results })
+    Ok(UpdateDocResult {
+        doc,
+        manifest,
+        sync_results,
+    })
 }
 
 /// Delete a doc
@@ -808,7 +797,10 @@ pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResu
 }
 
 /// Soft-delete a doc (set deleted_at timestamp in frontmatter)
-pub async fn soft_delete_doc(project_path: &Path, slug: &str) -> Result<SoftDeleteDocResult, DocError> {
+pub async fn soft_delete_doc(
+    project_path: &Path,
+    slug: &str,
+) -> Result<SoftDeleteDocResult, DocError> {
     // Check if centy is initialized
     let mut manifest = read_manifest(project_path)
         .await?
@@ -926,7 +918,9 @@ pub async fn move_doc(options: MoveDocOptions) -> Result<MoveDocResult, DocError
 
     // Read source doc
     let source_centy = get_centy_path(&options.source_project_path);
-    let source_doc_path = source_centy.join("docs").join(format!("{}.md", options.slug));
+    let source_doc_path = source_centy
+        .join("docs")
+        .join(format!("{}.md", options.slug));
 
     if !source_doc_path.exists() {
         return Err(DocError::DocNotFound(options.slug.clone()));
@@ -1010,7 +1004,9 @@ pub async fn duplicate_doc(options: DuplicateDocOptions) -> Result<DuplicateDocR
 
     // Read source doc
     let source_centy = get_centy_path(&options.source_project_path);
-    let source_doc_path = source_centy.join("docs").join(format!("{}.md", options.slug));
+    let source_doc_path = source_centy
+        .join("docs")
+        .join(format!("{}.md", options.slug));
 
     if !source_doc_path.exists() {
         return Err(DocError::DocNotFound(options.slug.clone()));
@@ -1042,9 +1038,9 @@ pub async fn duplicate_doc(options: DuplicateDocOptions) -> Result<DuplicateDocR
     }
 
     // Prepare new title
-    let new_title = options.new_title.unwrap_or_else(|| {
-        format!("Copy of {}", source_doc.title)
-    });
+    let new_title = options
+        .new_title
+        .unwrap_or_else(|| format!("Copy of {}", source_doc.title));
 
     // Create new metadata with fresh timestamps
     let new_metadata = DocMetadata::new();
@@ -1082,7 +1078,9 @@ async fn read_doc_from_disk(doc_path: &Path, slug: &str) -> Result<Doc, DocError
 
 /// Generate doc content with YAML frontmatter
 fn generate_doc_content(title: &str, content: &str, metadata: &DocMetadata) -> String {
-    let deleted_line = metadata.deleted_at.as_ref()
+    let deleted_line = metadata
+        .deleted_at
+        .as_ref()
         .map(|d| format!("\ndeletedAt: \"{d}\""))
         .unwrap_or_default();
     let org_doc_line = if metadata.is_org_doc {
@@ -1090,7 +1088,9 @@ fn generate_doc_content(title: &str, content: &str, metadata: &DocMetadata) -> S
     } else {
         String::new()
     };
-    let org_slug_line = metadata.org_slug.as_ref()
+    let org_slug_line = metadata
+        .org_slug
+        .as_ref()
         .map(|s| format!("\norgSlug: \"{s}\""))
         .unwrap_or_default();
     format!(
@@ -1167,8 +1167,16 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
             };
 
             let metadata = DocMetadata {
-                created_at: if created_at.is_empty() { now_iso() } else { created_at },
-                updated_at: if updated_at.is_empty() { now_iso() } else { updated_at },
+                created_at: if created_at.is_empty() {
+                    now_iso()
+                } else {
+                    created_at
+                },
+                updated_at: if updated_at.is_empty() {
+                    now_iso()
+                } else {
+                    updated_at
+                },
                 deleted_at,
                 is_org_doc,
                 org_slug,
@@ -1199,13 +1207,17 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         .trim_end()
         .to_string();
 
-    (title, body, DocMetadata {
-        created_at: now_iso(),
-        updated_at: now_iso(),
-        deleted_at: None,
-        is_org_doc: false,
-        org_slug: None,
-    })
+    (
+        title,
+        body,
+        DocMetadata {
+            created_at: now_iso(),
+            updated_at: now_iso(),
+            deleted_at: None,
+            is_org_doc: false,
+            org_slug: None,
+        },
+    )
 }
 
 /// Convert a string to a URL-friendly slug

@@ -156,9 +156,7 @@ pub async fn list_organizations() -> Result<Vec<OrganizationInfo>, OrganizationE
 }
 
 /// Get a specific organization by slug
-pub async fn get_organization(
-    slug: &str,
-) -> Result<Option<OrganizationInfo>, OrganizationError> {
+pub async fn get_organization(slug: &str) -> Result<Option<OrganizationInfo>, OrganizationError> {
     let registry = read_registry().await?;
 
     if let Some(org) = registry.organizations.get(slug) {
@@ -204,7 +202,11 @@ pub async fn update_organization(
     }
 
     if let Some(d) = description {
-        org.description = if d.is_empty() { None } else { Some(d.to_string()) };
+        org.description = if d.is_empty() {
+            None
+        } else {
+            Some(d.to_string())
+        };
     }
 
     org.updated_at = now.clone();

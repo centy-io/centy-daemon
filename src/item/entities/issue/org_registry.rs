@@ -88,9 +88,7 @@ pub async fn read_org_issue_registry() -> Result<OrgIssueRegistry, OrgIssueRegis
 }
 
 /// Write the org issue registry to disk without acquiring the lock (caller must hold lock)
-async fn write_registry_unlocked(
-    registry: &OrgIssueRegistry,
-) -> Result<(), OrgIssueRegistryError> {
+async fn write_registry_unlocked(registry: &OrgIssueRegistry) -> Result<(), OrgIssueRegistryError> {
     let path = get_registry_path()?;
 
     // Ensure parent directory exists
@@ -119,9 +117,7 @@ async fn write_registry_unlocked(
 /// # Returns
 ///
 /// The next available org-level display number (1-based)
-pub async fn get_next_org_display_number(
-    org_slug: &str,
-) -> Result<u32, OrgIssueRegistryError> {
+pub async fn get_next_org_display_number(org_slug: &str) -> Result<u32, OrgIssueRegistryError> {
     let _guard = get_lock().lock().await;
 
     let mut registry = read_org_issue_registry().await?;
@@ -140,9 +136,7 @@ pub async fn get_next_org_display_number(
 /// Get the current (last used) org display number for an organization.
 ///
 /// Returns 0 if no org issues have been created for this organization yet.
-pub async fn get_current_org_display_number(
-    org_slug: &str,
-) -> Result<u32, OrgIssueRegistryError> {
+pub async fn get_current_org_display_number(org_slug: &str) -> Result<u32, OrgIssueRegistryError> {
     let registry = read_org_issue_registry().await?;
 
     // The registry stores "next" number, so current is next - 1

@@ -37,7 +37,10 @@ async fn test_init_creates_manifest_and_structure() {
 
     // Verify files and directories exist on disk
     let centy_path = project_path.join(".centy");
-    assert!(centy_path.join("README.md").exists(), "Should create README.md");
+    assert!(
+        centy_path.join("README.md").exists(),
+        "Should create README.md"
+    );
     assert!(centy_path.join("issues").is_dir(), "Should create issues/");
     assert!(centy_path.join("docs").is_dir(), "Should create docs/");
     assert!(centy_path.join("assets").is_dir(), "Should create assets/");
@@ -68,9 +71,15 @@ async fn test_reconciliation_plan_fresh_project() {
 
     // All managed files should be in to_create
     assert!(!plan.to_create.is_empty(), "Should have files to create");
-    assert!(plan.to_restore.is_empty(), "Should have no files to restore");
+    assert!(
+        plan.to_restore.is_empty(),
+        "Should have no files to restore"
+    );
     assert!(plan.to_reset.is_empty(), "Should have no files to reset");
-    assert!(plan.up_to_date.is_empty(), "Should have no up-to-date files");
+    assert!(
+        plan.up_to_date.is_empty(),
+        "Should have no up-to-date files"
+    );
 }
 
 #[tokio::test]
@@ -88,7 +97,10 @@ async fn test_reconciliation_plan_initialized_project() {
 
     // No files to create, all should be up to date
     assert!(plan.to_create.is_empty(), "Should have no files to create");
-    assert!(plan.to_restore.is_empty(), "Should have no files to restore");
+    assert!(
+        plan.to_restore.is_empty(),
+        "Should have no files to restore"
+    );
     assert!(plan.to_reset.is_empty(), "Should have no files to reset");
     assert!(!plan.up_to_date.is_empty(), "Should have up-to-date files");
 }
@@ -103,7 +115,9 @@ async fn test_reconciliation_detects_deleted_files() {
 
     // Delete a managed file
     let readme_path = project_path.join(".centy").join("README.md");
-    fs::remove_file(&readme_path).await.expect("Should delete README");
+    fs::remove_file(&readme_path)
+        .await
+        .expect("Should delete README");
 
     // Get plan - should detect deleted file needs creation
     let plan = build_reconciliation_plan(project_path)
@@ -189,7 +203,10 @@ async fn test_reconciliation_force_mode_recreates_missing() {
         .await
         .expect("Should reconcile");
 
-    assert!(readme_path.exists(), "README should be recreated in force mode");
+    assert!(
+        readme_path.exists(),
+        "README should be recreated in force mode"
+    );
     assert!(result.created.contains(&"README.md".to_string()));
 }
 
@@ -215,7 +232,10 @@ async fn test_reconciliation_skip_modified_without_decision() {
 
     // README should remain modified (skipped reset)
     let content = fs::read_to_string(&readme_path).await.expect("Should read");
-    assert_eq!(content, "Modified content by user", "README should remain modified");
+    assert_eq!(
+        content, "Modified content by user",
+        "README should remain modified"
+    );
     assert!(
         result.skipped.contains(&"README.md".to_string()),
         "Should report README as skipped"

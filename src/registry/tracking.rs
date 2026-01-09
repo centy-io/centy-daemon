@@ -15,9 +15,10 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     let path = Path::new(project_path);
 
     // Canonicalize path to ensure consistent keys
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     // Track whether this project needs org inference (ungrouped)
     let needs_org_inference: bool;
@@ -77,9 +78,10 @@ pub async fn untrack_project(project_path: &str) -> Result<(), RegistryError> {
     let path = Path::new(project_path);
 
     // Try canonical path first, fall back to original
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     // Lock the entire read-modify-write cycle to prevent race conditions
     let _guard = get_lock().lock().await;
@@ -147,7 +149,9 @@ pub async fn enrich_project(
 }
 
 /// List all tracked projects, enriched with live data
-pub async fn list_projects(opts: ListProjectsOptions<'_>) -> Result<Vec<ProjectInfo>, RegistryError> {
+pub async fn list_projects(
+    opts: ListProjectsOptions<'_>,
+) -> Result<Vec<ProjectInfo>, RegistryError> {
     let registry = read_registry().await?;
 
     let mut projects = Vec::new();
@@ -237,9 +241,10 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
     let path = Path::new(project_path);
 
     // Canonicalize path
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     let registry = read_registry().await?;
 
@@ -258,7 +263,9 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
                 .and_then(|slug| registry.organizations.get(slug))
                 .map(|org| org.name.clone());
 
-            Ok(Some(enrich_project(&canonical_path, tracked, org_name).await))
+            Ok(Some(
+                enrich_project(&canonical_path, tracked, org_name).await,
+            ))
         }
         None => Ok(None),
     }
@@ -313,9 +320,10 @@ pub async fn set_project_favorite(
     let path = Path::new(project_path);
 
     // Canonicalize path to ensure consistent keys
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -361,9 +369,10 @@ pub async fn set_project_archived(
     let path = Path::new(project_path);
 
     // Canonicalize path to ensure consistent keys
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;
@@ -410,9 +419,10 @@ pub async fn set_project_user_title(
     let path = Path::new(project_path);
 
     // Canonicalize path to ensure consistent keys
-    let canonical_path = path
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical_path = path.canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     // Lock the entire read-modify-write cycle
     let _guard = get_lock().lock().await;

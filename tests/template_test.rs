@@ -318,10 +318,9 @@ async fn test_templates_readme_contains_documentation() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let readme_content =
-        fs::read_to_string(project_path.join(".centy/templates/README.md"))
-            .await
-            .expect("Should read templates README");
+    let readme_content = fs::read_to_string(project_path.join(".centy/templates/README.md"))
+        .await
+        .expect("Should read templates README");
 
     // Verify README contains documentation about templates
     assert!(readme_content.contains("Handlebars"));

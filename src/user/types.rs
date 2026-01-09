@@ -34,7 +34,6 @@ pub struct UsersFile {
     pub users: Vec<User>,
 }
 
-
 /// A git contributor found in history
 #[derive(Debug, Clone)]
 pub struct GitContributor {
