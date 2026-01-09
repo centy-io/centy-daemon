@@ -1,8 +1,8 @@
+mod execute;
 mod managed_files;
 mod plan;
-mod execute;
 
 #[allow(unused_imports)]
-pub use plan::{FileInfo, ReconciliationPlan, build_reconciliation_plan};
+pub use execute::{execute_reconciliation, ReconciliationDecisions, ReconciliationResult};
 #[allow(unused_imports)]
-pub use execute::{ReconciliationDecisions, ReconciliationResult, execute_reconciliation};
+pub use plan::{build_reconciliation_plan, FileInfo, ReconciliationPlan};

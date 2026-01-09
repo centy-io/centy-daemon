@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
-use crate::item::entities::issue::Issue;
 use super::ast::{Condition, Field, Operator, Query, Value};
+use crate::item::entities::issue::Issue;
 
 /// Evaluate a query against an issue
 pub fn evaluate(query: &Query, issue: &Issue) -> bool {
@@ -17,9 +17,15 @@ fn evaluate_condition(condition: &Condition, issue: &Issue) -> bool {
     let field_value = get_field_value(&condition.field, issue);
 
     match field_value {
-        FieldValue::String(s) => evaluate_string_condition(&condition.operator, &s, &condition.value),
-        FieldValue::Number(n) => evaluate_number_condition(&condition.operator, n, &condition.value),
-        FieldValue::Boolean(b) => evaluate_boolean_condition(&condition.operator, b, &condition.value),
+        FieldValue::String(s) => {
+            evaluate_string_condition(&condition.operator, &s, &condition.value)
+        }
+        FieldValue::Number(n) => {
+            evaluate_number_condition(&condition.operator, n, &condition.value)
+        }
+        FieldValue::Boolean(b) => {
+            evaluate_boolean_condition(&condition.operator, b, &condition.value)
+        }
         FieldValue::Date(d) => evaluate_date_condition(&condition.operator, &d, &condition.value),
         FieldValue::None => false,
     }
@@ -41,23 +47,19 @@ fn get_field_value(field: &Field, issue: &Issue) -> FieldValue {
         Field::Status => FieldValue::String(issue.metadata.status.clone()),
         Field::Priority => FieldValue::Number(i64::from(issue.metadata.priority)),
         Field::DisplayNumber => FieldValue::Number(i64::from(issue.metadata.display_number)),
-        Field::CreatedAt => {
-            parse_date(&issue.metadata.created_at)
-                .map(FieldValue::Date)
-                .unwrap_or(FieldValue::None)
-        }
-        Field::UpdatedAt => {
-            parse_date(&issue.metadata.updated_at)
-                .map(FieldValue::Date)
-                .unwrap_or(FieldValue::None)
-        }
+        Field::CreatedAt => parse_date(&issue.metadata.created_at)
+            .map(FieldValue::Date)
+            .unwrap_or(FieldValue::None),
+        Field::UpdatedAt => parse_date(&issue.metadata.updated_at)
+            .map(FieldValue::Date)
+            .unwrap_or(FieldValue::None),
         Field::Compacted => FieldValue::Boolean(issue.metadata.compacted),
-        Field::Custom(name) => {
-            issue.metadata.custom_fields
-                .get(name)
-                .map(|v| FieldValue::String(v.clone()))
-                .unwrap_or(FieldValue::None)
-        }
+        Field::Custom(name) => issue
+            .metadata
+            .custom_fields
+            .get(name)
+            .map(|v| FieldValue::String(v.clone()))
+            .unwrap_or(FieldValue::None),
     }
 }
 
@@ -134,7 +136,11 @@ fn evaluate_boolean_condition(operator: &Operator, field_value: bool, query_valu
     }
 }
 
-fn evaluate_date_condition(operator: &Operator, field_value: &NaiveDate, query_value: &Value) -> bool {
+fn evaluate_date_condition(
+    operator: &Operator,
+    field_value: &NaiveDate,
+    query_value: &Value,
+) -> bool {
     match query_value {
         Value::Date(d) => {
             match operator {

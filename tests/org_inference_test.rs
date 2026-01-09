@@ -15,9 +15,12 @@ fn setup_git_repo_with_remote(temp_dir: &TempDir, remote_url: &str) {
     let path = temp_dir.path();
 
     // Initialize git repo
+    // Clear GIT_DIR and GIT_WORK_TREE to avoid being affected by git hooks environment
     Command::new("git")
         .args(["init"])
         .current_dir(path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .expect("Failed to init git repo");
 
@@ -25,12 +28,16 @@ fn setup_git_repo_with_remote(temp_dir: &TempDir, remote_url: &str) {
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .expect("Failed to config git email");
 
     Command::new("git")
         .args(["config", "user.name", "Test User"])
         .current_dir(path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .expect("Failed to config git name");
 
@@ -38,6 +45,8 @@ fn setup_git_repo_with_remote(temp_dir: &TempDir, remote_url: &str) {
     Command::new("git")
         .args(["remote", "add", "origin", remote_url])
         .current_dir(path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .expect("Failed to add remote");
 }
@@ -97,7 +106,10 @@ async fn test_infer_org_from_gitlab_url() {
 #[tokio::test]
 async fn test_infer_org_from_self_hosted() {
     let temp_dir = create_test_dir();
-    setup_git_repo_with_remote(&temp_dir, "https://git.company.internal/platform/service.git");
+    setup_git_repo_with_remote(
+        &temp_dir,
+        "https://git.company.internal/platform/service.git",
+    );
 
     let result = infer_organization_from_remote(temp_dir.path(), None).await;
 
@@ -160,9 +172,12 @@ async fn test_infer_org_git_no_remote() {
     let temp_dir = create_test_dir();
 
     // Initialize git repo but don't add a remote
+    // Clear GIT_DIR to avoid being affected by git hooks environment
     Command::new("git")
         .args(["init"])
         .current_dir(temp_dir.path())
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
         .output()
         .expect("Failed to init git repo");
 
@@ -206,6 +221,9 @@ async fn test_infer_org_creates_organization() {
 async fn test_infer_org_uses_existing_organization() {
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "https://github.com/existing-org-test/repo.git");
+
+    // Cleanup any leftover from previous test runs
+    let _ = delete_organization("existing-org-test").await;
 
     // Pre-create the organization
     centy_daemon::registry::create_organization(

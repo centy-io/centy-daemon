@@ -45,11 +45,7 @@ where
 
         // Extract gRPC method from URI path (format: /package.Service/Method)
         let path = req.uri().path().to_string();
-        let method = path
-            .rsplit('/')
-            .next()
-            .unwrap_or("unknown")
-            .to_string();
+        let method = path.rsplit('/').next().unwrap_or("unknown").to_string();
         let service = path
             .trim_start_matches('/')
             .split('/')

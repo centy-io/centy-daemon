@@ -188,7 +188,8 @@ pub async fn mark_issues_compacted(
 
         // Read current metadata
         let content = fs::read_to_string(&metadata_path).await?;
-        let mut metadata: crate::item::entities::issue::IssueMetadata = serde_json::from_str(&content)?;
+        let mut metadata: crate::item::entities::issue::IssueMetadata =
+            serde_json::from_str(&content)?;
 
         // Update compacted fields
         metadata.compacted = true;
@@ -240,7 +241,7 @@ async fn count_migration_files(migrations_path: &Path) -> Result<u32, std::io::E
 }
 
 /// Build compacted issue references from issues
-#[must_use] 
+#[must_use]
 pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
     issues
         .iter()
@@ -253,7 +254,7 @@ pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
 }
 
 /// Generate migration frontmatter
-#[must_use] 
+#[must_use]
 pub fn generate_migration_frontmatter(issues: &[Issue]) -> MigrationFrontmatter {
     MigrationFrontmatter {
         timestamp: now_iso(),
@@ -264,6 +265,33 @@ pub fn generate_migration_frontmatter(issues: &[Issue]) -> MigrationFrontmatter 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::item::entities::issue::{Issue, IssueMetadataFlat};
+    use std::collections::HashMap;
+
+    fn create_test_issue(id: &str, display_number: u32, title: &str) -> Issue {
+        #[allow(deprecated)]
+        Issue {
+            id: id.to_string(),
+            issue_number: id.to_string(),
+            title: title.to_string(),
+            description: "Test description".to_string(),
+            metadata: IssueMetadataFlat {
+                display_number,
+                status: "open".to_string(),
+                priority: 1,
+                created_at: "2025-01-01T00:00:00Z".to_string(),
+                updated_at: "2025-01-01T00:00:00Z".to_string(),
+                custom_fields: HashMap::new(),
+                compacted: false,
+                compacted_at: None,
+                draft: false,
+                deleted_at: None,
+                is_org_issue: false,
+                org_slug: None,
+                org_display_number: None,
+            },
+        }
+    }
 
     #[test]
     fn test_generate_migration_filename() {
@@ -277,5 +305,158 @@ mod tests {
         let timestamp = "2025-12-06T19:30:00";
         let filename = generate_migration_filename(timestamp);
         assert_eq!(filename, "2025-12-06T19-30-00.md");
+    }
+
+    #[test]
+    fn test_generate_migration_filename_special_chars() {
+        let timestamp = "2025-12-06T00:00:00.000000+00:00";
+        let filename = generate_migration_filename(timestamp);
+        // Colons should be replaced with dashes
+        assert!(!filename.contains(':'));
+        assert!(std::path::Path::new(&filename)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("md")));
+    }
+
+    #[test]
+    fn test_build_compacted_refs_empty() {
+        let issues: Vec<Issue> = vec![];
+        let refs = build_compacted_refs(&issues);
+
+        assert!(refs.is_empty());
+    }
+
+    #[test]
+    fn test_build_compacted_refs_single_issue() {
+        let issues = vec![create_test_issue("uuid-1", 1, "First Issue")];
+        let refs = build_compacted_refs(&issues);
+
+        assert_eq!(refs.len(), 1);
+        assert_eq!(refs[0].id, "uuid-1");
+        assert_eq!(refs[0].display_number, 1);
+        assert_eq!(refs[0].title, "First Issue");
+    }
+
+    #[test]
+    fn test_build_compacted_refs_multiple_issues() {
+        let issues = vec![
+            create_test_issue("uuid-1", 1, "First Issue"),
+            create_test_issue("uuid-2", 2, "Second Issue"),
+            create_test_issue("uuid-3", 3, "Third Issue"),
+        ];
+        let refs = build_compacted_refs(&issues);
+
+        assert_eq!(refs.len(), 3);
+        assert_eq!(refs[0].display_number, 1);
+        assert_eq!(refs[1].display_number, 2);
+        assert_eq!(refs[2].display_number, 3);
+    }
+
+    #[test]
+    fn test_build_compacted_refs_preserves_order() {
+        let issues = vec![
+            create_test_issue("uuid-3", 3, "Third"),
+            create_test_issue("uuid-1", 1, "First"),
+            create_test_issue("uuid-2", 2, "Second"),
+        ];
+        let refs = build_compacted_refs(&issues);
+
+        // Order should be preserved from input
+        assert_eq!(refs[0].display_number, 3);
+        assert_eq!(refs[1].display_number, 1);
+        assert_eq!(refs[2].display_number, 2);
+    }
+
+    #[test]
+    fn test_generate_migration_frontmatter_empty() {
+        let issues: Vec<Issue> = vec![];
+        let frontmatter = generate_migration_frontmatter(&issues);
+
+        assert!(!frontmatter.timestamp.is_empty());
+        assert!(frontmatter.compacted_issues.is_empty());
+    }
+
+    #[test]
+    fn test_generate_migration_frontmatter_with_issues() {
+        let issues = vec![
+            create_test_issue("uuid-1", 1, "First Issue"),
+            create_test_issue("uuid-2", 2, "Second Issue"),
+        ];
+        let frontmatter = generate_migration_frontmatter(&issues);
+
+        assert!(!frontmatter.timestamp.is_empty());
+        assert_eq!(frontmatter.compacted_issues.len(), 2);
+        assert_eq!(frontmatter.compacted_issues[0].id, "uuid-1");
+        assert_eq!(frontmatter.compacted_issues[1].id, "uuid-2");
+    }
+
+    #[test]
+    fn test_generate_migration_frontmatter_timestamp_format() {
+        let issues: Vec<Issue> = vec![];
+        let frontmatter = generate_migration_frontmatter(&issues);
+
+        // Should contain date and time components
+        assert!(frontmatter.timestamp.contains('T'));
+        assert!(frontmatter.timestamp.contains('-'));
+    }
+
+    #[test]
+    fn test_compacted_issue_ref_serialization() {
+        let issue_ref = CompactedIssueRef {
+            id: "test-uuid".to_string(),
+            display_number: 42,
+            title: "Test Title".to_string(),
+        };
+
+        let json = serde_json::to_string(&issue_ref).expect("Should serialize");
+        assert!(json.contains("test-uuid"));
+        assert!(json.contains("42"));
+        assert!(json.contains("Test Title"));
+        // Should use camelCase
+        assert!(json.contains("displayNumber"));
+    }
+
+    #[test]
+    fn test_compacted_issue_ref_deserialization() {
+        let json = r#"{"id": "uuid", "displayNumber": 5, "title": "My Title"}"#;
+        let issue_ref: CompactedIssueRef = serde_json::from_str(json).expect("Should deserialize");
+
+        assert_eq!(issue_ref.id, "uuid");
+        assert_eq!(issue_ref.display_number, 5);
+        assert_eq!(issue_ref.title, "My Title");
+    }
+
+    #[test]
+    fn test_migration_frontmatter_serialization() {
+        let frontmatter = MigrationFrontmatter {
+            timestamp: "2025-01-01T00:00:00Z".to_string(),
+            compacted_issues: vec![CompactedIssueRef {
+                id: "test".to_string(),
+                display_number: 1,
+                title: "Test".to_string(),
+            }],
+        };
+
+        let json = serde_json::to_string(&frontmatter).expect("Should serialize");
+        assert!(json.contains("timestamp"));
+        assert!(json.contains("compactedIssues"));
+    }
+
+    #[test]
+    fn test_feature_error_display() {
+        let err = FeatureError::NotInitialized;
+        let display = format!("{err}");
+        assert!(display.contains("centy init"));
+
+        let err = FeatureError::FeaturesNotInitialized;
+        let display = format!("{err}");
+        assert!(display.contains("Features not initialized"));
+    }
+
+    #[test]
+    fn test_feature_error_from_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "not found");
+        let feature_err = FeatureError::from(io_err);
+        assert!(matches!(feature_err, FeatureError::IoError(_)));
     }
 }

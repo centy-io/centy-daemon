@@ -13,13 +13,13 @@ use std::path::Path;
 use tracing::warn;
 
 /// Get the current daemon version as a `SemVer`.
-#[must_use] 
+#[must_use]
 pub fn daemon_version() -> SemVer {
     SemVer::parse(CENTY_VERSION).expect("CENTY_VERSION should be valid semver")
 }
 
 /// Compare project version against daemon version.
-#[must_use] 
+#[must_use]
 pub fn compare_versions(project_version: &SemVer, daemon_version: &SemVer) -> VersionComparison {
     match project_version.cmp(daemon_version) {
         std::cmp::Ordering::Equal => VersionComparison::Equal,

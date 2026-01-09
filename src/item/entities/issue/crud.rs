@@ -1,18 +1,18 @@
-use async_trait::async_trait;
-use crate::common::{OrgSyncError, OrgSyncable};
-use crate::config::read_config;
-use crate::manifest::{
-    read_manifest, write_manifest, update_manifest_timestamp, CentyManifest,
-};
-use crate::registry::ProjectInfo;
-use crate::utils::{format_markdown, get_centy_path, now_iso};
 use super::assets::copy_assets_folder;
 use super::id::{generate_issue_id, is_uuid, is_valid_issue_folder};
 use super::metadata::IssueMetadata;
+use super::planning::{
+    add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
+};
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
-use super::planning::{add_planning_note, has_planning_note, is_planning_status, remove_planning_note};
 use super::status::{validate_status, StatusError};
+use crate::common::{OrgSyncError, OrgSyncable};
+use crate::config::read_config;
+use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::registry::ProjectInfo;
+use crate::utils::{format_markdown, get_centy_path, now_iso};
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -198,10 +198,7 @@ pub struct DuplicateIssueResult {
 }
 
 /// Get a single issue by its number
-pub async fn get_issue(
-    project_path: &Path,
-    issue_number: &str,
-) -> Result<Issue, IssueCrudError> {
+pub async fn get_issue(project_path: &Path, issue_number: &str) -> Result<Issue, IssueCrudError> {
     // Check if centy is initialized
     read_manifest(project_path)
         .await?
@@ -254,12 +251,10 @@ pub async fn list_issues(
                 match read_issue_from_disk(&entry.path(), folder_name).await {
                     Ok(issue) => {
                         // Apply filters
-                        let status_match = status_filter
-                            .is_none_or(|s| issue.metadata.status == s);
-                        let priority_match = priority_filter
-                            .is_none_or(|p| issue.metadata.priority == p);
-                        let draft_match = draft_filter
-                            .is_none_or(|d| issue.metadata.draft == d);
+                        let status_match = status_filter.is_none_or(|s| issue.metadata.status == s);
+                        let priority_match =
+                            priority_filter.is_none_or(|p| issue.metadata.priority == p);
+                        let draft_match = draft_filter.is_none_or(|d| issue.metadata.draft == d);
                         let deleted_match = include_deleted || issue.metadata.deleted_at.is_none();
 
                         if status_match && priority_match && draft_match && deleted_match {
@@ -388,6 +383,7 @@ pub async fn get_issues_by_uuid(
 }
 
 /// Update an existing issue
+#[allow(clippy::too_many_lines)]
 pub async fn update_issue(
     project_path: &Path,
     issue_number: &str,
@@ -469,8 +465,10 @@ pub async fn update_issue(
     let mut issue_md = generate_issue_md(&new_title, &new_description);
 
     // Handle planning note based on status transition
-    let transitioning_to_planning = !is_planning_status(&old_status) && is_planning_status(&new_status);
-    let _transitioning_from_planning = is_planning_status(&old_status) && !is_planning_status(&new_status);
+    let transitioning_to_planning =
+        !is_planning_status(&old_status) && is_planning_status(&new_status);
+    let _transitioning_from_planning =
+        is_planning_status(&old_status) && !is_planning_status(&new_status);
     let staying_in_planning = is_planning_status(&old_status) && is_planning_status(&new_status);
 
     if transitioning_to_planning {
@@ -492,7 +490,11 @@ pub async fn update_issue(
     let metadata_path = issue_path.join("metadata.json");
 
     fs::write(&issue_md_path, &issue_md).await?;
-    fs::write(&metadata_path, serde_json::to_string_pretty(&updated_metadata)?).await?;
+    fs::write(
+        &metadata_path,
+        serde_json::to_string_pretty(&updated_metadata)?,
+    )
+    .await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -528,7 +530,11 @@ pub async fn update_issue(
         Vec::new()
     };
 
-    Ok(UpdateIssueResult { issue, manifest, sync_results })
+    Ok(UpdateIssueResult {
+        issue,
+        manifest,
+        sync_results,
+    })
 }
 
 /// Delete an issue
@@ -582,7 +588,9 @@ pub async fn soft_delete_issue(
 
     // Check if already deleted
     if metadata.deleted_at.is_some() {
-        return Err(IssueCrudError::IssueAlreadyDeleted(issue_number.to_string()));
+        return Err(IssueCrudError::IssueAlreadyDeleted(
+            issue_number.to_string(),
+        ));
     }
 
     // Set deleted_at and update updated_at
@@ -686,12 +694,17 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     let old_display_number = source_issue.metadata.display_number;
 
     // Read target config for priority validation
-    let target_config = read_config(&options.target_project_path).await.ok().flatten();
+    let target_config = read_config(&options.target_project_path)
+        .await
+        .ok()
+        .flatten();
     let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Validate priority is within target's range
     if source_issue.metadata.priority > target_priority_levels {
-        return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
+        return Err(IssueCrudError::InvalidPriorityInTarget(
+            source_issue.metadata.priority,
+        ));
     }
 
     // Status validation: reject if status is not valid in target project
@@ -714,7 +727,8 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     fs::copy(
         source_issue_path.join("issue.md"),
         target_issue_path.join("issue.md"),
-    ).await?;
+    )
+    .await?;
 
     // Read, update, and write metadata with new display number
     let metadata_content = fs::read_to_string(source_issue_path.join("metadata.json")).await?;
@@ -724,12 +738,14 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     fs::write(
         target_issue_path.join("metadata.json"),
         serde_json::to_string_pretty(&metadata)?,
-    ).await?;
+    )
+    .await?;
 
     // Copy assets
     let source_assets_path = source_issue_path.join("assets");
     let target_assets_path = target_issue_path.join("assets");
-    copy_assets_folder(&source_assets_path, &target_assets_path).await
+    copy_assets_folder(&source_assets_path, &target_assets_path)
+        .await
         .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
 
     // Delete from source project
@@ -762,7 +778,9 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
 ///
 /// # Returns
 /// The new duplicate issue with the original issue ID for reference
-pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<DuplicateIssueResult, IssueCrudError> {
+pub async fn duplicate_issue(
+    options: DuplicateIssueOptions,
+) -> Result<DuplicateIssueResult, IssueCrudError> {
     // Validate source project is initialized
     read_manifest(&options.source_project_path)
         .await?
@@ -785,12 +803,17 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
 
     // Read target config for priority validation (if different project)
     if options.source_project_path != options.target_project_path {
-        let target_config = read_config(&options.target_project_path).await.ok().flatten();
+        let target_config = read_config(&options.target_project_path)
+            .await
+            .ok()
+            .flatten();
         let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
 
         // Validate priority is within target's range
         if source_issue.metadata.priority > target_priority_levels {
-            return Err(IssueCrudError::InvalidPriorityInTarget(source_issue.metadata.priority));
+            return Err(IssueCrudError::InvalidPriorityInTarget(
+                source_issue.metadata.priority,
+            ));
         }
 
         // Status validation: reject if status is not valid in target project
@@ -814,9 +837,9 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
     fs::create_dir_all(new_issue_path.join("assets")).await?;
 
     // Prepare new title
-    let new_title = options.new_title.unwrap_or_else(|| {
-        format!("Copy of {}", source_issue.title)
-    });
+    let new_title = options
+        .new_title
+        .unwrap_or_else(|| format!("Copy of {}", source_issue.title));
 
     // Create new issue.md
     let mut issue_md = generate_issue_md(&new_title, &source_issue.description);
@@ -837,7 +860,9 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
             priority: source_issue.metadata.priority,
             created_at: now_iso(),
             updated_at: now_iso(),
-            custom_fields: source_issue.metadata.custom_fields
+            custom_fields: source_issue
+                .metadata
+                .custom_fields
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
                 .collect(),
@@ -845,20 +870,22 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
         compacted: false, // Reset compacted status for new issue
         compacted_at: None,
         draft: source_issue.metadata.draft, // Preserve draft status
-        deleted_at: None, // New duplicate is not deleted
-        is_org_issue: false, // Duplicate is always a local copy
+        deleted_at: None,                   // New duplicate is not deleted
+        is_org_issue: false,                // Duplicate is always a local copy
         org_slug: None,
         org_display_number: None,
     };
     fs::write(
         new_issue_path.join("metadata.json"),
         serde_json::to_string_pretty(&new_metadata)?,
-    ).await?;
+    )
+    .await?;
 
     // Copy assets
     let source_assets_path = source_issue_path.join("assets");
     let target_assets_path = new_issue_path.join("assets");
-    copy_assets_folder(&source_assets_path, &target_assets_path).await
+    copy_assets_folder(&source_assets_path, &target_assets_path)
+        .await
         .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
 
     // Update target manifest
@@ -876,7 +903,10 @@ pub async fn duplicate_issue(options: DuplicateIssueOptions) -> Result<Duplicate
 }
 
 /// Read an issue from disk
-async fn read_issue_from_disk(issue_path: &Path, issue_number: &str) -> Result<Issue, IssueCrudError> {
+async fn read_issue_from_disk(
+    issue_path: &Path,
+    issue_number: &str,
+) -> Result<Issue, IssueCrudError> {
     let issue_md_path = issue_path.join("issue.md");
     let metadata_path = issue_path.join("metadata.json");
 
@@ -953,7 +983,8 @@ fn parse_issue_md(content: &str) -> (String, String) {
     }
 
     // Extract title
-    let title = lines.get(title_idx)
+    let title = lines
+        .get(title_idx)
         .map(|line| line.strip_prefix('#').map_or(*line, str::trim))
         .unwrap_or("")
         .to_string();
@@ -1186,7 +1217,10 @@ mod tests {
         let content = "# My Issue Title\n\nThis is the description.\nWith multiple lines.";
         let (title, description) = parse_issue_md(content);
         assert_eq!(title, "My Issue Title");
-        assert_eq!(description, "This is the description.\nWith multiple lines.");
+        assert_eq!(
+            description,
+            "This is the description.\nWith multiple lines."
+        );
     }
 
     #[test]

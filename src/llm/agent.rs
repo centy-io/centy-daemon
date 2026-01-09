@@ -66,7 +66,9 @@ pub async fn start_agent(
         Some(name) => config
             .get_agent(name)
             .ok_or_else(|| AgentError::AgentNotFound(name.to_string()))?,
-        None => config.get_default_agent().ok_or(AgentError::NoDefaultAgent)?,
+        None => config
+            .get_default_agent()
+            .ok_or(AgentError::NoDefaultAgent)?,
     };
 
     // Build the prompt
@@ -189,9 +191,9 @@ fn start_agent_with_stdin(
 
             // Write prompt to stdin
             if let Some(mut stdin) = child.stdin.take() {
-                stdin
-                    .write_all(prompt.as_bytes())
-                    .map_err(|e| AgentError::SpawnError(format!("Failed to write to stdin: {e}")))?;
+                stdin.write_all(prompt.as_bytes()).map_err(|e| {
+                    AgentError::SpawnError(format!("Failed to write to stdin: {e}"))
+                })?;
                 // stdin is dropped here, closing the pipe
             }
 
@@ -208,7 +210,14 @@ fn start_agent_with_stdin(
             // For exec mode, we need to use a shell to pipe stdin since we can't
             // write to stdin after exec() replaces the process.
             // We use `cat <<'PROMPT_EOF' | command args...` to avoid shell escaping issues.
-            exec_agent_with_stdin(project_path, config, agent, prompt, prompt_preview, extra_args)
+            exec_agent_with_stdin(
+                project_path,
+                config,
+                agent,
+                prompt,
+                prompt_preview,
+                extra_args,
+            )
         }
     }
 }

@@ -30,5 +30,8 @@ pub fn verify_centy_structure(project_path: &Path) {
     assert!(centy_path.join("issues").exists(), "issues/ should exist");
     assert!(centy_path.join("docs").exists(), "docs/ should exist");
     assert!(centy_path.join("assets").exists(), "assets/ should exist");
-    assert!(centy_path.join("README.md").exists(), "README.md should exist");
+    assert!(
+        centy_path.join("README.md").exists(),
+        "README.md should exist"
+    );
 }

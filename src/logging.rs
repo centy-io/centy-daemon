@@ -51,29 +51,26 @@ pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
     std::fs::create_dir_all(&config.log_dir)?;
 
     // File appender with rotation
-    let file_appender = RollingFileAppender::new(
-        config.rotation,
-        &config.log_dir,
-        "centy-daemon.log",
-    );
+    let file_appender =
+        RollingFileAppender::new(config.rotation, &config.log_dir, "centy-daemon.log");
 
     // Build env filter (runtime configurable via RUST_LOG)
     // Default to the configured level for centy_daemon
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new(format!("centy_daemon={}", config.log_level))
-    });
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(format!("centy_daemon={}", config.log_level)));
 
     if config.json_format {
         // JSON format for production/log aggregation
-        let json_file_layer = fmt::layer()
-            .json()
-            .with_writer(file_appender)
-            .with_span_events(FmtSpan::CLOSE)
-            .with_current_span(true)
-            .with_target(true)
-            .with_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                EnvFilter::new(format!("centy_daemon={}", config.log_level))
-            }));
+        let json_file_layer =
+            fmt::layer()
+                .json()
+                .with_writer(file_appender)
+                .with_span_events(FmtSpan::CLOSE)
+                .with_current_span(true)
+                .with_target(true)
+                .with_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                    EnvFilter::new(format!("centy_daemon={}", config.log_level))
+                }));
 
         let json_stdout_layer = fmt::layer()
             .json()
@@ -89,14 +86,15 @@ pub fn init_logging(config: LogConfig) -> anyhow::Result<()> {
             .init();
     } else {
         // Human-readable format for development
-        let file_layer = fmt::layer()
-            .with_writer(file_appender)
-            .with_span_events(FmtSpan::CLOSE)
-            .with_target(true)
-            .with_ansi(false) // No ANSI colors in files
-            .with_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                EnvFilter::new(format!("centy_daemon={}", config.log_level))
-            }));
+        let file_layer =
+            fmt::layer()
+                .with_writer(file_appender)
+                .with_span_events(FmtSpan::CLOSE)
+                .with_target(true)
+                .with_ansi(false) // No ANSI colors in files
+                .with_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                    EnvFilter::new(format!("centy_daemon={}", config.log_level))
+                }));
 
         let stdout_layer = fmt::layer()
             .with_writer(std::io::stdout)

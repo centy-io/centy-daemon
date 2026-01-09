@@ -168,12 +168,13 @@ pub async fn try_auto_assign_organization(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     #[tokio::test]
     async fn test_infer_from_non_git_directory() {
-        let temp_dir = TempDir::new().unwrap();
-        let result = infer_organization_from_remote(temp_dir.path(), None).await;
+        // Use root directory which is definitely not inside a git repository
+        // TempDir can be inside a git worktree which causes git to find parent repo
+        let non_git = std::path::Path::new("/");
+        let result = infer_organization_from_remote(non_git, None).await;
 
         assert!(result.inferred_org_slug.is_none());
         assert!(result.message.unwrap().contains("Not a git repository"));

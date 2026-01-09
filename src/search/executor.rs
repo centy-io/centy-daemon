@@ -179,14 +179,28 @@ fn sort_results(results: &mut [SearchResultIssue], sort: &SortOptions) {
 fn compare_by_field(a: &Issue, b: &Issue, field: &SortField) -> Ordering {
     match field {
         SortField::Title => a.title.to_lowercase().cmp(&b.title.to_lowercase()),
-        SortField::Status => a.metadata.status.to_lowercase().cmp(&b.metadata.status.to_lowercase()),
+        SortField::Status => a
+            .metadata
+            .status
+            .to_lowercase()
+            .cmp(&b.metadata.status.to_lowercase()),
         SortField::Priority => a.metadata.priority.cmp(&b.metadata.priority),
         SortField::DisplayNumber => a.metadata.display_number.cmp(&b.metadata.display_number),
         SortField::CreatedAt => a.metadata.created_at.cmp(&b.metadata.created_at),
         SortField::UpdatedAt => a.metadata.updated_at.cmp(&b.metadata.updated_at),
         SortField::Custom(name) => {
-            let a_val = a.metadata.custom_fields.get(name).map(String::as_str).unwrap_or("");
-            let b_val = b.metadata.custom_fields.get(name).map(String::as_str).unwrap_or("");
+            let a_val = a
+                .metadata
+                .custom_fields
+                .get(name)
+                .map(String::as_str)
+                .unwrap_or("");
+            let b_val = b
+                .metadata
+                .custom_fields
+                .get(name)
+                .map(String::as_str)
+                .unwrap_or("");
             a_val.to_lowercase().cmp(&b_val.to_lowercase())
         }
     }
@@ -199,9 +213,18 @@ mod tests {
     #[test]
     fn test_sort_field_from_str() {
         assert_eq!("title".parse::<SortField>().unwrap(), SortField::Title);
-        assert_eq!("priority".parse::<SortField>().unwrap(), SortField::Priority);
+        assert_eq!(
+            "priority".parse::<SortField>().unwrap(),
+            SortField::Priority
+        );
         assert_eq!("prio".parse::<SortField>().unwrap(), SortField::Priority);
-        assert_eq!("createdAt".parse::<SortField>().unwrap(), SortField::CreatedAt);
-        assert_eq!("custom".parse::<SortField>().unwrap(), SortField::Custom("custom".to_string()));
+        assert_eq!(
+            "createdAt".parse::<SortField>().unwrap(),
+            SortField::CreatedAt
+        );
+        assert_eq!(
+            "custom".parse::<SortField>().unwrap(),
+            SortField::Custom("custom".to_string())
+        );
     }
 }

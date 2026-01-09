@@ -17,5 +17,6 @@ pub trait Duplicable: ItemCrud {
     ///
     /// The duplicated item gets a new ID and display number but preserves
     /// the content and metadata from the original.
-    async fn duplicate(options: Self::DuplicateOptions) -> Result<Self::DuplicateResult, ItemError>;
+    async fn duplicate(options: Self::DuplicateOptions)
+        -> Result<Self::DuplicateResult, ItemError>;
 }

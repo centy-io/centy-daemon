@@ -229,7 +229,7 @@ const CSPELL_JSON_CONTENT: &str = r#"{
 "#;
 
 /// Get the list of managed files with their templates
-#[must_use] 
+#[must_use]
 pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     let mut files = HashMap::new();
 
@@ -314,4 +314,186 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     );
 
     files
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_managed_files_returns_expected_files() {
+        let files = get_managed_files();
+
+        // Should have expected directories
+        assert!(files.contains_key("issues/"));
+        assert!(files.contains_key("docs/"));
+        assert!(files.contains_key("assets/"));
+        assert!(files.contains_key("templates/"));
+        assert!(files.contains_key("templates/issues/"));
+        assert!(files.contains_key("templates/docs/"));
+
+        // Should have expected files
+        assert!(files.contains_key("README.md"));
+        assert!(files.contains_key("issues/README.md"));
+        assert!(files.contains_key("templates/README.md"));
+        assert!(files.contains_key("cspell.json"));
+    }
+
+    #[test]
+    fn test_get_managed_files_directories_have_correct_type() {
+        let files = get_managed_files();
+
+        // All directories should have Directory type
+        let directories = [
+            "issues/",
+            "docs/",
+            "assets/",
+            "templates/",
+            "templates/issues/",
+            "templates/docs/",
+        ];
+        for dir in directories {
+            let template = files
+                .get(dir)
+                .unwrap_or_else(|| panic!("Should have {dir}"));
+            assert_eq!(
+                template.file_type,
+                ManagedFileType::Directory,
+                "Directory {dir} should have Directory type"
+            );
+            assert!(
+                template.content.is_none(),
+                "Directory {dir} should have no content"
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_managed_files_files_have_correct_type() {
+        let files = get_managed_files();
+
+        // All files should have File type
+        let regular_files = [
+            "README.md",
+            "issues/README.md",
+            "templates/README.md",
+            "cspell.json",
+        ];
+        for file in regular_files {
+            let template = files
+                .get(file)
+                .unwrap_or_else(|| panic!("Should have {file}"));
+            assert_eq!(
+                template.file_type,
+                ManagedFileType::File,
+                "File {file} should have File type"
+            );
+            assert!(
+                template.content.is_some(),
+                "File {file} should have content"
+            );
+        }
+    }
+
+    #[test]
+    fn test_managed_file_template_readme_content() {
+        let files = get_managed_files();
+        let readme = files.get("README.md").expect("Should have README.md");
+
+        let content = readme.content.as_ref().expect("README should have content");
+        assert!(content.contains("Centy Project"));
+        assert!(content.contains("LLM Instructions"));
+        assert!(content.contains("centy create issue"));
+    }
+
+    #[test]
+    fn test_managed_file_template_issues_readme_content() {
+        let files = get_managed_files();
+        let readme = files
+            .get("issues/README.md")
+            .expect("Should have issues/README.md");
+
+        let content = readme
+            .content
+            .as_ref()
+            .expect("Issues README should have content");
+        assert!(content.contains("Issues"));
+        assert!(content.contains("LLM Instructions"));
+        assert!(content.contains("Issue Structure"));
+        assert!(content.contains("metadata.json"));
+        assert!(content.contains("autoCloseOnComplete"));
+    }
+
+    #[test]
+    fn test_managed_file_template_templates_readme_content() {
+        let files = get_managed_files();
+        let readme = files
+            .get("templates/README.md")
+            .expect("Should have templates/README.md");
+
+        let content = readme
+            .content
+            .as_ref()
+            .expect("Templates README should have content");
+        assert!(content.contains("Templates"));
+        assert!(content.contains("Handlebars"));
+        assert!(content.contains("{{title}}"));
+        assert!(content.contains("{{description}}"));
+    }
+
+    #[test]
+    fn test_managed_file_template_cspell_content() {
+        let files = get_managed_files();
+        let cspell = files.get("cspell.json").expect("Should have cspell.json");
+
+        let content = cspell.content.as_ref().expect("cspell should have content");
+        assert!(content.contains("centy"));
+        assert!(content.contains("displayNumber"));
+        assert!(content.contains("createdAt"));
+        assert!(content.contains("allowedStates"));
+    }
+
+    #[test]
+    fn test_get_managed_files_count() {
+        let files = get_managed_files();
+
+        // 6 directories + 4 files = 10 total
+        assert_eq!(files.len(), 10);
+    }
+
+    #[test]
+    fn test_managed_file_template_struct() {
+        let template = ManagedFileTemplate {
+            file_type: ManagedFileType::File,
+            content: Some("test content".to_string()),
+        };
+
+        assert_eq!(template.file_type, ManagedFileType::File);
+        assert_eq!(template.content, Some("test content".to_string()));
+    }
+
+    #[test]
+    fn test_managed_file_template_clone() {
+        let template = ManagedFileTemplate {
+            file_type: ManagedFileType::Directory,
+            content: None,
+        };
+
+        let cloned = template.clone();
+        assert_eq!(cloned.file_type, ManagedFileType::Directory);
+        assert!(cloned.content.is_none());
+    }
+
+    #[test]
+    fn test_managed_file_template_debug() {
+        let template = ManagedFileTemplate {
+            file_type: ManagedFileType::File,
+            content: Some("test".to_string()),
+        };
+
+        let debug_str = format!("{template:?}");
+        assert!(debug_str.contains("ManagedFileTemplate"));
+        assert!(debug_str.contains("File"));
+        assert!(debug_str.contains("test"));
+    }
 }

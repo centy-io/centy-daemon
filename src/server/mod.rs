@@ -1,42 +1,61 @@
-use crate::config::{read_config, write_config, set_project_title as set_project_title_config, CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig};
-use crate::link::{
-    create_link, delete_link, get_available_link_types, list_links,
-    CreateLinkOptions, DeleteLinkOptions, TargetType,
-};
-use crate::llm::{
-    self, get_effective_local_config, spawn_agent as llm_spawn_agent, read_work_session,
-    record_work_session, clear_work_session, is_process_running, has_global_config, has_project_config,
-    write_global_local_config, write_project_local_config, LlmAction, AgentType as InternalAgentType,
-    PromptBuilder,
+use crate::config::{
+    read_config, set_project_title as set_project_title_config, write_config, CentyConfig,
+    CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig,
 };
 use crate::features::{
     get_compact, get_feature_status, get_instruction, list_uncompacted_issues,
     mark_issues_compacted, save_migration, update_compact,
 };
-use crate::migration::{create_registry, MigrationExecutor};
-use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::item::entities::doc::{
-    get_docs_by_slug, create_doc, delete_doc, duplicate_doc, get_doc, list_docs,
-    move_doc, update_doc, soft_delete_doc, restore_doc,
-    CreateDocOptions, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, duplicate_doc, get_doc, get_docs_by_slug, list_docs, move_doc,
+    restore_doc, soft_delete_doc, update_doc, CreateDocOptions, DuplicateDocOptions,
+    MoveDocOptions, UpdateDocOptions,
 };
 use crate::item::entities::issue::{
-    get_issues_by_uuid, priority_label,
-    create_issue_with_title_generation, delete_issue, duplicate_issue, get_issue,
-    get_issue_by_display_number, list_issues, move_issue, update_issue,
-    soft_delete_issue, restore_issue,
-    CreateIssueOptions, DuplicateIssueOptions, MoveIssueOptions, UpdateIssueOptions,
     // Asset imports
-    add_asset, delete_asset as delete_asset_fn, get_asset, list_assets, list_shared_assets,
-    AssetInfo, AssetScope,
+    add_asset,
+    create_issue_with_title_generation,
+    delete_asset as delete_asset_fn,
+    delete_issue,
+    duplicate_issue,
+    get_asset,
+    get_issue,
+    get_issue_by_display_number,
+    get_issues_by_uuid,
+    list_assets,
+    list_issues,
+    list_shared_assets,
+    move_issue,
+    priority_label,
+    restore_issue,
+    soft_delete_issue,
+    update_issue,
+    AssetInfo,
+    AssetScope,
+    CreateIssueOptions,
+    DuplicateIssueOptions,
+    MoveIssueOptions,
+    UpdateIssueOptions,
 };
 use crate::item::entities::pr::{
-    get_prs_by_uuid,
-    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr,
-    soft_delete_pr, restore_pr,
-    CreatePrOptions, UpdatePrOptions,
+    create_pr, delete_pr, get_pr, get_pr_by_display_number, get_prs_by_uuid, list_prs, restore_pr,
+    soft_delete_pr, update_pr, CreatePrOptions, UpdatePrOptions,
 };
-use crate::manifest::{read_manifest, ManagedFileType as InternalFileType, CentyManifest as InternalManifest};
+use crate::link::{
+    create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
+    DeleteLinkOptions, TargetType,
+};
+use crate::llm::{
+    self, clear_work_session, get_effective_local_config, has_global_config, has_project_config,
+    is_process_running, read_work_session, record_work_session, spawn_agent as llm_spawn_agent,
+    write_global_local_config, write_project_local_config, AgentType as InternalAgentType,
+    LlmAction, PromptBuilder,
+};
+use crate::manifest::{
+    read_manifest, CentyManifest as InternalManifest, ManagedFileType as InternalFileType,
+};
+use crate::metrics::{generate_request_id, OperationTimer};
+use crate::migration::{create_registry, MigrationExecutor};
 use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
@@ -47,18 +66,20 @@ use crate::registry::{
     try_auto_assign_organization, untrack_project, update_organization, ListProjectsOptions,
     OrgInferenceResult, OrganizationInfo, ProjectInfo,
 };
+use crate::search::{advanced_search, SearchOptions, SortOptions};
 use crate::user::{
     create_user as internal_create_user, delete_user as internal_delete_user,
     get_user as internal_get_user, list_users as internal_list_users,
-    sync_users as internal_sync_users, update_user as internal_update_user,
-    soft_delete_user as internal_soft_delete_user, restore_user as internal_restore_user,
-    CreateUserOptions, UpdateUserOptions,
+    restore_user as internal_restore_user, soft_delete_user as internal_soft_delete_user,
+    sync_users as internal_sync_users, update_user as internal_update_user, CreateUserOptions,
+    UpdateUserOptions,
 };
-use crate::search::{advanced_search, SearchOptions, SortOptions};
 use crate::utils::{format_display_path, get_centy_path};
+use crate::version::{compare_versions, daemon_version, SemVer, VersionComparison};
 use crate::workspace::{
-    cleanup_expired_workspaces as internal_cleanup_expired, cleanup_workspace as internal_cleanup_workspace,
-    create_temp_workspace, list_workspaces as internal_list_workspaces,
+    cleanup_expired_workspaces as internal_cleanup_expired,
+    cleanup_workspace as internal_cleanup_workspace, create_temp_workspace,
+    list_workspaces as internal_list_workspaces,
     terminal::{is_terminal_available, open_terminal_with_agent},
     vscode::is_vscode_available,
     CreateWorkspaceOptions,
@@ -69,7 +90,6 @@ use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::{Request, Response, Status};
 use tracing::{info, instrument};
-use crate::metrics::{OperationTimer, generate_request_id};
 
 // Import generated protobuf types
 pub mod proto {
@@ -79,7 +99,63 @@ pub mod proto {
 }
 
 use proto::centy_daemon_server::CentyDaemon;
-use proto::{InitRequest, InitResponse, GetReconciliationPlanRequest, ReconciliationPlan, ExecuteReconciliationRequest, CreateIssueRequest, CreateIssueResponse, GetIssueRequest, Issue, GetIssueByDisplayNumberRequest, GetIssuesByUuidRequest, GetIssuesByUuidResponse, IssueWithProject as ProtoIssueWithProject, ListIssuesRequest, ListIssuesResponse, UpdateIssueRequest, UpdateIssueResponse, DeleteIssueRequest, DeleteIssueResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, RestoreIssueRequest, RestoreIssueResponse, MoveIssueRequest, MoveIssueResponse, DuplicateIssueRequest, DuplicateIssueResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetManifestRequest, Manifest, GetConfigRequest, Config, LlmConfig, UpdateConfigRequest, UpdateConfigResponse, IsInitializedRequest, IsInitializedResponse, CreateDocRequest, CreateDocResponse, GetDocRequest, Doc, GetDocsBySlugRequest, GetDocsBySlugResponse, DocWithProject as ProtoDocWithProject, ListDocsRequest, ListDocsResponse, UpdateDocRequest, UpdateDocResponse, DeleteDocRequest, DeleteDocResponse, SoftDeleteDocRequest, SoftDeleteDocResponse, RestoreDocRequest, RestoreDocResponse, MoveDocRequest, MoveDocResponse, DuplicateDocRequest, DuplicateDocResponse, OrgDocSyncResult, AddAssetRequest, AddAssetResponse, ListAssetsRequest, ListAssetsResponse, GetAssetRequest, GetAssetResponse, DeleteAssetRequest, DeleteAssetResponse, ListSharedAssetsRequest, ListProjectsRequest, ListProjectsResponse, RegisterProjectRequest, RegisterProjectResponse, UntrackProjectRequest, UntrackProjectResponse, GetProjectInfoRequest, GetProjectInfoResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse, SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse, SetProjectTitleRequest, SetProjectTitleResponse, CreateOrganizationRequest, CreateOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse, GetOrganizationRequest, GetOrganizationResponse, UpdateOrganizationRequest, UpdateOrganizationResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, Organization as ProtoOrganization, OrgInferenceResult as ProtoOrgInferenceResult, GetDaemonInfoRequest, DaemonInfo, GetProjectVersionRequest, ProjectVersionInfo, UpdateVersionRequest, UpdateVersionResponse, ShutdownRequest, ShutdownResponse, RestartRequest, RestartResponse, CreatePrRequest, CreatePrResponse, GetPrRequest, PullRequest, GetPrByDisplayNumberRequest, GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject, ListPrsRequest, ListPrsResponse, UpdatePrRequest, UpdatePrResponse, DeletePrRequest, DeletePrResponse, SoftDeletePrRequest, SoftDeletePrResponse, RestorePrRequest, RestorePrResponse, GetNextPrNumberRequest, GetNextPrNumberResponse, GetFeatureStatusRequest, GetFeatureStatusResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, GetInstructionRequest, GetInstructionResponse, GetCompactRequest, GetCompactResponse, UpdateCompactRequest, UpdateCompactResponse, SaveMigrationRequest, SaveMigrationResponse, MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, SpawnAgentRequest, SpawnAgentResponse, GetLlmWorkRequest, GetLlmWorkResponse, LlmWorkSession, ClearLlmWorkRequest, ClearLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse, FileInfo, FileType, CustomFieldDefinition, IssueMetadata, DocMetadata, Asset, PrMetadata, LocalLlmConfig, AgentConfig, AgentType, LinkTypeDefinition, CreateLinkRequest, CreateLinkResponse, DeleteLinkRequest, DeleteLinkResponse, ListLinksRequest, ListLinksResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, Link as ProtoLink, LinkTargetType, LinkTypeInfo, CreateUserRequest, CreateUserResponse, GetUserRequest, User as ProtoUser, ListUsersRequest, ListUsersResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserRequest, DeleteUserResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, RestoreUserRequest, RestoreUserResponse, SyncUsersRequest, SyncUsersResponse, GitContributor as ProtoGitContributor, AdvancedSearchRequest, AdvancedSearchResponse, SearchResultIssue as ProtoSearchResultIssue, OpenInTempVscodeRequest, OpenInTempVscodeResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode, ListTempWorkspacesRequest, ListTempWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse, TempWorkspace as ProtoTempWorkspace, GetEntityActionsRequest, GetEntityActionsResponse, EntityAction, EntityType, ActionCategory};
+use proto::{
+    ActionCategory, AddAssetRequest, AddAssetResponse, AdvancedSearchRequest,
+    AdvancedSearchResponse, AgentConfig, AgentType, Asset, CleanupExpiredWorkspacesRequest,
+    CleanupExpiredWorkspacesResponse, ClearLlmWorkRequest, ClearLlmWorkResponse,
+    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, Config, CreateDocRequest,
+    CreateDocResponse, CreateIssueRequest, CreateIssueResponse, CreateLinkRequest,
+    CreateLinkResponse, CreateOrganizationRequest, CreateOrganizationResponse, CreatePrRequest,
+    CreatePrResponse, CreateUserRequest, CreateUserResponse, CustomFieldDefinition, DaemonInfo,
+    DeleteAssetRequest, DeleteAssetResponse, DeleteDocRequest, DeleteDocResponse,
+    DeleteIssueRequest, DeleteIssueResponse, DeleteLinkRequest, DeleteLinkResponse,
+    DeleteOrganizationRequest, DeleteOrganizationResponse, DeletePrRequest, DeletePrResponse,
+    DeleteUserRequest, DeleteUserResponse, Doc, DocMetadata, DocWithProject as ProtoDocWithProject,
+    DuplicateDocRequest, DuplicateDocResponse, DuplicateIssueRequest, DuplicateIssueResponse,
+    EntityAction, EntityType, ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest,
+    GetAssetResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse,
+    GetCompactRequest, GetCompactResponse, GetConfigRequest, GetDaemonInfoRequest, GetDocRequest,
+    GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
+    GetFeatureStatusRequest, GetFeatureStatusResponse, GetInstructionRequest,
+    GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest,
+    GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetLlmWorkRequest, GetLlmWorkResponse,
+    GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, GetManifestRequest,
+    GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetNextPrNumberRequest,
+    GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
+    GetPrByDisplayNumberRequest, GetPrRequest, GetProjectInfoRequest, GetProjectInfoResponse,
+    GetProjectVersionRequest, GetPrsByUuidRequest, GetPrsByUuidResponse,
+    GetReconciliationPlanRequest, GetUserRequest, GitContributor as ProtoGitContributor,
+    InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
+    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
+    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
+    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
+    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
+    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
+    ListTempWorkspacesResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse,
+    ListUsersRequest, ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
+    MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse,
+    MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
+    OpenInTempVscodeRequest, OpenInTempVscodeResponse, OrgDocSyncResult,
+    OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
+    PrWithProject as ProtoPrWithProject, ProjectVersionInfo, PullRequest, ReconciliationPlan,
+    RegisterProjectRequest, RegisterProjectResponse, RestartRequest, RestartResponse,
+    RestoreDocRequest, RestoreDocResponse, RestoreIssueRequest, RestoreIssueResponse,
+    RestorePrRequest, RestorePrResponse, RestoreUserRequest, RestoreUserResponse,
+    SaveMigrationRequest, SaveMigrationResponse, SearchResultIssue as ProtoSearchResultIssue,
+    SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectFavoriteRequest,
+    SetProjectFavoriteResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse,
+    SetProjectTitleRequest, SetProjectTitleResponse, SetProjectUserTitleRequest,
+    SetProjectUserTitleResponse, ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest,
+    SoftDeleteDocResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest,
+    SoftDeletePrResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest,
+    SpawnAgentResponse, SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace,
+    UntrackProjectRequest, UntrackProjectResponse, UpdateCompactRequest, UpdateCompactResponse,
+    UpdateConfigRequest, UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse,
+    UpdateIssueRequest, UpdateIssueResponse, UpdateLocalLlmConfigRequest,
+    UpdateLocalLlmConfigResponse, UpdateOrganizationRequest, UpdateOrganizationResponse,
+    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, UpdateVersionRequest,
+    UpdateVersionResponse, User as ProtoUser, WorkspaceMode,
+};
 
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -102,7 +178,10 @@ impl CentyDaemonService {
             startup_org_inference().await;
         });
 
-        Self { shutdown_tx, exe_path }
+        Self {
+            shutdown_tx,
+            exe_path,
+        }
     }
 }
 
@@ -173,10 +252,13 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        let decisions = req.decisions.map(|d| ReconciliationDecisions {
-            restore: d.restore.into_iter().collect(),
-            reset: d.reset.into_iter().collect(),
-        }).unwrap_or_default();
+        let decisions = req
+            .decisions
+            .map(|d| ReconciliationDecisions {
+                restore: d.restore.into_iter().collect(),
+                reset: d.reset.into_iter().collect(),
+            })
+            .unwrap_or_default();
 
         match execute_reconciliation(project_path, decisions, req.force).await {
             Ok(result) => {
@@ -186,11 +268,8 @@ impl CentyDaemon for CentyDaemonService {
                     .ok()
                     .flatten()
                     .and_then(|info| info.organization_slug);
-                let inference = infer_organization_from_remote(
-                    project_path,
-                    existing_org.as_deref(),
-                )
-                .await;
+                let inference =
+                    infer_organization_from_remote(project_path, existing_org.as_deref()).await;
 
                 // Auto-assign if no existing org and inference succeeded without mismatch
                 if existing_org.is_none() && !inference.has_mismatch {
@@ -236,13 +315,25 @@ impl CentyDaemon for CentyDaemonService {
                 let needs_decisions = plan.needs_decisions();
                 Ok(Response::new(ReconciliationPlan {
                     to_create: plan.to_create.into_iter().map(file_info_to_proto).collect(),
-                    to_restore: plan.to_restore.into_iter().map(file_info_to_proto).collect(),
+                    to_restore: plan
+                        .to_restore
+                        .into_iter()
+                        .map(file_info_to_proto)
+                        .collect(),
                     to_reset: plan.to_reset.into_iter().map(file_info_to_proto).collect(),
-                    up_to_date: plan.up_to_date.into_iter().map(file_info_to_proto).collect(),
-                    user_files: plan.user_files.into_iter().map(file_info_to_proto).collect(),
+                    up_to_date: plan
+                        .up_to_date
+                        .into_iter()
+                        .map(file_info_to_proto)
+                        .collect(),
+                    user_files: plan
+                        .user_files
+                        .into_iter()
+                        .map(file_info_to_proto)
+                        .collect(),
                     needs_decisions,
                 }))
-            },
+            }
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
@@ -255,10 +346,13 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        let decisions = req.decisions.map(|d| ReconciliationDecisions {
-            restore: d.restore.into_iter().collect(),
-            reset: d.reset.into_iter().collect(),
-        }).unwrap_or_default();
+        let decisions = req
+            .decisions
+            .map(|d| ReconciliationDecisions {
+                restore: d.restore.into_iter().collect(),
+                reset: d.reset.into_iter().collect(),
+            })
+            .unwrap_or_default();
 
         match execute_reconciliation(project_path, decisions, false).await {
             Ok(result) => {
@@ -268,11 +362,8 @@ impl CentyDaemon for CentyDaemonService {
                     .ok()
                     .flatten()
                     .and_then(|info| info.organization_slug);
-                let inference = infer_organization_from_remote(
-                    project_path,
-                    existing_org.as_deref(),
-                )
-                .await;
+                let inference =
+                    infer_organization_from_remote(project_path, existing_org.as_deref()).await;
 
                 // Auto-assign if no existing org and inference succeeded without mismatch
                 if existing_org.is_none() && !inference.has_mismatch {
@@ -323,10 +414,22 @@ impl CentyDaemon for CentyDaemonService {
         let options = CreateIssueOptions {
             title: req.title,
             description: req.description,
-            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
-            status: if req.status.is_empty() { None } else { Some(req.status) },
+            priority: if req.priority == 0 {
+                None
+            } else {
+                Some(req.priority as u32)
+            },
+            status: if req.status.is_empty() {
+                None
+            } else {
+                Some(req.status)
+            },
             custom_fields: req.custom_fields,
-            template: if req.template.is_empty() { None } else { Some(req.template) },
+            template: if req.template.is_empty() {
+                None
+            } else {
+                Some(req.template)
+            },
             draft: Some(req.draft),
             is_org_issue: req.is_org_issue,
         };
@@ -473,17 +576,36 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
+        let status_filter = if req.status.is_empty() {
+            None
+        } else {
+            Some(req.status.as_str())
+        };
         // Convert int32 priority filter: 0 means no filter
-        let priority_filter = if req.priority == 0 { None } else { Some(req.priority as u32) };
+        let priority_filter = if req.priority == 0 {
+            None
+        } else {
+            Some(req.priority as u32)
+        };
         // Draft filter is optional bool
         let draft_filter = req.draft;
 
-        match list_issues(project_path, status_filter, priority_filter, draft_filter, false).await {
+        match list_issues(
+            project_path,
+            status_filter,
+            priority_filter,
+            draft_filter,
+            false,
+        )
+        .await
+        {
             Ok(issues) => {
                 let total_count = issues.len() as i32;
                 Ok(Response::new(ListIssuesResponse {
-                    issues: issues.into_iter().map(|i| issue_to_proto(&i, priority_levels)).collect(),
+                    issues: issues
+                        .into_iter()
+                        .map(|i| issue_to_proto(&i, priority_levels))
+                        .collect(),
                     total_count,
                 }))
             }
@@ -505,10 +627,26 @@ impl CentyDaemon for CentyDaemonService {
 
         // Convert int32 priority: 0 means don't update, otherwise use the value
         let options = UpdateIssueOptions {
-            title: if req.title.is_empty() { None } else { Some(req.title) },
-            description: if req.description.is_empty() { None } else { Some(req.description) },
-            status: if req.status.is_empty() { None } else { Some(req.status) },
-            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
+            title: if req.title.is_empty() {
+                None
+            } else {
+                Some(req.title)
+            },
+            description: if req.description.is_empty() {
+                None
+            } else {
+                Some(req.description)
+            },
+            status: if req.status.is_empty() {
+                None
+            } else {
+                Some(req.status)
+            },
+            priority: if req.priority == 0 {
+                None
+            } else {
+                Some(req.priority as u32)
+            },
             custom_fields: req.custom_fields,
             draft: req.draft,
         };
@@ -631,7 +769,10 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.target_project_path.clone());
 
         // Read target config for priority_levels
-        let target_config = read_config(Path::new(&req.target_project_path)).await.ok().flatten();
+        let target_config = read_config(Path::new(&req.target_project_path))
+            .await
+            .ok()
+            .flatten();
         let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
 
         let options = MoveIssueOptions {
@@ -669,14 +810,21 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.target_project_path.clone());
 
         // Read target config for priority_levels
-        let target_config = read_config(Path::new(&req.target_project_path)).await.ok().flatten();
+        let target_config = read_config(Path::new(&req.target_project_path))
+            .await
+            .ok()
+            .flatten();
         let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
 
         let options = DuplicateIssueOptions {
             source_project_path: PathBuf::from(&req.source_project_path),
             target_project_path: PathBuf::from(&req.target_project_path),
             issue_id: req.issue_id,
-            new_title: if req.new_title.is_empty() { None } else { Some(req.new_title) },
+            new_title: if req.new_title.is_empty() {
+                None
+            } else {
+                Some(req.new_title)
+            },
         };
 
         match duplicate_issue(options).await {
@@ -855,8 +1003,16 @@ impl CentyDaemon for CentyDaemonService {
         let options = CreateDocOptions {
             title: req.title,
             content: req.content,
-            slug: if req.slug.is_empty() { None } else { Some(req.slug) },
-            template: if req.template.is_empty() { None } else { Some(req.template) },
+            slug: if req.slug.is_empty() {
+                None
+            } else {
+                Some(req.slug)
+            },
+            template: if req.template.is_empty() {
+                None
+            } else {
+                Some(req.template)
+            },
             is_org_doc: req.is_org_doc,
         };
 
@@ -893,10 +1049,7 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    async fn get_doc(
-        &self,
-        request: Request<GetDocRequest>,
-    ) -> Result<Response<Doc>, Status> {
+    async fn get_doc(&self, request: Request<GetDocRequest>) -> Result<Response<Doc>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -973,9 +1126,21 @@ impl CentyDaemon for CentyDaemonService {
         let project_path = Path::new(&req.project_path);
 
         let options = UpdateDocOptions {
-            title: if req.title.is_empty() { None } else { Some(req.title) },
-            content: if req.content.is_empty() { None } else { Some(req.content) },
-            new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
+            title: if req.title.is_empty() {
+                None
+            } else {
+                Some(req.title)
+            },
+            content: if req.content.is_empty() {
+                None
+            } else {
+                Some(req.content)
+            },
+            new_slug: if req.new_slug.is_empty() {
+                None
+            } else {
+                Some(req.new_slug)
+            },
         };
 
         match update_doc(project_path, &req.slug, options).await {
@@ -1090,7 +1255,11 @@ impl CentyDaemon for CentyDaemonService {
             source_project_path: PathBuf::from(&req.source_project_path),
             target_project_path: PathBuf::from(&req.target_project_path),
             slug: req.slug.clone(),
-            new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
+            new_slug: if req.new_slug.is_empty() {
+                None
+            } else {
+                Some(req.new_slug)
+            },
         };
 
         match move_doc(options).await {
@@ -1125,8 +1294,16 @@ impl CentyDaemon for CentyDaemonService {
             source_project_path: PathBuf::from(&req.source_project_path),
             target_project_path: PathBuf::from(&req.target_project_path),
             slug: req.slug.clone(),
-            new_slug: if req.new_slug.is_empty() { None } else { Some(req.new_slug) },
-            new_title: if req.new_title.is_empty() { None } else { Some(req.new_title) },
+            new_slug: if req.new_slug.is_empty() {
+                None
+            } else {
+                Some(req.new_slug)
+            },
+            new_title: if req.new_title.is_empty() {
+                None
+            } else {
+                Some(req.new_title)
+            },
         };
 
         match duplicate_doc(options).await {
@@ -1322,7 +1499,10 @@ impl CentyDaemon for CentyDaemonService {
             Ok(projects) => {
                 let total_count = projects.len() as i32;
                 Ok(Response::new(ListProjectsResponse {
-                    projects: projects.into_iter().map(|p| project_info_to_proto(&p)).collect(),
+                    projects: projects
+                        .into_iter()
+                        .map(|p| project_info_to_proto(&p))
+                        .collect(),
                     total_count,
                 }))
             }
@@ -1353,11 +1533,7 @@ impl CentyDaemon for CentyDaemonService {
             .ok()
             .flatten()
             .and_then(|info| info.organization_slug);
-        let inference = infer_organization_from_remote(
-            project_path,
-            existing_org.as_deref(),
-        )
-        .await;
+        let inference = infer_organization_from_remote(project_path, existing_org.as_deref()).await;
 
         // Auto-assign if no existing org and inference succeeded without mismatch
         if existing_org.is_none() && !inference.has_mismatch {
@@ -1565,8 +1741,16 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<CreateOrganizationRequest>,
     ) -> Result<Response<CreateOrganizationResponse>, Status> {
         let req = request.into_inner();
-        let slug = if req.slug.is_empty() { None } else { Some(req.slug.as_str()) };
-        let description = if req.description.is_empty() { None } else { Some(req.description.as_str()) };
+        let slug = if req.slug.is_empty() {
+            None
+        } else {
+            Some(req.slug.as_str())
+        };
+        let description = if req.description.is_empty() {
+            None
+        } else {
+            Some(req.description.as_str())
+        };
 
         match create_organization(slug, &req.name, description).await {
             Ok(org) => Ok(Response::new(CreateOrganizationResponse {
@@ -1622,9 +1806,21 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<UpdateOrganizationRequest>,
     ) -> Result<Response<UpdateOrganizationResponse>, Status> {
         let req = request.into_inner();
-        let name = if req.name.is_empty() { None } else { Some(req.name.as_str()) };
-        let description = if req.description.is_empty() { None } else { Some(req.description.as_str()) };
-        let new_slug = if req.new_slug.is_empty() { None } else { Some(req.new_slug.as_str()) };
+        let name = if req.name.is_empty() {
+            None
+        } else {
+            Some(req.name.as_str())
+        };
+        let description = if req.description.is_empty() {
+            None
+        } else {
+            Some(req.description.as_str())
+        };
+        let new_slug = if req.new_slug.is_empty() {
+            None
+        } else {
+            Some(req.new_slug.as_str())
+        };
 
         match update_organization(&req.slug, name, description, new_slug).await {
             Ok(org) => Ok(Response::new(UpdateOrganizationResponse {
@@ -1867,13 +2063,33 @@ impl CentyDaemon for CentyDaemonService {
         let options = CreatePrOptions {
             title: req.title,
             description: req.description,
-            source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
-            target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
+            source_branch: if req.source_branch.is_empty() {
+                None
+            } else {
+                Some(req.source_branch)
+            },
+            target_branch: if req.target_branch.is_empty() {
+                None
+            } else {
+                Some(req.target_branch)
+            },
             reviewers: req.reviewers,
-            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
-            status: if req.status.is_empty() { None } else { Some(req.status) },
+            priority: if req.priority == 0 {
+                None
+            } else {
+                Some(req.priority as u32)
+            },
+            status: if req.status.is_empty() {
+                None
+            } else {
+                Some(req.status)
+            },
             custom_fields: req.custom_fields,
-            template: if req.template.is_empty() { None } else { Some(req.template) },
+            template: if req.template.is_empty() {
+                None
+            } else {
+                Some(req.template)
+            },
         };
 
         match create_pr(project_path, options).await {
@@ -1988,16 +2204,44 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        let status_filter = if req.status.is_empty() { None } else { Some(req.status.as_str()) };
-        let source_filter = if req.source_branch.is_empty() { None } else { Some(req.source_branch.as_str()) };
-        let target_filter = if req.target_branch.is_empty() { None } else { Some(req.target_branch.as_str()) };
-        let priority_filter = if req.priority == 0 { None } else { Some(req.priority as u32) };
+        let status_filter = if req.status.is_empty() {
+            None
+        } else {
+            Some(req.status.as_str())
+        };
+        let source_filter = if req.source_branch.is_empty() {
+            None
+        } else {
+            Some(req.source_branch.as_str())
+        };
+        let target_filter = if req.target_branch.is_empty() {
+            None
+        } else {
+            Some(req.target_branch.as_str())
+        };
+        let priority_filter = if req.priority == 0 {
+            None
+        } else {
+            Some(req.priority as u32)
+        };
 
-        match list_prs(project_path, status_filter, source_filter, target_filter, priority_filter, false).await {
+        match list_prs(
+            project_path,
+            status_filter,
+            source_filter,
+            target_filter,
+            priority_filter,
+            false,
+        )
+        .await
+        {
             Ok(prs) => {
                 let total_count = prs.len() as i32;
                 Ok(Response::new(ListPrsResponse {
-                    prs: prs.into_iter().map(|p| pr_to_proto(&p, priority_levels)).collect(),
+                    prs: prs
+                        .into_iter()
+                        .map(|p| pr_to_proto(&p, priority_levels))
+                        .collect(),
                     total_count,
                 }))
             }
@@ -2018,13 +2262,41 @@ impl CentyDaemon for CentyDaemonService {
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         let options = UpdatePrOptions {
-            title: if req.title.is_empty() { None } else { Some(req.title) },
-            description: if req.description.is_empty() { None } else { Some(req.description) },
-            status: if req.status.is_empty() { None } else { Some(req.status) },
-            source_branch: if req.source_branch.is_empty() { None } else { Some(req.source_branch) },
-            target_branch: if req.target_branch.is_empty() { None } else { Some(req.target_branch) },
-            reviewers: if req.reviewers.is_empty() { None } else { Some(req.reviewers) },
-            priority: if req.priority == 0 { None } else { Some(req.priority as u32) },
+            title: if req.title.is_empty() {
+                None
+            } else {
+                Some(req.title)
+            },
+            description: if req.description.is_empty() {
+                None
+            } else {
+                Some(req.description)
+            },
+            status: if req.status.is_empty() {
+                None
+            } else {
+                Some(req.status)
+            },
+            source_branch: if req.source_branch.is_empty() {
+                None
+            } else {
+                Some(req.source_branch)
+            },
+            target_branch: if req.target_branch.is_empty() {
+                None
+            } else {
+                Some(req.target_branch)
+            },
+            reviewers: if req.reviewers.is_empty() {
+                None
+            } else {
+                Some(req.reviewers)
+            },
+            priority: if req.priority == 0 {
+                None
+            } else {
+                Some(req.priority as u32)
+            },
             custom_fields: req.custom_fields,
         };
 
@@ -2175,7 +2447,10 @@ impl CentyDaemon for CentyDaemonService {
             Ok(issues) => {
                 let total_count = issues.len() as i32;
                 Ok(Response::new(ListUncompactedIssuesResponse {
-                    issues: issues.into_iter().map(|i| issue_to_proto(&i, priority_levels)).collect(),
+                    issues: issues
+                        .into_iter()
+                        .map(|i| issue_to_proto(&i, priority_levels))
+                        .collect(),
                     total_count,
                 }))
             }
@@ -2353,7 +2628,11 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         // Get project config for priority levels
-        let project_config = read_config(project_path).await.ok().flatten().unwrap_or_default();
+        let project_config = read_config(project_path)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
         let priority_levels = project_config.priority_levels;
 
         // Resolve agent name
@@ -2595,7 +2874,11 @@ impl CentyDaemon for CentyDaemonService {
             source_type,
             target_id: req.target_id,
             target_type,
-            link_type: if req.link_type.is_empty() { None } else { Some(req.link_type) },
+            link_type: if req.link_type.is_empty() {
+                None
+            } else {
+                Some(req.link_type)
+            },
         };
 
         match delete_link(project_path, options, &custom_types).await {
@@ -2625,7 +2908,11 @@ impl CentyDaemon for CentyDaemonService {
 
         match list_links(project_path, &req.entity_id, entity_type).await {
             Ok(links_file) => Ok(Response::new(ListLinksResponse {
-                links: links_file.links.iter().map(internal_link_to_proto).collect(),
+                links: links_file
+                    .links
+                    .iter()
+                    .map(internal_link_to_proto)
+                    .collect(),
                 total_count: links_file.links.len() as i32,
             })),
             Err(e) => Err(Status::internal(e.to_string())),
@@ -2675,7 +2962,11 @@ impl CentyDaemon for CentyDaemonService {
         let options = CreateUserOptions {
             id: req.id,
             name: req.name,
-            email: if req.email.is_empty() { None } else { Some(req.email) },
+            email: if req.email.is_empty() {
+                None
+            } else {
+                Some(req.email)
+            },
             git_usernames: req.git_usernames,
         };
 
@@ -2744,8 +3035,16 @@ impl CentyDaemon for CentyDaemonService {
         let project_path = Path::new(&req.project_path);
 
         let options = UpdateUserOptions {
-            name: if req.name.is_empty() { None } else { Some(req.name) },
-            email: if req.email.is_empty() { None } else { Some(req.email) },
+            name: if req.name.is_empty() {
+                None
+            } else {
+                Some(req.name)
+            },
+            email: if req.email.is_empty() {
+                None
+            } else {
+                Some(req.email)
+            },
             git_usernames: if req.git_usernames.is_empty() {
                 None
             } else {
@@ -3198,8 +3497,13 @@ impl CentyDaemon for CentyDaemonService {
             .as_ref()
             .and_then(|c| c.agents.iter().find(|a| a.name == agent_name).cloned());
 
-        let (agent_command, agent_args, stdin_prompt_needed) = if let Some(ref agent) = agent_config {
-            (agent.command.clone(), agent.default_args.clone(), agent.stdin_prompt)
+        let (agent_command, agent_args, stdin_prompt_needed) = if let Some(ref agent) = agent_config
+        {
+            (
+                agent.command.clone(),
+                agent.default_args.clone(),
+                agent.stdin_prompt,
+            )
         } else {
             // Default to using the agent name as the command
             (agent_name.clone(), Vec::new(), false)
@@ -3246,10 +3550,7 @@ impl CentyDaemon for CentyDaemonService {
                     ttl_hours: req.ttl_hours,
                 };
                 match create_temp_workspace(options).await {
-                    Ok(result) => (
-                        result.workspace_path,
-                        Some(result.entry.expires_at),
-                    ),
+                    Ok(result) => (result.workspace_path, Some(result.entry.expires_at)),
                     Err(e) => {
                         return Ok(Response::new(OpenAgentInTerminalResponse {
                             success: false,
@@ -3413,7 +3714,13 @@ impl CentyDaemon for CentyDaemonService {
         let allowed_states = config
             .as_ref()
             .map(|c| c.allowed_states.clone())
-            .unwrap_or_else(|| vec!["open".to_string(), "in-progress".to_string(), "closed".to_string()]);
+            .unwrap_or_else(|| {
+                vec![
+                    "open".to_string(),
+                    "in-progress".to_string(),
+                    "closed".to_string(),
+                ]
+            });
 
         // Check if VSCode is available
         let vscode_available = is_vscode_available();
@@ -3532,7 +3839,8 @@ impl CentyDaemon for CentyDaemonService {
 
                     // Status actions - contextual based on current status
                     for state in &allowed_states {
-                        let is_current = entity_status.as_ref().map(|s| s == state).unwrap_or(false);
+                        let is_current =
+                            entity_status.as_ref().map(|s| s == state).unwrap_or(false);
                         actions.push(EntityAction {
                             id: format!("status:{state}"),
                             label: format!("Mark as {}", capitalize_first(state)),
@@ -3628,9 +3936,13 @@ impl CentyDaemon for CentyDaemonService {
                     // PR status actions
                     let pr_states = vec!["draft", "open", "merged", "closed"];
                     for state in &pr_states {
-                        let is_current = entity_status.as_ref().map(|s| s == *state).unwrap_or(false);
+                        let is_current =
+                            entity_status.as_ref().map(|s| s == *state).unwrap_or(false);
                         let is_terminal = *state == "merged" || *state == "closed";
-                        let current_is_terminal = entity_status.as_ref().map(|s| s == "merged" || s == "closed").unwrap_or(false);
+                        let current_is_terminal = entity_status
+                            .as_ref()
+                            .map(|s| s == "merged" || s == "closed")
+                            .unwrap_or(false);
 
                         actions.push(EntityAction {
                             id: format!("status:{state}"),
@@ -3746,7 +4058,10 @@ impl CentyDaemon for CentyDaemonService {
         Ok(Response::new(proto::GetSyncConflictResponse {
             conflict: None,
             success: false,
-            error: format!("Sync feature disabled. Conflict not found: {}", req.conflict_id),
+            error: format!(
+                "Sync feature disabled. Conflict not found: {}",
+                req.conflict_id
+            ),
         }))
     }
 
@@ -3902,15 +4217,23 @@ fn config_to_proto(config: &CentyConfig) -> Config {
 }
 
 fn proto_to_config(proto: &Config) -> CentyConfig {
-    let llm_config = proto.llm.as_ref().map(|l| InternalLlmConfig {
-        auto_close_on_complete: l.auto_close_on_complete,
-        update_status_on_start: l.update_status_on_start,
-        allow_direct_edits: l.allow_direct_edits,
-        default_workspace_mode: l.default_workspace_mode,
-    }).unwrap_or_default();
+    let llm_config = proto
+        .llm
+        .as_ref()
+        .map(|l| InternalLlmConfig {
+            auto_close_on_complete: l.auto_close_on_complete,
+            update_status_on_start: l.update_status_on_start,
+            allow_direct_edits: l.allow_direct_edits,
+            default_workspace_mode: l.default_workspace_mode,
+        })
+        .unwrap_or_default();
 
     CentyConfig {
-        version: if proto.version.is_empty() { None } else { Some(proto.version.clone()) },
+        version: if proto.version.is_empty() {
+            None
+        } else {
+            Some(proto.version.clone())
+        },
         priority_levels: proto.priority_levels as u32,
         custom_fields: proto
             .custom_fields
@@ -3919,7 +4242,11 @@ fn proto_to_config(proto: &Config) -> CentyConfig {
                 name: f.name.clone(),
                 field_type: f.field_type.clone(),
                 required: f.required,
-                default_value: if f.default_value.is_empty() { None } else { Some(f.default_value.clone()) },
+                default_value: if f.default_value.is_empty() {
+                    None
+                } else {
+                    Some(f.default_value.clone())
+                },
                 enum_values: f.enum_values.clone(),
             })
             .collect(),

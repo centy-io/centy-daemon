@@ -1,6 +1,6 @@
+use super::managed_files::get_managed_files;
 use crate::manifest::ManagedFileType;
 use crate::utils::{compute_file_hash, compute_hash, get_centy_path};
-use super::managed_files::get_managed_files;
 use std::collections::HashSet;
 use std::path::Path;
 use thiserror::Error;
@@ -42,14 +42,16 @@ pub struct ReconciliationPlan {
 
 impl ReconciliationPlan {
     /// Check if user decisions are needed
-    #[must_use] 
+    #[must_use]
     pub fn needs_decisions(&self) -> bool {
         !self.to_restore.is_empty() || !self.to_reset.is_empty()
     }
 }
 
 /// Build a reconciliation plan for the given project path
-pub async fn build_reconciliation_plan(project_path: &Path) -> Result<ReconciliationPlan, PlanError> {
+pub async fn build_reconciliation_plan(
+    project_path: &Path,
+) -> Result<ReconciliationPlan, PlanError> {
     let centy_path = get_centy_path(project_path);
     let managed_templates = get_managed_files();
 
@@ -74,9 +76,10 @@ pub async fn build_reconciliation_plan(project_path: &Path) -> Result<Reconcilia
                 .as_ref()
                 .map(|c| compute_hash(c))
                 .unwrap_or_default(),
-            content_preview: template.content.as_ref().map(|c| {
-                c.chars().take(100).collect::<String>()
-            }),
+            content_preview: template
+                .content
+                .as_ref()
+                .map(|c| c.chars().take(100).collect::<String>()),
         };
 
         if exists_on_disk {
@@ -173,4 +176,224 @@ async fn scan_centy_folder(centy_path: &Path) -> HashSet<String> {
     }
 
     files
+}
+
+#[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reconciliation_plan_default() {
+        let plan = ReconciliationPlan::default();
+
+        assert!(plan.to_create.is_empty());
+        assert!(plan.to_restore.is_empty());
+        assert!(plan.to_reset.is_empty());
+        assert!(plan.up_to_date.is_empty());
+        assert!(plan.user_files.is_empty());
+    }
+
+    #[test]
+    fn test_reconciliation_plan_needs_decisions_false_when_empty() {
+        let plan = ReconciliationPlan::default();
+        assert!(!plan.needs_decisions());
+    }
+
+    #[test]
+    fn test_reconciliation_plan_needs_decisions_true_when_restore_not_empty() {
+        let mut plan = ReconciliationPlan::default();
+        plan.to_restore.push(FileInfo {
+            path: "test.md".to_string(),
+            file_type: ManagedFileType::File,
+            hash: "abc123".to_string(),
+            content_preview: None,
+        });
+
+        assert!(plan.needs_decisions());
+    }
+
+    #[test]
+    fn test_reconciliation_plan_needs_decisions_true_when_reset_not_empty() {
+        let mut plan = ReconciliationPlan::default();
+        plan.to_reset.push(FileInfo {
+            path: "test.md".to_string(),
+            file_type: ManagedFileType::File,
+            hash: "abc123".to_string(),
+            content_preview: None,
+        });
+
+        assert!(plan.needs_decisions());
+    }
+
+    #[test]
+    fn test_file_info_initialization() {
+        let file_info = FileInfo {
+            path: "README.md".to_string(),
+            file_type: ManagedFileType::File,
+            hash: "abc123".to_string(),
+            content_preview: Some("# Title".to_string()),
+        };
+
+        assert_eq!(file_info.path, "README.md");
+        assert_eq!(file_info.file_type, ManagedFileType::File);
+        assert_eq!(file_info.hash, "abc123");
+        assert_eq!(file_info.content_preview, Some("# Title".to_string()));
+    }
+
+    #[test]
+    fn test_file_info_clone() {
+        let file_info = FileInfo {
+            path: "test.md".to_string(),
+            file_type: ManagedFileType::Directory,
+            hash: String::new(),
+            content_preview: None,
+        };
+
+        let cloned = file_info.clone();
+        assert_eq!(cloned.path, "test.md");
+        assert_eq!(cloned.file_type, ManagedFileType::Directory);
+    }
+
+    #[test]
+    fn test_file_info_debug() {
+        let file_info = FileInfo {
+            path: "debug.md".to_string(),
+            file_type: ManagedFileType::File,
+            hash: "hash123".to_string(),
+            content_preview: Some("preview".to_string()),
+        };
+
+        let debug_str = format!("{file_info:?}");
+        assert!(debug_str.contains("FileInfo"));
+        assert!(debug_str.contains("debug.md"));
+        assert!(debug_str.contains("hash123"));
+    }
+
+    #[test]
+    fn test_plan_error_display() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let plan_err = PlanError::IoError(io_err);
+
+        let display = format!("{plan_err}");
+        assert!(display.contains("IO error"));
+    }
+
+    #[tokio::test]
+    async fn test_build_reconciliation_plan_empty_directory() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let plan = build_reconciliation_plan(temp_dir.path())
+            .await
+            .expect("Should build plan");
+
+        // All managed files should be in to_create for fresh project
+        assert!(!plan.to_create.is_empty());
+        assert!(plan.to_restore.is_empty());
+        assert!(plan.to_reset.is_empty());
+        assert!(plan.up_to_date.is_empty());
+        assert!(plan.user_files.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_build_reconciliation_plan_includes_all_managed_files() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let plan = build_reconciliation_plan(temp_dir.path())
+            .await
+            .expect("Should build plan");
+
+        // Should have all 10 managed files to create
+        let managed_files = get_managed_files();
+        assert_eq!(plan.to_create.len(), managed_files.len());
+    }
+
+    #[tokio::test]
+    async fn test_scan_centy_folder_empty() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_path = temp_dir.path().join(".centy");
+        // Don't create the folder
+
+        let files = scan_centy_folder(&centy_path).await;
+        assert!(files.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_scan_centy_folder_with_files() {
+        use tempfile::tempdir;
+        use tokio::fs;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_path = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_path)
+            .await
+            .expect("Should create .centy");
+
+        // Create a file
+        fs::write(centy_path.join("test.txt"), "content")
+            .await
+            .expect("Should write file");
+
+        // Create a directory
+        fs::create_dir_all(centy_path.join("subdir"))
+            .await
+            .expect("Should create subdir");
+
+        let files = scan_centy_folder(&centy_path).await;
+        assert!(files.contains("test.txt"));
+        assert!(files.contains("subdir/"));
+    }
+
+    #[tokio::test]
+    async fn test_scan_centy_folder_skips_manifest() {
+        use tempfile::tempdir;
+        use tokio::fs;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_path = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_path)
+            .await
+            .expect("Should create .centy");
+
+        // Create manifest file
+        fs::write(centy_path.join(".centy-manifest.json"), "{}")
+            .await
+            .expect("Should write manifest");
+        // Create regular file
+        fs::write(centy_path.join("README.md"), "content")
+            .await
+            .expect("Should write readme");
+
+        let files = scan_centy_folder(&centy_path).await;
+
+        // Should include README but not manifest
+        assert!(files.contains("README.md"));
+        assert!(!files.contains(".centy-manifest.json"));
+    }
+
+    #[test]
+    fn test_reconciliation_plan_clone() {
+        let mut plan = ReconciliationPlan::default();
+        plan.to_create.push(FileInfo {
+            path: "test.md".to_string(),
+            file_type: ManagedFileType::File,
+            hash: "abc".to_string(),
+            content_preview: None,
+        });
+
+        let cloned = plan.clone();
+        assert_eq!(cloned.to_create.len(), 1);
+        assert_eq!(cloned.to_create[0].path, "test.md");
+    }
+
+    #[test]
+    fn test_reconciliation_plan_debug() {
+        let plan = ReconciliationPlan::default();
+        let debug_str = format!("{plan:?}");
+        assert!(debug_str.contains("ReconciliationPlan"));
+    }
 }

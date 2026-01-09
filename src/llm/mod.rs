@@ -12,13 +12,11 @@ pub use config::{
     write_project_local_config, AgentConfig, AgentType, LocalConfigError, LocalLlmConfig,
 };
 #[allow(unused_imports)]
-pub use prompt::{
-    LlmAction, PromptBuilder, PromptError,
-};
+pub use generate::{generate_title, GeneratedTitle, TitleGenerationError};
+#[allow(unused_imports)]
+pub use prompt::{LlmAction, PromptBuilder, PromptError};
 #[allow(unused_imports)]
 pub use work::{
-    clear_work_session, is_process_running, read_work_session,
-    record_work_session, LlmWorkSession, WorkTrackingError,
+    clear_work_session, is_process_running, read_work_session, record_work_session, LlmWorkSession,
+    WorkTrackingError,
 };
-#[allow(unused_imports)]
-pub use generate::{generate_title, GeneratedTitle, TitleGenerationError};

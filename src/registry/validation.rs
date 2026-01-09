@@ -1,7 +1,7 @@
 //! Validation service for registry operations
 
-use super::types::ProjectRegistry;
 use super::organizations::OrganizationError;
+use super::types::ProjectRegistry;
 use std::path::Path;
 
 /// Validation service for project and organization constraints

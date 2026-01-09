@@ -31,7 +31,6 @@ pub enum AgentType {
     Custom,
 }
 
-
 /// Configuration for a single agent
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,7 +64,7 @@ pub struct LocalLlmConfig {
 
 impl LocalLlmConfig {
     /// Create default config with predefined agents
-    #[must_use] 
+    #[must_use]
     pub fn with_defaults() -> Self {
         Self {
             default_agent: Some("claude".to_string()),
@@ -112,7 +111,7 @@ impl LocalLlmConfig {
     }
 
     /// Merge project config over global config
-    #[must_use] 
+    #[must_use]
     pub fn merge(global: Self, project: Self) -> Self {
         let mut merged = global;
 
@@ -137,13 +136,13 @@ impl LocalLlmConfig {
     }
 
     /// Get agent by name
-    #[must_use] 
+    #[must_use]
     pub fn get_agent(&self, name: &str) -> Option<&AgentConfig> {
         self.agents.iter().find(|a| a.name == name)
     }
 
     /// Get default agent
-    #[must_use] 
+    #[must_use]
     pub fn get_default_agent(&self) -> Option<&AgentConfig> {
         self.default_agent
             .as_ref()
@@ -241,9 +240,11 @@ pub async fn has_global_config() -> bool {
 }
 
 /// Check if project config exists
-#[must_use] 
+#[must_use]
 pub fn has_project_config(project_path: &Path) -> bool {
-    get_centy_path(project_path).join(LOCAL_CONFIG_FILE).exists()
+    get_centy_path(project_path)
+        .join(LOCAL_CONFIG_FILE)
+        .exists()
 }
 
 #[cfg(test)]
@@ -312,8 +313,14 @@ mod tests {
         assert_eq!(claude.plan_template, Some("my-plan".to_string()));
 
         // Both env vars should be present
-        assert_eq!(merged.env_vars.get("GLOBAL_KEY"), Some(&"global_value".to_string()));
-        assert_eq!(merged.env_vars.get("PROJECT_KEY"), Some(&"project_value".to_string()));
+        assert_eq!(
+            merged.env_vars.get("GLOBAL_KEY"),
+            Some(&"global_value".to_string())
+        );
+        assert_eq!(
+            merged.env_vars.get("PROJECT_KEY"),
+            Some(&"project_value".to_string())
+        );
     }
 
     #[test]
