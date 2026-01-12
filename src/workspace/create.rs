@@ -10,7 +10,7 @@ use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
 use crate::item::entities::issue::{copy_assets_folder, Issue};
 use crate::item::entities::pr::git::{create_worktree, is_git_repository, prune_worktrees};
-use crate::utils::{format_markdown, now_iso};
+use crate::utils::now_iso;
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 use tokio::fs;
@@ -123,65 +123,6 @@ fn calculate_expires_at(ttl_hours: u32) -> String {
     expires.to_rfc3339()
 }
 
-/// Create a plan.md template file for the "plan" action.
-///
-/// This gives the AI a clear target file to write the implementation plan to.
-async fn create_plan_template(
-    workspace_path: &Path,
-    issue_id: &str,
-    display_number: u32,
-    title: &str,
-) -> Result<(), WorkspaceError> {
-    let plan_content = format!(
-        r"# Implementation Plan for Issue #{display_number}
-
-**Issue ID**: {issue_id}
-**Title**: {title}
-
----
-
-## Overview
-
-<!-- Describe the high-level approach -->
-
-## Tasks
-
-<!-- Break down into specific, actionable tasks -->
-
-1.
-2.
-3.
-
-## Dependencies
-
-<!-- Note any prerequisites or blocking factors -->
-
-## Edge Cases
-
-<!-- Consider potential issues and how to handle them -->
-
-## Testing Strategy
-
-<!-- Outline how the implementation should be tested -->
-
----
-
-> **Note**: After completing this plan, save it using:
-> ```bash
-> centy add plan {display_number} --file .centy/issues/{issue_id}/plan.md
-> ```
-"
-    );
-
-    let plan_path = workspace_path
-        .join(".centy/issues")
-        .join(issue_id)
-        .join("plan.md");
-    fs::write(&plan_path, format_markdown(&plan_content)).await?;
-
-    Ok(())
-}
-
 /// Copy issue data from source project to workspace.
 ///
 /// Copies:
@@ -251,16 +192,6 @@ async fn setup_new_workspace(
 
     copy_issue_data_to_workspace(source_path, workspace_path, issue_id).await?;
     setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
-
-    if options.action == "plan" {
-        create_plan_template(
-            workspace_path,
-            issue_id,
-            display_number,
-            &options.issue.title,
-        )
-        .await?;
-    }
 
     let entry = TempWorkspaceEntry {
         source_project_path: source_path.to_string_lossy().to_string(),
