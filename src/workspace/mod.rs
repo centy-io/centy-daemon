@@ -53,6 +53,7 @@ pub enum WorkspaceError {
     VscodeError(String),
 
     #[error("Terminal failed to open: {0}")]
+    #[allow(dead_code)] // Used on macOS and Windows only
     TerminalError(String),
 
     #[error("No terminal emulator found")]
