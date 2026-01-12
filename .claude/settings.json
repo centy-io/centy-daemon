@@ -14,6 +14,7 @@
       "Bash(git merge:*)",
       "Bash(git remote:*)",
       "Bash(git log:*)",
+      "Bash(git stash show:*)",
       "Bash(git status:*)",
       "Bash(git push:*)",
       "Bash(git --version:*)",
