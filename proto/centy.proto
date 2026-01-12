@@ -252,8 +252,14 @@ service CentyDaemon {
 
   // ============ Temp Workspace RPCs ============
 
+  // Get list of supported workspace editors
+  rpc GetSupportedEditors(GetSupportedEditorsRequest) returns (GetSupportedEditorsResponse);
+
   // Open a project in a temporary VS Code workspace
-  rpc OpenInTempVscode(OpenInTempVscodeRequest) returns (OpenInTempVscodeResponse);
+  rpc OpenInTempVscode(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
+
+  // Open a project in a temporary terminal workspace
+  rpc OpenInTempTerminal(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
 
   // Open an agent in a terminal for working on an issue
   rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
@@ -1590,8 +1596,31 @@ message UpdateLocalLlmConfigResponse {
 
 // ============ Temp Workspace Messages ============
 
-// Request to open a project in a temporary VS Code workspace
-message OpenInTempVscodeRequest {
+// Editor type for opening workspaces
+enum EditorType {
+  EDITOR_TYPE_UNSPECIFIED = 0;
+  EDITOR_TYPE_VSCODE = 1;             // VS Code editor
+  EDITOR_TYPE_TERMINAL = 2;           // OS terminal
+}
+
+// Request to get supported editors (empty request)
+message GetSupportedEditorsRequest {}
+
+// Information about a supported editor
+message EditorInfo {
+  EditorType editor_type = 1;         // Editor type enum value
+  string name = 2;                    // Display name (e.g., "VS Code", "Terminal")
+  string description = 3;             // Brief description
+  bool available = 4;                 // Whether this editor is available on the current system
+}
+
+// Response with list of supported editors
+message GetSupportedEditorsResponse {
+  repeated EditorInfo editors = 1;    // List of supported editors
+}
+
+// Shared request for OpenInTempVscode and OpenInTempTerminal
+message OpenInTempWorkspaceRequest {
   string project_path = 1;              // Source project path
   string issue_id = 2;                  // Issue UUID or display number
   LlmAction action = 3;                 // Plan or Implement
@@ -1599,14 +1628,15 @@ message OpenInTempVscodeRequest {
   uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
 }
 
-message OpenInTempVscodeResponse {
+// Shared response for OpenInTempVscode and OpenInTempTerminal
+message OpenInTempWorkspaceResponse {
   bool success = 1;
   string error = 2;
   string workspace_path = 3;            // Path to the temp workspace
   string issue_id = 4;                  // Resolved issue UUID
   uint32 display_number = 5;            // Issue display number
   string expires_at = 6;                // ISO timestamp when workspace expires
-  bool vscode_opened = 7;               // Whether VS Code was successfully opened
+  bool editor_opened = 7;               // Whether the editor (VS Code or Terminal) was successfully opened
   bool requires_status_config = 8;      // True if user must configure update_status_on_start setting
   bool workspace_reused = 9;            // True if an existing workspace was reopened instead of creating new
   string original_created_at = 10;      // Original creation timestamp (only set if workspace_reused is true)

@@ -15,14 +15,16 @@ pub mod vscode;
 #[allow(unused_imports)]
 pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 #[allow(unused_imports)]
-pub use create::{create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult};
+pub use create::{
+    create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult, EditorType,
+};
 #[allow(unused_imports)]
 pub use storage::{
     add_workspace, find_workspace_for_issue, get_workspace, list_workspaces, read_registry,
     remove_workspace, update_workspace_expiration, write_registry,
 };
 #[allow(unused_imports)]
-pub use terminal::{is_terminal_available, open_terminal_with_agent};
+pub use terminal::{is_terminal_available, open_terminal, open_terminal_with_agent};
 #[allow(unused_imports)]
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
 #[allow(unused_imports)]
@@ -52,6 +54,10 @@ pub enum WorkspaceError {
 
     #[error("Terminal failed to open: {0}")]
     TerminalError(String),
+
+    #[error("No terminal emulator found")]
+    #[allow(dead_code)] // Used on Linux and unsupported platforms only
+    TerminalNotFound,
 
     #[error("Issue error: {0}")]
     IssueError(#[from] crate::item::entities::issue::IssueCrudError),

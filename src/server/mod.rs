@@ -81,7 +81,7 @@ use crate::workspace::{
     list_workspaces as internal_list_workspaces,
     terminal::{is_terminal_available, open_terminal_with_agent},
     vscode::is_vscode_available,
-    CreateWorkspaceOptions,
+    CreateWorkspaceOptions, EditorType,
 };
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -111,9 +111,10 @@ use proto::{
     DeleteOrganizationRequest, DeleteOrganizationResponse, DeletePrRequest, DeletePrResponse,
     DeleteUserRequest, DeleteUserResponse, Doc, DocMetadata, DocWithProject as ProtoDocWithProject,
     DuplicateDocRequest, DuplicateDocResponse, DuplicateIssueRequest, DuplicateIssueResponse,
-    EntityAction, EntityType, ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest,
-    GetAssetResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse,
-    GetCompactRequest, GetCompactResponse, GetConfigRequest, GetDaemonInfoRequest, GetDocRequest,
+    EditorInfo, EditorType as ProtoEditorType, EntityAction, EntityType,
+    ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest, GetAssetResponse,
+    GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, GetCompactRequest,
+    GetCompactResponse, GetConfigRequest, GetDaemonInfoRequest, GetDocRequest,
     GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
     GetFeatureStatusRequest, GetFeatureStatusResponse, GetInstructionRequest,
     GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest,
@@ -123,8 +124,9 @@ use proto::{
     GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
     GetPrByDisplayNumberRequest, GetPrRequest, GetProjectInfoRequest, GetProjectInfoResponse,
     GetProjectVersionRequest, GetPrsByUuidRequest, GetPrsByUuidResponse,
-    GetReconciliationPlanRequest, GetUserRequest, GitContributor as ProtoGitContributor,
-    InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
+    GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
+    GetUserRequest, GitContributor as ProtoGitContributor, InitRequest, InitResponse,
+    IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
     IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
     LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
     ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
@@ -134,7 +136,7 @@ use proto::{
     ListUsersRequest, ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
     MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse,
     MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
-    OpenInTempVscodeRequest, OpenInTempVscodeResponse, OrgDocSyncResult,
+    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
     PrWithProject as ProtoPrWithProject, ProjectVersionInfo, PullRequest, ReconciliationPlan,
     RegisterProjectRequest, RegisterProjectResponse, RestartRequest, RestartResponse,
@@ -3414,23 +3416,46 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn get_supported_editors(
+        &self,
+        _request: Request<GetSupportedEditorsRequest>,
+    ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
+        let editors = vec![
+            EditorInfo {
+                editor_type: ProtoEditorType::Vscode.into(),
+                name: "VS Code".to_string(),
+                description: "Open workspace in Visual Studio Code with auto-running agent task"
+                    .to_string(),
+                available: is_vscode_available(),
+            },
+            EditorInfo {
+                editor_type: ProtoEditorType::Terminal.into(),
+                name: "Terminal".to_string(),
+                description: "Open workspace in the OS terminal".to_string(),
+                available: is_terminal_available(),
+            },
+        ];
+
+        Ok(Response::new(GetSupportedEditorsResponse { editors }))
+    }
+
     async fn open_in_temp_vscode(
         &self,
-        request: Request<OpenInTempVscodeRequest>,
-    ) -> Result<Response<OpenInTempVscodeResponse>, Status> {
+        request: Request<OpenInTempWorkspaceRequest>,
+    ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
         let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
-            Ok(Response::new(OpenInTempVscodeResponse {
+            Ok(Response::new(OpenInTempWorkspaceResponse {
                 success: false,
                 error,
                 workspace_path: String::new(),
                 issue_id,
                 display_number: dn,
                 expires_at: String::new(),
-                vscode_opened: false,
+                editor_opened: false,
                 requires_status_config: req_cfg,
                 workspace_reused: false,
                 original_created_at: String::new(),
@@ -3493,17 +3518,119 @@ impl CentyDaemon for CentyDaemonService {
             action: action_str.to_string(),
             agent_name,
             ttl_hours: req.ttl_hours,
+            editor: EditorType::VSCode,
         })
         .await
         {
-            Ok(result) => Ok(Response::new(OpenInTempVscodeResponse {
+            Ok(result) => Ok(Response::new(OpenInTempWorkspaceResponse {
                 success: true,
                 error: String::new(),
                 workspace_path: result.workspace_path.to_string_lossy().to_string(),
                 issue_id: issue.id.clone(),
                 display_number: issue.metadata.display_number,
                 expires_at: result.entry.expires_at,
-                vscode_opened: result.vscode_opened,
+                editor_opened: result.editor_opened,
+                requires_status_config: false,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
+            })),
+            Err(e) => err_response(e.to_string(), String::new(), 0, false),
+        }
+    }
+
+    async fn open_in_temp_terminal(
+        &self,
+        request: Request<OpenInTempWorkspaceRequest>,
+    ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let action_str = match req.action {
+            1 => "plan",
+            2 => "implement",
+            _ => "plan",
+        };
+
+        let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
+            Ok(Response::new(OpenInTempWorkspaceResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                issue_id,
+                display_number: dn,
+                expires_at: String::new(),
+                editor_opened: false,
+                requires_status_config: req_cfg,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
+        let issue = match resolve_issue(project_path, &req.issue_id).await {
+            Ok(i) => i,
+            Err(e) => return err_response(e, String::new(), 0, false),
+        };
+
+        let config = read_config(project_path).await.ok().flatten();
+        if config
+            .as_ref()
+            .map(|c| c.llm.update_status_on_start.is_none())
+            .unwrap_or(true)
+        {
+            return err_response(
+                "Status update preference not configured".to_string(),
+                issue.id.clone(),
+                issue.metadata.display_number,
+                true,
+            );
+        }
+
+        if let Some(ref cfg) = config {
+            if cfg.llm.update_status_on_start == Some(true) {
+                let current_status = &issue.metadata.status;
+                if current_status != "in-progress" && current_status != "closed" {
+                    let _ = update_issue(
+                        project_path,
+                        &issue.id,
+                        UpdateIssueOptions {
+                            status: Some("in-progress".to_string()),
+                            ..Default::default()
+                        },
+                    )
+                    .await;
+                }
+            }
+        }
+
+        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
+        let agent_name = if req.agent_name.is_empty() {
+            llm_config
+                .as_ref()
+                .and_then(|c| c.default_agent.clone())
+                .unwrap_or_else(|| "default".to_string())
+        } else {
+            req.agent_name.clone()
+        };
+
+        match create_temp_workspace(CreateWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            issue: issue.clone(),
+            action: action_str.to_string(),
+            agent_name,
+            ttl_hours: req.ttl_hours,
+            editor: EditorType::Terminal,
+        })
+        .await
+        {
+            Ok(result) => Ok(Response::new(OpenInTempWorkspaceResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                expires_at: result.entry.expires_at,
+                editor_opened: result.editor_opened,
                 requires_status_config: false,
                 workspace_reused: result.workspace_reused,
                 original_created_at: result.original_created_at.unwrap_or_default(),
@@ -3616,6 +3743,7 @@ impl CentyDaemon for CentyDaemonService {
                 action: "agent".to_string(),
                 agent_name: agent_name.clone(),
                 ttl_hours: req.ttl_hours,
+                editor: EditorType::None, // Terminal is opened separately via open_terminal_with_agent
             })
             .await
             {

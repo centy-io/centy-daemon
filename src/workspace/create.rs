@@ -1,10 +1,11 @@
 //! Workspace creation logic.
 //!
-//! Handles creating temporary git worktrees with VS Code configuration.
+//! Handles creating temporary git worktrees with editor configuration.
 
 use super::storage::{
     add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration,
 };
+use super::terminal::open_terminal;
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::{open_vscode, setup_vscode_config};
 use super::WorkspaceError;
@@ -14,6 +15,18 @@ use crate::utils::now_iso;
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 use tokio::fs;
+
+/// The editor/environment to open the workspace in
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EditorType {
+    /// Open in VS Code (default)
+    #[default]
+    VSCode,
+    /// Open in OS terminal
+    Terminal,
+    /// Don't open any editor
+    None,
+}
 
 /// Options for creating a temporary workspace
 pub struct CreateWorkspaceOptions {
@@ -31,6 +44,9 @@ pub struct CreateWorkspaceOptions {
 
     /// TTL in hours (0 = use default)
     pub ttl_hours: u32,
+
+    /// Editor to open the workspace in (default: VS Code)
+    pub editor: EditorType,
 }
 
 /// Result of creating a temporary workspace
@@ -41,8 +57,8 @@ pub struct CreateWorkspaceResult {
     /// The workspace entry that was recorded
     pub entry: TempWorkspaceEntry,
 
-    /// Whether VS Code was successfully opened
-    pub vscode_opened: bool,
+    /// Whether the editor was successfully opened (VS Code or Terminal)
+    pub editor_opened: bool,
 
     /// Whether an existing workspace was reused instead of creating a new one
     pub workspace_reused: bool,
@@ -123,6 +139,15 @@ fn calculate_expires_at(ttl_hours: u32) -> String {
     expires.to_rfc3339()
 }
 
+/// Open the workspace in the specified editor.
+fn open_editor(editor: EditorType, workspace_path: &Path) -> bool {
+    match editor {
+        EditorType::VSCode => open_vscode(workspace_path).unwrap_or(false),
+        EditorType::Terminal => open_terminal(workspace_path).unwrap_or(false),
+        EditorType::None => false,
+    }
+}
+
 /// Copy issue data from source project to workspace.
 ///
 /// Copies:
@@ -180,7 +205,7 @@ async fn copy_issue_data_to_workspace(
 
 /// Create a temporary workspace for working on an issue.
 ///
-/// Set up a workspace with issue data, VS Code config, and registry entry.
+/// Set up a workspace with issue data, editor config (if VS Code), and registry entry.
 async fn setup_new_workspace(
     source_path: &Path,
     workspace_path: &Path,
@@ -191,7 +216,11 @@ async fn setup_new_workspace(
     let display_number = options.issue.metadata.display_number;
 
     copy_issue_data_to_workspace(source_path, workspace_path, issue_id).await?;
-    setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
+
+    // Only setup VS Code config for VS Code editor
+    if options.editor == EditorType::VSCode {
+        setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
+    }
 
     let entry = TempWorkspaceEntry {
         source_project_path: source_path.to_string_lossy().to_string(),
@@ -240,9 +269,9 @@ fn handle_worktree_creation(
 /// 1. Checks if an existing workspace for this issue already exists (reopen if so)
 /// 2. Validates the source project is a git repository
 /// 3. Creates a git worktree at a temporary location
-/// 4. Sets up VS Code configuration with auto-run task
+/// 4. Sets up editor configuration (VS Code tasks.json for VS Code mode)
 /// 5. Records the workspace in the registry
-/// 6. Opens VS Code (if available)
+/// 6. Opens the selected editor (VS Code, Terminal, or None)
 pub async fn create_temp_workspace(
     options: CreateWorkspaceOptions,
 ) -> Result<CreateWorkspaceResult, WorkspaceError> {
@@ -282,7 +311,7 @@ pub async fn create_temp_workspace(
                     expires_at: new_expires_at,
                     ..existing_entry
                 },
-                vscode_opened: open_vscode(&workspace_path).unwrap_or(false),
+                editor_opened: open_editor(options.editor, &workspace_path),
                 workspace_reused: true,
                 original_created_at: Some(original_created_at),
             });
@@ -294,12 +323,12 @@ pub async fn create_temp_workspace(
     let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
 
     let entry = setup_new_workspace(source_path, &workspace_path, &options, ttl_hours).await?;
-    let vscode_opened = open_vscode(&workspace_path).unwrap_or(false);
+    let editor_opened = open_editor(options.editor, &workspace_path);
 
     Ok(CreateWorkspaceResult {
         workspace_path,
         entry,
-        vscode_opened,
+        editor_opened,
         workspace_reused: worktree_reused,
         original_created_at: None,
     })

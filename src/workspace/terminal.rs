@@ -6,6 +6,17 @@ use super::WorkspaceError;
 use std::path::Path;
 use std::process::Command;
 
+/// Open a terminal at the specified directory.
+///
+/// This is the terminal equivalent of `open_vscode` - it opens a new terminal
+/// window at the specified directory without running any command.
+///
+/// Returns Ok(true) if terminal was opened, Ok(false) if terminal is not available,
+/// or Err if terminal failed to open.
+pub fn open_terminal(workspace_path: &Path) -> Result<bool, WorkspaceError> {
+    open_platform_terminal(workspace_path, "clear")
+}
+
 /// Open a terminal with the specified agent command at the given working directory.
 ///
 /// The terminal will:
