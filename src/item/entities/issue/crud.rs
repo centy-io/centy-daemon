@@ -323,6 +323,97 @@ pub async fn get_issue_by_display_number(
     Err(IssueCrudError::IssueDisplayNumberNotFound(display_number))
 }
 
+/// Struct holding applied update values after merging options with current issue
+struct AppliedIssueUpdates {
+    title: String,
+    description: String,
+    status: String,
+    priority: u32,
+    custom_fields: HashMap<String, String>,
+    draft: bool,
+}
+
+/// Build updated metadata struct from current issue and applied updates
+fn build_updated_metadata(current: &Issue, updates: &AppliedIssueUpdates) -> IssueMetadata {
+    IssueMetadata {
+        common: crate::common::CommonMetadata {
+            display_number: current.metadata.display_number,
+            status: updates.status.clone(),
+            priority: updates.priority,
+            created_at: current.metadata.created_at.clone(),
+            updated_at: now_iso(),
+            custom_fields: updates
+                .custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect(),
+        },
+        compacted: current.metadata.compacted,
+        compacted_at: current.metadata.compacted_at.clone(),
+        draft: updates.draft,
+        deleted_at: current.metadata.deleted_at.clone(),
+        is_org_issue: current.metadata.is_org_issue,
+        org_slug: current.metadata.org_slug.clone(),
+        org_display_number: current.metadata.org_display_number,
+    }
+}
+
+/// Handle planning note transitions when status changes
+async fn handle_planning_note_in_content(
+    issue_md: &str,
+    old_status: &str,
+    new_status: &str,
+    issue_path: &Path,
+) -> std::io::Result<String> {
+    let transitioning_to_planning =
+        !is_planning_status(old_status) && is_planning_status(new_status);
+    let staying_in_planning = is_planning_status(old_status) && is_planning_status(new_status);
+
+    if transitioning_to_planning {
+        Ok(add_planning_note(issue_md))
+    } else if staying_in_planning {
+        let current_issue_md = fs::read_to_string(issue_path.join("issue.md")).await?;
+        if has_planning_note(&current_issue_md) {
+            Ok(add_planning_note(issue_md))
+        } else {
+            Ok(issue_md.to_string())
+        }
+    } else {
+        Ok(issue_md.to_string())
+    }
+}
+
+/// Build Issue struct from update results
+fn build_issue_struct(
+    issue_number: &str,
+    updates: &AppliedIssueUpdates,
+    current: &Issue,
+    updated_at: &str,
+) -> Issue {
+    #[allow(deprecated)]
+    Issue {
+        id: issue_number.to_string(),
+        issue_number: issue_number.to_string(),
+        title: updates.title.clone(),
+        description: updates.description.clone(),
+        metadata: IssueMetadataFlat {
+            display_number: current.metadata.display_number,
+            status: updates.status.clone(),
+            priority: updates.priority,
+            created_at: current.metadata.created_at.clone(),
+            updated_at: updated_at.to_string(),
+            custom_fields: updates.custom_fields.clone(),
+            compacted: current.metadata.compacted,
+            compacted_at: current.metadata.compacted_at.clone(),
+            draft: updates.draft,
+            deleted_at: current.metadata.deleted_at.clone(),
+            is_org_issue: current.metadata.is_org_issue,
+            org_slug: current.metadata.org_slug.clone(),
+            org_display_number: current.metadata.org_display_number,
+        },
+    }
+}
+
 /// Search for issues by UUID across all tracked projects
 /// This is a global search that doesn't require a project_path
 pub async fn get_issues_by_uuid(
@@ -383,7 +474,6 @@ pub async fn get_issues_by_uuid(
 }
 
 /// Update an existing issue
-#[allow(clippy::too_many_lines)]
 pub async fn update_issue(
     project_path: &Path,
     issue_number: &str,
@@ -405,93 +495,55 @@ pub async fn update_issue(
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-    // Read current issue
+    // Read current issue and capture old status for planning note transitions
     let current = read_issue_from_disk(&issue_path, issue_number).await?;
-
-    // Capture old status before it gets moved
     let old_status = current.metadata.status.clone();
+    // Apply updates (clone to preserve current for later use)
+    let new_title = options.title.unwrap_or_else(|| current.title.clone());
+    let new_description = options
+        .description
+        .unwrap_or_else(|| current.description.clone());
+    let new_status = options
+        .status
+        .unwrap_or_else(|| current.metadata.status.clone());
 
-    // Apply updates
-    let new_title = options.title.unwrap_or(current.title);
-    let new_description = options.description.unwrap_or(current.description);
-    let new_status = options.status.unwrap_or(current.metadata.status);
-
-    // Strict validation: reject if status is not in allowed_states
+    // Validate status and priority
     if let Some(ref config) = config {
         validate_status(&new_status, &config.allowed_states)?;
     }
-
-    // Validate and apply priority update
-    let new_priority = match options.priority {
-        Some(p) => {
-            validate_priority(p, priority_levels)?;
-            p
-        }
-        None => current.metadata.priority,
+    // Apply priority update
+    let new_priority = if let Some(p) = options.priority {
+        validate_priority(p, priority_levels)?;
+        p
+    } else {
+        current.metadata.priority
     };
 
-    // Merge custom fields
-    let mut new_custom_fields = current.metadata.custom_fields;
+    // Merge custom fields and build applied updates struct
+    let mut new_custom_fields = current.metadata.custom_fields.clone();
     for (key, value) in options.custom_fields {
         new_custom_fields.insert(key, value);
     }
-
-    // Apply draft update
-    let new_draft = options.draft.unwrap_or(current.metadata.draft);
-
-    // Create updated metadata (preserving org fields)
-    let updated_metadata = IssueMetadata {
-        common: crate::common::CommonMetadata {
-            display_number: current.metadata.display_number,
-            status: new_status.clone(),
-            priority: new_priority,
-            created_at: current.metadata.created_at.clone(),
-            updated_at: now_iso(),
-            custom_fields: new_custom_fields
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                .collect(),
-        },
-        compacted: current.metadata.compacted,
-        compacted_at: current.metadata.compacted_at.clone(),
-        draft: new_draft,
-        deleted_at: current.metadata.deleted_at.clone(),
-        is_org_issue: current.metadata.is_org_issue,
-        org_slug: current.metadata.org_slug.clone(),
-        org_display_number: current.metadata.org_display_number,
+    let updates = AppliedIssueUpdates {
+        title: new_title,
+        description: new_description,
+        status: new_status,
+        priority: new_priority,
+        custom_fields: new_custom_fields,
+        draft: options.draft.unwrap_or(current.metadata.draft),
     };
 
-    // Generate updated content
-    let mut issue_md = generate_issue_md(&new_title, &new_description);
-
-    // Handle planning note based on status transition
-    let transitioning_to_planning =
-        !is_planning_status(&old_status) && is_planning_status(&new_status);
-    let _transitioning_from_planning =
-        is_planning_status(&old_status) && !is_planning_status(&new_status);
-    let staying_in_planning = is_planning_status(&old_status) && is_planning_status(&new_status);
-
-    if transitioning_to_planning {
-        // Add planning note when transitioning TO planning
-        issue_md = add_planning_note(&issue_md);
-    } else if staying_in_planning {
-        // Keep planning note when staying in planning
-        // Read current issue.md to check if note exists
-        let current_issue_md = fs::read_to_string(issue_path.join("issue.md")).await?;
-        if has_planning_note(&current_issue_md) {
-            issue_md = add_planning_note(&issue_md);
-        }
-    }
-    // Note: transitioning_from_planning doesn't need handling because
-    // generate_issue_md produces clean content without the note
+    // Build updated metadata and generate content with planning note handling
+    let updated_metadata = build_updated_metadata(&current, &updates);
+    let base_issue_md = generate_issue_md(&updates.title, &updates.description);
+    let issue_md =
+        handle_planning_note_in_content(&base_issue_md, &old_status, &updates.status, &issue_path)
+            .await?;
 
     // Write files
-    let issue_md_path = issue_path.join("issue.md");
-    let metadata_path = issue_path.join("metadata.json");
-
-    fs::write(&issue_md_path, &issue_md).await?;
+    fs::write(issue_path.join("issue.md"), &issue_md).await?;
     fs::write(
-        &metadata_path,
+        issue_path.join("metadata.json"),
         serde_json::to_string_pretty(&updated_metadata)?,
     )
     .await?;
@@ -500,28 +552,13 @@ pub async fn update_issue(
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    #[allow(deprecated)]
-    let issue = Issue {
-        id: issue_number.to_string(),
-        issue_number: issue_number.to_string(), // Legacy field
-        title: new_title,
-        description: new_description,
-        metadata: IssueMetadataFlat {
-            display_number: current.metadata.display_number,
-            status: new_status,
-            priority: new_priority,
-            created_at: current.metadata.created_at,
-            updated_at: updated_metadata.common.updated_at.clone(),
-            custom_fields: new_custom_fields,
-            compacted: current.metadata.compacted,
-            compacted_at: current.metadata.compacted_at,
-            draft: new_draft,
-            deleted_at: current.metadata.deleted_at,
-            is_org_issue: current.metadata.is_org_issue,
-            org_slug: current.metadata.org_slug.clone(),
-            org_display_number: current.metadata.org_display_number,
-        },
-    };
+    // Build result issue struct using helper
+    let issue = build_issue_struct(
+        issue_number,
+        &updates,
+        &current,
+        &updated_metadata.common.updated_at,
+    );
 
     // Sync to other org projects if this is an org issue
     let sync_results = if issue.metadata.is_org_issue {
