@@ -88,19 +88,13 @@ Do NOT implement anything yet. Focus on creating a clear, comprehensive plan tha
 
 ## Saving Your Plan
 
-After creating your plan, you MUST save it using the centy CLI:
+After creating your plan, save it using the centy CLI:
 
-1. Write your plan to a file called `plan.md`
-2. Save it to the issue using: `centy add plan <ISSUE_ID> --file plan.md`
-   - Use the issue ID from the Issue Details section below (either the UUID or the display number like `1`, `2`, etc.)
-3. Delete the temporary `plan.md` file after saving
-
-Example:
 ```bash
-# Write plan to file, then save to issue
-centy add plan 42 --file plan.md
-rm plan.md
+centy add plan <ISSUE_ID> --file <path-to-plan-file>
 ```
+
+Use the issue ID from the Issue Details section below (either the UUID or the display number like `1`, `2`, etc.)
 
 ---
 
