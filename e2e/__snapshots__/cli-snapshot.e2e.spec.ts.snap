@@ -1,0 +1,117 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CLI with Filesystem Snapshots > Project Initialization Flow > should create .centy directory structure on init > init-diff 1`] = `
+{
+  "added": [
+    ".centy",
+    ".centy/.centy-manifest.json",
+    ".centy/README.md",
+    ".centy/assets",
+    ".centy/cspell.json",
+    ".centy/docs",
+    ".centy/issues",
+    ".centy/issues/README.md",
+    ".centy/templates",
+    ".centy/templates/README.md",
+    ".centy/templates/docs",
+    ".centy/templates/issues",
+  ],
+  "modified": [],
+  "removed": [],
+}
+`;
+
+exports[`CLI with Filesystem Snapshots > Project Initialization Flow > should create .centy directory structure on init > init-file-structure 1`] = `
+{
+  "byExtension": {
+    ".json": [
+      ".centy/.centy-manifest.json",
+      ".centy/cspell.json",
+    ],
+    ".md": [
+      ".centy/README.md",
+      ".centy/issues/README.md",
+      ".centy/templates/README.md",
+    ],
+  },
+  "directories": [
+    ".centy",
+    ".centy/assets",
+    ".centy/docs",
+    ".centy/issues",
+    ".centy/templates",
+    ".centy/templates/docs",
+    ".centy/templates/issues",
+  ],
+  "files": [
+    ".centy/.centy-manifest.json",
+    ".centy/README.md",
+    ".centy/cspell.json",
+    ".centy/issues/README.md",
+    ".centy/templates/README.md",
+  ],
+}
+`;
+
+exports[`CLI with Filesystem Snapshots > Snapshot Structure Tests > should match file extensions breakdown > file-extensions 1`] = `
+{
+  ".json": [
+    ".centy/.centy-manifest.json",
+    ".centy/cspell.json",
+    ".centy/issues/4fe7ea73-1129-40d8-a698-d657108fc644/metadata.json",
+  ],
+  ".md": [
+    ".centy/README.md",
+    ".centy/docs/test-doc.md",
+    ".centy/issues/4fe7ea73-1129-40d8-a698-d657108fc644/issue.md",
+    ".centy/issues/README.md",
+    ".centy/templates/README.md",
+  ],
+}
+`;
+
+exports[`CLI with Filesystem Snapshots > Snapshot Structure Tests > should match full project structure > full-project-structure 1`] = `
+{
+  "byExtension": {
+    ".json": [
+      ".centy/.centy-manifest.json",
+      ".centy/cspell.json",
+      ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2/metadata.json",
+      ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee/metadata.json",
+    ],
+    ".md": [
+      ".centy/README.md",
+      ".centy/docs/test-doc.md",
+      ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2/issue.md",
+      ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee/issue.md",
+      ".centy/issues/README.md",
+      ".centy/templates/README.md",
+    ],
+  },
+  "directories": [
+    ".centy",
+    ".centy/assets",
+    ".centy/docs",
+    ".centy/issues",
+    ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2",
+    ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2/assets",
+    ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee",
+    ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee/assets",
+    ".centy/templates",
+    ".centy/templates/docs",
+    ".centy/templates/issues",
+  ],
+  "files": [
+    ".centy/.centy-manifest.json",
+    ".centy/README.md",
+    ".centy/cspell.json",
+    ".centy/docs/test-doc.md",
+    ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2/issue.md",
+    ".centy/issues/518b9dfb-7612-417c-b233-94ea205f6ad2/metadata.json",
+    ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee/issue.md",
+    ".centy/issues/959b7829-1f75-4032-84f7-de187585fcee/metadata.json",
+    ".centy/issues/README.md",
+    ".centy/templates/README.md",
+  ],
+}
+`;
