@@ -1,7 +1,8 @@
 {
   "version": "0.2",
   "ignorePaths": [
-    "**/pnpm-lock.yaml"
+    "**/pnpm-lock.yaml",
+    "target/**"
   ],
   "words": [
     "aarch",
@@ -18,6 +19,7 @@
     "darwin",
     "deepdive",
     "displaynumber",
+    "Duplicable",
     "esbuild",
     "frontmatter",
     "fullstorydev",
@@ -46,12 +48,15 @@
     "osascript",
     "parseable",
     "peekable",
+    "pkill",
     "prerelease",
+    "prepush",
     "prio",
     "println",
     "promp",
     "prost",
     "protobufjs",
+    "pullrequest",
     "protoc",
     "pwsh",
     "quicktime",
@@ -69,6 +74,7 @@
     "softprops",
     "Syncable",
     "startmode",
+    "Statusable",
     "TARGETDIR",
     "tasklist",
     "tauri",
