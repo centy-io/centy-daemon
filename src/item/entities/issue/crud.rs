@@ -382,14 +382,126 @@ pub async fn get_issues_by_uuid(
     })
 }
 
+/// Holds the resolved values after applying update options to current issue
+struct AppliedIssueUpdates {
+    title: String,
+    description: String,
+    status: String,
+    priority: u32,
+    custom_fields: HashMap<String, String>,
+    draft: bool,
+}
+
+/// Apply update options to current issue values, validating as needed
+fn apply_issue_updates(
+    current: &Issue,
+    options: UpdateIssueOptions,
+    config: Option<&crate::config::CentyConfig>,
+    priority_levels: u32,
+) -> Result<AppliedIssueUpdates, IssueCrudError> {
+    let title = options.title.unwrap_or_else(|| current.title.clone());
+    let description = options
+        .description
+        .unwrap_or_else(|| current.description.clone());
+    let status = options
+        .status
+        .unwrap_or_else(|| current.metadata.status.clone());
+
+    // Strict validation: reject if status is not in allowed_states
+    if let Some(cfg) = config {
+        validate_status(&status, &cfg.allowed_states)?;
+    }
+
+    // Validate and apply priority update
+    let priority = match options.priority {
+        Some(p) => {
+            validate_priority(p, priority_levels)?;
+            p
+        }
+        None => current.metadata.priority,
+    };
+
+    // Merge custom fields
+    let mut custom_fields = current.metadata.custom_fields.clone();
+    for (key, value) in options.custom_fields {
+        custom_fields.insert(key, value);
+    }
+
+    let draft = options.draft.unwrap_or(current.metadata.draft);
+
+    Ok(AppliedIssueUpdates {
+        title,
+        description,
+        status,
+        priority,
+        custom_fields,
+        draft,
+    })
+}
+
+/// Build issue markdown content, handling planning note transitions based on status change
+async fn build_issue_md_with_planning_note(
+    title: &str,
+    description: &str,
+    old_status: &str,
+    new_status: &str,
+    issue_path: &Path,
+) -> Result<String, IssueCrudError> {
+    let mut issue_md = generate_issue_md(title, description);
+
+    let transitioning_to_planning =
+        !is_planning_status(old_status) && is_planning_status(new_status);
+    let staying_in_planning = is_planning_status(old_status) && is_planning_status(new_status);
+
+    if transitioning_to_planning {
+        issue_md = add_planning_note(&issue_md);
+    } else if staying_in_planning {
+        let current_issue_md = fs::read_to_string(issue_path.join("issue.md")).await?;
+        if has_planning_note(&current_issue_md) {
+            issue_md = add_planning_note(&issue_md);
+        }
+    }
+
+    Ok(issue_md)
+}
+
+/// Build the Issue struct for update response
+#[allow(deprecated)]
+fn build_issue_from_update(
+    issue_number: &str,
+    updates: &AppliedIssueUpdates,
+    current: &Issue,
+    updated_at: String,
+) -> Issue {
+    Issue {
+        id: issue_number.to_string(),
+        issue_number: issue_number.to_string(),
+        title: updates.title.clone(),
+        description: updates.description.clone(),
+        metadata: IssueMetadataFlat {
+            display_number: current.metadata.display_number,
+            status: updates.status.clone(),
+            priority: updates.priority,
+            created_at: current.metadata.created_at.clone(),
+            updated_at,
+            custom_fields: updates.custom_fields.clone(),
+            compacted: current.metadata.compacted,
+            compacted_at: current.metadata.compacted_at.clone(),
+            draft: updates.draft,
+            deleted_at: current.metadata.deleted_at.clone(),
+            is_org_issue: current.metadata.is_org_issue,
+            org_slug: current.metadata.org_slug.clone(),
+            org_display_number: current.metadata.org_display_number,
+        },
+    }
+}
+
 /// Update an existing issue
-#[allow(clippy::too_many_lines)]
 pub async fn update_issue(
     project_path: &Path,
     issue_number: &str,
     options: UpdateIssueOptions,
 ) -> Result<UpdateIssueResult, IssueCrudError> {
-    // Check if centy is initialized
     let mut manifest = read_manifest(project_path)
         .await?
         .ok_or(IssueCrudError::NotInitialized)?;
@@ -401,127 +513,60 @@ pub async fn update_issue(
         return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
     }
 
-    // Read config for priority_levels validation
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
-
-    // Read current issue
     let current = read_issue_from_disk(&issue_path, issue_number).await?;
-
-    // Capture old status before it gets moved
     let old_status = current.metadata.status.clone();
 
-    // Apply updates
-    let new_title = options.title.unwrap_or(current.title);
-    let new_description = options.description.unwrap_or(current.description);
-    let new_status = options.status.unwrap_or(current.metadata.status);
+    // Apply and validate updates
+    let updates = apply_issue_updates(&current, options, config.as_ref(), priority_levels)?;
 
-    // Strict validation: reject if status is not in allowed_states
-    if let Some(ref config) = config {
-        validate_status(&new_status, &config.allowed_states)?;
-    }
-
-    // Validate and apply priority update
-    let new_priority = match options.priority {
-        Some(p) => {
-            validate_priority(p, priority_levels)?;
-            p
-        }
-        None => current.metadata.priority,
-    };
-
-    // Merge custom fields
-    let mut new_custom_fields = current.metadata.custom_fields;
-    for (key, value) in options.custom_fields {
-        new_custom_fields.insert(key, value);
-    }
-
-    // Apply draft update
-    let new_draft = options.draft.unwrap_or(current.metadata.draft);
-
-    // Create updated metadata (preserving org fields)
+    // Build updated metadata
+    let updated_at = now_iso();
     let updated_metadata = IssueMetadata {
         common: crate::common::CommonMetadata {
             display_number: current.metadata.display_number,
-            status: new_status.clone(),
-            priority: new_priority,
+            status: updates.status.clone(),
+            priority: updates.priority,
             created_at: current.metadata.created_at.clone(),
-            updated_at: now_iso(),
-            custom_fields: new_custom_fields
+            updated_at: updated_at.clone(),
+            custom_fields: updates
+                .custom_fields
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
                 .collect(),
         },
         compacted: current.metadata.compacted,
         compacted_at: current.metadata.compacted_at.clone(),
-        draft: new_draft,
+        draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
         is_org_issue: current.metadata.is_org_issue,
         org_slug: current.metadata.org_slug.clone(),
         org_display_number: current.metadata.org_display_number,
     };
 
-    // Generate updated content
-    let mut issue_md = generate_issue_md(&new_title, &new_description);
-
-    // Handle planning note based on status transition
-    let transitioning_to_planning =
-        !is_planning_status(&old_status) && is_planning_status(&new_status);
-    let _transitioning_from_planning =
-        is_planning_status(&old_status) && !is_planning_status(&new_status);
-    let staying_in_planning = is_planning_status(&old_status) && is_planning_status(&new_status);
-
-    if transitioning_to_planning {
-        // Add planning note when transitioning TO planning
-        issue_md = add_planning_note(&issue_md);
-    } else if staying_in_planning {
-        // Keep planning note when staying in planning
-        // Read current issue.md to check if note exists
-        let current_issue_md = fs::read_to_string(issue_path.join("issue.md")).await?;
-        if has_planning_note(&current_issue_md) {
-            issue_md = add_planning_note(&issue_md);
-        }
-    }
-    // Note: transitioning_from_planning doesn't need handling because
-    // generate_issue_md produces clean content without the note
+    // Generate issue.md with planning note handling
+    let issue_md = build_issue_md_with_planning_note(
+        &updates.title,
+        &updates.description,
+        &old_status,
+        &updates.status,
+        &issue_path,
+    )
+    .await?;
 
     // Write files
-    let issue_md_path = issue_path.join("issue.md");
-    let metadata_path = issue_path.join("metadata.json");
-
-    fs::write(&issue_md_path, &issue_md).await?;
+    fs::write(issue_path.join("issue.md"), &issue_md).await?;
     fs::write(
-        &metadata_path,
+        issue_path.join("metadata.json"),
         serde_json::to_string_pretty(&updated_metadata)?,
     )
     .await?;
 
-    // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
-    #[allow(deprecated)]
-    let issue = Issue {
-        id: issue_number.to_string(),
-        issue_number: issue_number.to_string(), // Legacy field
-        title: new_title,
-        description: new_description,
-        metadata: IssueMetadataFlat {
-            display_number: current.metadata.display_number,
-            status: new_status,
-            priority: new_priority,
-            created_at: current.metadata.created_at,
-            updated_at: updated_metadata.common.updated_at.clone(),
-            custom_fields: new_custom_fields,
-            compacted: current.metadata.compacted,
-            compacted_at: current.metadata.compacted_at,
-            draft: new_draft,
-            deleted_at: current.metadata.deleted_at,
-            is_org_issue: current.metadata.is_org_issue,
-            org_slug: current.metadata.org_slug.clone(),
-            org_display_number: current.metadata.org_display_number,
-        },
-    };
+    let issue = build_issue_from_update(issue_number, &updates, &current, updated_at);
 
     // Sync to other org projects if this is an org issue
     let sync_results = if issue.metadata.is_org_issue {
