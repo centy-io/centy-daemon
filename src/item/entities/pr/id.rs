@@ -26,7 +26,7 @@ pub fn generate_pr_id() -> String {
 
 /// Get the short form of a PR ID (first 8 characters)
 /// Useful for display purposes
-#[allow(dead_code)]
+#[allow(dead_code)] // Utility function for future CLI display features
 #[must_use]
 pub fn short_id(id: &str) -> &str {
     if id.len() >= 8 {
