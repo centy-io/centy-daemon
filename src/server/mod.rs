@@ -85,10 +85,20 @@ use crate::workspace::{
 };
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tokio::sync::watch;
 use tonic::{Request, Response, Status};
 use tracing::{info, instrument};
+
+/// Static regex for validating hex colors (compiled once on first use)
+#[expect(
+    clippy::expect_used,
+    reason = "Regex literal is compile-time constant and cannot fail"
+)]
+static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
+        .expect("HEX_COLOR_REGEX is a valid regex literal")
+});
 
 // Import generated protobuf types
 pub mod proto {
@@ -2100,8 +2110,14 @@ impl CentyDaemon for CentyDaemonService {
             Ok(v) => v,
             Err(e) => return Err(Status::invalid_argument(e.to_string())),
         };
-        let daemon_ver =
-            semver::Version::parse(CENTY_VERSION).expect("CENTY_VERSION should be valid semver");
+        let daemon_ver = match semver::Version::parse(CENTY_VERSION) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(Status::internal(format!(
+                    "Invalid daemon version '{CENTY_VERSION}': {e}"
+                )))
+            }
+        };
 
         let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
             std::cmp::Ordering::Equal => ("equal", false),
@@ -4382,16 +4398,15 @@ fn validate_config(config: &CentyConfig) -> Result<(), String> {
     }
 
     // Validate color formats (hex colors)
-    let hex_color_regex = regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$").unwrap();
     for (state, color) in &config.state_colors {
-        if !hex_color_regex.is_match(color) {
+        if !HEX_COLOR_REGEX.is_match(color) {
             return Err(format!(
                 "invalid color '{color}' for state '{state}': must be hex format (#RGB or #RRGGBB)"
             ));
         }
     }
     for (priority, color) in &config.priority_colors {
-        if !hex_color_regex.is_match(color) {
+        if !HEX_COLOR_REGEX.is_match(color) {
             return Err(format!(
                 "invalid color '{color}' for priority '{priority}': must be hex format (#RGB or #RRGGBB)"
             ));

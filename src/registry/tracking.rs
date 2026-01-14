@@ -330,22 +330,19 @@ pub async fn set_project_favorite(
 
     let mut registry = read_registry().await?;
 
-    // Determine which key to use (try canonical first, then original)
-    let key = if registry.projects.contains_key(&canonical_path) {
-        canonical_path.clone()
-    } else if registry.projects.contains_key(project_path) {
-        project_path.to_string()
+    // Try canonical path first, then original path
+    let (key, tracked) = if let Some(t) = registry.projects.get_mut(&canonical_path) {
+        (canonical_path.clone(), t)
+    } else if let Some(t) = registry.projects.get_mut(project_path) {
+        (project_path.to_string(), t)
     } else {
         return Err(RegistryError::ProjectNotFound(project_path.to_string()));
     };
 
-    // Now we can safely get the mutable entry (key existence was checked above)
-    let tracked = registry
-        .projects
-        .get_mut(&key)
-        .expect("key was verified to exist");
     tracked.is_favorite = is_favorite;
     let tracked_clone = tracked.clone();
+    // Use canonical_path for enrichment (key is for registry lookup)
+    let _ = key;
 
     // Get organization name
     let org_name = tracked_clone
@@ -379,22 +376,19 @@ pub async fn set_project_archived(
 
     let mut registry = read_registry().await?;
 
-    // Determine which key to use (try canonical first, then original)
-    let key = if registry.projects.contains_key(&canonical_path) {
-        canonical_path.clone()
-    } else if registry.projects.contains_key(project_path) {
-        project_path.to_string()
+    // Try canonical path first, then original path
+    let (key, tracked) = if let Some(t) = registry.projects.get_mut(&canonical_path) {
+        (canonical_path.clone(), t)
+    } else if let Some(t) = registry.projects.get_mut(project_path) {
+        (project_path.to_string(), t)
     } else {
         return Err(RegistryError::ProjectNotFound(project_path.to_string()));
     };
 
-    // Now we can safely get the mutable entry (key existence was checked above)
-    let tracked = registry
-        .projects
-        .get_mut(&key)
-        .expect("key was verified to exist");
     tracked.is_archived = is_archived;
     let tracked_clone = tracked.clone();
+    // Use canonical_path for enrichment (key is for registry lookup)
+    let _ = key;
 
     // Get organization name
     let org_name = tracked_clone
@@ -429,24 +423,20 @@ pub async fn set_project_user_title(
 
     let mut registry = read_registry().await?;
 
-    // Determine which key to use (try canonical first, then original)
-    let key = if registry.projects.contains_key(&canonical_path) {
-        canonical_path.clone()
-    } else if registry.projects.contains_key(project_path) {
-        project_path.to_string()
+    // Try canonical path first, then original path
+    let (key, tracked) = if let Some(t) = registry.projects.get_mut(&canonical_path) {
+        (canonical_path.clone(), t)
+    } else if let Some(t) = registry.projects.get_mut(project_path) {
+        (project_path.to_string(), t)
     } else {
         return Err(RegistryError::ProjectNotFound(project_path.to_string()));
     };
 
-    // Now we can safely get the mutable entry (key existence was checked above)
-    let tracked = registry
-        .projects
-        .get_mut(&key)
-        .expect("key was verified to exist");
-
     // Set title (None clears it, empty string also clears it)
     tracked.user_title = title.filter(|t| !t.is_empty());
     let tracked_clone = tracked.clone();
+    // Use canonical_path for enrichment (key is for registry lookup)
+    let _ = key;
 
     // Get organization name
     let org_name = tracked_clone

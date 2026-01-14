@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use centy_daemon::registry::{
     create_organization, delete_organization, get_organization, list_organizations,
     set_project_organization, track_project, untrack_project, update_organization,

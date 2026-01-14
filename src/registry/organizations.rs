@@ -220,8 +220,11 @@ pub async fn update_organization(
                 return Err(OrganizationError::AlreadyExists(ns.to_string()));
             }
 
-            // Remove org from old slug
-            let org = registry.organizations.remove(slug).unwrap();
+            // Remove org from old slug (we verified it exists at line 193-196)
+            let Some(org) = registry.organizations.remove(slug) else {
+                // This should never happen since we checked existence earlier
+                return Err(OrganizationError::NotFound(slug.to_string()));
+            };
 
             // Update all projects that reference this org
             for project in registry.projects.values_mut() {
@@ -241,7 +244,10 @@ pub async fn update_organization(
         slug.to_string()
     };
 
-    let org = registry.organizations.get(&final_slug).unwrap();
+    let Some(org) = registry.organizations.get(&final_slug) else {
+        // This should never happen - we either kept the original key or just inserted at the new key
+        return Err(OrganizationError::NotFound(final_slug));
+    };
     let project_count = registry
         .projects
         .values()
@@ -383,7 +389,12 @@ pub async fn set_project_organization(
         }
     }
 
-    let project = registry.projects.get(&canonical_path).unwrap();
+    // We just used entry().or_insert_with() above, so the key definitely exists
+    let Some(project) = registry.projects.get(&canonical_path) else {
+        return Err(OrganizationError::RegistryError(
+            RegistryError::ProjectNotFound(canonical_path),
+        ));
+    };
 
     // Enrich project info
     let info = super::tracking::enrich_project(&canonical_path, project, org_name).await;
