@@ -1,32 +1,26 @@
-//! Workspace creation logic.
+//! Workspace creation orchestration.
 //!
-//! Handles creating temporary git worktrees with editor configuration.
+//! This module provides the main entry point for creating temporary workspaces.
+//! It orchestrates the various components:
+//! - Path generation (from `path` module)
+//! - Issue data copying (from `data` module)
+//! - Editor launching (from `editor` module)
+//! - Git worktree management
+//! - VS Code configuration setup
 
+use super::data::copy_issue_data_to_workspace;
+use super::editor::{open_editor, EditorType};
+use super::path::{calculate_expires_at, generate_workspace_path};
 use super::storage::{
     add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration,
 };
-use super::terminal::open_terminal;
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
-use super::vscode::{open_vscode, setup_vscode_config};
+use super::vscode::setup_vscode_config;
 use super::WorkspaceError;
-use crate::item::entities::issue::{copy_assets_folder, Issue};
+use crate::item::entities::issue::Issue;
 use crate::item::entities::pr::git::{create_worktree, is_git_repository, prune_worktrees};
 use crate::utils::now_iso;
-use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
-use tokio::fs;
-
-/// The editor/environment to open the workspace in
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum EditorType {
-    /// Open in VS Code (default)
-    #[default]
-    VSCode,
-    /// Open in OS terminal
-    Terminal,
-    /// Don't open any editor
-    None,
-}
 
 /// Options for creating a temporary workspace
 pub struct CreateWorkspaceOptions {
@@ -65,142 +59,6 @@ pub struct CreateWorkspaceResult {
 
     /// Original creation timestamp (only set if workspace was reused)
     pub original_created_at: Option<String>,
-}
-
-/// Extract and sanitize project name from a path.
-///
-/// - Uses the last directory component
-/// - Replaces non-alphanumeric chars with hyphens
-/// - Converts to lowercase
-/// - Truncates to max 30 chars
-/// - Removes leading/trailing hyphens
-fn sanitize_project_name(project_path: &Path) -> String {
-    let name = project_path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("project");
-
-    let sanitized: String = name
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() {
-                c.to_ascii_lowercase()
-            } else {
-                '-'
-            }
-        })
-        .collect();
-
-    // Remove consecutive hyphens and trim
-    let mut result = String::new();
-    let mut prev_hyphen = true; // Start true to skip leading hyphens
-    for c in sanitized.chars() {
-        if c == '-' {
-            if !prev_hyphen {
-                result.push(c);
-            }
-            prev_hyphen = true;
-        } else {
-            result.push(c);
-            prev_hyphen = false;
-        }
-    }
-
-    // Remove trailing hyphen and truncate
-    let result = result.trim_end_matches('-');
-    if result.len() > 30 {
-        // Find a clean break point (avoid cutting mid-word)
-        let truncated = &result[..30];
-        truncated
-            .rfind('-')
-            .map(|i| &truncated[..i])
-            .unwrap_or(truncated)
-            .to_string()
-    } else {
-        result.to_string()
-    }
-}
-
-/// Generate a unique workspace path in the system temp directory.
-///
-/// Format: `{project_name}-issue-{display_number}-{short_timestamp}`
-/// Example: `my-app-issue-42-20231224`
-fn generate_workspace_path(project_path: &Path, issue_display_number: u32) -> PathBuf {
-    let project_name = sanitize_project_name(project_path);
-    let date = Utc::now().format("%Y%m%d").to_string();
-
-    let workspace_name = format!("{project_name}-issue-{issue_display_number}-{date}");
-    std::env::temp_dir().join(workspace_name)
-}
-
-/// Calculate expiration timestamp based on TTL.
-fn calculate_expires_at(ttl_hours: u32) -> String {
-    let expires = Utc::now() + Duration::hours(i64::from(ttl_hours));
-    expires.to_rfc3339()
-}
-
-/// Open the workspace in the specified editor.
-fn open_editor(editor: EditorType, workspace_path: &Path) -> bool {
-    match editor {
-        EditorType::VSCode => open_vscode(workspace_path).unwrap_or(false),
-        EditorType::Terminal => open_terminal(workspace_path).unwrap_or(false),
-        EditorType::None => false,
-    }
-}
-
-/// Copy issue data from source project to workspace.
-///
-/// Copies:
-/// - Issue folder: `.centy/issues/{issue_id}/` (issue.md, metadata.json, assets/)
-/// - Shared assets: `.centy/assets/`
-/// - Project config: `.centy/config.json`
-async fn copy_issue_data_to_workspace(
-    source_project: &Path,
-    workspace_path: &Path,
-    issue_id: &str,
-) -> Result<(), WorkspaceError> {
-    let source_centy = source_project.join(".centy");
-    let target_centy = workspace_path.join(".centy");
-
-    // Create target .centy directory
-    fs::create_dir_all(&target_centy).await?;
-
-    // Copy issue folder if it exists
-    let source_issue_dir = source_centy.join("issues").join(issue_id);
-    if source_issue_dir.exists() {
-        let target_issue_dir = target_centy.join("issues").join(issue_id);
-        fs::create_dir_all(&target_issue_dir).await?;
-
-        // Copy issue.md
-        let source_issue_md = source_issue_dir.join("issue.md");
-        if source_issue_md.exists() {
-            fs::copy(&source_issue_md, target_issue_dir.join("issue.md")).await?;
-        }
-
-        // Copy metadata.json
-        let source_metadata = source_issue_dir.join("metadata.json");
-        if source_metadata.exists() {
-            fs::copy(&source_metadata, target_issue_dir.join("metadata.json")).await?;
-        }
-
-        // Copy assets folder
-        let source_assets = source_issue_dir.join("assets");
-        let target_assets = target_issue_dir.join("assets");
-        let _ = copy_assets_folder(&source_assets, &target_assets).await;
-    }
-
-    // Copy shared assets folder
-    let source_shared_assets = source_centy.join("assets");
-    let target_shared_assets = target_centy.join("assets");
-    let _ = copy_assets_folder(&source_shared_assets, &target_shared_assets).await;
-
-    // Copy config.json if it exists
-    let source_config = source_centy.join("config.json");
-    if source_config.exists() {
-        fs::copy(&source_config, target_centy.join("config.json")).await?;
-    }
-
-    Ok(())
 }
 
 /// Create a temporary workspace for working on an issue.
@@ -332,70 +190,4 @@ pub async fn create_temp_workspace(
         workspace_reused: worktree_reused,
         original_created_at: None,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_sanitize_project_name_simple() {
-        let path = Path::new("/home/user/my-project");
-        assert_eq!(sanitize_project_name(path), "my-project");
-    }
-
-    #[test]
-    fn test_sanitize_project_name_with_spaces() {
-        let path = Path::new("/home/user/My Cool Project");
-        assert_eq!(sanitize_project_name(path), "my-cool-project");
-    }
-
-    #[test]
-    fn test_sanitize_project_name_special_chars() {
-        let path = Path::new("/home/user/project_v2.0@beta!");
-        assert_eq!(sanitize_project_name(path), "project-v2-0-beta");
-    }
-
-    #[test]
-    fn test_sanitize_project_name_long_name() {
-        let path = Path::new("/home/user/this-is-a-very-long-project-name-that-exceeds-limit");
-        let result = sanitize_project_name(path);
-        assert!(result.len() <= 30);
-        // Should break at hyphen boundary
-        assert!(!result.ends_with('-'));
-    }
-
-    #[test]
-    fn test_sanitize_project_name_leading_special() {
-        let path = Path::new("/home/user/---project---");
-        assert_eq!(sanitize_project_name(path), "project");
-    }
-
-    #[test]
-    fn test_generate_workspace_path() {
-        let project_path = Path::new("/home/user/my-app");
-        let path = generate_workspace_path(project_path, 42);
-        let path_str = path.to_string_lossy();
-
-        assert!(path_str.contains("my-app-issue-42-"));
-        // Should contain date in YYYYMMDD format
-        assert!(path_str.contains(&Utc::now().format("%Y%m%d").to_string()));
-    }
-
-    #[test]
-    fn test_generate_workspace_path_complex_name() {
-        let project_path = Path::new("/Users/dev/My Cool App");
-        let path = generate_workspace_path(project_path, 1);
-        let path_str = path.to_string_lossy();
-
-        assert!(path_str.contains("my-cool-app-issue-1-"));
-    }
-
-    #[test]
-    fn test_calculate_expires_at() {
-        let expires = calculate_expires_at(12);
-        // Should be a valid RFC3339 timestamp
-        assert!(expires.contains('T'));
-        assert!(expires.contains('+') || expires.contains('Z'));
-    }
 }
