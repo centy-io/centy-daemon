@@ -172,6 +172,7 @@ pub fn open_vscode(workspace_path: &Path) -> Result<bool, WorkspaceError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

@@ -3,11 +3,15 @@ use pulldown_cmark_to_cmark::cmark;
 
 /// Format markdown content using pulldown-cmark for consistent formatting.
 /// Ensures the output ends with a trailing newline.
+#[expect(
+    clippy::expect_used,
+    reason = "Writing to String is infallible - fmt::Write for String cannot fail"
+)]
 pub fn format_markdown(input: &str) -> String {
     let options = Options::all();
     let parser = Parser::new_ext(input, options);
     let mut output = String::new();
-    cmark(parser, &mut output).expect("markdown formatting should not fail");
+    cmark(parser, &mut output).expect("writing to String cannot fail");
     // Ensure trailing newline
     if !output.ends_with('\n') {
         output.push('\n');

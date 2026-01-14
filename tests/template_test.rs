@@ -1,4 +1,5 @@
-#![allow(deprecated)]
+#![allow(clippy::unwrap_used, clippy::expect_used, deprecated)]
+
 mod common;
 
 use centy_daemon::item::entities::doc::{create_doc, CreateDocOptions};

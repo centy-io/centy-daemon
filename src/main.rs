@@ -1,3 +1,25 @@
+// Deny panic/unwrap/expect in production code, allow in tests
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::panic,
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic_in_result_fn,
+        clippy::unwrap_in_result
+    )
+)]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::panic,
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic_in_result_fn,
+        clippy::unwrap_in_result
+    )
+)]
+
 mod common;
 mod config;
 mod cors;

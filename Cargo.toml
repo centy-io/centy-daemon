@@ -101,8 +101,14 @@ unsafe_code = "forbid"
 # Enable pedantic lints
 pedantic = { level = "warn", priority = -1 }
 
-# unwrap_used is a restriction lint (not pedantic), allow it
-# Code review should catch inappropriate unwrap usage
+# Warn on panic/unwrap/expect to encourage proper error handling
+# These lints prevent runtime panics in favor of explicit error handling
+# Set to warn level - lib.rs and main.rs promote to deny for non-test code
+panic = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic_in_result_fn = "warn"
+unwrap_in_result = "warn"
 
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"

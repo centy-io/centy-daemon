@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 mod common;
 
 use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
