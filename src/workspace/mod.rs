@@ -4,9 +4,24 @@
 //! - Create temporary git worktrees for isolated issue work
 //! - Set up VS Code with auto-running agent tasks
 //! - Track and cleanup workspaces with TTL-based expiration
+//!
+//! ## Module Structure (DDD)
+//!
+//! - `editor`: Editor type and launching (value object)
+//! - `path`: Workspace path generation and sanitization (value objects)
+//! - `data`: Data copying for workspace setup (domain service)
+//! - `create`: Main workspace creation orchestration (application service)
+//! - `cleanup`: Workspace cleanup and expiration (domain service)
+//! - `storage`: Registry persistence (infrastructure)
+//! - `types`: Shared type definitions
+//! - `vscode`: VS Code configuration setup (infrastructure)
+//! - `terminal`: Terminal launching (infrastructure)
 
 pub mod cleanup;
 pub mod create;
+pub mod data;
+pub mod editor;
+pub mod path;
 pub mod storage;
 pub mod terminal;
 pub mod types;
@@ -17,7 +32,14 @@ pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 #[allow(unused_imports)]
 pub use create::{
     create_standalone_workspace, create_temp_workspace, CreateStandaloneWorkspaceOptions,
-    CreateStandaloneWorkspaceResult, CreateWorkspaceOptions, CreateWorkspaceResult, EditorType,
+    CreateStandaloneWorkspaceResult, CreateWorkspaceOptions, CreateWorkspaceResult,
+};
+#[allow(unused_imports)]
+pub use editor::EditorType;
+#[allow(unused_imports)]
+pub use path::{
+    calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
+    sanitize_project_name, sanitize_workspace_name,
 };
 #[allow(unused_imports)]
 pub use storage::{
