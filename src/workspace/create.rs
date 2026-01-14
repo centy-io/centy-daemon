@@ -3,7 +3,8 @@
 //! Handles creating temporary git worktrees with editor configuration.
 
 use super::storage::{
-    add_workspace, find_workspace_for_issue, get_default_ttl, update_workspace_expiration,
+    add_workspace, find_standalone_workspace, find_workspace_for_issue, get_default_ttl,
+    update_workspace_expiration,
 };
 use super::terminal::open_terminal;
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
@@ -15,6 +16,7 @@ use crate::utils::now_iso;
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 use tokio::fs;
+use uuid::Uuid;
 
 /// The editor/environment to open the workspace in
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -61,6 +63,45 @@ pub struct CreateWorkspaceResult {
     pub editor_opened: bool,
 
     /// Whether an existing workspace was reused instead of creating a new one
+    pub workspace_reused: bool,
+
+    /// Original creation timestamp (only set if workspace was reused)
+    pub original_created_at: Option<String>,
+}
+
+/// Options for creating a standalone workspace (not tied to an issue)
+pub struct CreateStandaloneWorkspaceOptions {
+    /// Path to the source project
+    pub source_project_path: PathBuf,
+
+    /// Optional custom name for the workspace
+    pub name: Option<String>,
+
+    /// Optional description/goals for this workspace
+    pub description: Option<String>,
+
+    /// TTL in hours (0 = use default)
+    pub ttl_hours: u32,
+
+    /// Name of the agent to use
+    pub agent_name: String,
+
+    /// Editor to open the workspace in (default: VS Code)
+    pub editor: EditorType,
+}
+
+/// Result of creating a standalone workspace
+pub struct CreateStandaloneWorkspaceResult {
+    /// Path to the created workspace
+    pub workspace_path: PathBuf,
+
+    /// The workspace entry that was recorded
+    pub entry: TempWorkspaceEntry,
+
+    /// Whether the editor was successfully opened
+    pub editor_opened: bool,
+
+    /// Whether an existing workspace was reused
     pub workspace_reused: bool,
 
     /// Original creation timestamp (only set if workspace was reused)
@@ -131,6 +172,66 @@ fn generate_workspace_path(project_path: &Path, issue_display_number: u32) -> Pa
 
     let workspace_name = format!("{project_name}-issue-{issue_display_number}-{date}");
     std::env::temp_dir().join(workspace_name)
+}
+
+/// Sanitize a workspace name for use in file paths.
+///
+/// - Replaces non-alphanumeric chars with hyphens
+/// - Converts to lowercase
+/// - Truncates to max 20 chars
+fn sanitize_workspace_name(name: &str) -> String {
+    let sanitized: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect();
+
+    // Remove consecutive hyphens
+    let mut result = String::new();
+    let mut prev_hyphen = true;
+    for c in sanitized.chars() {
+        if c == '-' {
+            if !prev_hyphen {
+                result.push(c);
+            }
+            prev_hyphen = true;
+        } else {
+            result.push(c);
+            prev_hyphen = false;
+        }
+    }
+
+    let result = result.trim_matches('-');
+    if result.len() > 20 {
+        result[..20].trim_end_matches('-').to_string()
+    } else {
+        result.to_string()
+    }
+}
+
+/// Generate a unique workspace path for standalone workspaces.
+///
+/// Format: `{project_name}-{workspace_name}-{short_uuid}`
+/// Example: `my-app-experiment-abc12345`
+fn generate_standalone_workspace_path(
+    project_path: &Path,
+    workspace_name: Option<&str>,
+) -> PathBuf {
+    let project_name = sanitize_project_name(project_path);
+    let short_uuid = &Uuid::new_v4().to_string()[..8];
+
+    let ws_name = workspace_name
+        .map(sanitize_workspace_name)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "standalone".to_string());
+
+    let dir_name = format!("{project_name}-{ws_name}-{short_uuid}");
+    std::env::temp_dir().join(dir_name)
 }
 
 /// Calculate expiration timestamp based on TTL.
@@ -232,6 +333,10 @@ async fn setup_new_workspace(
         created_at: now_iso(),
         expires_at: calculate_expires_at(ttl_hours),
         worktree_ref: "HEAD".to_string(),
+        is_standalone: false,
+        workspace_id: String::new(),
+        workspace_name: String::new(),
+        workspace_description: String::new(),
     };
 
     add_workspace(workspace_path.to_string_lossy().as_ref(), entry.clone()).await?;
@@ -326,6 +431,150 @@ pub async fn create_temp_workspace(
     let editor_opened = open_editor(options.editor, &workspace_path);
 
     Ok(CreateWorkspaceResult {
+        workspace_path,
+        entry,
+        editor_opened,
+        workspace_reused: worktree_reused,
+        original_created_at: None,
+    })
+}
+
+/// Copy project config to workspace (for standalone workspaces).
+///
+/// Only copies config files, not issue data.
+async fn copy_project_config_to_workspace(
+    source_project: &Path,
+    workspace_path: &Path,
+) -> Result<(), WorkspaceError> {
+    let source_centy = source_project.join(".centy");
+    let target_centy = workspace_path.join(".centy");
+
+    // Create target .centy directory
+    fs::create_dir_all(&target_centy).await?;
+
+    // Copy shared assets folder
+    let source_shared_assets = source_centy.join("assets");
+    let target_shared_assets = target_centy.join("assets");
+    let _ = copy_assets_folder(&source_shared_assets, &target_shared_assets).await;
+
+    // Copy config.json if it exists
+    let source_config = source_centy.join("config.json");
+    if source_config.exists() {
+        fs::copy(&source_config, target_centy.join("config.json")).await?;
+    }
+
+    Ok(())
+}
+
+/// Set up a standalone workspace with project config and registry entry.
+async fn setup_standalone_workspace(
+    source_path: &Path,
+    workspace_path: &Path,
+    options: &CreateStandaloneWorkspaceOptions,
+    ttl_hours: u32,
+    workspace_id: &str,
+) -> Result<TempWorkspaceEntry, WorkspaceError> {
+    copy_project_config_to_workspace(source_path, workspace_path).await?;
+
+    let workspace_name = options
+        .name
+        .clone()
+        .unwrap_or_else(|| "Standalone Workspace".to_string());
+    let workspace_description = options.description.clone().unwrap_or_default();
+
+    let entry = TempWorkspaceEntry {
+        source_project_path: source_path.to_string_lossy().to_string(),
+        issue_id: String::new(),
+        issue_display_number: 0,
+        issue_title: String::new(),
+        agent_name: options.agent_name.clone(),
+        action: "standalone".to_string(),
+        created_at: now_iso(),
+        expires_at: calculate_expires_at(ttl_hours),
+        worktree_ref: "HEAD".to_string(),
+        is_standalone: true,
+        workspace_id: workspace_id.to_string(),
+        workspace_name,
+        workspace_description,
+    };
+
+    add_workspace(workspace_path.to_string_lossy().as_ref(), entry.clone()).await?;
+    Ok(entry)
+}
+
+/// Create a standalone workspace (not tied to an issue).
+///
+/// This function:
+/// 1. Checks if an existing standalone workspace with the same name exists (reopen if so)
+/// 2. Validates the source project is a git repository
+/// 3. Creates a git worktree at a temporary location
+/// 4. Copies project config (shared assets, config.json)
+/// 5. Records the workspace in the registry
+/// 6. Opens the selected editor (VS Code, Terminal, or None)
+pub async fn create_standalone_workspace(
+    options: CreateStandaloneWorkspaceOptions,
+) -> Result<CreateStandaloneWorkspaceResult, WorkspaceError> {
+    let source_path = &options.source_project_path;
+
+    if !is_git_repository(source_path) {
+        return Err(WorkspaceError::NotGitRepository);
+    }
+    if !source_path.exists() {
+        return Err(WorkspaceError::SourceProjectNotFound(
+            source_path.to_string_lossy().to_string(),
+        ));
+    }
+
+    let ttl_hours = if options.ttl_hours == 0 {
+        get_default_ttl().await.unwrap_or(DEFAULT_TTL_HOURS)
+    } else {
+        options.ttl_hours
+    };
+
+    let source_path_str = source_path.to_string_lossy().to_string();
+
+    // Check for existing standalone workspace with the same name
+    if let Some(ref name) = options.name {
+        if let Ok(Some((existing_path, existing_entry))) =
+            find_standalone_workspace(&source_path_str, None, Some(name)).await
+        {
+            let workspace_path = PathBuf::from(&existing_path);
+            if workspace_path.exists() {
+                let original_created_at = existing_entry.created_at.clone();
+                let new_expires_at = calculate_expires_at(ttl_hours);
+                update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+                return Ok(CreateStandaloneWorkspaceResult {
+                    workspace_path: workspace_path.clone(),
+                    entry: TempWorkspaceEntry {
+                        expires_at: new_expires_at,
+                        ..existing_entry
+                    },
+                    editor_opened: open_editor(options.editor, &workspace_path),
+                    workspace_reused: true,
+                    original_created_at: Some(original_created_at),
+                });
+            }
+        }
+    }
+
+    // Generate a new workspace ID
+    let workspace_id = Uuid::new_v4().to_string();
+
+    let workspace_path = generate_standalone_workspace_path(source_path, options.name.as_deref());
+    let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
+
+    let entry = setup_standalone_workspace(
+        source_path,
+        &workspace_path,
+        &options,
+        ttl_hours,
+        &workspace_id,
+    )
+    .await?;
+    let editor_opened = open_editor(options.editor, &workspace_path);
+
+    Ok(CreateStandaloneWorkspaceResult {
         workspace_path,
         entry,
         editor_opened,

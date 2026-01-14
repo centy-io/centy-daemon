@@ -2,8 +2,9 @@ mod crud;
 mod instruction;
 mod types;
 
+// Feature module exports - WIP functionality for issue compaction and migration
 #[allow(unused_imports)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Part of WIP features module
 pub use crud::{
     build_compacted_refs, generate_migration_frontmatter, get_compact, get_feature_status,
     get_instruction, list_uncompacted_issues, mark_issues_compacted, save_migration,
@@ -12,5 +13,5 @@ pub use crud::{
 #[allow(unused_imports)]
 pub use instruction::DEFAULT_INSTRUCTION_CONTENT;
 #[allow(unused_imports)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Part of WIP features module
 pub use types::{CompactedIssueRef, FeatureStatus, MigrationFrontmatter};

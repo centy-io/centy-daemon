@@ -75,7 +75,7 @@ pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
 }
 
 /// Write the registry to disk with locking and atomic write
-#[allow(dead_code)]
+#[allow(dead_code)] // Public API for external callers, internal code uses write_registry_unlocked
 pub async fn write_registry(registry: &ProjectRegistry) -> Result<(), RegistryError> {
     let _guard = get_lock().lock().await;
     write_registry_unlocked(registry).await

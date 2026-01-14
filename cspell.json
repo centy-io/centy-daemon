@@ -2,6 +2,7 @@
   "version": "0.2",
   "ignorePaths": [
     "**/pnpm-lock.yaml",
+    "**/__snapshots__/**",
     "target/**"
   ],
   "words": [
@@ -19,6 +20,7 @@
     "darwin",
     "deepdive",
     "displaynumber",
+    "dtolnay",
     "Duplicable",
     "esbuild",
     "frontmatter",

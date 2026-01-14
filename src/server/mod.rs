@@ -77,11 +77,11 @@ use crate::user::{
 use crate::utils::{format_display_path, get_centy_path, CENTY_VERSION};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired,
-    cleanup_workspace as internal_cleanup_workspace, create_temp_workspace,
-    list_workspaces as internal_list_workspaces,
+    cleanup_workspace as internal_cleanup_workspace, create_standalone_workspace,
+    create_temp_workspace, list_workspaces as internal_list_workspaces,
     terminal::{is_terminal_available, open_terminal_with_agent},
     vscode::is_vscode_available,
-    CreateWorkspaceOptions, EditorType,
+    CreateStandaloneWorkspaceOptions, CreateWorkspaceOptions, EditorType,
 };
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -146,7 +146,8 @@ use proto::{
     ListUsersRequest, ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
     MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse,
     MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
-    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OrgDocSyncResult,
+    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenStandaloneWorkspaceRequest,
+    OpenStandaloneWorkspaceResponse, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
     PrWithProject as ProtoPrWithProject, ProjectVersionInfo, PullRequest, ReconciliationPlan,
     RegisterProjectRequest, RegisterProjectResponse, RestartRequest, RestartResponse,
@@ -3828,12 +3829,17 @@ impl CentyDaemon for CentyDaemonService {
                         issue_title: entry.issue_title,
                         agent_name: entry.agent_name,
                         action: match entry.action.as_str() {
-                            "plan" => 1,      // LLM_ACTION_PLAN
-                            "implement" => 2, // LLM_ACTION_IMPLEMENT
+                            "plan" => 1,       // LLM_ACTION_PLAN
+                            "implement" => 2,  // LLM_ACTION_IMPLEMENT
+                            "standalone" => 0, // No specific action for standalone
                             _ => 0,
                         },
                         created_at: entry.created_at,
                         expires_at: entry.expires_at,
+                        is_standalone: entry.is_standalone,
+                        workspace_id: entry.workspace_id,
+                        workspace_name: entry.workspace_name,
+                        workspace_description: entry.workspace_description,
                     })
                     .collect();
 
@@ -3902,6 +3908,144 @@ impl CentyDaemon for CentyDaemonService {
                 cleaned_paths: vec![],
                 failed_paths: vec![],
             })),
+        }
+    }
+
+    async fn open_standalone_workspace_vscode(
+        &self,
+        request: Request<OpenStandaloneWorkspaceRequest>,
+    ) -> Result<Response<OpenStandaloneWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let err_response = |error: String| {
+            Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                workspace_id: String::new(),
+                name: String::new(),
+                expires_at: String::new(),
+                editor_opened: false,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
+        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
+        let agent_name = if req.agent_name.is_empty() {
+            llm_config
+                .as_ref()
+                .and_then(|c| c.default_agent.clone())
+                .unwrap_or_else(|| "default".to_string())
+        } else {
+            req.agent_name.clone()
+        };
+
+        let name = if req.name.is_empty() {
+            None
+        } else {
+            Some(req.name.clone())
+        };
+
+        let description = if req.description.is_empty() {
+            None
+        } else {
+            Some(req.description.clone())
+        };
+
+        match create_standalone_workspace(CreateStandaloneWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            name,
+            description,
+            ttl_hours: req.ttl_hours,
+            agent_name,
+            editor: EditorType::VSCode,
+        })
+        .await
+        {
+            Ok(result) => Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                workspace_id: result.entry.workspace_id.clone(),
+                name: result.entry.workspace_name.clone(),
+                expires_at: result.entry.expires_at,
+                editor_opened: result.editor_opened,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
+            })),
+            Err(e) => err_response(e.to_string()),
+        }
+    }
+
+    async fn open_standalone_workspace_terminal(
+        &self,
+        request: Request<OpenStandaloneWorkspaceRequest>,
+    ) -> Result<Response<OpenStandaloneWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let err_response = |error: String| {
+            Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                workspace_id: String::new(),
+                name: String::new(),
+                expires_at: String::new(),
+                editor_opened: false,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
+        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
+        let agent_name = if req.agent_name.is_empty() {
+            llm_config
+                .as_ref()
+                .and_then(|c| c.default_agent.clone())
+                .unwrap_or_else(|| "default".to_string())
+        } else {
+            req.agent_name.clone()
+        };
+
+        let name = if req.name.is_empty() {
+            None
+        } else {
+            Some(req.name.clone())
+        };
+
+        let description = if req.description.is_empty() {
+            None
+        } else {
+            Some(req.description.clone())
+        };
+
+        match create_standalone_workspace(CreateStandaloneWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            name,
+            description,
+            ttl_hours: req.ttl_hours,
+            agent_name,
+            editor: EditorType::Terminal,
+        })
+        .await
+        {
+            Ok(result) => Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                workspace_id: result.entry.workspace_id.clone(),
+                name: result.entry.workspace_name.clone(),
+                expires_at: result.entry.expires_at,
+                editor_opened: result.editor_opened,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
+            })),
+            Err(e) => err_response(e.to_string()),
         }
     }
 

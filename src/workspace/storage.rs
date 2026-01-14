@@ -120,10 +120,47 @@ pub async fn find_workspace_for_issue(
     let registry = read_registry().await?;
 
     for (path, entry) in &registry.workspaces {
-        // Match by source project and issue ID
-        if entry.source_project_path == source_project_path && entry.issue_id == issue_id {
+        // Match by source project and issue ID (skip standalone workspaces)
+        if !entry.is_standalone
+            && entry.source_project_path == source_project_path
+            && entry.issue_id == issue_id
+        {
             // Check if not expired
             if !is_expired(entry) {
+                return Ok(Some((path.clone(), entry.clone())));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+/// Find an existing standalone workspace by workspace ID or name.
+///
+/// Returns the workspace path and entry if found and not expired.
+pub async fn find_standalone_workspace(
+    source_project_path: &str,
+    workspace_id: Option<&str>,
+    workspace_name: Option<&str>,
+) -> Result<Option<(String, TempWorkspaceEntry)>, WorkspaceError> {
+    let registry = read_registry().await?;
+
+    for (path, entry) in &registry.workspaces {
+        // Only look at standalone workspaces for this project
+        if !entry.is_standalone || entry.source_project_path != source_project_path {
+            continue;
+        }
+
+        // Match by workspace ID if provided
+        if let Some(id) = workspace_id {
+            if entry.workspace_id == id && !is_expired(entry) {
+                return Ok(Some((path.clone(), entry.clone())));
+            }
+        }
+
+        // Match by workspace name if provided (case-insensitive)
+        if let Some(name) = workspace_name {
+            if entry.workspace_name.to_lowercase() == name.to_lowercase() && !is_expired(entry) {
                 return Ok(Some((path.clone(), entry.clone())));
             }
         }
@@ -246,6 +283,10 @@ mod tests {
             created_at: "2025-01-01T00:00:00Z".to_string(),
             expires_at: "2020-01-01T00:00:00Z".to_string(), // Past date
             worktree_ref: "HEAD".to_string(),
+            is_standalone: false,
+            workspace_id: String::new(),
+            workspace_name: String::new(),
+            workspace_description: String::new(),
         };
 
         assert!(is_expired(&entry));
