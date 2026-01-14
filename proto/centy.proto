@@ -264,6 +264,12 @@ service CentyDaemon {
   // Open an agent in a terminal for working on an issue
   rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
 
+  // Open a standalone workspace in VS Code (not tied to an issue)
+  rpc OpenStandaloneWorkspaceVscode(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
+
+  // Open a standalone workspace in terminal (not tied to an issue)
+  rpc OpenStandaloneWorkspaceTerminal(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
+
   // List all temp workspaces
   rpc ListTempWorkspaces(ListTempWorkspacesRequest) returns (ListTempWorkspacesResponse);
 
@@ -1663,17 +1669,43 @@ message OpenAgentInTerminalResponse {
   bool requires_status_config = 9;      // True if user must configure update_status_on_start setting
 }
 
+// Request to open a standalone workspace (not tied to an issue)
+message OpenStandaloneWorkspaceRequest {
+  string project_path = 1;              // Source project path
+  string name = 2;                      // Optional custom name for the workspace
+  string description = 3;               // Optional description/goals for this workspace
+  uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
+  string agent_name = 5;                // Agent to use (empty = default)
+}
+
+// Response for opening a standalone workspace
+message OpenStandaloneWorkspaceResponse {
+  bool success = 1;
+  string error = 2;
+  string workspace_path = 3;            // Path to the temp workspace
+  string workspace_id = 4;              // Unique workspace identifier (UUID)
+  string name = 5;                      // Workspace name (provided or generated)
+  string expires_at = 6;                // ISO timestamp when workspace expires
+  bool editor_opened = 7;               // Whether the editor was successfully opened
+  bool workspace_reused = 8;            // True if an existing workspace was reopened
+  string original_created_at = 9;       // Original creation timestamp (only set if workspace_reused)
+}
+
 // A temporary workspace entry
 message TempWorkspace {
   string workspace_path = 1;            // Absolute path to temp workspace
   string source_project_path = 2;       // Original project path
-  string issue_id = 3;                  // Issue UUID
-  uint32 issue_display_number = 4;      // Issue display number
-  string issue_title = 5;               // Issue title
+  string issue_id = 3;                  // Issue UUID (empty for standalone workspaces)
+  uint32 issue_display_number = 4;      // Issue display number (0 for standalone)
+  string issue_title = 5;               // Issue title (empty for standalone)
   string agent_name = 6;                // Agent being used
   LlmAction action = 7;                 // Plan or Implement
   string created_at = 8;                // ISO timestamp
   string expires_at = 9;                // ISO timestamp when workspace expires
+  bool is_standalone = 10;              // True if this is a standalone workspace (not tied to an issue)
+  string workspace_id = 11;             // Unique workspace ID (UUID, used for standalone workspaces)
+  string workspace_name = 12;           // Custom workspace name (for standalone)
+  string workspace_description = 13;    // Custom workspace description (for standalone)
 }
 
 message ListTempWorkspacesRequest {

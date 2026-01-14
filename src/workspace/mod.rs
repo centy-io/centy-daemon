@@ -16,12 +16,13 @@ pub mod vscode;
 pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 #[allow(unused_imports)]
 pub use create::{
-    create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult, EditorType,
+    create_standalone_workspace, create_temp_workspace, CreateStandaloneWorkspaceOptions,
+    CreateStandaloneWorkspaceResult, CreateWorkspaceOptions, CreateWorkspaceResult, EditorType,
 };
 #[allow(unused_imports)]
 pub use storage::{
-    add_workspace, find_workspace_for_issue, get_workspace, list_workspaces, read_registry,
-    remove_workspace, update_workspace_expiration, write_registry,
+    add_workspace, find_standalone_workspace, find_workspace_for_issue, get_workspace,
+    list_workspaces, read_registry, remove_workspace, update_workspace_expiration, write_registry,
 };
 #[allow(unused_imports)]
 pub use terminal::{is_terminal_available, open_terminal, open_terminal_with_agent};
