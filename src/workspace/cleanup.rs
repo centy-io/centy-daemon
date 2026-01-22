@@ -1,10 +1,11 @@
-//! Workspace cleanup logic.
+//! Workspace cleanup logic using gwq.
 //!
 //! Handles removing temporary workspaces and cleaning up git worktrees.
 
-use super::storage::{is_expired, read_registry, remove_workspace};
+use super::gwq_client::GwqClient;
+use super::metadata::{get_expired_metadata, get_metadata, remove_metadata};
+use super::storage::remove_workspace;
 use super::WorkspaceError;
-use crate::item::entities::pr::git::{prune_worktrees, remove_worktree};
 use std::path::Path;
 use tokio::fs;
 use tracing::{info, warn};
@@ -25,12 +26,17 @@ pub struct CleanupResult {
     pub error: Option<String>,
 }
 
+/// Get the gwq client for cleanup operations
+fn get_gwq_client() -> Result<GwqClient, WorkspaceError> {
+    GwqClient::new().map_err(|e| WorkspaceError::GitError(e.to_string()))
+}
+
 /// Clean up a single workspace.
 ///
 /// This function:
-/// 1. Removes the git worktree from the source project
+/// 1. Removes the git worktree via gwq
 /// 2. Removes the workspace directory (if it still exists)
-/// 3. Removes the entry from the registry
+/// 3. Removes the entry from metadata and legacy registry
 ///
 /// # Arguments
 /// * `workspace_path` - Path to the workspace to clean up
@@ -46,17 +52,39 @@ pub async fn cleanup_workspace(
         error: None,
     };
 
-    // Get the workspace entry to find the source project
-    let entry = super::storage::get_workspace(workspace_path).await?;
+    // Get the workspace metadata to find the source project
+    let metadata = get_metadata(workspace_path).await?;
+
+    // Fall back to legacy storage if metadata not found
+    let entry = if metadata.is_none() {
+        super::storage::get_workspace(workspace_path).await?
+    } else {
+        None
+    };
 
     let workspace_path_buf = Path::new(workspace_path);
 
-    if let Some(entry) = entry {
-        let source_path = Path::new(&entry.source_project_path);
+    // Get gwq client
+    let gwq = match get_gwq_client() {
+        Ok(client) => client,
+        Err(e) => {
+            let error_msg = format!("Failed to get gwq client: {e}");
+            warn!("{error_msg}");
+            if !force {
+                result.error = Some(error_msg);
+                return Ok(result);
+            }
+            // Continue with directory cleanup only
+            return cleanup_directory_only(workspace_path, result, force).await;
+        }
+    };
 
-        // Try to remove the git worktree
+    // Try to remove the git worktree
+    if let Some(ref meta) = metadata {
+        let source_path = Path::new(&meta.source_project_path);
+
         if source_path.exists() {
-            match remove_worktree(source_path, workspace_path_buf) {
+            match gwq.remove_worktree_from_repo(source_path, workspace_path_buf, true) {
                 Ok(()) => {
                     result.worktree_removed = true;
                     info!("Removed git worktree: {workspace_path}");
@@ -72,15 +100,57 @@ pub async fn cleanup_workspace(
             }
 
             // Prune stale worktree references
-            if let Err(e) = prune_worktrees(source_path) {
+            if let Err(e) = gwq.prune(source_path) {
                 warn!("Failed to prune worktrees: {e}");
             }
         } else {
-            // Source project doesn't exist, worktree is orphaned
             warn!(
                 "Source project no longer exists: {}",
-                entry.source_project_path
+                meta.source_project_path
             );
+        }
+    } else if let Some(ref ent) = entry {
+        // Use legacy storage entry
+        let source_path = Path::new(&ent.source_project_path);
+
+        if source_path.exists() {
+            match gwq.remove_worktree_from_repo(source_path, workspace_path_buf, true) {
+                Ok(()) => {
+                    result.worktree_removed = true;
+                    info!("Removed git worktree: {workspace_path}");
+                }
+                Err(e) => {
+                    let error_msg = format!("Failed to remove worktree: {e}");
+                    warn!("{error_msg}");
+                    if !force {
+                        result.error = Some(error_msg);
+                        return Ok(result);
+                    }
+                }
+            }
+
+            // Prune stale worktree references
+            if let Err(e) = gwq.prune(source_path) {
+                warn!("Failed to prune worktrees: {e}");
+            }
+        } else {
+            warn!(
+                "Source project no longer exists: {}",
+                ent.source_project_path
+            );
+        }
+    } else {
+        // No metadata found, try to remove worktree directly via gwq
+        match gwq.remove_worktree(workspace_path_buf, true) {
+            Ok(()) => {
+                result.worktree_removed = true;
+                info!("Removed git worktree (direct): {workspace_path}");
+            }
+            Err(e) => {
+                let error_msg = format!("Failed to remove worktree: {e}");
+                warn!("{error_msg}");
+                // Continue with cleanup even if this fails
+            }
         }
     }
 
@@ -105,8 +175,48 @@ pub async fn cleanup_workspace(
         result.directory_removed = true;
     }
 
-    // Remove from registry
-    remove_workspace(workspace_path).await?;
+    // Remove from metadata registry
+    let _ = remove_metadata(workspace_path).await;
+
+    // Remove from legacy registry
+    let _ = remove_workspace(workspace_path).await;
+
+    Ok(result)
+}
+
+/// Clean up directory only (when gwq is not available)
+async fn cleanup_directory_only(
+    workspace_path: &str,
+    mut result: CleanupResult,
+    force: bool,
+) -> Result<CleanupResult, WorkspaceError> {
+    let workspace_path_buf = Path::new(workspace_path);
+
+    // Remove the workspace directory if it exists
+    if workspace_path_buf.exists() {
+        match fs::remove_dir_all(workspace_path_buf).await {
+            Ok(()) => {
+                result.directory_removed = true;
+                info!("Removed workspace directory: {workspace_path}");
+            }
+            Err(e) => {
+                let error_msg = format!("Failed to remove directory: {e}");
+                warn!("{error_msg}");
+                if !force {
+                    result.error = Some(error_msg);
+                    return Ok(result);
+                }
+            }
+        }
+    } else {
+        result.directory_removed = true;
+    }
+
+    // Remove from metadata registry
+    let _ = remove_metadata(workspace_path).await;
+
+    // Remove from legacy registry
+    let _ = remove_workspace(workspace_path).await;
 
     Ok(result)
 }
@@ -117,22 +227,28 @@ pub async fn cleanup_workspace(
 pub async fn cleanup_expired_workspaces() -> Result<Vec<CleanupResult>, WorkspaceError> {
     let mut results = Vec::new();
 
-    // Get all workspaces including expired ones
-    let registry = read_registry().await?;
+    // Get all expired workspaces from metadata
+    let expired_metadata = get_expired_metadata().await?;
 
-    let expired_paths: Vec<String> = registry
+    // Also check legacy storage for any workspaces not in metadata
+    let legacy_registry = super::storage::read_registry().await?;
+    let expired_legacy: Vec<String> = legacy_registry
         .workspaces
         .iter()
-        .filter(|(_, entry)| is_expired(entry))
+        .filter(|(_, entry)| super::storage::is_expired(entry))
         .map(|(path, _)| path.clone())
         .collect();
 
-    info!(
-        "Found {} expired workspaces to clean up",
-        expired_paths.len()
-    );
+    // Combine and deduplicate
+    let mut all_expired: std::collections::HashSet<String> =
+        expired_metadata.into_iter().map(|(path, _)| path).collect();
+    for path in expired_legacy {
+        all_expired.insert(path);
+    }
 
-    for path in expired_paths {
+    info!("Found {} expired workspaces to clean up", all_expired.len());
+
+    for path in all_expired {
         let result = cleanup_workspace(&path, true).await;
         match result {
             Ok(r) => results.push(r),
@@ -144,6 +260,26 @@ pub async fn cleanup_expired_workspaces() -> Result<Vec<CleanupResult>, Workspac
                     directory_removed: false,
                     error: Some(e.to_string()),
                 });
+            }
+        }
+    }
+
+    // Run gwq prune for any orphaned worktrees (best effort)
+    if let Ok(gwq) = get_gwq_client() {
+        // Get unique source projects from all metadata
+        if let Ok(all_metadata) = super::metadata::list_all_metadata().await {
+            let source_projects: std::collections::HashSet<String> = all_metadata
+                .iter()
+                .map(|(_, meta)| meta.source_project_path.clone())
+                .collect();
+
+            for source_path in source_projects {
+                let path = Path::new(&source_path);
+                if path.exists() {
+                    if let Err(e) = gwq.prune(path) {
+                        warn!("Failed to prune worktrees in {source_path}: {e}");
+                    }
+                }
             }
         }
     }

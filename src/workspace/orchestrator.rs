@@ -1,38 +1,35 @@
-//! Workspace creation orchestration (legacy).
-//!
-//! **Note:** This module is kept for backwards compatibility. For new code,
-//! use `crate::workspace::orchestrator` which provides gwq-based workspace
-//! management.
+//! Workspace creation orchestration using gwq.
 //!
 //! This module provides the main entry points for creating workspaces:
 //! - `create_temp_workspace`: Create a workspace for working on an issue
 //! - `create_standalone_workspace`: Create a workspace not tied to an issue
 //!
 //! It orchestrates the various components:
+//! - gwq client for git worktree management
+//! - Metadata layer for centy-specific data (TTL, issue binding, etc.)
 //! - Path generation (from `path` module)
 //! - Data copying (from `data` module)
 //! - Editor launching (from `editor` module)
-//! - Git worktree management
 //! - VS Code configuration setup
-
-#![allow(dead_code)] // This module is kept for backwards compatibility
 
 use super::data::{copy_issue_data_to_workspace, copy_project_config_to_workspace};
 use super::editor::{open_editor, EditorType};
+use super::gwq_client::{GwqClient, GwqError};
+use super::metadata::{
+    find_metadata_for_issue, find_standalone_metadata, get_default_ttl_from_metadata,
+    save_metadata, update_metadata_expiration, WorkspaceMetadata,
+};
 use super::path::{
     calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
-};
-use super::storage::{
-    add_workspace, find_standalone_workspace, find_workspace_for_issue, get_default_ttl,
-    update_workspace_expiration,
 };
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::setup_vscode_config;
 use super::WorkspaceError;
 use crate::item::entities::issue::Issue;
-use crate::item::entities::pr::git::{create_worktree, is_git_repository, prune_worktrees};
+use crate::item::entities::pr::git::is_git_repository;
 use crate::utils::now_iso;
 use std::path::{Path, PathBuf};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 /// Options for creating a temporary workspace
@@ -113,8 +110,14 @@ pub struct CreateStandaloneWorkspaceResult {
     pub original_created_at: Option<String>,
 }
 
-/// Set up a new issue-based workspace with data, config, and registry entry.
+/// Get the gwq client, falling back to direct git commands if gwq is not available.
+fn get_gwq_client() -> Result<GwqClient, GwqError> {
+    GwqClient::new()
+}
+
+/// Set up a new issue-based workspace with data, config, and metadata.
 async fn setup_new_workspace(
+    gwq: &GwqClient,
     source_path: &Path,
     workspace_path: &Path,
     options: &CreateWorkspaceOptions,
@@ -123,6 +126,7 @@ async fn setup_new_workspace(
     let issue_id = &options.issue.id;
     let display_number = options.issue.metadata.display_number;
 
+    // Copy issue data to workspace
     copy_issue_data_to_workspace(source_path, workspace_path, issue_id).await?;
 
     // Only setup VS Code config for VS Code editor
@@ -146,18 +150,38 @@ async fn setup_new_workspace(
         workspace_description: String::new(),
     };
 
-    add_workspace(workspace_path.to_string_lossy().as_ref(), entry.clone()).await?;
+    // Save metadata
+    let workspace_path_str = workspace_path.to_string_lossy().to_string();
+    let metadata = WorkspaceMetadata::from_entry(&workspace_path_str, &entry);
+    save_metadata(&workspace_path_str, metadata).await?;
+
+    // Also add to legacy storage for backwards compatibility
+    super::storage::add_workspace(&workspace_path_str, entry.clone()).await?;
+
+    info!(
+        "Created workspace for issue #{} at {}",
+        display_number,
+        workspace_path.display()
+    );
+
+    // Prune stale worktrees after successful creation
+    if let Err(e) = gwq.prune(source_path) {
+        warn!("Failed to prune worktrees: {e}");
+    }
+
     Ok(entry)
 }
 
-/// Set up a standalone workspace with project config and registry entry.
+/// Set up a standalone workspace with project config and metadata.
 async fn setup_standalone_workspace(
+    gwq: &GwqClient,
     source_path: &Path,
     workspace_path: &Path,
     options: &CreateStandaloneWorkspaceOptions,
     ttl_hours: u32,
     workspace_id: &str,
 ) -> Result<TempWorkspaceEntry, WorkspaceError> {
+    // Copy project config (no issue data)
     copy_project_config_to_workspace(source_path, workspace_path).await?;
 
     let workspace_name = options
@@ -182,16 +206,35 @@ async fn setup_standalone_workspace(
         workspace_description,
     };
 
-    add_workspace(workspace_path.to_string_lossy().as_ref(), entry.clone()).await?;
+    // Save metadata
+    let workspace_path_str = workspace_path.to_string_lossy().to_string();
+    let metadata = WorkspaceMetadata::from_entry(&workspace_path_str, &entry);
+    save_metadata(&workspace_path_str, metadata).await?;
+
+    // Also add to legacy storage for backwards compatibility
+    super::storage::add_workspace(&workspace_path_str, entry.clone()).await?;
+
+    info!(
+        "Created standalone workspace '{}' at {}",
+        entry.workspace_name,
+        workspace_path.display()
+    );
+
+    // Prune stale worktrees after successful creation
+    if let Err(e) = gwq.prune(source_path) {
+        warn!("Failed to prune worktrees: {e}");
+    }
+
     Ok(entry)
 }
 
-/// Handle worktree creation, including conflict resolution.
+/// Handle worktree creation via gwq, including conflict resolution.
 fn handle_worktree_creation(
+    gwq: &GwqClient,
     source_path: &Path,
     workspace_path: &Path,
 ) -> Result<bool, WorkspaceError> {
-    match create_worktree(source_path, workspace_path, "HEAD") {
+    match gwq.add_worktree_at_path(source_path, workspace_path, "HEAD") {
         Ok(()) => Ok(false), // Not reused
         Err(e) => {
             let error_msg = e.to_string();
@@ -199,13 +242,19 @@ fn handle_worktree_creation(
                 || error_msg.contains("already registered worktree");
 
             if is_conflict && workspace_path.exists() {
+                info!("Reusing existing worktree at {}", workspace_path.display());
                 return Ok(true); // Reusing existing worktree
             }
 
-            if is_conflict && prune_worktrees(source_path).is_ok() {
-                return create_worktree(source_path, workspace_path, "HEAD")
-                    .map(|()| false)
-                    .map_err(|e| WorkspaceError::GitError(e.to_string()));
+            // Try pruning and retrying
+            if is_conflict {
+                info!("Worktree conflict detected, pruning and retrying");
+                if gwq.prune(source_path).is_ok() {
+                    return gwq
+                        .add_worktree_at_path(source_path, workspace_path, "HEAD")
+                        .map(|()| false)
+                        .map_err(|e| WorkspaceError::GitError(e.to_string()));
+                }
             }
 
             Err(WorkspaceError::GitError(error_msg))
@@ -218,15 +267,16 @@ fn handle_worktree_creation(
 /// This function:
 /// 1. Checks if an existing workspace for this issue already exists (reopen if so)
 /// 2. Validates the source project is a git repository
-/// 3. Creates a git worktree at a temporary location
+/// 3. Creates a git worktree at a temporary location via gwq
 /// 4. Sets up editor configuration (VS Code tasks.json for VS Code mode)
-/// 5. Records the workspace in the registry
+/// 5. Records workspace metadata
 /// 6. Opens the selected editor (VS Code, Terminal, or None)
 pub async fn create_temp_workspace(
     options: CreateWorkspaceOptions,
 ) -> Result<CreateWorkspaceResult, WorkspaceError> {
     let source_path = &options.source_project_path;
 
+    // Validate source project
     if !is_git_repository(source_path) {
         return Err(WorkspaceError::NotGitRepository);
     }
@@ -236,8 +286,14 @@ pub async fn create_temp_workspace(
         ));
     }
 
+    // Get gwq client
+    let gwq = get_gwq_client().map_err(|e| WorkspaceError::GitError(e.to_string()))?;
+
+    // Determine TTL
     let ttl_hours = if options.ttl_hours == 0 {
-        get_default_ttl().await.unwrap_or(DEFAULT_TTL_HOURS)
+        get_default_ttl_from_metadata()
+            .await
+            .unwrap_or(DEFAULT_TTL_HOURS)
     } else {
         options.ttl_hours
     };
@@ -245,22 +301,35 @@ pub async fn create_temp_workspace(
     let issue_id = &options.issue.id;
     let source_path_str = source_path.to_string_lossy().to_string();
 
-    // Check for existing workspace for this issue
-    if let Ok(Some((existing_path, existing_entry))) =
-        find_workspace_for_issue(&source_path_str, issue_id).await
+    // Check for existing workspace for this issue (in metadata)
+    if let Ok(Some((existing_path, existing_metadata))) =
+        find_metadata_for_issue(&source_path_str, issue_id).await
     {
         let workspace_path = PathBuf::from(&existing_path);
-        if workspace_path.exists() {
-            let original_created_at = existing_entry.created_at.clone();
+
+        // Verify the worktree still exists
+        if workspace_path.exists() && gwq.is_worktree(&workspace_path) {
+            let original_created_at = existing_metadata.created_at.clone();
             let new_expires_at = calculate_expires_at(ttl_hours);
-            update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+            // Update expiration in both metadata and legacy storage
+            update_metadata_expiration(&existing_path, &new_expires_at).await?;
+            super::storage::update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+            info!(
+                "Reopening existing workspace for issue #{} at {}",
+                options.issue.metadata.display_number,
+                workspace_path.display()
+            );
+
+            let entry = TempWorkspaceEntry {
+                expires_at: new_expires_at,
+                ..existing_metadata.to_entry()
+            };
 
             return Ok(CreateWorkspaceResult {
                 workspace_path: workspace_path.clone(),
-                entry: TempWorkspaceEntry {
-                    expires_at: new_expires_at,
-                    ..existing_entry
-                },
+                entry,
                 editor_opened: open_editor(options.editor, &workspace_path),
                 workspace_reused: true,
                 original_created_at: Some(original_created_at),
@@ -268,11 +337,18 @@ pub async fn create_temp_workspace(
         }
     }
 
+    // Generate workspace path
     let workspace_path =
         generate_workspace_path(source_path, options.issue.metadata.display_number);
-    let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
 
-    let entry = setup_new_workspace(source_path, &workspace_path, &options, ttl_hours).await?;
+    // Create worktree via gwq
+    let worktree_reused = handle_worktree_creation(&gwq, source_path, &workspace_path)?;
+
+    // Setup workspace
+    let entry =
+        setup_new_workspace(&gwq, source_path, &workspace_path, &options, ttl_hours).await?;
+
+    // Open editor
     let editor_opened = open_editor(options.editor, &workspace_path);
 
     Ok(CreateWorkspaceResult {
@@ -289,15 +365,16 @@ pub async fn create_temp_workspace(
 /// This function:
 /// 1. Checks if an existing standalone workspace with the same name exists (reopen if so)
 /// 2. Validates the source project is a git repository
-/// 3. Creates a git worktree at a temporary location
+/// 3. Creates a git worktree at a temporary location via gwq
 /// 4. Copies project config (shared assets, config.json)
-/// 5. Records the workspace in the registry
+/// 5. Records workspace metadata
 /// 6. Opens the selected editor (VS Code, Terminal, or None)
 pub async fn create_standalone_workspace(
     options: CreateStandaloneWorkspaceOptions,
 ) -> Result<CreateStandaloneWorkspaceResult, WorkspaceError> {
     let source_path = &options.source_project_path;
 
+    // Validate source project
     if !is_git_repository(source_path) {
         return Err(WorkspaceError::NotGitRepository);
     }
@@ -307,8 +384,14 @@ pub async fn create_standalone_workspace(
         ));
     }
 
+    // Get gwq client
+    let gwq = get_gwq_client().map_err(|e| WorkspaceError::GitError(e.to_string()))?;
+
+    // Determine TTL
     let ttl_hours = if options.ttl_hours == 0 {
-        get_default_ttl().await.unwrap_or(DEFAULT_TTL_HOURS)
+        get_default_ttl_from_metadata()
+            .await
+            .unwrap_or(DEFAULT_TTL_HOURS)
     } else {
         options.ttl_hours
     };
@@ -317,21 +400,35 @@ pub async fn create_standalone_workspace(
 
     // Check for existing standalone workspace with the same name
     if let Some(ref name) = options.name {
-        if let Ok(Some((existing_path, existing_entry))) =
-            find_standalone_workspace(&source_path_str, None, Some(name)).await
+        if let Ok(Some((existing_path, existing_metadata))) =
+            find_standalone_metadata(&source_path_str, None, Some(name)).await
         {
             let workspace_path = PathBuf::from(&existing_path);
-            if workspace_path.exists() {
-                let original_created_at = existing_entry.created_at.clone();
+
+            // Verify the worktree still exists
+            if workspace_path.exists() && gwq.is_worktree(&workspace_path) {
+                let original_created_at = existing_metadata.created_at.clone();
                 let new_expires_at = calculate_expires_at(ttl_hours);
-                update_workspace_expiration(&existing_path, &new_expires_at).await?;
+
+                // Update expiration in both metadata and legacy storage
+                update_metadata_expiration(&existing_path, &new_expires_at).await?;
+                super::storage::update_workspace_expiration(&existing_path, &new_expires_at)
+                    .await?;
+
+                info!(
+                    "Reopening existing standalone workspace '{}' at {}",
+                    name,
+                    workspace_path.display()
+                );
+
+                let entry = TempWorkspaceEntry {
+                    expires_at: new_expires_at,
+                    ..existing_metadata.to_entry()
+                };
 
                 return Ok(CreateStandaloneWorkspaceResult {
                     workspace_path: workspace_path.clone(),
-                    entry: TempWorkspaceEntry {
-                        expires_at: new_expires_at,
-                        ..existing_entry
-                    },
+                    entry,
                     editor_opened: open_editor(options.editor, &workspace_path),
                     workspace_reused: true,
                     original_created_at: Some(original_created_at),
@@ -343,10 +440,15 @@ pub async fn create_standalone_workspace(
     // Generate a new workspace ID
     let workspace_id = Uuid::new_v4().to_string();
 
+    // Generate workspace path
     let workspace_path = generate_standalone_workspace_path(source_path, options.name.as_deref());
-    let worktree_reused = handle_worktree_creation(source_path, &workspace_path)?;
 
+    // Create worktree via gwq
+    let worktree_reused = handle_worktree_creation(&gwq, source_path, &workspace_path)?;
+
+    // Setup workspace
     let entry = setup_standalone_workspace(
+        &gwq,
         source_path,
         &workspace_path,
         &options,
@@ -354,6 +456,8 @@ pub async fn create_standalone_workspace(
         &workspace_id,
     )
     .await?;
+
+    // Open editor
     let editor_opened = open_editor(options.editor, &workspace_path);
 
     Ok(CreateStandaloneWorkspaceResult {

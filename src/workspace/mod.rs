@@ -5,37 +5,57 @@
 //! - Set up VS Code with auto-running agent tasks
 //! - Track and cleanup workspaces with TTL-based expiration
 //!
-//! ## Module Structure (DDD)
+//! ## Module Structure
 //!
+//! ### Core Components
+//! - `gwq_client`: Wrapper for the gwq CLI tool (git worktree management)
+//! - `metadata`: Centy-specific workspace metadata (TTL, issue binding, etc.)
+//! - `orchestrator`: Main workspace creation orchestration (replaces `create`)
+//! - `cleanup`: Workspace cleanup and expiration handling
+//!
+//! ### Supporting Components
 //! - `editor`: Editor type and launching (value object)
 //! - `path`: Workspace path generation and sanitization (value objects)
 //! - `data`: Data copying for workspace setup (domain service)
-//! - `create`: Main workspace creation orchestration (application service)
-//! - `cleanup`: Workspace cleanup and expiration (domain service)
-//! - `storage`: Registry persistence (infrastructure)
+//! - `storage`: Legacy registry persistence (infrastructure) - kept for backwards compatibility
 //! - `types`: Shared type definitions
 //! - `vscode`: VS Code configuration setup (infrastructure)
 //! - `terminal`: Terminal launching (infrastructure)
+//!
+//! ## gwq Integration
+//!
+//! This module uses [gwq](https://github.com/d-kuro/gwq) for git worktree management.
+//! gwq is bundled with centy and provides:
+//! - Worktree creation/removal
+//! - Worktree listing (JSON output)
+//! - Worktree pruning
+//!
+//! Centy-specific metadata (TTL, issue binding, agent info) is stored separately
+//! in `~/.centy/workspace-metadata.json`.
 
 pub mod cleanup;
-pub mod create;
+pub mod create; // Keep for backwards compatibility during transition
 pub mod data;
 pub mod editor;
+pub mod gwq_client;
+pub mod metadata;
+pub mod orchestrator;
 pub mod path;
 pub mod storage;
 pub mod terminal;
 pub mod types;
 pub mod vscode;
 
+// Re-export from orchestrator (the new implementation)
 #[allow(unused_imports)]
 pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 #[allow(unused_imports)]
-pub use create::{
+pub use editor::EditorType;
+#[allow(unused_imports)]
+pub use orchestrator::{
     create_standalone_workspace, create_temp_workspace, CreateStandaloneWorkspaceOptions,
     CreateStandaloneWorkspaceResult, CreateWorkspaceOptions, CreateWorkspaceResult,
 };
-#[allow(unused_imports)]
-pub use editor::EditorType;
 #[allow(unused_imports)]
 pub use path::{
     calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
@@ -52,6 +72,14 @@ pub use terminal::{is_terminal_available, open_terminal, open_terminal_with_agen
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
 #[allow(unused_imports)]
 pub use vscode::{open_vscode, setup_vscode_config};
+
+// Re-export gwq types for convenience
+#[allow(unused_imports)]
+pub use gwq_client::{GwqClient, GwqError, GwqWorktree};
+
+// Re-export metadata types
+#[allow(unused_imports)]
+pub use metadata::{MetadataRegistry, WorkspaceMetadata};
 
 use thiserror::Error;
 

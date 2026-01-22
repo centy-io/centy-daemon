@@ -4,6 +4,13 @@
 //! - Detecting the current branch
 //! - Validating that branches exist
 //! - Getting repository information
+//!
+//! ## Worktree Functions
+//!
+//! The worktree functions (`create_worktree`, `remove_worktree`, `prune_worktrees`)
+//! are kept for backwards compatibility. For new code, prefer using
+//! `crate::workspace::gwq_client::GwqClient` which provides a more complete
+//! worktree management API via the gwq CLI tool.
 
 use std::path::Path;
 use std::process::Command;
@@ -170,6 +177,9 @@ pub fn get_default_branch(project_path: &Path) -> String {
 /// * `source_path` - Path to the source git repository
 /// * `target_path` - Path where the worktree will be created
 /// * `git_ref` - Git ref to check out (usually "HEAD")
+///
+/// # Deprecated
+/// For new code, prefer using `crate::workspace::gwq_client::GwqClient::add_worktree_at_path`.
 pub fn create_worktree(
     source_path: &Path,
     target_path: &Path,
@@ -211,6 +221,9 @@ pub fn create_worktree(
 /// # Arguments
 /// * `source_path` - Path to the source git repository (not the worktree)
 /// * `worktree_path` - Path to the worktree to remove
+///
+/// # Deprecated
+/// For new code, prefer using `crate::workspace::gwq_client::GwqClient::remove_worktree_from_repo`.
 pub fn remove_worktree(source_path: &Path, worktree_path: &Path) -> Result<(), GitError> {
     let output = Command::new("git")
         .args([
@@ -241,6 +254,9 @@ pub fn remove_worktree(source_path: &Path, worktree_path: &Path) -> Result<(), G
 ///
 /// Call this after manually deleting worktree directories to clean up
 /// git's internal tracking.
+///
+/// # Deprecated
+/// For new code, prefer using `crate::workspace::gwq_client::GwqClient::prune`.
 pub fn prune_worktrees(source_path: &Path) -> Result<(), GitError> {
     let output = Command::new("git")
         .args(["worktree", "prune"])

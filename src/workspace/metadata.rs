@@ -214,7 +214,9 @@ pub async fn write_metadata_registry(registry: &MetadataRegistry) -> Result<(), 
 }
 
 /// Write the registry to disk without acquiring the lock (caller must hold lock)
-async fn write_metadata_registry_unlocked(registry: &MetadataRegistry) -> Result<(), WorkspaceError> {
+async fn write_metadata_registry_unlocked(
+    registry: &MetadataRegistry,
+) -> Result<(), WorkspaceError> {
     let path = get_metadata_path()?;
 
     // Ensure parent directory exists
@@ -239,7 +241,9 @@ pub async fn save_metadata(
     let _guard = get_lock().lock().await;
 
     let mut registry = read_metadata_registry().await?;
-    registry.workspaces.insert(worktree_path.to_string(), metadata);
+    registry
+        .workspaces
+        .insert(worktree_path.to_string(), metadata);
     registry.updated_at = now_iso();
 
     write_metadata_registry_unlocked(&registry).await
@@ -261,7 +265,9 @@ pub async fn remove_metadata(worktree_path: &str) -> Result<bool, WorkspaceError
 }
 
 /// Get metadata for a specific workspace
-pub async fn get_metadata(worktree_path: &str) -> Result<Option<WorkspaceMetadata>, WorkspaceError> {
+pub async fn get_metadata(
+    worktree_path: &str,
+) -> Result<Option<WorkspaceMetadata>, WorkspaceError> {
     let registry = read_metadata_registry().await?;
     Ok(registry.workspaces.get(worktree_path).cloned())
 }
@@ -339,10 +345,7 @@ pub async fn update_metadata_expiration(
 /// List all workspace metadata
 pub async fn list_all_metadata() -> Result<Vec<(String, WorkspaceMetadata)>, WorkspaceError> {
     let registry = read_metadata_registry().await?;
-    Ok(registry
-        .workspaces
-        .into_iter()
-        .collect())
+    Ok(registry.workspaces.into_iter().collect())
 }
 
 /// List workspace metadata with filtering
@@ -532,6 +535,9 @@ mod tests {
 
         assert_eq!(roundtrip.source_project_path, metadata.source_project_path);
         assert_eq!(roundtrip.issue_id, metadata.issue_id);
-        assert_eq!(roundtrip.issue_display_number, metadata.issue_display_number);
+        assert_eq!(
+            roundtrip.issue_display_number,
+            metadata.issue_display_number
+        );
     }
 }

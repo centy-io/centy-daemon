@@ -113,6 +113,7 @@ pub async fn get_workspace(
 /// Find an existing workspace for a specific issue in a source project.
 ///
 /// Returns the workspace path and entry if found and not expired.
+#[allow(dead_code)] // Part of public API, kept for backwards compatibility
 pub async fn find_workspace_for_issue(
     source_project_path: &str,
     issue_id: &str,
@@ -138,6 +139,7 @@ pub async fn find_workspace_for_issue(
 /// Find an existing standalone workspace by workspace ID or name.
 ///
 /// Returns the workspace path and entry if found and not expired.
+#[allow(dead_code)] // Part of public API, kept for backwards compatibility
 pub async fn find_standalone_workspace(
     source_project_path: &str,
     workspace_id: Option<&str>,
@@ -250,6 +252,7 @@ pub async fn count_expired() -> Result<u32, WorkspaceError> {
 }
 
 /// Get the default TTL from the registry
+#[allow(dead_code)] // Part of public API, kept for backwards compatibility
 pub async fn get_default_ttl() -> Result<u32, WorkspaceError> {
     let registry = read_registry().await?;
     Ok(registry.default_ttl_hours)
