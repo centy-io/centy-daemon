@@ -2,14 +2,14 @@
 set -e
 
 # Spell check on staged files (soft fail if cspell unavailable)
-if command -v npx >/dev/null 2>&1; then
+if command -v pnpm dlx >/dev/null 2>&1; then
     echo "Running cspell on staged files..."
     STAGED_FILES=$(git diff --cached --name-only --diff-filter=d)
     if [ -n "$STAGED_FILES" ]; then
-        echo "$STAGED_FILES" | xargs npx cspell --no-progress
+        echo "$STAGED_FILES" | xargs pnpm dlx cspell --no-progress
     fi
 else
-    echo "Warning: npx not found, skipping spell check"
+    echo "Warning: pnpm dlx not found, skipping spell check"
 fi
 
 # Check for forbidden lint suppressions

@@ -65,5 +65,18 @@
       "WebSearch",
       "Skill(tupe:ultrathink)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm dlx block-no-verify"
+          }
+        ]
+      }
+    ]
   }
 }
