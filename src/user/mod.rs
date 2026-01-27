@@ -7,6 +7,7 @@
 //! Users are stored in `.centy/users.json` in each project.
 
 mod crud;
+mod git;
 mod storage;
 mod sync;
 mod types;
@@ -17,6 +18,8 @@ pub use crud::{
     CreateUserOptions, CreateUserResult, DeleteUserResult, RestoreUserResult, SoftDeleteUserResult,
     UpdateUserOptions, UpdateUserResult,
 };
+#[allow(unused_imports)]
+pub use git::{get_git_contributors, is_git_repository};
 #[allow(unused_imports)]
 pub use storage::{find_user_by_email, find_user_by_id, read_users, write_users};
 #[allow(unused_imports)]
