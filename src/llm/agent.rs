@@ -382,7 +382,7 @@ fn exec_agent_with_stdin(
     config: &LocalLlmConfig,
     agent: &AgentConfig,
     prompt: &str,
-    _prompt_preview: &str,
+    prompt_preview: &str,
     extra_args: Vec<String>,
 ) -> Result<SpawnResult, AgentError> {
     use std::io::Write;
