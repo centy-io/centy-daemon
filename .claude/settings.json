@@ -63,7 +63,14 @@
       "WebFetch(domain:git-scm.com)",
       "WebFetch(domain:cli.github.com)",
       "WebSearch",
-      "Skill(tupe:ultrathink)"
+      "Bash(git stash:*)",
+      "Bash(centy --version:*)",
+      "Bash(centy get:*)",
+      "Bash(pnpm format:*)",
+      "Bash(centy workspace --help:*)",
+      "Bash(centy workspace open --help:*)",
+      "Bash(centy workspace open:*)",
+      "Bash(centy issue create --help:*)"
     ]
   },
   "hooks": {
