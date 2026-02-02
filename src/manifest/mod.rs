@@ -52,9 +52,10 @@ pub fn create_manifest() -> CentyManifest {
     }
 }
 
-/// Update the manifest timestamp
-pub fn update_manifest_timestamp(manifest: &mut CentyManifest) {
+/// Update the manifest timestamp and version
+pub fn update_manifest(manifest: &mut CentyManifest) {
     manifest.updated_at = now_iso();
+    manifest.centy_version = CENTY_VERSION.to_string();
 }
 
 #[cfg(test)]
@@ -69,6 +70,21 @@ mod tests {
         assert_eq!(manifest.centy_version, CENTY_VERSION);
         assert!(!manifest.created_at.is_empty());
         assert!(!manifest.updated_at.is_empty());
+    }
+
+    #[test]
+    fn test_update_manifest_sets_version() {
+        let mut manifest = CentyManifest {
+            schema_version: 1,
+            centy_version: "0.0.0".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        update_manifest(&mut manifest);
+
+        assert_eq!(manifest.centy_version, CENTY_VERSION);
+        assert_ne!(manifest.updated_at, "2024-01-01T00:00:00Z");
     }
 
     #[test]

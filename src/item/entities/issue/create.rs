@@ -9,7 +9,7 @@ use super::status::{validate_status, StatusError};
 use crate::common::{generate_frontmatter, sync_to_org_projects, OrgSyncResult};
 use crate::config::read_config;
 use crate::llm::{generate_title, TitleGenerationError};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::get_project_info;
 use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
@@ -294,7 +294,7 @@ pub async fn create_issue(
     fs::write(&issue_file, format_markdown(&issue_content)).await?;
 
     let mut manifest = manifest;
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let created_files = vec![format!(".centy/issues/{issue_id}.md")];

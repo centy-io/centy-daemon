@@ -6,7 +6,7 @@ use crate::common::{generate_frontmatter, parse_frontmatter, FrontmatterError};
 use crate::config::read_config;
 use crate::item::validation::priority::{validate_priority, PriorityError};
 use crate::link::{read_links, write_links};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::ProjectInfo;
 use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::collections::HashMap;
@@ -563,7 +563,7 @@ pub async fn update_pr(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let pr = PullRequest {
@@ -619,7 +619,7 @@ pub async fn delete_pr(project_path: &Path, pr_id: &str) -> Result<DeletePrResul
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeletePrResult { manifest })
@@ -725,7 +725,7 @@ pub async fn soft_delete_pr(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the updated PR
@@ -831,7 +831,7 @@ pub async fn restore_pr(project_path: &Path, pr_id: &str) -> Result<RestorePrRes
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the restored PR

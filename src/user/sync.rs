@@ -7,7 +7,7 @@ use super::crud::{create_user, CreateUserOptions};
 use super::git::{get_git_contributors, is_git_repository};
 use super::storage::{find_user_by_email, read_users};
 use super::types::{slugify, SyncUsersResult, UserError};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use std::path::Path;
 use tracing::info;
 
@@ -120,7 +120,7 @@ pub async fn sync_users(
 
     // Update manifest timestamp if we made changes
     if !dry_run && !result.created.is_empty() {
-        update_manifest_timestamp(&mut manifest);
+        update_manifest(&mut manifest);
         write_manifest(project_path, &manifest).await?;
     }
 

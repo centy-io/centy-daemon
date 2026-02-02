@@ -3,7 +3,7 @@
 //! Provides functionality to add, list, retrieve, and delete assets (images, videos, etc.)
 //! attached to issues. Assets can be either issue-specific or shared across all issues.
 
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -242,7 +242,7 @@ pub async fn add_asset(
 
     // Update manifest timestamp
     let mut manifest = manifest;
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let asset_info = AssetInfo {
@@ -506,7 +506,7 @@ pub async fn delete_asset(
     fs::remove_file(&asset_path).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteAssetResult {

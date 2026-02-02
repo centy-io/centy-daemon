@@ -1,8 +1,7 @@
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
 use crate::manifest::{
-    create_manifest, read_manifest, update_manifest_timestamp, write_manifest, CentyManifest,
-    ManagedFileType,
+    create_manifest, read_manifest, update_manifest, write_manifest, CentyManifest, ManagedFileType,
 };
 use crate::utils::get_centy_path;
 use std::collections::HashSet;
@@ -91,8 +90,8 @@ pub async fn execute_reconciliation(
         }
     }
 
-    // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    // Update manifest timestamp and version
+    update_manifest(&mut manifest);
 
     // Write manifest
     write_manifest(project_path, &manifest).await?;

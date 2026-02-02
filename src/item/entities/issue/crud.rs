@@ -12,7 +12,7 @@ use crate::common::{
 };
 use crate::config::read_config;
 use crate::link::{read_links, write_links};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::ProjectInfo;
 use crate::utils::{format_markdown, get_centy_path, now_iso};
 use async_trait::async_trait;
@@ -702,7 +702,7 @@ pub async fn update_issue(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Build result issue struct using helper
@@ -764,7 +764,7 @@ pub async fn delete_issue(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteIssueResult { manifest })
@@ -843,7 +843,7 @@ pub async fn soft_delete_issue(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the updated issue
@@ -922,7 +922,7 @@ pub async fn restore_issue(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the restored issue
@@ -1051,8 +1051,8 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     }
 
     // Update both manifests
-    update_manifest_timestamp(&mut source_manifest);
-    update_manifest_timestamp(&mut target_manifest);
+    update_manifest(&mut source_manifest);
+    update_manifest(&mut target_manifest);
     write_manifest(&options.source_project_path, &source_manifest).await?;
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
@@ -1190,7 +1190,7 @@ pub async fn duplicate_issue(
     }
 
     // Update target manifest
-    update_manifest_timestamp(&mut target_manifest);
+    update_manifest(&mut target_manifest);
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
     // Read the new issue
@@ -1451,7 +1451,7 @@ async fn create_issue_in_project(
     fs::write(&issue_file_path, format_markdown(&issue_content)).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)
         .await
         .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;
@@ -1556,7 +1556,7 @@ async fn update_or_create_issue_in_project(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)
         .await
         .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;

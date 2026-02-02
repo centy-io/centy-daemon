@@ -8,7 +8,7 @@ use super::status::{default_pr_statuses, validate_pr_status};
 use crate::common::generate_frontmatter;
 use crate::config::read_config;
 use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::collections::HashMap;
 use std::path::Path;
@@ -225,7 +225,7 @@ pub async fn create_pr(
     fs::write(&pr_file, format_markdown(&pr_content)).await?;
 
     let mut manifest = manifest;
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(CreatePrResult {
