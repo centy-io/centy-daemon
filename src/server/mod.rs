@@ -104,29 +104,28 @@ use proto::centy_daemon_server::CentyDaemon;
 use proto::{
     ActionCategory, AddAssetRequest, AddAssetResponse, AdvancedSearchRequest,
     AdvancedSearchResponse, Asset, CleanupExpiredWorkspacesRequest,
-    CleanupExpiredWorkspacesResponse, ClearLlmWorkRequest, ClearLlmWorkResponse,
-    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, Config, CreateDocRequest,
-    CreateDocResponse, CreateIssueRequest, CreateIssueResponse, CreateLinkRequest,
-    CreateLinkResponse, CreateOrganizationRequest, CreateOrganizationResponse, CreatePrRequest,
-    CreatePrResponse, CreateUserRequest, CreateUserResponse, CustomFieldDefinition, DaemonInfo,
-    DeleteAssetRequest, DeleteAssetResponse, DeleteDocRequest, DeleteDocResponse,
-    DeleteIssueRequest, DeleteIssueResponse, DeleteLinkRequest, DeleteLinkResponse,
-    DeleteOrganizationRequest, DeleteOrganizationResponse, DeletePrRequest, DeletePrResponse,
-    DeleteUserRequest, DeleteUserResponse, Doc, DocMetadata, DocWithProject as ProtoDocWithProject,
-    DuplicateDocRequest, DuplicateDocResponse, DuplicateIssueRequest, DuplicateIssueResponse,
-    EditorInfo, EditorType as ProtoEditorType, EntityAction, EntityType,
-    ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest, GetAssetResponse,
-    GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, GetCompactRequest,
-    GetCompactResponse, GetConfigRequest, GetConfigResponse, GetDaemonInfoRequest, GetDocRequest,
-    GetDocResponse, GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest,
-    GetEntityActionsResponse, GetFeatureStatusRequest, GetFeatureStatusResponse,
-    GetInstructionRequest, GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest,
-    GetIssueResponse, GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetLlmWorkRequest,
-    GetLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, GetManifestRequest,
-    GetManifestResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse,
-    GetNextPrNumberRequest, GetNextPrNumberResponse, GetOrganizationRequest,
-    GetOrganizationResponse, GetPrByDisplayNumberRequest, GetPrRequest, GetPrResponse,
-    GetProjectInfoRequest, GetProjectInfoResponse, GetPrsByUuidRequest, GetPrsByUuidResponse,
+    CleanupExpiredWorkspacesResponse, CloseTempWorkspaceRequest, CloseTempWorkspaceResponse,
+    Config, CreateDocRequest, CreateDocResponse, CreateIssueRequest, CreateIssueResponse,
+    CreateLinkRequest, CreateLinkResponse, CreateOrganizationRequest, CreateOrganizationResponse,
+    CreatePrRequest, CreatePrResponse, CreateUserRequest, CreateUserResponse,
+    CustomFieldDefinition, DaemonInfo, DeleteAssetRequest, DeleteAssetResponse, DeleteDocRequest,
+    DeleteDocResponse, DeleteIssueRequest, DeleteIssueResponse, DeleteLinkRequest,
+    DeleteLinkResponse, DeleteOrganizationRequest, DeleteOrganizationResponse, DeletePrRequest,
+    DeletePrResponse, DeleteUserRequest, DeleteUserResponse, Doc, DocMetadata,
+    DocWithProject as ProtoDocWithProject, DuplicateDocRequest, DuplicateDocResponse,
+    DuplicateIssueRequest, DuplicateIssueResponse, EditorInfo, EditorType as ProtoEditorType,
+    EntityAction, EntityType, ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest,
+    GetAssetResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse,
+    GetCompactRequest, GetCompactResponse, GetConfigRequest, GetConfigResponse,
+    GetDaemonInfoRequest, GetDocRequest, GetDocResponse, GetDocsBySlugRequest,
+    GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
+    GetFeatureStatusRequest, GetFeatureStatusResponse, GetInstructionRequest,
+    GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest, GetIssueResponse,
+    GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetManifestRequest, GetManifestResponse,
+    GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetNextPrNumberRequest,
+    GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
+    GetPrByDisplayNumberRequest, GetPrRequest, GetPrResponse, GetProjectInfoRequest,
+    GetProjectInfoResponse, GetPrsByUuidRequest, GetPrsByUuidResponse,
     GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
     GetUserRequest, GetUserResponse, GitContributor as ProtoGitContributor, InitRequest,
     InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
@@ -152,14 +151,12 @@ use proto::{
     SetProjectTitleResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse,
     ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest, SoftDeleteDocResponse,
     SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest, SoftDeletePrResponse,
-    SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest, SpawnAgentResponse,
-    SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace,
-    UntrackProjectRequest, UntrackProjectResponse, UpdateCompactRequest, UpdateCompactResponse,
-    UpdateConfigRequest, UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse,
-    UpdateIssueRequest, UpdateIssueResponse, UpdateLocalLlmConfigRequest,
-    UpdateLocalLlmConfigResponse, UpdateOrganizationRequest, UpdateOrganizationResponse,
-    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, User as ProtoUser,
-    WorkspaceMode,
+    SoftDeleteUserRequest, SoftDeleteUserResponse, SyncUsersRequest, SyncUsersResponse,
+    TempWorkspace as ProtoTempWorkspace, UntrackProjectRequest, UntrackProjectResponse,
+    UpdateCompactRequest, UpdateCompactResponse, UpdateConfigRequest, UpdateConfigResponse,
+    UpdateDocRequest, UpdateDocResponse, UpdateIssueRequest, UpdateIssueResponse,
+    UpdateOrganizationRequest, UpdateOrganizationResponse, UpdatePrRequest, UpdatePrResponse,
+    UpdateUserRequest, UpdateUserResponse, User as ProtoUser, WorkspaceMode,
 };
 
 /// Signal type for daemon shutdown/restart
@@ -2751,62 +2748,6 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    // ============ LLM Agent RPCs (Deprecated - returns not implemented) ============
-
-    async fn spawn_agent(
-        &self,
-        _request: Request<SpawnAgentRequest>,
-    ) -> Result<Response<SpawnAgentResponse>, Status> {
-        Ok(Response::new(SpawnAgentResponse {
-            success: false,
-            error: "LLM agent spawning has been removed from the daemon. Use external LLM tools directly.".to_string(),
-            agent_name: String::new(),
-            issue_id: String::new(),
-            display_number: 0,
-            prompt_preview: String::new(),
-        }))
-    }
-
-    async fn get_llm_work(
-        &self,
-        _request: Request<GetLlmWorkRequest>,
-    ) -> Result<Response<GetLlmWorkResponse>, Status> {
-        Ok(Response::new(GetLlmWorkResponse {
-            has_active_work: false,
-            session: None,
-        }))
-    }
-
-    async fn clear_llm_work(
-        &self,
-        _request: Request<ClearLlmWorkRequest>,
-    ) -> Result<Response<ClearLlmWorkResponse>, Status> {
-        Ok(Response::new(ClearLlmWorkResponse {
-            success: true,
-            error: String::new(),
-        }))
-    }
-
-    async fn get_local_llm_config(
-        &self,
-        _request: Request<GetLocalLlmConfigRequest>,
-    ) -> Result<Response<GetLocalLlmConfigResponse>, Status> {
-        Err(Status::unimplemented(
-            "LLM configuration has been removed from the daemon",
-        ))
-    }
-
-    async fn update_local_llm_config(
-        &self,
-        _request: Request<UpdateLocalLlmConfigRequest>,
-    ) -> Result<Response<UpdateLocalLlmConfigResponse>, Status> {
-        Ok(Response::new(UpdateLocalLlmConfigResponse {
-            success: false,
-            error: "LLM configuration has been removed from the daemon".to_string(),
-            config: None,
-        }))
-    }
-
     // ============ Link RPCs ============
 
     async fn create_link(
@@ -3546,10 +3487,9 @@ impl CentyDaemon for CentyDaemonService {
             req.agent_name.clone()
         };
 
-        // Use agent_name as the command (simplified without LLM config)
+        // Use agent name as command (e.g., "claude" -> "claude" command)
         let agent_command = agent_name.clone();
         let agent_args: Vec<String> = Vec::new();
-        let stdin_prompt_str: Option<String> = None;
 
         let workspace_mode = match req.workspace_mode {
             x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
@@ -3592,14 +3532,10 @@ impl CentyDaemon for CentyDaemonService {
             issue.metadata.display_number,
             &agent_command,
             &agent_args,
-            stdin_prompt_str.as_deref(),
+            None,
         )
         .unwrap_or(false);
-        let full_command = if agent_args.is_empty() {
-            agent_command
-        } else {
-            format!("{} {}", agent_command, agent_args.join(" "))
-        };
+        let full_command = agent_command.clone();
 
         Ok(Response::new(OpenAgentInTerminalResponse {
             success: true,

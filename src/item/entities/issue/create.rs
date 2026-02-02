@@ -389,3 +389,20 @@ pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io
 
     Ok(format!("{:04}", max_number + 1))
 }
+
+/// Create a new issue
+///
+/// This is a thin wrapper around `create_issue` for backward compatibility.
+/// Title is required.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Title is empty (`TitleRequired`)
+/// - Any of the regular issue creation errors occur
+pub async fn create_issue_with_title_generation(
+    project_path: &Path,
+    options: CreateIssueOptions,
+) -> Result<CreateIssueResult, IssueError> {
+    create_issue(project_path, options).await
+}
