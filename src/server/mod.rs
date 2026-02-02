@@ -117,26 +117,26 @@ use proto::{
     EditorInfo, EditorType as ProtoEditorType, EntityAction, EntityType,
     ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest, GetAssetResponse,
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, GetCompactRequest,
-    GetCompactResponse, GetConfigRequest, GetDaemonInfoRequest, GetDocRequest,
-    GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
-    GetFeatureStatusRequest, GetFeatureStatusResponse, GetInstructionRequest,
-    GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest,
-    GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetLlmWorkRequest, GetLlmWorkResponse,
-    GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, GetManifestRequest,
-    GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetNextPrNumberRequest,
-    GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
-    GetPrByDisplayNumberRequest, GetPrRequest, GetProjectInfoRequest, GetProjectInfoResponse,
-    GetPrsByUuidRequest, GetPrsByUuidResponse, GetReconciliationPlanRequest,
-    GetSupportedEditorsRequest, GetSupportedEditorsResponse, GetUserRequest,
-    GitContributor as ProtoGitContributor, InitRequest, InitResponse, IsInitializedRequest,
-    IsInitializedResponse, Issue, IssueMetadata, IssueWithProject as ProtoIssueWithProject,
-    Link as ProtoLink, LinkTargetType, LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest,
-    ListAssetsResponse, ListDocsRequest, ListDocsResponse, ListIssuesRequest, ListIssuesResponse,
-    ListLinksRequest, ListLinksResponse, ListOrganizationsRequest, ListOrganizationsResponse,
-    ListProjectsRequest, ListProjectsResponse, ListPrsRequest, ListPrsResponse,
-    ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
-    ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, ListUsersRequest,
-    ListUsersResponse, LlmConfig, Manifest, MarkIssuesCompactedRequest,
+    GetCompactResponse, GetConfigRequest, GetConfigResponse, GetDaemonInfoRequest, GetDocRequest,
+    GetDocResponse, GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest,
+    GetEntityActionsResponse, GetFeatureStatusRequest, GetFeatureStatusResponse,
+    GetInstructionRequest, GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest,
+    GetIssueResponse, GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetLlmWorkRequest,
+    GetLlmWorkResponse, GetLocalLlmConfigRequest, GetLocalLlmConfigResponse, GetManifestRequest,
+    GetManifestResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse,
+    GetNextPrNumberRequest, GetNextPrNumberResponse, GetOrganizationRequest,
+    GetOrganizationResponse, GetPrByDisplayNumberRequest, GetPrRequest, GetPrResponse,
+    GetProjectInfoRequest, GetProjectInfoResponse, GetPrsByUuidRequest, GetPrsByUuidResponse,
+    GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
+    GetUserRequest, GetUserResponse, GitContributor as ProtoGitContributor, InitRequest,
+    InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
+    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
+    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
+    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
+    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
+    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
+    ListTempWorkspacesResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse,
+    ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MarkIssuesCompactedRequest,
     MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse, MoveIssueRequest,
     MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
     OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenStandaloneWorkspaceRequest,
@@ -692,7 +692,7 @@ impl CentyDaemon for CentyDaemonService {
     async fn get_issue(
         &self,
         request: Request<GetIssueRequest>,
-    ) -> Result<Response<Issue>, Status> {
+    ) -> Result<Response<GetIssueResponse>, Status> {
         let _timer = OperationTimer::new("get_issue");
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
@@ -703,15 +703,23 @@ impl CentyDaemon for CentyDaemonService {
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_issue(project_path, &req.issue_id).await {
-            Ok(issue) => Ok(Response::new(issue_to_proto(&issue, priority_levels))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(issue) => Ok(Response::new(GetIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&issue, priority_levels)),
+            })),
+            Err(e) => Ok(Response::new(GetIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+            })),
         }
     }
 
     async fn get_issue_by_display_number(
         &self,
         request: Request<GetIssueByDisplayNumberRequest>,
-    ) -> Result<Response<Issue>, Status> {
+    ) -> Result<Response<GetIssueResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -721,8 +729,16 @@ impl CentyDaemon for CentyDaemonService {
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_issue_by_display_number(project_path, req.display_number).await {
-            Ok(issue) => Ok(Response::new(issue_to_proto(&issue, priority_levels))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(issue) => Ok(Response::new(GetIssueResponse {
+                success: true,
+                error: String::new(),
+                issue: Some(issue_to_proto(&issue, priority_levels)),
+            })),
+            Err(e) => Ok(Response::new(GetIssueResponse {
+                success: false,
+                error: e.to_string(),
+                issue: None,
+            })),
         }
     }
 
@@ -1074,50 +1090,74 @@ impl CentyDaemon for CentyDaemonService {
     async fn get_manifest(
         &self,
         request: Request<GetManifestRequest>,
-    ) -> Result<Response<Manifest>, Status> {
+    ) -> Result<Response<GetManifestResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
         match read_manifest(project_path).await {
-            Ok(Some(manifest)) => Ok(Response::new(manifest_to_proto(&manifest))),
-            Ok(None) => Err(Status::not_found("Manifest not found")),
-            Err(e) => Err(Status::internal(e.to_string())),
+            Ok(Some(manifest)) => Ok(Response::new(GetManifestResponse {
+                success: true,
+                error: String::new(),
+                manifest: Some(manifest_to_proto(&manifest)),
+            })),
+            Ok(None) => Ok(Response::new(GetManifestResponse {
+                success: false,
+                error: "Manifest not found".to_string(),
+                manifest: None,
+            })),
+            Err(e) => Ok(Response::new(GetManifestResponse {
+                success: false,
+                error: e.to_string(),
+                manifest: None,
+            })),
         }
     }
 
     async fn get_config(
         &self,
         request: Request<GetConfigRequest>,
-    ) -> Result<Response<Config>, Status> {
+    ) -> Result<Response<GetConfigResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
         match read_config(project_path).await {
-            Ok(Some(config)) => Ok(Response::new(config_to_proto(&config))),
-            Ok(None) => Ok(Response::new(Config {
-                custom_fields: vec![],
-                defaults: std::collections::HashMap::new(),
-                priority_levels: 3, // Default
-                allowed_states: vec![
-                    "open".to_string(),
-                    "in-progress".to_string(),
-                    "closed".to_string(),
-                ],
-                default_state: "open".to_string(),
-                version: crate::utils::CENTY_VERSION.to_string(),
-                state_colors: std::collections::HashMap::new(),
-                priority_colors: std::collections::HashMap::new(),
-                llm: Some(LlmConfig {
-                    auto_close_on_complete: false,
-                    update_status_on_start: None,
-                    allow_direct_edits: false,
-                    default_workspace_mode: 0,
-                }),
-                custom_link_types: vec![],
+            Ok(Some(config)) => Ok(Response::new(GetConfigResponse {
+                success: true,
+                error: String::new(),
+                config: Some(config_to_proto(&config)),
             })),
-            Err(e) => Err(Status::internal(e.to_string())),
+            Ok(None) => Ok(Response::new(GetConfigResponse {
+                success: true,
+                error: String::new(),
+                config: Some(Config {
+                    custom_fields: vec![],
+                    defaults: std::collections::HashMap::new(),
+                    priority_levels: 3, // Default
+                    allowed_states: vec![
+                        "open".to_string(),
+                        "in-progress".to_string(),
+                        "closed".to_string(),
+                    ],
+                    default_state: "open".to_string(),
+                    version: crate::utils::CENTY_VERSION.to_string(),
+                    state_colors: std::collections::HashMap::new(),
+                    priority_colors: std::collections::HashMap::new(),
+                    llm: Some(LlmConfig {
+                        auto_close_on_complete: false,
+                        update_status_on_start: None,
+                        allow_direct_edits: false,
+                        default_workspace_mode: 0,
+                    }),
+                    custom_link_types: vec![],
+                }),
+            })),
+            Err(e) => Ok(Response::new(GetConfigResponse {
+                success: false,
+                error: e.to_string(),
+                config: None,
+            })),
         }
     }
 
@@ -1259,14 +1299,25 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    async fn get_doc(&self, request: Request<GetDocRequest>) -> Result<Response<Doc>, Status> {
+    async fn get_doc(
+        &self,
+        request: Request<GetDocRequest>,
+    ) -> Result<Response<GetDocResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
         match get_doc(project_path, &req.slug).await {
-            Ok(doc) => Ok(Response::new(doc_to_proto(&doc))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(doc) => Ok(Response::new(GetDocResponse {
+                success: true,
+                error: String::new(),
+                doc: Some(doc_to_proto(&doc)),
+            })),
+            Err(e) => Ok(Response::new(GetDocResponse {
+                success: false,
+                error: e.to_string(),
+                doc: None,
+            })),
         }
     }
 
@@ -2247,7 +2298,7 @@ impl CentyDaemon for CentyDaemonService {
     async fn get_pr(
         &self,
         request: Request<GetPrRequest>,
-    ) -> Result<Response<PullRequest>, Status> {
+    ) -> Result<Response<GetPrResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -2257,15 +2308,23 @@ impl CentyDaemon for CentyDaemonService {
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_pr(project_path, &req.pr_id).await {
-            Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(pr) => Ok(Response::new(GetPrResponse {
+                success: true,
+                error: String::new(),
+                pr: Some(pr_to_proto(&pr, priority_levels)),
+            })),
+            Err(e) => Ok(Response::new(GetPrResponse {
+                success: false,
+                error: e.to_string(),
+                pr: None,
+            })),
         }
     }
 
     async fn get_pr_by_display_number(
         &self,
         request: Request<GetPrByDisplayNumberRequest>,
-    ) -> Result<Response<PullRequest>, Status> {
+    ) -> Result<Response<GetPrResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
@@ -2275,8 +2334,16 @@ impl CentyDaemon for CentyDaemonService {
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match get_pr_by_display_number(project_path, req.display_number).await {
-            Ok(pr) => Ok(Response::new(pr_to_proto(&pr, priority_levels))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(pr) => Ok(Response::new(GetPrResponse {
+                success: true,
+                error: String::new(),
+                pr: Some(pr_to_proto(&pr, priority_levels)),
+            })),
+            Err(e) => Ok(Response::new(GetPrResponse {
+                success: false,
+                error: e.to_string(),
+                pr: None,
+            })),
         }
     }
 
@@ -2924,14 +2991,22 @@ impl CentyDaemon for CentyDaemonService {
     async fn get_user(
         &self,
         request: Request<GetUserRequest>,
-    ) -> Result<Response<ProtoUser>, Status> {
+    ) -> Result<Response<GetUserResponse>, Status> {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
         match internal_get_user(project_path, &req.user_id).await {
-            Ok(user) => Ok(Response::new(user_to_proto(&user))),
-            Err(e) => Err(Status::not_found(e.to_string())),
+            Ok(user) => Ok(Response::new(GetUserResponse {
+                success: true,
+                error: String::new(),
+                user: Some(user_to_proto(&user)),
+            })),
+            Err(e) => Ok(Response::new(GetUserResponse {
+                success: false,
+                error: e.to_string(),
+                user: None,
+            })),
         }
     }
 

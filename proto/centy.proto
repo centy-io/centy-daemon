@@ -17,10 +17,10 @@ service CentyDaemon {
   rpc CreateIssue(CreateIssueRequest) returns (CreateIssueResponse);
 
   // Get a single issue by ID (UUID or legacy number)
-  rpc GetIssue(GetIssueRequest) returns (Issue);
+  rpc GetIssue(GetIssueRequest) returns (GetIssueResponse);
 
   // Get a single issue by display number (human-readable number like 1, 2, 3)
-  rpc GetIssueByDisplayNumber(GetIssueByDisplayNumberRequest) returns (Issue);
+  rpc GetIssueByDisplayNumber(GetIssueByDisplayNumberRequest) returns (GetIssueResponse);
 
   // Get issues by UUID across all tracked projects (global search)
   rpc GetIssuesByUuid(GetIssuesByUuidRequest) returns (GetIssuesByUuidResponse);
@@ -53,10 +53,10 @@ service CentyDaemon {
   rpc GetNextIssueNumber(GetNextIssueNumberRequest) returns (GetNextIssueNumberResponse);
 
   // Read the manifest
-  rpc GetManifest(GetManifestRequest) returns (Manifest);
+  rpc GetManifest(GetManifestRequest) returns (GetManifestResponse);
 
   // Read configuration
-  rpc GetConfig(GetConfigRequest) returns (Config);
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
 
   // Update configuration
   rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
@@ -70,7 +70,7 @@ service CentyDaemon {
   rpc CreateDoc(CreateDocRequest) returns (CreateDocResponse);
 
   // Get a single doc by slug
-  rpc GetDoc(GetDocRequest) returns (Doc);
+  rpc GetDoc(GetDocRequest) returns (GetDocResponse);
 
   // Get docs by slug across all tracked projects (global search)
   rpc GetDocsBySlug(GetDocsBySlugRequest) returns (GetDocsBySlugResponse);
@@ -170,10 +170,10 @@ service CentyDaemon {
   rpc CreatePr(CreatePrRequest) returns (CreatePrResponse);
 
   // Get a single PR by ID (UUID)
-  rpc GetPr(GetPrRequest) returns (PullRequest);
+  rpc GetPr(GetPrRequest) returns (GetPrResponse);
 
   // Get a single PR by display number (human-readable number like 1, 2, 3)
-  rpc GetPrByDisplayNumber(GetPrByDisplayNumberRequest) returns (PullRequest);
+  rpc GetPrByDisplayNumber(GetPrByDisplayNumberRequest) returns (GetPrResponse);
 
   // Get PRs by UUID across all tracked projects (global search)
   rpc GetPrsByUuid(GetPrsByUuidRequest) returns (GetPrsByUuidResponse);
@@ -293,7 +293,7 @@ service CentyDaemon {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
 
   // Get a single user by ID
-  rpc GetUser(GetUserRequest) returns (User);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
 
   // List all users
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
@@ -498,6 +498,13 @@ message GetIssueByDisplayNumberRequest {
   uint32 display_number = 2;      // Human-readable number (1, 2, 3...)
 }
 
+// Wrapper response for GetIssue and GetIssueByDisplayNumber RPCs
+message GetIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;
+}
+
 // ============ Global Issue Search Messages ============
 
 message GetIssuesByUuidRequest {
@@ -655,6 +662,13 @@ message GetManifestRequest {
   string project_path = 1;
 }
 
+// Wrapper response for GetManifest RPC
+message GetManifestResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
 message Manifest {
   int32 schema_version = 1;
   string centy_version = 2;
@@ -679,6 +693,13 @@ message FileInfo {
 
 message GetConfigRequest {
   string project_path = 1;
+}
+
+// Wrapper response for GetConfig RPC
+message GetConfigResponse {
+  bool success = 1;
+  string error = 2;
+  Config config = 3;
 }
 
 message Config {
@@ -768,6 +789,13 @@ message CreateDocResponse {
 message GetDocRequest {
   string project_path = 1;
   string slug = 2;                // e.g., "getting-started"
+}
+
+// Wrapper response for GetDoc RPC
+message GetDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;
 }
 
 // ============ Global Doc Search Messages ============
@@ -1282,6 +1310,13 @@ message GetPrRequest {
 message GetPrByDisplayNumberRequest {
   string project_path = 1;
   uint32 display_number = 2;          // Human-readable number (1, 2, 3...)
+}
+
+// Wrapper response for GetPr and GetPrByDisplayNumber RPCs
+message GetPrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;
 }
 
 // ============ Global PR Search Messages ============
@@ -1820,6 +1855,13 @@ message CreateUserResponse {
 message GetUserRequest {
   string project_path = 1;
   string user_id = 2;                   // User ID (slug format)
+}
+
+// Wrapper response for GetUser RPC
+message GetUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;
 }
 
 message ListUsersRequest {
