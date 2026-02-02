@@ -3,6 +3,98 @@ use std::collections::HashMap;
 
 use crate::common::CommonMetadata;
 
+/// Frontmatter metadata for the new YAML-based issue format.
+///
+/// This struct is serialized to YAML frontmatter in `.centy/issues/{uuid}.md` files.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueFrontmatter {
+    /// Human-readable display number (1, 2, 3...)
+    pub display_number: u32,
+    /// Issue status
+    pub status: String,
+    /// Priority as a number (1 = highest, N = lowest)
+    pub priority: u32,
+    /// ISO timestamp when the issue was created
+    pub created_at: String,
+    /// ISO timestamp when the issue was last updated
+    pub updated_at: String,
+    /// Whether this issue is a draft
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub draft: bool,
+    /// Whether this issue has been compacted into features
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub compacted: bool,
+    /// ISO timestamp when the issue was compacted
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compacted_at: Option<String>,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
+    /// Whether this issue is an organization-level issue
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_org_issue: bool,
+    /// Organization slug for org issues
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_slug: Option<String>,
+    /// Org-scoped display number (consistent across all org projects)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_display_number: Option<u32>,
+    /// Custom fields
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub custom_fields: HashMap<String, String>,
+}
+
+impl IssueFrontmatter {
+    /// Create new frontmatter from IssueMetadata and custom fields
+    #[must_use]
+    pub fn from_metadata(metadata: &IssueMetadata, custom_fields: HashMap<String, String>) -> Self {
+        Self {
+            display_number: metadata.common.display_number,
+            status: metadata.common.status.clone(),
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at.clone(),
+            updated_at: metadata.common.updated_at.clone(),
+            draft: metadata.draft,
+            compacted: metadata.compacted,
+            compacted_at: metadata.compacted_at.clone(),
+            deleted_at: metadata.deleted_at.clone(),
+            is_org_issue: metadata.is_org_issue,
+            org_slug: metadata.org_slug.clone(),
+            org_display_number: metadata.org_display_number,
+            custom_fields,
+        }
+    }
+
+    /// Convert to IssueMetadata for internal use
+    #[must_use]
+    pub fn to_metadata(&self) -> IssueMetadata {
+        IssueMetadata {
+            common: CommonMetadata {
+                display_number: self.display_number,
+                status: self.status.clone(),
+                priority: self.priority,
+                created_at: self.created_at.clone(),
+                updated_at: self.updated_at.clone(),
+                custom_fields: self
+                    .custom_fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                    .collect(),
+            },
+            compacted: self.compacted,
+            compacted_at: self.compacted_at.clone(),
+            draft: self.draft,
+            deleted_at: self.deleted_at.clone(),
+            is_org_issue: self.is_org_issue,
+            org_slug: self.org_slug.clone(),
+            org_display_number: self.org_display_number,
+        }
+    }
+}
+
+/// Legacy JSON metadata for backward compatibility.
+/// This struct is used for reading from `metadata.json` files in the old format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueMetadata {

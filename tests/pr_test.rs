@@ -37,13 +37,12 @@ async fn test_create_pr_success() {
 
     assert!(is_uuid(&result.id), "PR ID should be a UUID");
     assert_eq!(result.display_number, 1);
-    assert_eq!(result.created_files.len(), 3);
+    assert_eq!(result.created_files.len(), 1); // {id}.md (new YAML frontmatter format)
     assert_eq!(result.detected_source_branch, "feature/new-feature");
 
-    let pr_path = project_path.join(format!(".centy/prs/{}", result.id));
-    assert!(pr_path.join("pr.md").exists());
-    assert!(pr_path.join("metadata.json").exists());
-    assert!(pr_path.join("assets").exists());
+    // Verify single .md file exists (new format)
+    let pr_file = project_path.join(format!(".centy/prs/{}.md", result.id));
+    assert!(pr_file.exists(), "PR file should exist");
 }
 
 #[tokio::test]
@@ -328,14 +327,15 @@ async fn test_delete_pr_success() {
         .await
         .expect("Should create");
 
-    let pr_path = project_path.join(format!(".centy/prs/{}", result.id));
-    assert!(pr_path.exists());
+    // New format: {id}.md file
+    let pr_file = project_path.join(format!(".centy/prs/{}.md", result.id));
+    assert!(pr_file.exists());
 
     delete_pr(project_path, &result.id)
         .await
         .expect("Should delete");
 
-    assert!(!pr_path.exists());
+    assert!(!pr_file.exists());
 }
 
 #[tokio::test]

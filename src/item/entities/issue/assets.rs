@@ -204,14 +204,16 @@ pub async fn add_asset(
                 AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
             })?;
 
-            // Verify issue exists
-            let issue_path = centy_path.join("issues").join(id);
-            if !issue_path.exists() {
+            // Verify issue exists (check both new format .md file and old format folder)
+            let issue_file_path = centy_path.join("issues").join(format!("{id}.md"));
+            let issue_folder_path = centy_path.join("issues").join(id);
+            if !issue_file_path.exists() && !issue_folder_path.exists() {
                 return Err(AssetError::IssueNotFound(id.to_string()));
             }
 
-            let assets_dir = issue_path.join("assets");
-            let manifest_base = format!("issues/{id}/assets/");
+            // New asset path: .centy/issues/assets/{id}/
+            let assets_dir = centy_path.join("issues").join("assets").join(id);
+            let manifest_base = format!("issues/assets/{id}/");
             (assets_dir, manifest_base)
         }
         AssetScope::Shared => {
@@ -279,89 +281,79 @@ pub async fn list_assets(
 
     let centy_path = get_centy_path(project_path);
 
-    // Verify issue exists
-    let issue_path = centy_path.join("issues").join(issue_id);
-    if !issue_path.exists() {
+    // Verify issue exists (check both new format .md file and old format folder)
+    let issue_file_path = centy_path.join("issues").join(format!("{issue_id}.md"));
+    let issue_folder_path = centy_path.join("issues").join(issue_id);
+    if !issue_file_path.exists() && !issue_folder_path.exists() {
         return Err(AssetError::IssueNotFound(issue_id.to_string()));
     }
 
     let mut assets = Vec::new();
 
-    // Get issue-specific assets by scanning the assets directory
-    let issue_assets_path = issue_path.join("assets");
-    if issue_assets_path.exists() {
-        let mut entries = fs::read_dir(&issue_assets_path).await?;
-        while let Some(entry) = entries.next_entry().await? {
-            if entry.file_type().await?.is_file() {
-                if let Some(filename) = entry.file_name().to_str() {
-                    let asset_path = entry.path();
-                    let data = fs::read(&asset_path).await?;
-                    let hash = compute_binary_hash(&data);
-                    let size = data.len() as u64;
-                    let mime_type = get_mime_type(filename)
-                        .unwrap_or_else(|| "application/octet-stream".to_string());
-                    let metadata = fs::metadata(&asset_path).await?;
-                    let created_at = metadata
-                        .created()
-                        .map(|t| {
-                            chrono::DateTime::<chrono::Utc>::from(t)
-                                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
-                                .to_string()
-                        })
-                        .unwrap_or_else(|_| now_iso());
+    // Get issue-specific assets by scanning assets directories (both old and new locations)
+    // New location: .centy/issues/assets/{id}/
+    let new_assets_path = centy_path.join("issues").join("assets").join(issue_id);
+    // Old location: .centy/issues/{id}/assets/
+    let old_assets_path = issue_folder_path.join("assets");
 
-                    assets.push(AssetInfo {
-                        filename: filename.to_string(),
-                        hash,
-                        size,
-                        mime_type,
-                        is_shared: false,
-                        created_at,
-                    });
-                }
-            }
-        }
+    // Scan new location first
+    if new_assets_path.exists() {
+        scan_assets_directory(&new_assets_path, &mut assets, false).await?;
+    }
+    // Also scan old location if it exists
+    if old_assets_path.exists() {
+        scan_assets_directory(&old_assets_path, &mut assets, false).await?;
     }
 
     // Get shared assets if requested
     if include_shared {
         let shared_assets_path = centy_path.join("assets");
         if shared_assets_path.exists() {
-            let mut entries = fs::read_dir(&shared_assets_path).await?;
-            while let Some(entry) = entries.next_entry().await? {
-                if entry.file_type().await?.is_file() {
-                    if let Some(filename) = entry.file_name().to_str() {
-                        let asset_path = entry.path();
-                        let data = fs::read(&asset_path).await?;
-                        let hash = compute_binary_hash(&data);
-                        let size = data.len() as u64;
-                        let mime_type = get_mime_type(filename)
-                            .unwrap_or_else(|| "application/octet-stream".to_string());
-                        let metadata = fs::metadata(&asset_path).await?;
-                        let created_at = metadata
-                            .created()
-                            .map(|t| {
-                                chrono::DateTime::<chrono::Utc>::from(t)
-                                    .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
-                                    .to_string()
-                            })
-                            .unwrap_or_else(|_| now_iso());
-
-                        assets.push(AssetInfo {
-                            filename: filename.to_string(),
-                            hash,
-                            size,
-                            mime_type,
-                            is_shared: true,
-                            created_at,
-                        });
-                    }
-                }
-            }
+            scan_assets_directory(&shared_assets_path, &mut assets, true).await?;
         }
     }
 
     Ok(assets)
+}
+
+/// Helper to scan a directory for assets
+async fn scan_assets_directory(
+    dir_path: &Path,
+    assets: &mut Vec<AssetInfo>,
+    is_shared: bool,
+) -> Result<(), AssetError> {
+    let mut entries = fs::read_dir(dir_path).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        if entry.file_type().await?.is_file() {
+            if let Some(filename) = entry.file_name().to_str() {
+                let asset_path = entry.path();
+                let data = fs::read(&asset_path).await?;
+                let hash = compute_binary_hash(&data);
+                let size = data.len() as u64;
+                let mime_type = get_mime_type(filename)
+                    .unwrap_or_else(|| "application/octet-stream".to_string());
+                let metadata = fs::metadata(&asset_path).await?;
+                let created_at = metadata
+                    .created()
+                    .map(|t| {
+                        chrono::DateTime::<chrono::Utc>::from(t)
+                            .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                            .to_string()
+                    })
+                    .unwrap_or_else(|_| now_iso());
+
+                assets.push(AssetInfo {
+                    filename: filename.to_string(),
+                    hash,
+                    size,
+                    mime_type,
+                    is_shared,
+                    created_at,
+                });
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Get a specific asset's data
@@ -395,13 +387,26 @@ pub async fn get_asset(
             AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
         })?;
 
-        // Verify issue exists
-        let issue_path = centy_path.join("issues").join(id);
-        if !issue_path.exists() {
+        // Verify issue exists (check both new format .md file and old format folder)
+        let issue_file_path = centy_path.join("issues").join(format!("{id}.md"));
+        let issue_folder_path = centy_path.join("issues").join(id);
+        if !issue_file_path.exists() && !issue_folder_path.exists() {
             return Err(AssetError::IssueNotFound(id.to_string()));
         }
 
-        issue_path.join("assets").join(&sanitized_filename)
+        // Try new location first, then old location
+        let new_path = centy_path
+            .join("issues")
+            .join("assets")
+            .join(id)
+            .join(&sanitized_filename);
+        let old_path = issue_folder_path.join("assets").join(&sanitized_filename);
+
+        if new_path.exists() {
+            new_path
+        } else {
+            old_path
+        }
     };
 
     // Check if file exists
@@ -470,13 +475,26 @@ pub async fn delete_asset(
             AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
         })?;
 
-        // Verify issue exists
-        let issue_path = centy_path.join("issues").join(id);
-        if !issue_path.exists() {
+        // Verify issue exists (check both new format .md file and old format folder)
+        let issue_file_path = centy_path.join("issues").join(format!("{id}.md"));
+        let issue_folder_path = centy_path.join("issues").join(id);
+        if !issue_file_path.exists() && !issue_folder_path.exists() {
             return Err(AssetError::IssueNotFound(id.to_string()));
         }
 
-        issue_path.join("assets").join(&sanitized_filename)
+        // Try new location first, then old location
+        let new_path = centy_path
+            .join("issues")
+            .join("assets")
+            .join(id)
+            .join(&sanitized_filename);
+        let old_path = issue_folder_path.join("assets").join(&sanitized_filename);
+
+        if new_path.exists() {
+            new_path
+        } else {
+            old_path
+        }
     };
 
     // Check if file exists

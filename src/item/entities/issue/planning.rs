@@ -24,8 +24,11 @@ pub fn has_planning_note(content: &str) -> bool {
         return true;
     }
     // Check for formatted version (markdown formatter may add spaces/newlines)
-    // The distinctive marker is "> **Planning Mode**" or " > **Planning Mode**"
+    // The distinctive marker is "> **Planning Mode**" - may have leading space from formatting
     content.contains("> **Planning Mode**")
+        || content
+            .lines()
+            .any(|line| line.trim().starts_with("> **Planning Mode**"))
 }
 
 /// Add planning note to issue content (at the top)
@@ -42,33 +45,54 @@ pub fn add_planning_note(content: &str) -> String {
 /// Handles cases where the note may have been manually edited slightly
 pub fn remove_planning_note(content: &str) -> String {
     if let Some(stripped) = content.strip_prefix(PLANNING_NOTE) {
-        stripped.to_string()
-    } else if content.contains(PLANNING_NOTE) {
-        content.replace(PLANNING_NOTE, "")
-    } else if content.contains("> **Planning Mode**") {
+        return stripped.trim_start().to_string();
+    }
+    if content.contains(PLANNING_NOTE) {
+        let result = content.replace(PLANNING_NOTE, "");
+        return result.trim_start().to_string();
+    }
+    if has_planning_note(content) {
         // Handle edge case: partial match for manually edited notes
-        // Look for the distinctive pattern and remove the entire blockquote line
-        let mut result = String::new();
-        let mut skip_blockquote = false;
+        // Look for the distinctive pattern and remove the entire blockquote block
+        // Also handles markdown-formatted notes with leading spaces
+        let mut result_lines: Vec<&str> = Vec::new();
+        let mut in_planning_blockquote = false;
+        let mut found_planning_line = false;
 
         for line in content.lines() {
-            if line.starts_with("> **Planning Mode**") {
-                skip_blockquote = true;
+            let trimmed = line.trim();
+
+            // Check if this is the Planning Mode line
+            if trimmed.starts_with("> **Planning Mode**") {
+                in_planning_blockquote = true;
+                found_planning_line = true;
                 continue;
             }
-            // Skip empty line immediately after blockquote
-            if skip_blockquote && line.is_empty() {
-                skip_blockquote = false;
+
+            // Skip any blockquote lines (before or after the Planning Mode line)
+            // Only skip if we found the planning line or this is part of the same blockquote
+            let is_blockquote_line = trimmed.starts_with("> ")
+                || trimmed == ">"
+                || trimmed.is_empty() && trimmed.trim() == "";
+
+            if is_blockquote_line && !found_planning_line {
+                // Check if upcoming lines have the planning note
+                in_planning_blockquote = true;
                 continue;
             }
-            skip_blockquote = false;
-            if !result.is_empty() {
-                result.push('\n');
+
+            if in_planning_blockquote {
+                if is_blockquote_line || (trimmed.is_empty() && found_planning_line) {
+                    continue;
+                }
+                // Non-blockquote line, end of planning note
+                in_planning_blockquote = false;
             }
-            result.push_str(line);
+
+            result_lines.push(line);
         }
 
-        result
+        result_lines.join("\n")
     } else {
         // No planning note found, return content unchanged
         content.to_string()
@@ -138,5 +162,23 @@ mod tests {
         let result = remove_planning_note(content);
         assert!(!result.contains("Planning Mode"));
         assert!(result.contains("# Title"));
+    }
+
+    #[test]
+    fn test_remove_formatted_planning_note() {
+        // When formatted by markdown formatter, the note may have leading spaces
+        // and be wrapped differently
+        let content =
+            " > \n > **Planning Mode**: Do not implement code changes.\n\nSome description";
+        let result = remove_planning_note(content);
+        assert!(
+            !result.contains("Planning Mode"),
+            "Should not contain Planning Mode, got: {result:?}"
+        );
+        assert!(
+            !result.contains("> "),
+            "Should not contain blockquote marker, got: {result:?}"
+        );
+        assert_eq!(result.trim(), "Some description");
     }
 }

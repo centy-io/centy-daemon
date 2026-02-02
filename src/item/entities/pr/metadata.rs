@@ -3,6 +3,72 @@ use std::collections::HashMap;
 
 use crate::common::CommonMetadata;
 
+/// Frontmatter metadata for the new YAML-based PR format.
+///
+/// This struct is serialized to YAML frontmatter in `.centy/prs/{uuid}.md` files.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PrFrontmatter {
+    /// Human-readable display number (1, 2, 3...)
+    pub display_number: u32,
+    /// PR status
+    pub status: String,
+    /// Source branch name
+    pub source_branch: String,
+    /// Target branch name
+    pub target_branch: String,
+    /// Priority as a number (1 = highest, N = lowest)
+    pub priority: u32,
+    /// ISO timestamp when the PR was created
+    pub created_at: String,
+    /// ISO timestamp when the PR was last updated
+    pub updated_at: String,
+    /// Reviewers
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reviewers: Vec<String>,
+    /// Timestamp when PR was merged (None if not merged)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub merged_at: Option<String>,
+    /// Timestamp when PR was closed (None if not closed)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<String>,
+    /// ISO timestamp when soft-deleted (None if not deleted)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
+    /// Custom fields
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub custom_fields: HashMap<String, String>,
+}
+
+impl PrFrontmatter {
+    /// Convert to PrMetadata for internal use
+    #[must_use]
+    pub fn to_metadata(&self) -> PrMetadata {
+        PrMetadata {
+            common: CommonMetadata {
+                display_number: self.display_number,
+                status: self.status.clone(),
+                priority: self.priority,
+                created_at: self.created_at.clone(),
+                updated_at: self.updated_at.clone(),
+                custom_fields: self
+                    .custom_fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                    .collect(),
+            },
+            source_branch: self.source_branch.clone(),
+            target_branch: self.target_branch.clone(),
+            reviewers: self.reviewers.clone(),
+            merged_at: self.merged_at.clone().unwrap_or_default(),
+            closed_at: self.closed_at.clone().unwrap_or_default(),
+            deleted_at: self.deleted_at.clone(),
+        }
+    }
+}
+
+/// Legacy JSON metadata for backward compatibility.
+/// This struct is used for reading from `metadata.json` files in the old format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PrMetadata {

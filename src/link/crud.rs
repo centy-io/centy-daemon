@@ -87,9 +87,20 @@ fn get_entity_path(
 }
 
 /// Check if an entity exists
+/// Supports both new format (.md file) and old format (folder)
 async fn entity_exists(project_path: &Path, entity_id: &str, entity_type: TargetType) -> bool {
-    let entity_path = get_entity_path(project_path, entity_id, entity_type);
-    entity_path.exists()
+    let centy_path = get_centy_path(project_path);
+    let base_path = centy_path.join(entity_type.folder_name());
+
+    // Check for new format: {id}.md file
+    let file_path = base_path.join(format!("{entity_id}.md"));
+    if file_path.exists() {
+        return true;
+    }
+
+    // Check for old format: {id}/ folder
+    let folder_path = base_path.join(entity_id);
+    folder_path.exists()
 }
 
 /// Create a link between two entities
@@ -238,15 +249,16 @@ pub async fn list_links(
     entity_id: &str,
     entity_type: TargetType,
 ) -> Result<LinksFile, LinkError> {
-    let entity_path = get_entity_path(project_path, entity_id, entity_type);
-
-    if !entity_path.exists() {
+    // Check if entity exists (supports both old and new formats)
+    if !entity_exists(project_path, entity_id, entity_type).await {
         return Err(LinkError::SourceNotFound(
             entity_id.to_string(),
             entity_type,
         ));
     }
 
+    // Use entity_path for reading links (read_links handles both formats)
+    let entity_path = get_entity_path(project_path, entity_id, entity_type);
     let links = read_links(&entity_path).await?;
     Ok(links)
 }

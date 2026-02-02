@@ -115,9 +115,9 @@ pub async fn enrich_project(
     let manifest_path = centy_path.join(".centy-manifest.json");
     let initialized = manifest_path.exists();
 
-    // Count issues (directories in .centy/issues/)
+    // Count issues (both .md files and folders in .centy/issues/)
     let issues_path = centy_path.join("issues");
-    let issue_count = count_directories(&issues_path).await.unwrap_or(0);
+    let issue_count = count_issues(&issues_path).await.unwrap_or(0);
 
     // Count docs (markdown files in .centy/docs/)
     let docs_path = centy_path.join("docs");
@@ -271,8 +271,8 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
     }
 }
 
-/// Count directories in a path (for counting issues)
-async fn count_directories(path: &Path) -> Result<u32, std::io::Error> {
+/// Count issues (both new .md format and old folder format)
+async fn count_issues(path: &Path) -> Result<u32, std::io::Error> {
     if !path.exists() {
         return Ok(0);
     }
@@ -281,12 +281,35 @@ async fn count_directories(path: &Path) -> Result<u32, std::io::Error> {
     let mut entries = fs::read_dir(path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+
+        // Count new format (UUID.md files) and old format (UUID folders)
+        let is_new_format = file_type.is_file() && is_uuid_file(&name);
+        let is_old_format = file_type.is_dir() && is_uuid_folder(&name);
+        if is_new_format || is_old_format {
             count += 1;
         }
     }
 
     Ok(count)
+}
+
+/// Check if a filename is a valid UUID.md file
+fn is_uuid_file(name: &str) -> bool {
+    if let Some(base) = name.strip_suffix(".md") {
+        uuid::Uuid::parse_str(base).is_ok()
+    } else {
+        false
+    }
+}
+
+/// Check if a folder name is a valid UUID
+fn is_uuid_folder(name: &str) -> bool {
+    uuid::Uuid::parse_str(name).is_ok()
 }
 
 /// Count markdown files in a path (for counting docs)

@@ -82,11 +82,10 @@ async fn test_add_asset_to_issue_success() {
     assert!(!result.asset.is_shared);
     assert!(!result.asset.hash.is_empty());
 
-    // Verify file exists
+    // Verify file exists (new asset path: .centy/issues/assets/{id}/)
     let asset_path = project_path
-        .join(".centy/issues")
+        .join(".centy/issues/assets")
         .join(&issue.id)
-        .join("assets")
         .join("screenshot.png");
     assert!(asset_path.exists());
 }
@@ -629,11 +628,10 @@ async fn test_delete_asset_success() {
     .await
     .expect("Should add");
 
-    // Verify exists
+    // Verify exists (new asset path: .centy/issues/assets/{id}/)
     let asset_path = project_path
-        .join(".centy/issues")
+        .join(".centy/issues/assets")
         .join(&issue.id)
-        .join("assets")
         .join("to-delete.png");
     assert!(asset_path.exists());
 

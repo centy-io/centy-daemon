@@ -1,16 +1,19 @@
-use super::id::{is_uuid, is_valid_pr_folder};
-use super::metadata::PrMetadata;
+use super::id::{is_uuid, is_valid_pr_file, is_valid_pr_folder, pr_id_from_filename};
+use super::metadata::{PrFrontmatter, PrMetadata};
 use super::reconcile::{reconcile_pr_display_numbers, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
+use crate::common::{generate_frontmatter, parse_frontmatter, FrontmatterError};
 use crate::config::read_config;
 use crate::item::validation::priority::{validate_priority, PriorityError};
+use crate::link::{read_links, write_links};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
 use crate::registry::ProjectInfo;
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
+use tracing::debug;
 
 #[derive(Error, Debug)]
 pub enum PrCrudError {
@@ -46,6 +49,9 @@ pub enum PrCrudError {
 
     #[error("Reconcile error: {0}")]
     ReconcileError(#[from] ReconcileError),
+
+    #[error("Frontmatter error: {0}")]
+    FrontmatterError(#[from] FrontmatterError),
 }
 
 /// Full PR data
@@ -144,13 +150,81 @@ pub async fn get_pr(project_path: &Path, pr_id: &str) -> Result<PullRequest, PrC
         .ok_or(PrCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let pr_path = centy_path.join("prs").join(pr_id);
+    let prs_path = centy_path.join("prs");
 
+    // Try new format first: {id}.md file
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    if pr_file.exists() {
+        return read_pr_from_frontmatter(&pr_file, pr_id).await;
+    }
+
+    // Fall back to old format: {id}/ folder - auto-migrate
+    let pr_path = prs_path.join(pr_id);
     if !pr_path.exists() {
         return Err(PrCrudError::PrNotFound(pr_id.to_string()));
     }
 
-    read_pr_from_disk(&pr_path, pr_id).await
+    migrate_pr_to_new_format(&prs_path, &pr_path, pr_id).await
+}
+
+/// Migrate a PR from legacy folder format to new frontmatter format
+///
+/// This function:
+/// 1. Reads the PR from the old format
+/// 2. Writes it to the new format (.md file with frontmatter)
+/// 3. Migrates links from {id}/links.json to links/{id}/links.json
+/// 4. Deletes the old folder
+async fn migrate_pr_to_new_format(
+    prs_path: &Path,
+    pr_folder_path: &Path,
+    pr_id: &str,
+) -> Result<PullRequest, PrCrudError> {
+    debug!("Auto-migrating PR {} to new format", pr_id);
+
+    // Read from legacy format
+    let pr = read_pr_from_legacy_folder(pr_folder_path, pr_id).await?;
+
+    // Build frontmatter from metadata
+    let frontmatter = PrFrontmatter {
+        display_number: pr.metadata.display_number,
+        status: pr.metadata.status.clone(),
+        source_branch: pr.metadata.source_branch.clone(),
+        target_branch: pr.metadata.target_branch.clone(),
+        reviewers: pr.metadata.reviewers.clone(),
+        priority: pr.metadata.priority,
+        created_at: pr.metadata.created_at.clone(),
+        updated_at: pr.metadata.updated_at.clone(),
+        merged_at: if pr.metadata.merged_at.is_empty() {
+            None
+        } else {
+            Some(pr.metadata.merged_at.clone())
+        },
+        closed_at: if pr.metadata.closed_at.is_empty() {
+            None
+        } else {
+            Some(pr.metadata.closed_at.clone())
+        },
+        deleted_at: pr.metadata.deleted_at.clone(),
+        custom_fields: pr.metadata.custom_fields.clone(),
+    };
+
+    // Write new format file
+    let pr_content = generate_frontmatter(&frontmatter, &pr.title, &pr.description);
+    let new_pr_file = prs_path.join(format!("{pr_id}.md"));
+    fs::write(&new_pr_file, format_markdown(&pr_content)).await?;
+
+    // Migrate links: {id}/links.json -> links/{id}/links.json
+    let old_links = read_links(pr_folder_path).await?;
+    if !old_links.links.is_empty() {
+        write_links(pr_folder_path, &old_links).await?;
+        debug!("Migrated links for PR {}", pr_id);
+    }
+
+    // Delete old folder
+    fs::remove_dir_all(pr_folder_path).await?;
+    debug!("Deleted old PR folder for {}", pr_id);
+
+    Ok(pr)
 }
 
 /// List all PRs with optional filtering
@@ -181,30 +255,25 @@ pub async fn list_prs(
     let mut entries = fs::read_dir(&prs_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
-            if let Some(folder_name) = entry.file_name().to_str() {
-                if !is_valid_pr_folder(folder_name) {
-                    continue;
-                }
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
 
-                match read_pr_from_disk(&entry.path(), folder_name).await {
+        // Check for new format: {uuid}.md file
+        if file_type.is_file() && is_valid_pr_file(&name) {
+            if let Some(pr_id) = pr_id_from_filename(&name) {
+                match read_pr_from_frontmatter(&entry.path(), pr_id).await {
                     Ok(pr) => {
-                        // Apply filters
-                        let status_match = status_filter.is_none_or(|s| pr.metadata.status == s);
-                        let source_match =
-                            source_branch_filter.is_none_or(|s| pr.metadata.source_branch == s);
-                        let target_match =
-                            target_branch_filter.is_none_or(|t| pr.metadata.target_branch == t);
-                        let priority_match =
-                            priority_filter.is_none_or(|p| pr.metadata.priority == p);
-                        let deleted_match = include_deleted || pr.metadata.deleted_at.is_none();
-
-                        if status_match
-                            && source_match
-                            && target_match
-                            && priority_match
-                            && deleted_match
-                        {
+                        if matches_pr_filters(
+                            &pr,
+                            status_filter,
+                            source_branch_filter,
+                            target_branch_filter,
+                            priority_filter,
+                            include_deleted,
+                        ) {
                             prs.push(pr);
                         }
                     }
@@ -214,12 +283,50 @@ pub async fn list_prs(
                 }
             }
         }
+        // Check for old format: {uuid}/ folder - auto-migrate
+        else if file_type.is_dir() && is_valid_pr_folder(&name) {
+            match migrate_pr_to_new_format(&prs_path, &entry.path(), &name).await {
+                Ok(pr) => {
+                    if matches_pr_filters(
+                        &pr,
+                        status_filter,
+                        source_branch_filter,
+                        target_branch_filter,
+                        priority_filter,
+                        include_deleted,
+                    ) {
+                        prs.push(pr);
+                    }
+                }
+                Err(_) => {
+                    // Skip PRs that can't be read
+                }
+            }
+        }
     }
 
     // Sort by display number (human-readable ordering)
     prs.sort_by_key(|p| p.metadata.display_number);
 
     Ok(prs)
+}
+
+/// Check if a PR matches the given filters
+fn matches_pr_filters(
+    pr: &PullRequest,
+    status_filter: Option<&str>,
+    source_branch_filter: Option<&str>,
+    target_branch_filter: Option<&str>,
+    priority_filter: Option<u32>,
+    include_deleted: bool,
+) -> bool {
+    let status_match = status_filter.is_none_or(|s| pr.metadata.status == s);
+    let source_match = source_branch_filter.is_none_or(|s| pr.metadata.source_branch == s);
+    let target_match = target_branch_filter.is_none_or(|t| pr.metadata.target_branch == t);
+    let priority_match = priority_filter.is_none_or(|p| pr.metadata.priority == p);
+    let deleted_match = include_deleted || pr.metadata.deleted_at.is_none();
+
+    status_match && source_match && target_match && priority_match && deleted_match
 }
 
 /// Get a PR by its display number (human-readable number like 1, 2, 3)
@@ -245,22 +352,35 @@ pub async fn get_pr_by_display_number(
     let mut entries = fs::read_dir(&prs_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
-            if let Some(folder_name) = entry.file_name().to_str() {
-                if !is_valid_pr_folder(folder_name) {
-                    continue;
-                }
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
 
-                let metadata_path = entry.path().join("metadata.json");
-                if !metadata_path.exists() {
-                    continue;
-                }
-
-                if let Ok(content) = fs::read_to_string(&metadata_path).await {
-                    if let Ok(metadata) = serde_json::from_str::<PrMetadata>(&content) {
-                        if metadata.common.display_number == display_number {
-                            return read_pr_from_disk(&entry.path(), folder_name).await;
+        // Check for new format: {uuid}.md file
+        if file_type.is_file() && is_valid_pr_file(&name) {
+            if let Ok(content) = fs::read_to_string(entry.path()).await {
+                if let Ok((frontmatter, _, _)) = parse_frontmatter::<PrFrontmatter>(&content) {
+                    if frontmatter.display_number == display_number {
+                        if let Some(pr_id) = pr_id_from_filename(&name) {
+                            return read_pr_from_frontmatter(&entry.path(), pr_id).await;
                         }
+                    }
+                }
+            }
+        }
+        // Check for old format: {uuid}/ folder - auto-migrate
+        else if file_type.is_dir() && is_valid_pr_folder(&name) {
+            let metadata_path = entry.path().join("metadata.json");
+            if !metadata_path.exists() {
+                continue;
+            }
+
+            if let Ok(content) = fs::read_to_string(&metadata_path).await {
+                if let Ok(metadata) = serde_json::from_str::<PrMetadata>(&content) {
+                    if metadata.common.display_number == display_number {
+                        return migrate_pr_to_new_format(&prs_path, &entry.path(), &name).await;
                     }
                 }
             }
@@ -341,9 +461,14 @@ pub async fn update_pr(
         .ok_or(PrCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let pr_path = centy_path.join("prs").join(pr_id);
+    let prs_path = centy_path.join("prs");
 
-    if !pr_path.exists() {
+    // Check if PR exists in either format
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    let pr_folder = prs_path.join(pr_id);
+    let is_new_format = pr_file.exists();
+
+    if !is_new_format && !pr_folder.exists() {
         return Err(PrCrudError::PrNotFound(pr_id.to_string()));
     }
 
@@ -351,8 +476,12 @@ pub async fn update_pr(
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-    // Read current PR
-    let current = read_pr_from_disk(&pr_path, pr_id).await?;
+    // Read current PR from either format
+    let current = if is_new_format {
+        read_pr_from_frontmatter(&pr_file, pr_id).await?
+    } else {
+        read_pr_from_legacy_folder(&pr_folder, pr_id).await?
+    };
 
     // Apply updates
     let new_title = options.title.unwrap_or(current.title);
@@ -398,40 +527,40 @@ pub async fn update_pr(
         new_custom_fields.insert(key, value);
     }
 
-    // Create updated metadata
-    let updated_metadata = PrMetadata {
-        common: crate::common::CommonMetadata {
-            display_number: current.metadata.display_number,
-            status: new_status.clone(),
-            priority: new_priority,
-            created_at: current.metadata.created_at.clone(),
-            updated_at: now_iso(),
-            custom_fields: new_custom_fields
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                .collect(),
-        },
+    let now = now_iso();
+
+    // Build frontmatter for new format
+    let frontmatter = PrFrontmatter {
+        display_number: current.metadata.display_number,
+        status: new_status.clone(),
         source_branch: new_source_branch.clone(),
         target_branch: new_target_branch.clone(),
+        priority: new_priority,
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now.clone(),
         reviewers: new_reviewers.clone(),
-        merged_at: new_merged_at.clone(),
-        closed_at: new_closed_at.clone(),
+        merged_at: if new_merged_at.is_empty() {
+            None
+        } else {
+            Some(new_merged_at.clone())
+        },
+        closed_at: if new_closed_at.is_empty() {
+            None
+        } else {
+            Some(new_closed_at.clone())
+        },
         deleted_at: current.metadata.deleted_at.clone(),
+        custom_fields: new_custom_fields.clone(),
     };
 
-    // Generate updated content
-    let pr_md = generate_pr_md(&new_title, &new_description);
+    // Write new format file
+    let pr_content = generate_frontmatter(&frontmatter, &new_title, &new_description);
+    fs::write(&pr_file, format_markdown(&pr_content)).await?;
 
-    // Write files
-    let pr_md_path = pr_path.join("pr.md");
-    let metadata_path = pr_path.join("metadata.json");
-
-    fs::write(&pr_md_path, &pr_md).await?;
-    fs::write(
-        &metadata_path,
-        serde_json::to_string_pretty(&updated_metadata)?,
-    )
-    .await?;
+    // If migrating from old format, remove the old folder
+    if !is_new_format && pr_folder.exists() {
+        fs::remove_dir_all(&pr_folder).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -449,7 +578,7 @@ pub async fn update_pr(
             reviewers: new_reviewers,
             priority: new_priority,
             created_at: current.metadata.created_at,
-            updated_at: updated_metadata.common.updated_at,
+            updated_at: now,
             merged_at: new_merged_at,
             closed_at: new_closed_at,
             custom_fields: new_custom_fields,
@@ -468,14 +597,26 @@ pub async fn delete_pr(project_path: &Path, pr_id: &str) -> Result<DeletePrResul
         .ok_or(PrCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let pr_path = centy_path.join("prs").join(pr_id);
+    let prs_path = centy_path.join("prs");
 
-    if !pr_path.exists() {
-        return Err(PrCrudError::PrNotFound(pr_id.to_string()));
+    // Check for new format first: {id}.md file
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    if pr_file.exists() {
+        fs::remove_file(&pr_file).await?;
+
+        // Also remove assets directory if it exists
+        let assets_path = prs_path.join("assets").join(pr_id);
+        if assets_path.exists() {
+            fs::remove_dir_all(&assets_path).await?;
+        }
+    } else {
+        // Try old format: {id}/ folder
+        let pr_folder = prs_path.join(pr_id);
+        if !pr_folder.exists() {
+            return Err(PrCrudError::PrNotFound(pr_id.to_string()));
+        }
+        fs::remove_dir_all(&pr_folder).await?;
     }
-
-    // Remove the PR directory
-    fs::remove_dir_all(&pr_path).await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -495,36 +636,100 @@ pub async fn soft_delete_pr(
         .ok_or(PrCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let pr_path = centy_path.join("prs").join(pr_id);
+    let prs_path = centy_path.join("prs");
 
-    if !pr_path.exists() {
+    // Check which format exists
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    let pr_folder = prs_path.join(pr_id);
+    let is_new_format = pr_file.exists();
+
+    if !is_new_format && !pr_folder.exists() {
         return Err(PrCrudError::PrNotFound(pr_id.to_string()));
     }
 
-    // Read current metadata
-    let metadata_path = pr_path.join("metadata.json");
-    let metadata_content = fs::read_to_string(&metadata_path).await?;
-    let mut metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
-
-    // Check if already deleted
-    if metadata.deleted_at.is_some() {
-        return Err(PrCrudError::PrAlreadyDeleted(pr_id.to_string()));
-    }
-
-    // Set deleted_at and update updated_at
     let now = now_iso();
-    metadata.deleted_at = Some(now.clone());
-    metadata.common.updated_at = now;
 
-    // Write updated metadata
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+    if is_new_format {
+        // New format: read frontmatter, update, and write back
+        let content = fs::read_to_string(&pr_file).await?;
+        let (mut frontmatter, title, body): (PrFrontmatter, String, String) =
+            parse_frontmatter(&content)?;
+
+        // Check if already deleted
+        if frontmatter.deleted_at.is_some() {
+            return Err(PrCrudError::PrAlreadyDeleted(pr_id.to_string()));
+        }
+
+        frontmatter.deleted_at = Some(now.clone());
+        frontmatter.updated_at = now;
+
+        let new_content = generate_frontmatter(&frontmatter, &title, &body);
+        fs::write(&pr_file, format_markdown(&new_content)).await?;
+    } else {
+        // Old format: read metadata, update, write to new format
+        let metadata_path = pr_folder.join("metadata.json");
+        let metadata_content = fs::read_to_string(&metadata_path).await?;
+        let metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
+
+        // Check if already deleted
+        if metadata.deleted_at.is_some() {
+            return Err(PrCrudError::PrAlreadyDeleted(pr_id.to_string()));
+        }
+
+        // Read pr.md for title and description
+        let pr_md_path = pr_folder.join("pr.md");
+        let pr_md = fs::read_to_string(&pr_md_path).await?;
+        let (title, description) = parse_pr_md(&pr_md);
+
+        // Build frontmatter with deleted_at set
+        let frontmatter = PrFrontmatter {
+            display_number: metadata.common.display_number,
+            status: metadata.common.status,
+            source_branch: metadata.source_branch,
+            target_branch: metadata.target_branch,
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at,
+            updated_at: now.clone(),
+            reviewers: metadata.reviewers,
+            merged_at: if metadata.merged_at.is_empty() {
+                None
+            } else {
+                Some(metadata.merged_at)
+            },
+            closed_at: if metadata.closed_at.is_empty() {
+                None
+            } else {
+                Some(metadata.closed_at)
+            },
+            deleted_at: Some(now),
+            custom_fields: metadata
+                .common
+                .custom_fields
+                .into_iter()
+                .map(|(k, v)| {
+                    let str_val = match v {
+                        serde_json::Value::String(s) => s,
+                        other => other.to_string(),
+                    };
+                    (k, str_val)
+                })
+                .collect(),
+        };
+
+        // Write new format file
+        let new_content = generate_frontmatter(&frontmatter, &title, &description);
+        fs::write(&pr_file, format_markdown(&new_content)).await?;
+
+        // Remove old folder
+        fs::remove_dir_all(&pr_folder).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the updated PR
-    let pr = read_pr_from_disk(&pr_path, pr_id).await?;
+    let pr = read_pr_from_frontmatter(&pr_file, pr_id).await?;
 
     Ok(SoftDeletePrResult { pr, manifest })
 }
@@ -537,41 +742,136 @@ pub async fn restore_pr(project_path: &Path, pr_id: &str) -> Result<RestorePrRes
         .ok_or(PrCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let pr_path = centy_path.join("prs").join(pr_id);
+    let prs_path = centy_path.join("prs");
 
-    if !pr_path.exists() {
+    // Check which format exists
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    let pr_folder = prs_path.join(pr_id);
+    let is_new_format = pr_file.exists();
+
+    if !is_new_format && !pr_folder.exists() {
         return Err(PrCrudError::PrNotFound(pr_id.to_string()));
     }
 
-    // Read current metadata
-    let metadata_path = pr_path.join("metadata.json");
-    let metadata_content = fs::read_to_string(&metadata_path).await?;
-    let mut metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
+    let now = now_iso();
 
-    // Check if actually deleted
-    if metadata.deleted_at.is_none() {
-        return Err(PrCrudError::PrNotDeleted(pr_id.to_string()));
+    if is_new_format {
+        // New format: read frontmatter, update, and write back
+        let content = fs::read_to_string(&pr_file).await?;
+        let (mut frontmatter, title, body): (PrFrontmatter, String, String) =
+            parse_frontmatter(&content)?;
+
+        // Check if actually deleted
+        if frontmatter.deleted_at.is_none() {
+            return Err(PrCrudError::PrNotDeleted(pr_id.to_string()));
+        }
+
+        frontmatter.deleted_at = None;
+        frontmatter.updated_at = now;
+
+        let new_content = generate_frontmatter(&frontmatter, &title, &body);
+        fs::write(&pr_file, format_markdown(&new_content)).await?;
+    } else {
+        // Old format: read metadata, update, write to new format
+        let metadata_path = pr_folder.join("metadata.json");
+        let metadata_content = fs::read_to_string(&metadata_path).await?;
+        let metadata: PrMetadata = serde_json::from_str(&metadata_content)?;
+
+        // Check if actually deleted
+        if metadata.deleted_at.is_none() {
+            return Err(PrCrudError::PrNotDeleted(pr_id.to_string()));
+        }
+
+        // Read pr.md for title and description
+        let pr_md_path = pr_folder.join("pr.md");
+        let pr_md = fs::read_to_string(&pr_md_path).await?;
+        let (title, description) = parse_pr_md(&pr_md);
+
+        // Build frontmatter with deleted_at cleared
+        let frontmatter = PrFrontmatter {
+            display_number: metadata.common.display_number,
+            status: metadata.common.status,
+            source_branch: metadata.source_branch,
+            target_branch: metadata.target_branch,
+            priority: metadata.common.priority,
+            created_at: metadata.common.created_at,
+            updated_at: now,
+            reviewers: metadata.reviewers,
+            merged_at: if metadata.merged_at.is_empty() {
+                None
+            } else {
+                Some(metadata.merged_at)
+            },
+            closed_at: if metadata.closed_at.is_empty() {
+                None
+            } else {
+                Some(metadata.closed_at)
+            },
+            deleted_at: None,
+            custom_fields: metadata
+                .common
+                .custom_fields
+                .into_iter()
+                .map(|(k, v)| {
+                    let str_val = match v {
+                        serde_json::Value::String(s) => s,
+                        other => other.to_string(),
+                    };
+                    (k, str_val)
+                })
+                .collect(),
+        };
+
+        // Write new format file
+        let new_content = generate_frontmatter(&frontmatter, &title, &description);
+        fs::write(&pr_file, format_markdown(&new_content)).await?;
+
+        // Remove old folder
+        fs::remove_dir_all(&pr_folder).await?;
     }
-
-    // Clear deleted_at and update updated_at
-    metadata.deleted_at = None;
-    metadata.common.updated_at = now_iso();
-
-    // Write updated metadata
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the restored PR
-    let pr = read_pr_from_disk(&pr_path, pr_id).await?;
+    let pr = read_pr_from_frontmatter(&pr_file, pr_id).await?;
 
     Ok(RestorePrResult { pr, manifest })
 }
 
-/// Read a PR from disk
-async fn read_pr_from_disk(pr_path: &Path, pr_id: &str) -> Result<PullRequest, PrCrudError> {
+/// Read a PR from the new frontmatter format (.md file)
+async fn read_pr_from_frontmatter(pr_file: &Path, pr_id: &str) -> Result<PullRequest, PrCrudError> {
+    let content = fs::read_to_string(pr_file).await?;
+    let (frontmatter, title, description): (PrFrontmatter, String, String) =
+        parse_frontmatter(&content)?;
+
+    Ok(PullRequest {
+        id: pr_id.to_string(),
+        title,
+        description,
+        metadata: PrMetadataFlat {
+            display_number: frontmatter.display_number,
+            status: frontmatter.status,
+            source_branch: frontmatter.source_branch,
+            target_branch: frontmatter.target_branch,
+            reviewers: frontmatter.reviewers,
+            priority: frontmatter.priority,
+            created_at: frontmatter.created_at,
+            updated_at: frontmatter.updated_at,
+            merged_at: frontmatter.merged_at.unwrap_or_default(),
+            closed_at: frontmatter.closed_at.unwrap_or_default(),
+            custom_fields: frontmatter.custom_fields,
+            deleted_at: frontmatter.deleted_at,
+        },
+    })
+}
+
+/// Read a PR from the legacy folder format ({uuid}/ folder with pr.md + metadata.json)
+async fn read_pr_from_legacy_folder(
+    pr_path: &Path,
+    pr_id: &str,
+) -> Result<PullRequest, PrCrudError> {
     let pr_md_path = pr_path.join("pr.md");
     let metadata_path = pr_path.join("metadata.json");
 

@@ -35,13 +35,11 @@ async fn test_create_issue_success() {
     // Issue ID should be a UUID
     assert!(is_uuid(&result.id), "Issue ID should be a UUID");
     assert_eq!(result.display_number, 1);
-    assert_eq!(result.created_files.len(), 3); // issue.md, metadata.json, assets/
+    assert_eq!(result.created_files.len(), 1); // {id}.md (new YAML frontmatter format)
 
-    // Verify files exist using UUID folder
-    let issue_path = project_path.join(format!(".centy/issues/{}", result.id));
-    assert!(issue_path.join("issue.md").exists());
-    assert!(issue_path.join("metadata.json").exists());
-    assert!(issue_path.join("assets").exists());
+    // Verify single .md file exists with new format
+    let issue_file = project_path.join(format!(".centy/issues/{}.md", result.id));
+    assert!(issue_file.exists(), "Issue file should exist");
 }
 
 #[tokio::test]
@@ -476,17 +474,17 @@ async fn test_delete_issue_success() {
     .await
     .unwrap();
 
-    // Verify it exists
-    let issue_path = project_path.join(format!(".centy/issues/{}", created.id));
-    assert!(issue_path.exists());
+    // Verify issue file exists (new format: {id}.md)
+    let issue_file = project_path.join(format!(".centy/issues/{}.md", created.id));
+    assert!(issue_file.exists());
 
     // Delete it
     delete_issue(project_path, &created.id)
         .await
         .expect("Should delete");
 
-    // Verify it's gone
-    assert!(!issue_path.exists());
+    // Verify issue file is gone
+    assert!(!issue_file.exists());
 
     // Verify not in list
     let issues = list_issues(project_path, None, None, None, false)
@@ -513,28 +511,23 @@ async fn test_delete_issue_removes_files() {
     .await
     .unwrap();
 
-    // Verify issue directory exists
-    let issue_path = project_path.join(".centy").join("issues").join(&created.id);
+    // Verify issue file exists (new format: {id}.md)
+    let issue_file = project_path
+        .join(".centy")
+        .join("issues")
+        .join(format!("{}.md", &created.id));
     assert!(
-        issue_path.exists(),
-        "Issue directory should exist after creation"
-    );
-    assert!(
-        issue_path.join("issue.md").exists(),
-        "Issue file should exist"
-    );
-    assert!(
-        issue_path.join("metadata.json").exists(),
-        "Metadata file should exist"
+        issue_file.exists(),
+        "Issue file should exist after creation"
     );
 
     // Delete issue
     let _result = delete_issue(project_path, &created.id).await.unwrap();
 
-    // Verify issue directory is removed
+    // Verify issue file is removed
     assert!(
-        !issue_path.exists(),
-        "Issue directory should be removed after deletion"
+        !issue_file.exists(),
+        "Issue file should be removed after deletion"
     );
 }
 
@@ -989,12 +982,11 @@ async fn test_create_issue_with_planning_status_adds_note() {
     .await
     .expect("Should create issue");
 
-    // Read issue.md directly to verify planning note
-    let issue_md_path = project_path
+    // Read issue file directly to verify planning note (new format: {id}.md)
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&created.id)
-        .join("issue.md");
-    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+        .join(format!("{}.md", &created.id));
+    let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
         content.contains("> **Planning Mode**"),
@@ -1022,21 +1014,18 @@ async fn test_create_issue_without_planning_status_no_note() {
     .await
     .expect("Should create issue");
 
-    // Read issue.md directly
-    let issue_md_path = project_path
+    // Read issue file directly (new format: {id}.md)
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&created.id)
-        .join("issue.md");
-    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+        .join(format!("{}.md", &created.id));
+    let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
         !content.contains("> **Planning Mode**"),
         "Should NOT contain planning note"
     );
-    assert!(
-        content.starts_with("# Regular Issue"),
-        "Should start with title"
-    );
+    // With YAML frontmatter, content starts with --- not # Title
+    assert!(content.contains("# Regular Issue"), "Should contain title");
 }
 
 #[tokio::test]
@@ -1058,12 +1047,11 @@ async fn test_update_issue_to_planning_adds_note() {
     .await
     .unwrap();
 
-    // Verify no planning note initially
-    let issue_md_path = project_path
+    // Verify no planning note initially (new format: {id}.md)
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&created.id)
-        .join("issue.md");
-    let initial_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+        .join(format!("{}.md", &created.id));
+    let initial_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(!initial_content.contains("> **Planning Mode**"));
 
     // Update to planning status
@@ -1079,7 +1067,7 @@ async fn test_update_issue_to_planning_adds_note() {
     .expect("Should update issue");
 
     // Verify planning note was added
-    let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    let updated_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(
         updated_content.contains("> **Planning Mode**"),
         "Should add planning note"
@@ -1105,12 +1093,11 @@ async fn test_update_issue_from_planning_removes_note() {
     .await
     .unwrap();
 
-    // Verify planning note exists
-    let issue_md_path = project_path
+    // Verify planning note exists (new format: {id}.md)
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&created.id)
-        .join("issue.md");
-    let initial_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+        .join(format!("{}.md", &created.id));
+    let initial_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(initial_content.contains("> **Planning Mode**"));
 
     // Update to in-progress status
@@ -1126,14 +1113,15 @@ async fn test_update_issue_from_planning_removes_note() {
     .expect("Should update issue");
 
     // Verify planning note was removed
-    let updated_content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    let updated_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(
         !updated_content.contains("> **Planning Mode**"),
         "Should remove planning note"
     );
+    // With YAML frontmatter, content starts with --- not # Title
     assert!(
-        updated_content.starts_with("# Test Issue"),
-        "Should start with title"
+        updated_content.contains("# Test Issue"),
+        "Should contain title"
     );
 }
 
@@ -1156,10 +1144,10 @@ async fn test_planning_note_idempotent() {
     .await
     .unwrap();
 
-    let issue_md_path = project_path
+    // New format: {id}.md
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&created.id)
-        .join("issue.md");
+        .join(format!("{}.md", &created.id));
 
     // Update multiple times while staying in planning
     for i in 0..3 {
@@ -1176,7 +1164,7 @@ async fn test_planning_note_idempotent() {
     }
 
     // Should still have exactly one planning note
-    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+    let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert_eq!(
         content.matches("> **Planning Mode**").count(),
         1,
@@ -1213,12 +1201,11 @@ async fn test_duplicate_issue_preserves_planning_note() {
     .await
     .expect("Should duplicate issue");
 
-    // Verify duplicate has planning note
-    let issue_md_path = project_path
+    // Verify duplicate has planning note (new format: {id}.md)
+    let issue_file_path = project_path
         .join(".centy/issues")
-        .join(&result.issue.id)
-        .join("issue.md");
-    let content = tokio::fs::read_to_string(&issue_md_path).await.unwrap();
+        .join(format!("{}.md", &result.issue.id));
+    let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
         content.contains("> **Planning Mode**"),

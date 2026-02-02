@@ -5,8 +5,9 @@
 //! 1. Keeping the oldest issue's display number (by `created_at`)
 //! 2. Reassigning newer issues to the next available number
 
-use super::id::is_valid_issue_folder;
-use super::metadata::IssueMetadata;
+use super::id::{is_valid_issue_file, is_valid_issue_folder};
+use super::metadata::{IssueFrontmatter, IssueMetadata};
+use crate::common::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -19,12 +20,18 @@ pub enum ReconcileError {
 
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
+
+    #[error("YAML frontmatter error: {0}")]
+    FrontmatterError(#[from] crate::common::FrontmatterError),
 }
 
 /// Information about an issue needed for reconciliation
 #[derive(Debug, Clone)]
 struct IssueInfo {
-    folder_name: String,
+    /// Issue ID (UUID)
+    id: String,
+    /// Whether this is a new format (.md file) or old format (folder)
+    is_new_format: bool,
     display_number: u32,
     created_at: String,
 }
@@ -41,40 +48,57 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
         return Ok(0);
     }
 
-    // Step 1: Read all issues and their display numbers
+    // Step 1: Read all issues and their display numbers (both formats)
     let mut issues: Vec<IssueInfo> = Vec::new();
     let mut entries = fs::read_dir(issues_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_dir() {
-            continue;
-        }
-
-        let folder_name = match entry.file_name().to_str() {
-            Some(name) => name.to_string(),
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
             None => continue,
         };
 
-        if !is_valid_issue_folder(&folder_name) {
-            continue;
+        // Check for new format: {uuid}.md file
+        if file_type.is_file() && is_valid_issue_file(&name) {
+            let content = match fs::read_to_string(entry.path()).await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let frontmatter: IssueFrontmatter =
+                match parse_frontmatter::<IssueFrontmatter>(&content) {
+                    Ok((fm, _, _)) => fm,
+                    Err(_) => continue, // Skip malformed files
+                };
+            let issue_id = name.trim_end_matches(".md").to_string();
+            issues.push(IssueInfo {
+                id: issue_id,
+                is_new_format: true,
+                display_number: frontmatter.display_number,
+                created_at: frontmatter.created_at,
+            });
         }
-
-        let metadata_path = entry.path().join("metadata.json");
-        if !metadata_path.exists() {
-            continue;
+        // Check for old format: {uuid}/ folder
+        else if file_type.is_dir() && is_valid_issue_folder(&name) {
+            let metadata_path = entry.path().join("metadata.json");
+            if !metadata_path.exists() {
+                continue;
+            }
+            let content = match fs::read_to_string(&metadata_path).await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let metadata: IssueMetadata = match serde_json::from_str(&content) {
+                Ok(m) => m,
+                Err(_) => continue, // Skip malformed metadata
+            };
+            issues.push(IssueInfo {
+                id: name,
+                is_new_format: false,
+                display_number: metadata.common.display_number,
+                created_at: metadata.common.created_at,
+            });
         }
-
-        let content = fs::read_to_string(&metadata_path).await?;
-        let metadata: IssueMetadata = match serde_json::from_str(&content) {
-            Ok(m) => m,
-            Err(_) => continue, // Skip malformed metadata
-        };
-
-        issues.push(IssueInfo {
-            folder_name,
-            display_number: metadata.common.display_number,
-            created_at: metadata.common.created_at,
-        });
     }
 
     // Step 2: Find duplicates (group by display_number)
@@ -90,7 +114,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
     let max_display_number = issues.iter().map(|i| i.display_number).max().unwrap_or(0);
 
     // Step 4: Process duplicates
-    let mut reassignments: Vec<(String, u32)> = Vec::new(); // (folder_name, new_display_number)
+    let mut reassignments: Vec<(IssueInfo, u32)> = Vec::new(); // (issue_info, new_display_number)
     let mut next_available = max_display_number + 1;
 
     for (display_number, mut group) in by_display_number {
@@ -102,7 +126,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
         if display_number == 0 {
             // Assign each legacy issue a unique number
             for issue in &group {
-                reassignments.push((issue.folder_name.clone(), next_available));
+                reassignments.push(((*issue).clone(), next_available));
                 next_available += 1;
             }
             continue;
@@ -113,7 +137,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
 
         // Keep the first (oldest), reassign the rest
         for issue in group.iter().skip(1) {
-            reassignments.push((issue.folder_name.clone(), next_available));
+            reassignments.push(((*issue).clone(), next_available));
             next_available += 1;
         }
     }
@@ -121,16 +145,27 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
     // Step 5: Write reassignments
     let reassignment_count = reassignments.len() as u32;
 
-    for (folder_name, new_display_number) in reassignments {
-        let metadata_path = issues_path.join(&folder_name).join("metadata.json");
-        let content = fs::read_to_string(&metadata_path).await?;
-        let mut metadata: IssueMetadata = serde_json::from_str(&content)?;
-
-        metadata.common.display_number = new_display_number;
-        metadata.common.updated_at = crate::utils::now_iso();
-
-        let new_content = serde_json::to_string_pretty(&metadata)?;
-        fs::write(&metadata_path, new_content).await?;
+    for (issue_info, new_display_number) in reassignments {
+        if issue_info.is_new_format {
+            // Update frontmatter file
+            let file_path = issues_path.join(format!("{}.md", issue_info.id));
+            let content = fs::read_to_string(&file_path).await?;
+            let (mut frontmatter, title, body): (IssueFrontmatter, String, String) =
+                parse_frontmatter(&content)?;
+            frontmatter.display_number = new_display_number;
+            frontmatter.updated_at = crate::utils::now_iso();
+            let new_content = generate_frontmatter(&frontmatter, &title, &body);
+            fs::write(&file_path, new_content).await?;
+        } else {
+            // Update legacy metadata.json
+            let metadata_path = issues_path.join(&issue_info.id).join("metadata.json");
+            let content = fs::read_to_string(&metadata_path).await?;
+            let mut metadata: IssueMetadata = serde_json::from_str(&content)?;
+            metadata.common.display_number = new_display_number;
+            metadata.common.updated_at = crate::utils::now_iso();
+            let new_content = serde_json::to_string_pretty(&metadata)?;
+            fs::write(&metadata_path, new_content).await?;
+        }
     }
 
     Ok(reassignment_count)
@@ -138,7 +173,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
 
 /// Get the next available display number.
 ///
-/// Scans all existing issues and returns max + 1.
+/// Scans all existing issues (both formats) and returns max + 1.
 pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, ReconcileError> {
     if !issues_path.exists() {
         return Ok(1);
@@ -148,27 +183,30 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
     let mut entries = fs::read_dir(issues_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_dir() {
-            continue;
-        }
-
-        let folder_name = match entry.file_name().to_str() {
-            Some(name) => name.to_string(),
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
             None => continue,
         };
 
-        if !is_valid_issue_folder(&folder_name) {
-            continue;
+        // Check for new format: {uuid}.md file
+        if file_type.is_file() && is_valid_issue_file(&name) {
+            if let Ok(content) = fs::read_to_string(entry.path()).await {
+                if let Ok((frontmatter, _, _)) = parse_frontmatter::<IssueFrontmatter>(&content) {
+                    max_number = max_number.max(frontmatter.display_number);
+                }
+            }
         }
-
-        let metadata_path = entry.path().join("metadata.json");
-        if !metadata_path.exists() {
-            continue;
-        }
-
-        if let Ok(content) = fs::read_to_string(&metadata_path).await {
-            if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
-                max_number = max_number.max(metadata.common.display_number);
+        // Check for old format: {uuid}/ folder
+        else if file_type.is_dir() && is_valid_issue_folder(&name) {
+            let metadata_path = entry.path().join("metadata.json");
+            if !metadata_path.exists() {
+                continue;
+            }
+            if let Ok(content) = fs::read_to_string(&metadata_path).await {
+                if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
+                    max_number = max_number.max(metadata.common.display_number);
+                }
             }
         }
     }

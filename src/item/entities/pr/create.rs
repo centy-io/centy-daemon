@@ -2,13 +2,14 @@ use super::git::{
     detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists, GitError,
 };
 use super::id::generate_pr_id;
-use super::metadata::PrMetadata;
+use super::metadata::PrFrontmatter;
 use super::reconcile::{get_next_pr_display_number, ReconcileError};
 use super::status::{default_pr_statuses, validate_pr_status};
+use crate::common::generate_frontmatter;
 use crate::config::read_config;
 use crate::item::validation::priority::{default_priority, validate_priority, PriorityError};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
-use crate::utils::{format_markdown, get_centy_path};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -189,30 +190,39 @@ pub async fn create_pr(
     validate_pr_status(&status, &default_pr_statuses());
 
     let custom_field_values = build_pr_custom_fields(config.as_ref(), &options.custom_fields);
+    let now = now_iso();
 
-    let metadata = PrMetadata::new(
+    // Build frontmatter for new format
+    let frontmatter = PrFrontmatter {
         display_number,
         status,
-        source_branch.clone(),
+        source_branch: source_branch.clone(),
         target_branch,
-        options.reviewers,
         priority,
-        custom_field_values,
-    );
+        created_at: now.clone(),
+        updated_at: now,
+        reviewers: options.reviewers,
+        merged_at: None,
+        closed_at: None,
+        deleted_at: None,
+        custom_fields: custom_field_values
+            .into_iter()
+            .map(|(k, v)| {
+                let str_val = match v {
+                    serde_json::Value::String(s) => s,
+                    other => other.to_string(),
+                };
+                (k, str_val)
+            })
+            .collect(),
+    };
 
-    let pr_folder = prs_path.join(&pr_id);
-    fs::create_dir_all(&pr_folder).await?;
-    fs::write(
-        pr_folder.join("pr.md"),
-        format_markdown(&generate_pr_md(&options.title, &options.description)),
-    )
-    .await?;
-    fs::write(
-        pr_folder.join("metadata.json"),
-        serde_json::to_string_pretty(&metadata)?,
-    )
-    .await?;
-    fs::create_dir_all(pr_folder.join("assets")).await?;
+    // Generate full content with frontmatter
+    let pr_content = generate_frontmatter(&frontmatter, &options.title, &options.description);
+
+    // Write single .md file
+    let pr_file = prs_path.join(format!("{pr_id}.md"));
+    fs::write(&pr_file, format_markdown(&pr_content)).await?;
 
     let mut manifest = manifest;
     update_manifest_timestamp(&mut manifest);
@@ -221,38 +231,8 @@ pub async fn create_pr(
     Ok(CreatePrResult {
         id: pr_id.clone(),
         display_number,
-        created_files: vec![
-            format!(".centy/prs/{}/pr.md", pr_id),
-            format!(".centy/prs/{}/metadata.json", pr_id),
-            format!(".centy/prs/{}/assets/", pr_id),
-        ],
+        created_files: vec![format!(".centy/prs/{pr_id}.md")],
         manifest,
         detected_source_branch: source_branch,
     })
-}
-
-/// Generate the PR markdown content
-fn generate_pr_md(title: &str, description: &str) -> String {
-    if description.is_empty() {
-        format!("# {title}\n")
-    } else {
-        format!("# {title}\n\n{description}\n")
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_generate_pr_md_with_description() {
-        let md = generate_pr_md("Add feature", "This PR adds a new feature.");
-        assert_eq!(md, "# Add feature\n\nThis PR adds a new feature.\n");
-    }
-
-    #[test]
-    fn test_generate_pr_md_without_description() {
-        let md = generate_pr_md("Fix bug", "");
-        assert_eq!(md, "# Fix bug\n");
-    }
 }

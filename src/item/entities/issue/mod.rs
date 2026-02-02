@@ -34,7 +34,7 @@ pub use crud::{
 #[allow(unused_imports)]
 pub use id::is_uuid;
 #[allow(unused_imports)]
-pub use metadata::IssueMetadata;
+pub use metadata::{IssueFrontmatter, IssueMetadata};
 #[allow(unused_imports)]
 pub use planning::{
     add_planning_note, has_planning_note, is_planning_status, remove_planning_note, PLANNING_NOTE,

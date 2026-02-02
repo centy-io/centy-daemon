@@ -18,6 +18,25 @@ pub fn is_valid_pr_folder(name: &str) -> bool {
     is_uuid(name)
 }
 
+/// Check if a file name is a valid PR file (new YAML frontmatter format: {uuid}.md)
+#[must_use]
+pub fn is_valid_pr_file(name: &str) -> bool {
+    std::path::Path::new(name)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+        && is_uuid(name.trim_end_matches(".md"))
+}
+
+/// Extract the PR ID from a filename (e.g., "550e8400-e29b-41d4-a716-446655440000.md" -> "550e8400-...")
+#[must_use]
+pub fn pr_id_from_filename(name: &str) -> Option<&str> {
+    if is_valid_pr_file(name) {
+        Some(name.trim_end_matches(".md"))
+    } else {
+        None
+    }
+}
+
 /// Generate a new UUID for a PR folder
 #[must_use]
 pub fn generate_pr_id() -> String {
@@ -62,6 +81,28 @@ mod tests {
         assert!(!is_valid_pr_folder("0001"));
         assert!(!is_valid_pr_folder("random-folder"));
         assert!(!is_valid_pr_folder(".DS_Store"));
+    }
+
+    #[test]
+    fn test_is_valid_pr_file() {
+        // Valid UUID.md files
+        assert!(is_valid_pr_file("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c.md"));
+        assert!(is_valid_pr_file("550e8400-e29b-41d4-a716-446655440000.md"));
+        // Invalid
+        assert!(!is_valid_pr_file("0001.md"));
+        assert!(!is_valid_pr_file("random.md"));
+        assert!(!is_valid_pr_file("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c")); // no .md
+        assert!(!is_valid_pr_file(".md"));
+    }
+
+    #[test]
+    fn test_pr_id_from_filename() {
+        assert_eq!(
+            pr_id_from_filename("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c.md"),
+            Some("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c")
+        );
+        assert_eq!(pr_id_from_filename("0001.md"), None);
+        assert_eq!(pr_id_from_filename("not-a-uuid"), None);
     }
 
     #[test]

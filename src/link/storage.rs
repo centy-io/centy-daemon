@@ -55,39 +55,89 @@ impl LinksFile {
 
 /// Read links from an entity's folder
 ///
+/// Supports both old format (links.json in entity folder) and new format
+/// (links.json in parent/links/{entity_id}/ folder).
+///
 /// Returns an empty `LinksFile` if the file doesn't exist.
 pub async fn read_links(entity_path: &Path) -> Result<LinksFile, std::io::Error> {
-    let links_path = entity_path.join(LINKS_FILENAME);
-
-    if !links_path.exists() {
-        return Ok(LinksFile::new());
+    // Try old format first: entity_path/links.json (for folders)
+    let old_links_path = entity_path.join(LINKS_FILENAME);
+    if old_links_path.exists() {
+        let content = fs::read_to_string(&old_links_path).await?;
+        let links_file: LinksFile = serde_json::from_str(&content).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Failed to parse links.json: {e}"),
+            )
+        })?;
+        return Ok(links_file);
     }
 
-    let content = fs::read_to_string(&links_path).await?;
-    let links_file: LinksFile = serde_json::from_str(&content).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!("Failed to parse links.json: {e}"),
-        )
-    })?;
+    // Try new format: parent/links/{entity_id}/links.json
+    // entity_path = .centy/issues/{entity_id}
+    // new_links_path = .centy/issues/links/{entity_id}/links.json
+    if let (Some(parent), Some(entity_id)) = (entity_path.parent(), entity_path.file_name()) {
+        let new_links_path = parent.join("links").join(entity_id).join(LINKS_FILENAME);
+        if new_links_path.exists() {
+            let content = fs::read_to_string(&new_links_path).await?;
+            let links_file: LinksFile = serde_json::from_str(&content).map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Failed to parse links.json: {e}"),
+                )
+            })?;
+            return Ok(links_file);
+        }
+    }
 
-    Ok(links_file)
+    Ok(LinksFile::new())
 }
 
-/// Write links to an entity's folder
+/// Write links to an entity's links folder
 ///
+/// Uses new format: parent/links/{entity_id}/links.json
 /// Creates the file if it doesn't exist.
 /// If the links list is empty, deletes the file if it exists.
 pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(), std::io::Error> {
-    let links_path = entity_path.join(LINKS_FILENAME);
+    // Use new format: parent/links/{entity_id}/links.json
+    let (parent, entity_id) = match (entity_path.parent(), entity_path.file_name()) {
+        (Some(p), Some(id)) => (p, id),
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid entity path",
+            ))
+        }
+    };
+
+    let links_dir = parent.join("links").join(entity_id);
+    let new_links_path = links_dir.join(LINKS_FILENAME);
 
     // If no links, remove the file if it exists
     if links_file.links.is_empty() {
-        if links_path.exists() {
-            fs::remove_file(&links_path).await?;
+        if new_links_path.exists() {
+            fs::remove_file(&new_links_path).await?;
+        }
+        // Also clean up old format if it exists
+        let old_links_path = entity_path.join(LINKS_FILENAME);
+        if old_links_path.exists() {
+            fs::remove_file(&old_links_path).await?;
+        }
+        // Clean up empty links directory
+        if links_dir.exists()
+            && fs::read_dir(&links_dir)
+                .await?
+                .next_entry()
+                .await?
+                .is_none()
+        {
+            let _ = fs::remove_dir(&links_dir).await;
         }
         return Ok(());
     }
+
+    // Create links directory if needed
+    fs::create_dir_all(&links_dir).await?;
 
     let content = serde_json::to_string_pretty(links_file).map_err(|e| {
         std::io::Error::new(
@@ -96,7 +146,14 @@ pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(
         )
     })?;
 
-    fs::write(&links_path, content).await?;
+    fs::write(&new_links_path, content).await?;
+
+    // Clean up old format if it exists
+    let old_links_path = entity_path.join(LINKS_FILENAME);
+    if old_links_path.exists() {
+        let _ = fs::remove_file(&old_links_path).await;
+    }
+
     Ok(())
 }
 

@@ -1,14 +1,17 @@
 use super::assets::copy_assets_folder;
-use super::id::{generate_issue_id, is_uuid, is_valid_issue_folder};
-use super::metadata::IssueMetadata;
+use super::id::{generate_issue_id, is_uuid, is_valid_issue_file, is_valid_issue_folder};
+use super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::planning::{
     add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
 };
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
 use super::status::{validate_status, StatusError};
-use crate::common::{OrgSyncError, OrgSyncable};
+use crate::common::{
+    generate_frontmatter, parse_frontmatter, FrontmatterError, OrgSyncError, OrgSyncable,
+};
 use crate::config::read_config;
+use crate::link::{read_links, write_links};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
 use crate::registry::ProjectInfo;
 use crate::utils::{format_markdown, get_centy_path, now_iso};
@@ -17,6 +20,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::fs;
+use tracing::debug;
 
 #[derive(Error, Debug)]
 pub enum IssueCrudError {
@@ -28,6 +32,9 @@ pub enum IssueCrudError {
 
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
+
+    #[error("YAML frontmatter error: {0}")]
+    FrontmatterError(#[from] FrontmatterError),
 
     #[error("Centy not initialized. Run 'centy init' first.")]
     NotInitialized,
@@ -205,13 +212,103 @@ pub async fn get_issue(project_path: &Path, issue_number: &str) -> Result<Issue,
         .ok_or(IssueCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let issue_path = centy_path.join("issues").join(issue_number);
+    let issues_path = centy_path.join("issues");
 
-    if !issue_path.exists() {
-        return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
+    // Try new format first: {uuid}.md file
+    let issue_file_path = issues_path.join(format!("{issue_number}.md"));
+    if issue_file_path.exists() {
+        return read_issue_from_frontmatter(&issue_file_path, issue_number).await;
     }
 
-    read_issue_from_disk(&issue_path, issue_number).await
+    // Fallback to old format: {uuid}/ folder with issue.md and metadata.json
+    // Auto-migrate to new format
+    let issue_folder_path = issues_path.join(issue_number);
+    if issue_folder_path.exists() {
+        return migrate_issue_to_new_format(&issues_path, &issue_folder_path, issue_number).await;
+    }
+
+    Err(IssueCrudError::IssueNotFound(issue_number.to_string()))
+}
+
+/// Migrate an issue from legacy folder format to new frontmatter format
+///
+/// This function:
+/// 1. Reads the issue from the old format
+/// 2. Writes it to the new format (.md file with frontmatter)
+/// 3. Migrates assets from {id}/assets/ to assets/{id}/
+/// 4. Migrates links from {id}/links.json to links/{id}/links.json
+/// 5. Deletes the old folder
+async fn migrate_issue_to_new_format(
+    issues_path: &Path,
+    issue_folder_path: &Path,
+    issue_id: &str,
+) -> Result<Issue, IssueCrudError> {
+    debug!("Auto-migrating issue {} to new format", issue_id);
+
+    // Read from legacy format
+    let issue = read_issue_from_legacy_folder(issue_folder_path, issue_id).await?;
+
+    // Build frontmatter from metadata
+    let frontmatter = IssueFrontmatter {
+        display_number: issue.metadata.display_number,
+        status: issue.metadata.status.clone(),
+        priority: issue.metadata.priority,
+        created_at: issue.metadata.created_at.clone(),
+        updated_at: issue.metadata.updated_at.clone(),
+        draft: issue.metadata.draft,
+        compacted: issue.metadata.compacted,
+        compacted_at: issue.metadata.compacted_at.clone(),
+        deleted_at: issue.metadata.deleted_at.clone(),
+        is_org_issue: issue.metadata.is_org_issue,
+        org_slug: issue.metadata.org_slug.clone(),
+        org_display_number: issue.metadata.org_display_number,
+        custom_fields: issue.metadata.custom_fields.clone(),
+    };
+
+    // Generate body with planning note if in planning status
+    let body =
+        if is_planning_status(&issue.metadata.status) && !has_planning_note(&issue.description) {
+            add_planning_note(&issue.description)
+        } else {
+            issue.description.clone()
+        };
+
+    // Write new format file
+    let issue_content = generate_frontmatter(&frontmatter, &issue.title, &body);
+    let new_issue_file = issues_path.join(format!("{issue_id}.md"));
+    fs::write(&new_issue_file, format_markdown(&issue_content)).await?;
+
+    // Migrate assets: {id}/assets/ -> assets/{id}/
+    let old_assets_path = issue_folder_path.join("assets");
+    if old_assets_path.exists() && old_assets_path.is_dir() {
+        let new_assets_path = issues_path.join("assets").join(issue_id);
+        fs::create_dir_all(&new_assets_path).await?;
+
+        // Move all files from old to new assets directory
+        let mut entries = fs::read_dir(&old_assets_path).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let file_name = entry.file_name();
+            let old_file = entry.path();
+            let new_file = new_assets_path.join(&file_name);
+            fs::rename(&old_file, &new_file).await?;
+        }
+        debug!("Migrated assets for issue {}", issue_id);
+    }
+
+    // Migrate links: {id}/links.json -> links/{id}/links.json
+    let old_links = read_links(issue_folder_path).await?;
+    if !old_links.links.is_empty() {
+        // write_links will write to the new location (links/{id}/links.json)
+        // and clean up the old location
+        write_links(issue_folder_path, &old_links).await?;
+        debug!("Migrated links for issue {}", issue_id);
+    }
+
+    // Delete old folder
+    fs::remove_dir_all(issue_folder_path).await?;
+    debug!("Deleted old issue folder for {}", issue_id);
+
+    Ok(issue)
 }
 
 /// List all issues with optional filtering
@@ -241,29 +338,34 @@ pub async fn list_issues(
     let mut entries = fs::read_dir(&issues_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
-            if let Some(folder_name) = entry.file_name().to_str() {
-                // Accept both UUID and legacy 4-digit format
-                if !is_valid_issue_folder(folder_name) {
-                    continue;
+        let file_type = entry.file_type().await?;
+        if let Some(name) = entry.file_name().to_str() {
+            let read_result = if file_type.is_file() && is_valid_issue_file(name) {
+                // New format: {uuid}.md file
+                let issue_id = name.trim_end_matches(".md");
+                read_issue_from_frontmatter(&entry.path(), issue_id).await
+            } else if file_type.is_dir() && is_valid_issue_folder(name) {
+                // Old format: {uuid}/ folder - auto-migrate
+                migrate_issue_to_new_format(&issues_path, &entry.path(), name).await
+            } else {
+                continue;
+            };
+
+            match read_result {
+                Ok(issue) => {
+                    // Apply filters
+                    let status_match = status_filter.is_none_or(|s| issue.metadata.status == s);
+                    let priority_match =
+                        priority_filter.is_none_or(|p| issue.metadata.priority == p);
+                    let draft_match = draft_filter.is_none_or(|d| issue.metadata.draft == d);
+                    let deleted_match = include_deleted || issue.metadata.deleted_at.is_none();
+
+                    if status_match && priority_match && draft_match && deleted_match {
+                        issues.push(issue);
+                    }
                 }
-
-                match read_issue_from_disk(&entry.path(), folder_name).await {
-                    Ok(issue) => {
-                        // Apply filters
-                        let status_match = status_filter.is_none_or(|s| issue.metadata.status == s);
-                        let priority_match =
-                            priority_filter.is_none_or(|p| issue.metadata.priority == p);
-                        let draft_match = draft_filter.is_none_or(|d| issue.metadata.draft == d);
-                        let deleted_match = include_deleted || issue.metadata.deleted_at.is_none();
-
-                        if status_match && priority_match && draft_match && deleted_match {
-                            issues.push(issue);
-                        }
-                    }
-                    Err(_) => {
-                        // Skip issues that can't be read
-                    }
+                Err(_) => {
+                    // Skip issues that can't be read
                 }
             }
         }
@@ -298,12 +400,22 @@ pub async fn get_issue_by_display_number(
     let mut entries = fs::read_dir(&issues_path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
-            if let Some(folder_name) = entry.file_name().to_str() {
-                if !is_valid_issue_folder(folder_name) {
-                    continue;
+        let file_type = entry.file_type().await?;
+        if let Some(name) = entry.file_name().to_str() {
+            // Try new format: {uuid}.md file
+            if file_type.is_file() && is_valid_issue_file(name) {
+                if let Ok(content) = fs::read_to_string(entry.path()).await {
+                    if let Ok((frontmatter, _, _)) = parse_frontmatter::<IssueFrontmatter>(&content)
+                    {
+                        if frontmatter.display_number == display_number {
+                            let issue_id = name.trim_end_matches(".md");
+                            return read_issue_from_frontmatter(&entry.path(), issue_id).await;
+                        }
+                    }
                 }
-
+            }
+            // Try old format: {uuid}/ folder - auto-migrate
+            else if file_type.is_dir() && is_valid_issue_folder(name) {
                 let metadata_path = entry.path().join("metadata.json");
                 if !metadata_path.exists() {
                     continue;
@@ -312,7 +424,8 @@ pub async fn get_issue_by_display_number(
                 if let Ok(content) = fs::read_to_string(&metadata_path).await {
                     if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
                         if metadata.common.display_number == display_number {
-                            return read_issue_from_disk(&entry.path(), folder_name).await;
+                            return migrate_issue_to_new_format(&issues_path, &entry.path(), name)
+                                .await;
                         }
                     }
                 }
@@ -485,9 +598,15 @@ pub async fn update_issue(
         .ok_or(IssueCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let issue_path = centy_path.join("issues").join(issue_number);
+    let issues_path = centy_path.join("issues");
 
-    if !issue_path.exists() {
+    // Determine if this is new format (file) or old format (folder)
+    let issue_file_path = issues_path.join(format!("{issue_number}.md"));
+    let issue_folder_path = issues_path.join(issue_number);
+    let is_new_format = issue_file_path.exists();
+    let is_old_format = issue_folder_path.exists();
+
+    if !is_new_format && !is_old_format {
         return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
     }
 
@@ -496,7 +615,11 @@ pub async fn update_issue(
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
     // Read current issue and capture old status for planning note transitions
-    let current = read_issue_from_disk(&issue_path, issue_number).await?;
+    let current = if is_new_format {
+        read_issue_from_frontmatter(&issue_file_path, issue_number).await?
+    } else {
+        read_issue_from_legacy_folder(&issue_folder_path, issue_number).await?
+    };
     let old_status = current.metadata.status.clone();
     // Apply updates (clone to preserve current for later use)
     let new_title = options.title.unwrap_or_else(|| current.title.clone());
@@ -533,20 +656,50 @@ pub async fn update_issue(
         draft: options.draft.unwrap_or(current.metadata.draft),
     };
 
-    // Build updated metadata and generate content with planning note handling
+    // Build updated frontmatter and generate content with planning note handling
     let updated_metadata = build_updated_metadata(&current, &updates);
-    let base_issue_md = generate_issue_md(&updates.title, &updates.description);
-    let issue_md =
-        handle_planning_note_in_content(&base_issue_md, &old_status, &updates.status, &issue_path)
-            .await?;
+    let frontmatter =
+        IssueFrontmatter::from_metadata(&updated_metadata, updates.custom_fields.clone());
 
-    // Write files
-    fs::write(issue_path.join("issue.md"), &issue_md).await?;
-    fs::write(
-        issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&updated_metadata)?,
-    )
-    .await?;
+    // Handle planning note - add to description (body) if transitioning to planning status
+    let body = if is_planning_status(&old_status) && is_planning_status(&updates.status) {
+        // Check if current content has planning note
+        let current_content = if is_new_format {
+            fs::read_to_string(&issue_file_path).await?
+        } else {
+            fs::read_to_string(issue_folder_path.join("issue.md")).await?
+        };
+        if has_planning_note(&current_content) {
+            add_planning_note(&updates.description)
+        } else {
+            updates.description.clone()
+        }
+    } else if !is_planning_status(&old_status) && is_planning_status(&updates.status) {
+        // Transitioning to planning status - add note
+        add_planning_note(&updates.description)
+    } else {
+        // Not in planning status - no note
+        updates.description.clone()
+    };
+
+    // Write in new format
+    let issue_content = generate_frontmatter(&frontmatter, &updates.title, &body);
+    fs::write(&issue_file_path, &issue_content).await?;
+
+    // If upgrading from old format, remove old folder (but keep assets)
+    if is_old_format && !is_new_format {
+        // Move assets to new location first
+        let old_assets_path = issue_folder_path.join("assets");
+        let new_assets_path = issues_path.join("assets").join(issue_number);
+        if old_assets_path.exists() {
+            fs::create_dir_all(&new_assets_path).await?;
+            copy_assets_folder(&old_assets_path, &new_assets_path)
+                .await
+                .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+        }
+        // Remove old folder
+        fs::remove_dir_all(&issue_folder_path).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -585,14 +738,30 @@ pub async fn delete_issue(
         .ok_or(IssueCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let issue_path = centy_path.join("issues").join(issue_number);
+    let issues_path = centy_path.join("issues");
+    let issue_file_path = issues_path.join(format!("{issue_number}.md"));
+    let issue_folder_path = issues_path.join(issue_number);
+    let assets_path = issues_path.join("assets").join(issue_number);
 
-    if !issue_path.exists() {
+    let exists = issue_file_path.exists() || issue_folder_path.exists();
+    if !exists {
         return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
     }
 
-    // Remove the issue directory
-    fs::remove_dir_all(&issue_path).await?;
+    // Remove the issue file (new format)
+    if issue_file_path.exists() {
+        fs::remove_file(&issue_file_path).await?;
+    }
+
+    // Remove the issue directory (old format)
+    if issue_folder_path.exists() {
+        fs::remove_dir_all(&issue_folder_path).await?;
+    }
+
+    // Remove assets directory (new format location)
+    if assets_path.exists() {
+        fs::remove_dir_all(&assets_path).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -612,19 +781,27 @@ pub async fn soft_delete_issue(
         .ok_or(IssueCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let issue_path = centy_path.join("issues").join(issue_number);
+    let issues_path = centy_path.join("issues");
+    let issue_file_path = issues_path.join(format!("{issue_number}.md"));
+    let issue_folder_path = issues_path.join(issue_number);
 
-    if !issue_path.exists() {
+    // Determine format and read current issue
+    let (is_new_format, current) = if issue_file_path.exists() {
+        (
+            true,
+            read_issue_from_frontmatter(&issue_file_path, issue_number).await?,
+        )
+    } else if issue_folder_path.exists() {
+        (
+            false,
+            read_issue_from_legacy_folder(&issue_folder_path, issue_number).await?,
+        )
+    } else {
         return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
-    }
-
-    // Read current metadata
-    let metadata_path = issue_path.join("metadata.json");
-    let metadata_content = fs::read_to_string(&metadata_path).await?;
-    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
+    };
 
     // Check if already deleted
-    if metadata.deleted_at.is_some() {
+    if current.metadata.deleted_at.is_some() {
         return Err(IssueCrudError::IssueAlreadyDeleted(
             issue_number.to_string(),
         ));
@@ -632,18 +809,45 @@ pub async fn soft_delete_issue(
 
     // Set deleted_at and update updated_at
     let now = now_iso();
-    metadata.deleted_at = Some(now.clone());
-    metadata.common.updated_at = now;
+    let frontmatter = IssueFrontmatter {
+        display_number: current.metadata.display_number,
+        status: current.metadata.status.clone(),
+        priority: current.metadata.priority,
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now.clone(),
+        draft: current.metadata.draft,
+        compacted: current.metadata.compacted,
+        compacted_at: current.metadata.compacted_at.clone(),
+        deleted_at: Some(now),
+        is_org_issue: current.metadata.is_org_issue,
+        org_slug: current.metadata.org_slug.clone(),
+        org_display_number: current.metadata.org_display_number,
+        custom_fields: current.metadata.custom_fields.clone(),
+    };
 
-    // Write updated metadata
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+    // Write in new format
+    let issue_content = generate_frontmatter(&frontmatter, &current.title, &current.description);
+    fs::write(&issue_file_path, &issue_content).await?;
+
+    // If upgrading from old format, migrate assets and remove old folder
+    if !is_new_format {
+        let old_assets_path = issue_folder_path.join("assets");
+        let new_assets_path = issues_path.join("assets").join(issue_number);
+        if old_assets_path.exists() {
+            fs::create_dir_all(&new_assets_path).await?;
+            copy_assets_folder(&old_assets_path, &new_assets_path)
+                .await
+                .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+        }
+        fs::remove_dir_all(&issue_folder_path).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the updated issue
-    let issue = read_issue_from_disk(&issue_path, issue_number).await?;
+    let issue = read_issue_from_frontmatter(&issue_file_path, issue_number).await?;
 
     Ok(SoftDeleteIssueResult { issue, manifest })
 }
@@ -659,35 +863,70 @@ pub async fn restore_issue(
         .ok_or(IssueCrudError::NotInitialized)?;
 
     let centy_path = get_centy_path(project_path);
-    let issue_path = centy_path.join("issues").join(issue_number);
+    let issues_path = centy_path.join("issues");
+    let issue_file_path = issues_path.join(format!("{issue_number}.md"));
+    let issue_folder_path = issues_path.join(issue_number);
 
-    if !issue_path.exists() {
+    // Determine format and read current issue
+    let (is_new_format, current) = if issue_file_path.exists() {
+        (
+            true,
+            read_issue_from_frontmatter(&issue_file_path, issue_number).await?,
+        )
+    } else if issue_folder_path.exists() {
+        (
+            false,
+            read_issue_from_legacy_folder(&issue_folder_path, issue_number).await?,
+        )
+    } else {
         return Err(IssueCrudError::IssueNotFound(issue_number.to_string()));
-    }
-
-    // Read current metadata
-    let metadata_path = issue_path.join("metadata.json");
-    let metadata_content = fs::read_to_string(&metadata_path).await?;
-    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
+    };
 
     // Check if actually deleted
-    if metadata.deleted_at.is_none() {
+    if current.metadata.deleted_at.is_none() {
         return Err(IssueCrudError::IssueNotDeleted(issue_number.to_string()));
     }
 
     // Clear deleted_at and update updated_at
-    metadata.deleted_at = None;
-    metadata.common.updated_at = now_iso();
+    let frontmatter = IssueFrontmatter {
+        display_number: current.metadata.display_number,
+        status: current.metadata.status.clone(),
+        priority: current.metadata.priority,
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now_iso(),
+        draft: current.metadata.draft,
+        compacted: current.metadata.compacted,
+        compacted_at: current.metadata.compacted_at.clone(),
+        deleted_at: None,
+        is_org_issue: current.metadata.is_org_issue,
+        org_slug: current.metadata.org_slug.clone(),
+        org_display_number: current.metadata.org_display_number,
+        custom_fields: current.metadata.custom_fields.clone(),
+    };
 
-    // Write updated metadata
-    fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+    // Write in new format
+    let issue_content = generate_frontmatter(&frontmatter, &current.title, &current.description);
+    fs::write(&issue_file_path, &issue_content).await?;
+
+    // If upgrading from old format, migrate assets and remove old folder
+    if !is_new_format {
+        let old_assets_path = issue_folder_path.join("assets");
+        let new_assets_path = issues_path.join("assets").join(issue_number);
+        if old_assets_path.exists() {
+            fs::create_dir_all(&new_assets_path).await?;
+            copy_assets_folder(&old_assets_path, &new_assets_path)
+                .await
+                .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+        }
+        fs::remove_dir_all(&issue_folder_path).await?;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the restored issue
-    let issue = read_issue_from_disk(&issue_path, issue_number).await?;
+    let issue = read_issue_from_frontmatter(&issue_file_path, issue_number).await?;
 
     Ok(RestoreIssueResult { issue, manifest })
 }
@@ -718,15 +957,25 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         .await?
         .ok_or(IssueCrudError::TargetNotInitialized)?;
 
-    // Read source issue
+    // Read source issue (supports both formats)
     let source_centy = get_centy_path(&options.source_project_path);
-    let source_issue_path = source_centy.join("issues").join(&options.issue_id);
+    let source_issues_path = source_centy.join("issues");
+    let source_file_path = source_issues_path.join(format!("{}.md", &options.issue_id));
+    let source_folder_path = source_issues_path.join(&options.issue_id);
 
-    if !source_issue_path.exists() {
+    let (source_is_new_format, source_issue) = if source_file_path.exists() {
+        (
+            true,
+            read_issue_from_frontmatter(&source_file_path, &options.issue_id).await?,
+        )
+    } else if source_folder_path.exists() {
+        (
+            false,
+            read_issue_from_legacy_folder(&source_folder_path, &options.issue_id).await?,
+        )
+    } else {
         return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
-    }
-
-    let source_issue = read_issue_from_disk(&source_issue_path, &options.issue_id).await?;
+    };
     let old_display_number = source_issue.metadata.display_number;
 
     // Read target config for priority validation
@@ -754,38 +1003,52 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     fs::create_dir_all(&target_issues_path).await?;
     let new_display_number = get_next_display_number(&target_issues_path).await?;
 
-    // Create target issue folder (same UUID)
-    let target_issue_path = target_issues_path.join(&options.issue_id);
-    fs::create_dir_all(&target_issue_path).await?;
-    fs::create_dir_all(target_issue_path.join("assets")).await?;
+    // Create frontmatter with updated display number
+    let frontmatter = IssueFrontmatter {
+        display_number: new_display_number,
+        status: source_issue.metadata.status.clone(),
+        priority: source_issue.metadata.priority,
+        created_at: source_issue.metadata.created_at.clone(),
+        updated_at: now_iso(),
+        draft: source_issue.metadata.draft,
+        compacted: source_issue.metadata.compacted,
+        compacted_at: source_issue.metadata.compacted_at.clone(),
+        deleted_at: source_issue.metadata.deleted_at.clone(),
+        is_org_issue: source_issue.metadata.is_org_issue,
+        org_slug: source_issue.metadata.org_slug.clone(),
+        org_display_number: source_issue.metadata.org_display_number,
+        custom_fields: source_issue.metadata.custom_fields.clone(),
+    };
 
-    // Copy issue.md
-    fs::copy(
-        source_issue_path.join("issue.md"),
-        target_issue_path.join("issue.md"),
-    )
-    .await?;
+    // Write to target in new format
+    let target_issue_file = target_issues_path.join(format!("{}.md", &options.issue_id));
+    let issue_content =
+        generate_frontmatter(&frontmatter, &source_issue.title, &source_issue.description);
+    fs::write(&target_issue_file, &issue_content).await?;
 
-    // Read, update, and write metadata with new display number
-    let metadata_content = fs::read_to_string(source_issue_path.join("metadata.json")).await?;
-    let mut metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
-    metadata.common.display_number = new_display_number;
-    metadata.common.updated_at = now_iso();
-    fs::write(
-        target_issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&metadata)?,
-    )
-    .await?;
-
-    // Copy assets
-    let source_assets_path = source_issue_path.join("assets");
-    let target_assets_path = target_issue_path.join("assets");
-    copy_assets_folder(&source_assets_path, &target_assets_path)
-        .await
-        .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+    // Copy assets to new location
+    let source_assets_path = if source_is_new_format {
+        source_issues_path.join("assets").join(&options.issue_id)
+    } else {
+        source_folder_path.join("assets")
+    };
+    let target_assets_path = target_issues_path.join("assets").join(&options.issue_id);
+    if source_assets_path.exists() {
+        fs::create_dir_all(&target_assets_path).await?;
+        copy_assets_folder(&source_assets_path, &target_assets_path)
+            .await
+            .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+    }
 
     // Delete from source project
-    fs::remove_dir_all(&source_issue_path).await?;
+    if source_is_new_format {
+        fs::remove_file(&source_file_path).await?;
+        if source_assets_path.exists() {
+            fs::remove_dir_all(&source_assets_path).await?;
+        }
+    } else {
+        fs::remove_dir_all(&source_folder_path).await?;
+    }
 
     // Update both manifests
     update_manifest_timestamp(&mut source_manifest);
@@ -794,7 +1057,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
     // Read the moved issue from target
-    let moved_issue = read_issue_from_disk(&target_issue_path, &options.issue_id).await?;
+    let moved_issue = read_issue_from_frontmatter(&target_issue_file, &options.issue_id).await?;
 
     Ok(MoveIssueResult {
         issue: moved_issue,
@@ -827,15 +1090,25 @@ pub async fn duplicate_issue(
         .await?
         .ok_or(IssueCrudError::TargetNotInitialized)?;
 
-    // Read source issue
+    // Read source issue (supports both formats)
     let source_centy = get_centy_path(&options.source_project_path);
-    let source_issue_path = source_centy.join("issues").join(&options.issue_id);
+    let source_issues_path = source_centy.join("issues");
+    let source_file_path = source_issues_path.join(format!("{}.md", &options.issue_id));
+    let source_folder_path = source_issues_path.join(&options.issue_id);
 
-    if !source_issue_path.exists() {
+    let (source_is_new_format, source_issue) = if source_file_path.exists() {
+        (
+            true,
+            read_issue_from_frontmatter(&source_file_path, &options.issue_id).await?,
+        )
+    } else if source_folder_path.exists() {
+        (
+            false,
+            read_issue_from_legacy_folder(&source_folder_path, &options.issue_id).await?,
+        )
+    } else {
         return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
-    }
-
-    let source_issue = read_issue_from_disk(&source_issue_path, &options.issue_id).await?;
+    };
 
     // Read target config for priority validation (if different project)
     if options.source_project_path != options.target_project_path {
@@ -867,69 +1140,61 @@ pub async fn duplicate_issue(
     fs::create_dir_all(&target_issues_path).await?;
     let new_display_number = get_next_display_number(&target_issues_path).await?;
 
-    // Create new issue folder
-    let new_issue_path = target_issues_path.join(&new_id);
-    fs::create_dir_all(&new_issue_path).await?;
-    fs::create_dir_all(new_issue_path.join("assets")).await?;
-
     // Prepare new title
     let new_title = options
         .new_title
         .unwrap_or_else(|| format!("Copy of {}", source_issue.title));
 
-    // Create new issue.md
-    let mut issue_md = generate_issue_md(&new_title, &source_issue.description);
-
-    // Add planning note if source issue is in planning state
-    if is_planning_status(&source_issue.metadata.status) {
-        issue_md = add_planning_note(&issue_md);
-    }
-
-    fs::write(new_issue_path.join("issue.md"), &issue_md).await?;
-
-    // Create new metadata with fresh timestamps
+    // Create new frontmatter
     // Note: Duplicating an org issue creates a local copy, not an org issue
-    let new_metadata = IssueMetadata {
-        common: crate::common::CommonMetadata {
-            display_number: new_display_number,
-            status: source_issue.metadata.status.clone(),
-            priority: source_issue.metadata.priority,
-            created_at: now_iso(),
-            updated_at: now_iso(),
-            custom_fields: source_issue
-                .metadata
-                .custom_fields
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                .collect(),
-        },
+    let now = now_iso();
+    let frontmatter = IssueFrontmatter {
+        display_number: new_display_number,
+        status: source_issue.metadata.status.clone(),
+        priority: source_issue.metadata.priority,
+        created_at: now.clone(),
+        updated_at: now,
+        draft: source_issue.metadata.draft,
         compacted: false, // Reset compacted status for new issue
         compacted_at: None,
-        draft: source_issue.metadata.draft, // Preserve draft status
-        deleted_at: None,                   // New duplicate is not deleted
-        is_org_issue: false,                // Duplicate is always a local copy
+        deleted_at: None,    // New duplicate is not deleted
+        is_org_issue: false, // Duplicate is always a local copy
         org_slug: None,
         org_display_number: None,
+        custom_fields: source_issue.metadata.custom_fields.clone(),
     };
-    fs::write(
-        new_issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&new_metadata)?,
-    )
-    .await?;
 
-    // Copy assets
-    let source_assets_path = source_issue_path.join("assets");
-    let target_assets_path = new_issue_path.join("assets");
-    copy_assets_folder(&source_assets_path, &target_assets_path)
-        .await
-        .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+    // Write new issue in frontmatter format
+    // If source issue is in planning status, add planning note
+    let body = if is_planning_status(&source_issue.metadata.status) {
+        add_planning_note(&source_issue.description)
+    } else {
+        source_issue.description.clone()
+    };
+    let target_issue_file = target_issues_path.join(format!("{new_id}.md"));
+    let issue_content = generate_frontmatter(&frontmatter, &new_title, &body);
+    fs::write(&target_issue_file, &issue_content).await?;
+
+    // Copy assets to new location
+    let source_assets_path = if source_is_new_format {
+        source_issues_path.join("assets").join(&options.issue_id)
+    } else {
+        source_folder_path.join("assets")
+    };
+    let target_assets_path = target_issues_path.join("assets").join(&new_id);
+    if source_assets_path.exists() {
+        fs::create_dir_all(&target_assets_path).await?;
+        copy_assets_folder(&source_assets_path, &target_assets_path)
+            .await
+            .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
+    }
 
     // Update target manifest
     update_manifest_timestamp(&mut target_manifest);
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
     // Read the new issue
-    let new_issue = read_issue_from_disk(&new_issue_path, &new_id).await?;
+    let new_issue = read_issue_from_frontmatter(&target_issue_file, &new_id).await?;
 
     Ok(DuplicateIssueResult {
         issue: new_issue,
@@ -939,16 +1204,53 @@ pub async fn duplicate_issue(
 }
 
 /// Read an issue from disk
-async fn read_issue_from_disk(
-    issue_path: &Path,
-    issue_number: &str,
+/// Read an issue from the new frontmatter format ({uuid}.md file)
+async fn read_issue_from_frontmatter(
+    issue_file_path: &Path,
+    issue_id: &str,
 ) -> Result<Issue, IssueCrudError> {
-    let issue_md_path = issue_path.join("issue.md");
-    let metadata_path = issue_path.join("metadata.json");
+    let content = fs::read_to_string(issue_file_path).await?;
+    let (frontmatter, title, body): (IssueFrontmatter, String, String) =
+        parse_frontmatter(&content)?;
+
+    // Remove planning note from body if present
+    let description = remove_planning_note(&body);
+
+    #[allow(deprecated)]
+    Ok(Issue {
+        id: issue_id.to_string(),
+        issue_number: issue_id.to_string(), // Legacy field
+        title,
+        description,
+        metadata: IssueMetadataFlat {
+            display_number: frontmatter.display_number,
+            status: frontmatter.status,
+            priority: frontmatter.priority,
+            created_at: frontmatter.created_at,
+            updated_at: frontmatter.updated_at,
+            custom_fields: frontmatter.custom_fields,
+            compacted: frontmatter.compacted,
+            compacted_at: frontmatter.compacted_at,
+            draft: frontmatter.draft,
+            deleted_at: frontmatter.deleted_at,
+            is_org_issue: frontmatter.is_org_issue,
+            org_slug: frontmatter.org_slug,
+            org_display_number: frontmatter.org_display_number,
+        },
+    })
+}
+
+/// Read an issue from the legacy folder format ({uuid}/ with issue.md + metadata.json)
+async fn read_issue_from_legacy_folder(
+    issue_folder_path: &Path,
+    issue_id: &str,
+) -> Result<Issue, IssueCrudError> {
+    let issue_md_path = issue_folder_path.join("issue.md");
+    let metadata_path = issue_folder_path.join("metadata.json");
 
     if !issue_md_path.exists() || !metadata_path.exists() {
         return Err(IssueCrudError::InvalidIssueFormat(format!(
-            "Issue {issue_number} is missing required files"
+            "Issue {issue_id} is missing required files"
         )));
     }
 
@@ -976,8 +1278,8 @@ async fn read_issue_from_disk(
 
     #[allow(deprecated)]
     Ok(Issue {
-        id: issue_number.to_string(),
-        issue_number: issue_number.to_string(), // Legacy field
+        id: issue_id.to_string(),
+        issue_number: issue_id.to_string(), // Legacy field
         title,
         description,
         metadata: IssueMetadataFlat {
@@ -1110,47 +1412,43 @@ async fn create_issue_in_project(
 
     let centy_path = get_centy_path(project_path);
     let issues_path = centy_path.join("issues");
-    let issue_path = issues_path.join(issue_id);
+    let issue_file_path = issues_path.join(format!("{issue_id}.md"));
+    let issue_folder_path = issues_path.join(issue_id);
 
     // Skip if already exists (don't overwrite local customizations)
-    if issue_path.exists() {
+    if issue_file_path.exists() || issue_folder_path.exists() {
         return Ok(());
     }
 
-    // Ensure directories exist
-    fs::create_dir_all(&issue_path).await?;
-    fs::create_dir_all(issue_path.join("assets")).await?;
+    // Ensure issues directory exists
+    fs::create_dir_all(&issues_path).await?;
 
     // Get local display number for this project
     let local_display_number = get_next_display_number(&issues_path)
         .await
         .map_err(|e| OrgSyncError::SyncFailed(e.to_string()))?;
 
-    // Create metadata with org fields
-    let metadata = IssueMetadata::new_org_issue(
-        local_display_number,
-        source_metadata.org_display_number.unwrap_or(0),
-        source_metadata.status.clone(),
-        source_metadata.priority,
-        org_slug,
-        source_metadata
-            .custom_fields
-            .iter()
-            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-            .collect(),
-        source_metadata.draft,
-    );
+    // Create frontmatter with org fields
+    let now = now_iso();
+    let frontmatter = IssueFrontmatter {
+        display_number: local_display_number,
+        status: source_metadata.status.clone(),
+        priority: source_metadata.priority,
+        created_at: now.clone(),
+        updated_at: now,
+        draft: source_metadata.draft,
+        compacted: false,
+        compacted_at: None,
+        deleted_at: None,
+        is_org_issue: true,
+        org_slug: Some(org_slug.to_string()),
+        org_display_number: source_metadata.org_display_number,
+        custom_fields: source_metadata.custom_fields.clone(),
+    };
 
-    // Write issue.md
-    let issue_md = generate_issue_md(title, description);
-    fs::write(issue_path.join("issue.md"), format_markdown(&issue_md)).await?;
-
-    // Write metadata
-    fs::write(
-        issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&metadata)?,
-    )
-    .await?;
+    // Write issue in frontmatter format
+    let issue_content = generate_frontmatter(&frontmatter, title, description);
+    fs::write(&issue_file_path, format_markdown(&issue_content)).await?;
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);
@@ -1176,9 +1474,21 @@ async fn update_or_create_issue_in_project(
 ) -> Result<(), OrgSyncError> {
     let centy_path = get_centy_path(project_path);
     let issues_path = centy_path.join("issues");
-    let issue_path = issues_path.join(issue_id);
+    let issue_file_path = issues_path.join(format!("{issue_id}.md"));
+    let issue_folder_path = issues_path.join(issue_id);
 
-    if !issue_path.exists() {
+    // Check if issue exists in either format
+    let (is_new_format, existing_issue) = if issue_file_path.exists() {
+        match read_issue_from_frontmatter(&issue_file_path, issue_id).await {
+            Ok(issue) => (true, Some(issue)),
+            Err(_) => (true, None),
+        }
+    } else if issue_folder_path.exists() {
+        match read_issue_from_legacy_folder(&issue_folder_path, issue_id).await {
+            Ok(issue) => (false, Some(issue)),
+            Err(_) => (false, None),
+        }
+    } else {
         // Issue doesn't exist locally - create it
         return create_issue_in_project(
             project_path,
@@ -1189,7 +1499,23 @@ async fn update_or_create_issue_in_project(
             org_slug,
         )
         .await;
-    }
+    };
+
+    let existing = match existing_issue {
+        Some(issue) => issue,
+        None => {
+            // Failed to read, create new
+            return create_issue_in_project(
+                project_path,
+                issue_id,
+                title,
+                description,
+                source_metadata,
+                org_slug,
+            )
+            .await;
+        }
+    };
 
     // Update existing issue
     let mut manifest = read_manifest(project_path)
@@ -1197,43 +1523,37 @@ async fn update_or_create_issue_in_project(
         .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?
         .ok_or_else(|| OrgSyncError::SyncFailed("Target project not initialized".to_string()))?;
 
-    // Read existing metadata to preserve local fields
-    let existing_metadata_str = fs::read_to_string(issue_path.join("metadata.json")).await?;
-    let existing: IssueMetadata = serde_json::from_str(&existing_metadata_str)?;
-
-    // Update metadata preserving local fields
-    let updated_metadata = IssueMetadata {
-        common: crate::common::CommonMetadata {
-            display_number: existing.common.display_number, // Keep local display number
-            status: source_metadata.status.clone(),
-            priority: source_metadata.priority,
-            created_at: existing.common.created_at, // Preserve original created_at
-            updated_at: now_iso(),
-            custom_fields: source_metadata
-                .custom_fields
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                .collect(),
-        },
-        compacted: existing.compacted, // Preserve local compaction state
-        compacted_at: existing.compacted_at,
+    // Create updated frontmatter preserving local fields
+    let frontmatter = IssueFrontmatter {
+        display_number: existing.metadata.display_number, // Keep local display number
+        status: source_metadata.status.clone(),
+        priority: source_metadata.priority,
+        created_at: existing.metadata.created_at.clone(), // Preserve original created_at
+        updated_at: now_iso(),
         draft: source_metadata.draft,
+        compacted: existing.metadata.compacted, // Preserve local compaction state
+        compacted_at: existing.metadata.compacted_at.clone(),
         deleted_at: source_metadata.deleted_at.clone(),
         is_org_issue: true,
         org_slug: Some(org_slug.to_string()),
         org_display_number: source_metadata.org_display_number,
+        custom_fields: source_metadata.custom_fields.clone(),
     };
 
-    // Write updated issue.md
-    let issue_md = generate_issue_md(title, description);
-    fs::write(issue_path.join("issue.md"), format_markdown(&issue_md)).await?;
+    // Write updated issue in frontmatter format
+    let issue_content = generate_frontmatter(&frontmatter, title, description);
+    fs::write(&issue_file_path, format_markdown(&issue_content)).await?;
 
-    // Write updated metadata
-    fs::write(
-        issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&updated_metadata)?,
-    )
-    .await?;
+    // If upgrading from old format, migrate assets and remove old folder
+    if !is_new_format {
+        let old_assets_path = issue_folder_path.join("assets");
+        let new_assets_path = issues_path.join("assets").join(issue_id);
+        if old_assets_path.exists() {
+            fs::create_dir_all(&new_assets_path).await?;
+            let _ = copy_assets_folder(&old_assets_path, &new_assets_path).await;
+        }
+        let _ = fs::remove_dir_all(&issue_folder_path).await;
+    }
 
     // Update manifest timestamp
     update_manifest_timestamp(&mut manifest);

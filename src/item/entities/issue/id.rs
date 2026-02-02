@@ -24,6 +24,26 @@ pub fn is_valid_issue_folder(name: &str) -> bool {
     is_uuid(name) || is_legacy_number(name)
 }
 
+/// Check if a filename is a valid issue markdown file (UUID.md)
+#[must_use]
+pub fn is_valid_issue_file(name: &str) -> bool {
+    std::path::Path::new(name)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+        && is_uuid(name.trim_end_matches(".md"))
+}
+
+/// Extract the issue ID from a markdown filename (removes .md extension)
+#[must_use]
+pub fn issue_id_from_filename(name: &str) -> Option<&str> {
+    let id = name.strip_suffix(".md")?;
+    if is_uuid(id) {
+        Some(id)
+    } else {
+        None
+    }
+}
+
 /// Generate a new UUID for an issue folder
 #[must_use]
 pub fn generate_issue_id() -> String {
@@ -102,5 +122,32 @@ mod tests {
         assert_eq!(short_id("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c"), "a3f2b1c9");
         assert_eq!(short_id("0001"), "0001");
         assert_eq!(short_id("abc"), "abc");
+    }
+
+    #[test]
+    fn test_is_valid_issue_file() {
+        // Valid UUID.md files
+        assert!(is_valid_issue_file(
+            "a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c.md"
+        ));
+        assert!(is_valid_issue_file(
+            "550e8400-e29b-41d4-a716-446655440000.md"
+        ));
+        // Invalid files
+        assert!(!is_valid_issue_file("0001.md")); // Legacy number not valid for new format
+        assert!(!is_valid_issue_file("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c")); // No .md extension
+        assert!(!is_valid_issue_file("random.md")); // Not a UUID
+        assert!(!is_valid_issue_file("README.md")); // Not a UUID
+    }
+
+    #[test]
+    fn test_issue_id_from_filename() {
+        assert_eq!(
+            issue_id_from_filename("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c.md"),
+            Some("a3f2b1c9-4d5e-6f7a-8b9c-0d1e2f3a4b5c")
+        );
+        assert_eq!(issue_id_from_filename("0001.md"), None);
+        assert_eq!(issue_id_from_filename("random.md"), None);
+        assert_eq!(issue_id_from_filename("no-extension"), None);
     }
 }

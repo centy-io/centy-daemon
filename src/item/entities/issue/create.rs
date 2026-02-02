@@ -1,18 +1,18 @@
 use super::crud::{Issue, IssueMetadataFlat};
 use super::id::generate_issue_id;
-use super::metadata::IssueMetadata;
+use super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
 use super::planning::{add_planning_note, is_planning_status};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
 use super::status::{validate_status, StatusError};
-use crate::common::{sync_to_org_projects, OrgSyncResult};
+use crate::common::{generate_frontmatter, sync_to_org_projects, OrgSyncResult};
 use crate::config::read_config;
 use crate::llm::{generate_title, TitleGenerationError};
 use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
 use crate::registry::get_project_info;
 use crate::template::{IssueTemplateContext, TemplateEngine, TemplateError};
-use crate::utils::{format_markdown, get_centy_path};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -163,35 +163,6 @@ fn build_custom_fields(
     fields
 }
 
-/// Generate issue markdown content from template or default format.
-async fn generate_issue_content(
-    project_path: &Path,
-    options: &CreateIssueOptions,
-    priority: u32,
-    priority_levels: u32,
-    status: &str,
-    created_at: &str,
-) -> Result<String, IssueError> {
-    let md = if let Some(ref template_name) = options.template {
-        let template_engine = TemplateEngine::new();
-        let context = IssueTemplateContext {
-            title: options.title.clone(),
-            description: options.description.clone(),
-            priority,
-            priority_label: priority_label(priority, priority_levels),
-            status: status.to_string(),
-            created_at: created_at.to_string(),
-            custom_fields: options.custom_fields.clone(),
-        };
-        template_engine
-            .render_issue(project_path, template_name, &context)
-            .await?
-    } else {
-        generate_issue_md(&options.title, &options.description)
-    };
-    Ok(md)
-}
-
 /// Build Issue struct for org sync from creation data.
 fn build_issue_for_sync(
     issue_id: &str,
@@ -259,7 +230,76 @@ pub async fn create_issue(
     }
 
     let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
+    let draft = options.draft.unwrap_or(false);
+    let now = now_iso();
 
+    // Build frontmatter
+    let frontmatter = IssueFrontmatter {
+        display_number,
+        status: status.clone(),
+        priority,
+        created_at: now.clone(),
+        updated_at: now,
+        draft,
+        compacted: false,
+        compacted_at: None,
+        deleted_at: None,
+        is_org_issue: org_slug.is_some(),
+        org_slug: org_slug.clone(),
+        org_display_number,
+        custom_fields: options.custom_fields.clone(),
+    };
+
+    // Generate content with optional template
+    let (display_title, description) = if let Some(ref template_name) = options.template {
+        let template_engine = TemplateEngine::new();
+        let context = IssueTemplateContext {
+            title: options.title.clone(),
+            description: options.description.clone(),
+            priority,
+            priority_label: priority_label(priority, priority_levels),
+            status: status.clone(),
+            created_at: frontmatter.created_at.clone(),
+            custom_fields: options.custom_fields.clone(),
+        };
+        // Template returns the full markdown, we need to extract title and description
+        let templated = template_engine
+            .render_issue(project_path, template_name, &context)
+            .await?;
+        // Extract title and description from templated content
+        let (extracted_title, desc) = parse_templated_content(&templated);
+        // Use extracted title if present, otherwise fall back to options.title
+        let title = if extracted_title.is_empty() {
+            options.title.clone()
+        } else {
+            extracted_title
+        };
+        (title, desc)
+    } else {
+        (options.title.clone(), options.description.clone())
+    };
+
+    // Handle planning note - we add it to the body, not the frontmatter
+    let body = if is_planning_status(&status) {
+        add_planning_note(&description)
+    } else {
+        description
+    };
+
+    // Generate full content with frontmatter
+    let issue_content = generate_frontmatter(&frontmatter, &display_title, &body);
+
+    // Write single .md file
+    let issue_file = issues_path.join(format!("{issue_id}.md"));
+    fs::write(&issue_file, format_markdown(&issue_content)).await?;
+
+    let mut manifest = manifest;
+    update_manifest_timestamp(&mut manifest);
+    write_manifest(project_path, &manifest).await?;
+
+    let created_files = vec![format!(".centy/issues/{issue_id}.md")];
+
+    // Build legacy metadata for org sync
     let metadata = if let Some(ref org) = org_slug {
         IssueMetadata::new_org_issue(
             display_number,
@@ -268,50 +308,11 @@ pub async fn create_issue(
             priority,
             org,
             custom_field_values,
-            options.draft.unwrap_or(false),
+            draft,
         )
     } else {
-        IssueMetadata::new_draft(
-            display_number,
-            status.clone(),
-            priority,
-            custom_field_values,
-            options.draft.unwrap_or(false),
-        )
+        IssueMetadata::new_draft(display_number, status, priority, custom_field_values, draft)
     };
-
-    let mut issue_md = generate_issue_content(
-        project_path,
-        &options,
-        priority,
-        priority_levels,
-        &status,
-        &metadata.common.created_at,
-    )
-    .await?;
-    if is_planning_status(&metadata.common.status) {
-        issue_md = add_planning_note(&issue_md);
-    }
-
-    let issue_folder = issues_path.join(&issue_id);
-    fs::create_dir_all(&issue_folder).await?;
-    fs::write(issue_folder.join("issue.md"), format_markdown(&issue_md)).await?;
-    fs::write(
-        issue_folder.join("metadata.json"),
-        serde_json::to_string_pretty(&metadata)?,
-    )
-    .await?;
-    fs::create_dir_all(issue_folder.join("assets")).await?;
-
-    let mut manifest = manifest;
-    update_manifest_timestamp(&mut manifest);
-    write_manifest(project_path, &manifest).await?;
-
-    let created_files = vec![
-        format!(".centy/issues/{}/issue.md", issue_id),
-        format!(".centy/issues/{}/metadata.json", issue_id),
-        format!(".centy/issues/{}/assets/", issue_id),
-    ];
 
     let sync_results = if options.is_org_issue {
         let issue = build_issue_for_sync(&issue_id, &options, display_number, &metadata);
@@ -330,6 +331,40 @@ pub async fn create_issue(
         manifest,
         sync_results,
     })
+}
+
+/// Parse templated content to extract just the description (body without title)
+fn parse_templated_content(content: &str) -> (String, String) {
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.is_empty() {
+        return (String::new(), String::new());
+    }
+
+    // Find title line
+    let mut title_idx = 0;
+    for (idx, line) in lines.iter().enumerate() {
+        if line.starts_with('#') {
+            title_idx = idx;
+            break;
+        }
+    }
+
+    let title = lines
+        .get(title_idx)
+        .map(|line| line.strip_prefix('#').map_or(*line, str::trim))
+        .unwrap_or("")
+        .to_string();
+
+    let description = lines[(title_idx + 1)..]
+        .iter()
+        .skip_while(|line| line.is_empty())
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_end()
+        .to_string();
+
+    (title, description)
 }
 
 /// Get the next issue number (zero-padded to 4 digits)
@@ -357,15 +392,6 @@ pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io
     }
 
     Ok(format!("{:04}", max_number + 1))
-}
-
-/// Generate the issue markdown content
-fn generate_issue_md(title: &str, description: &str) -> String {
-    if description.is_empty() {
-        format!("# {title}\n")
-    } else {
-        format!("# {title}\n\n{description}\n")
-    }
 }
 
 /// Create a new issue, optionally generating title via LLM
