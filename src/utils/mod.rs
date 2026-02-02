@@ -12,8 +12,8 @@ pub const CENTY_FOLDER: &str = ".centy";
 /// The name of the manifest file
 pub const MANIFEST_FILE: &str = ".centy-manifest.json";
 
-/// Current centy version
-pub const CENTY_VERSION: &str = "0.1.0";
+/// Current centy version (from Cargo.toml)
+pub const CENTY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Get the path to the .centy folder
 #[must_use]
@@ -99,7 +99,8 @@ mod tests {
 
     #[test]
     fn test_centy_version_constant() {
-        assert_eq!(CENTY_VERSION, "0.1.0");
+        // Version should match Cargo.toml
+        assert_eq!(CENTY_VERSION, env!("CARGO_PKG_VERSION"));
     }
 
     #[test]

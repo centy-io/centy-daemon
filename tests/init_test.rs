@@ -35,7 +35,7 @@ async fn test_init_creates_manifest_and_structure() {
         .expect("Manifest should exist");
 
     assert_eq!(manifest.schema_version, 1);
-    assert_eq!(manifest.centy_version, "0.1.0");
+    assert_eq!(manifest.centy_version, centy_daemon::utils::CENTY_VERSION);
 
     // Verify files and directories exist on disk
     let centy_path = project_path.join(".centy");
