@@ -55,7 +55,6 @@ use crate::manifest::{
     read_manifest, CentyManifest as InternalManifest, ManagedFileType as InternalFileType,
 };
 use crate::metrics::{generate_request_id, OperationTimer};
-use crate::migration::{create_registry, MigrationExecutor};
 use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
@@ -133,40 +132,39 @@ use proto::{
     GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetNextPrNumberRequest,
     GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
     GetPrByDisplayNumberRequest, GetPrRequest, GetProjectInfoRequest, GetProjectInfoResponse,
-    GetProjectVersionRequest, GetPrsByUuidRequest, GetPrsByUuidResponse,
-    GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
-    GetUserRequest, GitContributor as ProtoGitContributor, InitRequest, InitResponse,
-    IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
-    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
-    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
-    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
-    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
-    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
-    ListTempWorkspacesResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse,
-    ListUsersRequest, ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
+    GetPrsByUuidRequest, GetPrsByUuidResponse, GetReconciliationPlanRequest,
+    GetSupportedEditorsRequest, GetSupportedEditorsResponse, GetUserRequest,
+    GitContributor as ProtoGitContributor, InitRequest, InitResponse, IsInitializedRequest,
+    IsInitializedResponse, Issue, IssueMetadata, IssueWithProject as ProtoIssueWithProject,
+    Link as ProtoLink, LinkTargetType, LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest,
+    ListAssetsResponse, ListDocsRequest, ListDocsResponse, ListIssuesRequest, ListIssuesResponse,
+    ListLinksRequest, ListLinksResponse, ListOrganizationsRequest, ListOrganizationsResponse,
+    ListProjectsRequest, ListProjectsResponse, ListPrsRequest, ListPrsResponse,
+    ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
+    ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, ListUsersRequest,
+    ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
     MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse,
     MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
     OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenStandaloneWorkspaceRequest,
     OpenStandaloneWorkspaceResponse, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
-    PrWithProject as ProtoPrWithProject, ProjectVersionInfo, PullRequest, ReconciliationPlan,
-    RegisterProjectRequest, RegisterProjectResponse, RestartRequest, RestartResponse,
-    RestoreDocRequest, RestoreDocResponse, RestoreIssueRequest, RestoreIssueResponse,
-    RestorePrRequest, RestorePrResponse, RestoreUserRequest, RestoreUserResponse,
-    SaveMigrationRequest, SaveMigrationResponse, SearchResultIssue as ProtoSearchResultIssue,
-    SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectFavoriteRequest,
-    SetProjectFavoriteResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse,
-    SetProjectTitleRequest, SetProjectTitleResponse, SetProjectUserTitleRequest,
-    SetProjectUserTitleResponse, ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest,
-    SoftDeleteDocResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest,
-    SoftDeletePrResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest,
-    SpawnAgentResponse, SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace,
-    UntrackProjectRequest, UntrackProjectResponse, UpdateCompactRequest, UpdateCompactResponse,
-    UpdateConfigRequest, UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse,
-    UpdateIssueRequest, UpdateIssueResponse, UpdateLocalLlmConfigRequest,
-    UpdateLocalLlmConfigResponse, UpdateOrganizationRequest, UpdateOrganizationResponse,
-    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, UpdateVersionRequest,
-    UpdateVersionResponse, User as ProtoUser, WorkspaceMode,
+    PrWithProject as ProtoPrWithProject, PullRequest, ReconciliationPlan, RegisterProjectRequest,
+    RegisterProjectResponse, RestartRequest, RestartResponse, RestoreDocRequest, RestoreDocResponse,
+    RestoreIssueRequest, RestoreIssueResponse, RestorePrRequest, RestorePrResponse,
+    RestoreUserRequest, RestoreUserResponse, SaveMigrationRequest, SaveMigrationResponse,
+    SearchResultIssue as ProtoSearchResultIssue, SetProjectArchivedRequest,
+    SetProjectArchivedResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse,
+    SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectTitleRequest,
+    SetProjectTitleResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse,
+    ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest, SoftDeleteDocResponse,
+    SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest, SoftDeletePrResponse,
+    SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest, SpawnAgentResponse,
+    SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace, UntrackProjectRequest,
+    UntrackProjectResponse, UpdateCompactRequest, UpdateCompactResponse, UpdateConfigRequest,
+    UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse, UpdateIssueRequest,
+    UpdateIssueResponse, UpdateLocalLlmConfigRequest, UpdateLocalLlmConfigResponse,
+    UpdateOrganizationRequest, UpdateOrganizationResponse, UpdatePrRequest, UpdatePrResponse,
+    UpdateUserRequest, UpdateUserResponse, User as ProtoUser, WorkspaceMode,
 };
 
 /// Signal type for daemon shutdown/restart
@@ -2079,100 +2077,15 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         _request: Request<GetDaemonInfoRequest>,
     ) -> Result<Response<DaemonInfo>, Status> {
-        let registry = create_registry();
         let binary_path = std::env::current_exe()
             .map(|p| format_display_path(&p.to_string_lossy()))
             .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
             version: CENTY_VERSION.to_string(),
-            available_versions: registry.available_versions(),
             binary_path,
             vscode_available: is_vscode_available(),
         }))
-    }
-
-    async fn get_project_version(
-        &self,
-        request: Request<GetProjectVersionRequest>,
-    ) -> Result<Response<ProjectVersionInfo>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        let config = read_config(project_path).await.ok().flatten();
-        let project_ver_str = config
-            .as_ref()
-            .and_then(|c| c.version.clone())
-            .unwrap_or_else(|| CENTY_VERSION.to_string());
-
-        let project_ver = match semver::Version::parse(&project_ver_str) {
-            Ok(v) => v,
-            Err(e) => return Err(Status::invalid_argument(e.to_string())),
-        };
-        let daemon_ver = match semver::Version::parse(CENTY_VERSION) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Invalid daemon version '{CENTY_VERSION}': {e}"
-                )))
-            }
-        };
-
-        let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
-            std::cmp::Ordering::Equal => ("equal", false),
-            std::cmp::Ordering::Less => ("project_behind", false),
-            std::cmp::Ordering::Greater => ("project_ahead", true),
-        };
-
-        Ok(Response::new(ProjectVersionInfo {
-            project_version: project_ver_str,
-            daemon_version: CENTY_VERSION.to_string(),
-            comparison: comparison_str.to_string(),
-            degraded_mode: degraded,
-        }))
-    }
-
-    async fn update_version(
-        &self,
-        request: Request<UpdateVersionRequest>,
-    ) -> Result<Response<UpdateVersionResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        let target = match semver::Version::parse(&req.target_version) {
-            Ok(v) => v,
-            Err(e) => {
-                return Ok(Response::new(UpdateVersionResponse {
-                    success: false,
-                    error: format!("Invalid target version: {e}"),
-                    from_version: String::new(),
-                    to_version: String::new(),
-                    migrations_applied: vec![],
-                }));
-            }
-        };
-
-        let registry = create_registry();
-        let executor = MigrationExecutor::new(registry);
-
-        match executor.migrate(project_path, &target).await {
-            Ok(result) => Ok(Response::new(UpdateVersionResponse {
-                success: result.success,
-                error: result.error.unwrap_or_default(),
-                from_version: result.from_version,
-                to_version: result.to_version,
-                migrations_applied: result.migrations_applied,
-            })),
-            Err(e) => Ok(Response::new(UpdateVersionResponse {
-                success: false,
-                error: e.to_string(),
-                from_version: String::new(),
-                to_version: String::new(),
-                migrations_applied: vec![],
-            })),
-        }
     }
 
     // ============ Daemon Control RPCs ============
@@ -2646,7 +2559,6 @@ impl CentyDaemon for CentyDaemonService {
                 initialized: status.initialized,
                 has_compact: status.has_compact,
                 has_instruction: status.has_instruction,
-                migration_count: status.migration_count,
                 uncompacted_count: status.uncompacted_count,
             })),
             Err(e) => Err(Status::internal(e.to_string())),

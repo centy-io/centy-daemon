@@ -31,7 +31,6 @@ mod llm;
 mod logging;
 mod manifest;
 mod metrics;
-mod migration;
 mod reconciliation;
 mod registry;
 mod search;
