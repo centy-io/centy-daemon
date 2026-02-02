@@ -1,57 +1,18 @@
 //! VS Code integration for temporary workspaces.
 //!
-//! Handles setting up VS Code with tasks and opening the editor.
+//! Handles setting up VS Code and opening the editor.
 
 use super::WorkspaceError;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::fs;
 
-/// Generate the VS Code tasks.json content for running an agent.
-pub fn generate_tasks_json(issue_id: &str, display_number: u32, action: &str) -> String {
-    let action_display = match action {
-        "plan" => "Plan",
-        "implement" => "Implement",
-        _ => action,
-    };
-
-    format!(
-        r#"{{
-  "version": "2.0.0",
-  "tasks": [
-    {{
-      "label": "{action_display} Issue #{display_number}",
-      "type": "shell",
-      "command": "centy",
-      "args": ["issue", "{issue_id}", "--action", "{action}"],
-      "presentation": {{
-        "reveal": "always",
-        "panel": "new",
-        "focus": true
-      }},
-      "problemMatcher": []
-    }}
-  ]
-}}"#
-    )
-}
-
 /// Set up VS Code configuration in the workspace.
 ///
-/// Creates `.vscode/tasks.json` with a task for the agent.
-pub async fn setup_vscode_config(
-    workspace_path: &Path,
-    issue_id: &str,
-    display_number: u32,
-    action: &str,
-) -> Result<(), WorkspaceError> {
+/// Creates the `.vscode` directory for workspace settings.
+pub async fn setup_vscode_config(workspace_path: &Path) -> Result<(), WorkspaceError> {
     let vscode_dir = workspace_path.join(".vscode");
     fs::create_dir_all(&vscode_dir).await?;
-
-    let tasks_json = generate_tasks_json(issue_id, display_number, action);
-    let tasks_path = vscode_dir.join("tasks.json");
-    fs::write(&tasks_path, tasks_json).await?;
-
     Ok(())
 }
 
@@ -175,34 +136,6 @@ pub fn open_vscode(workspace_path: &Path) -> Result<bool, WorkspaceError> {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_generate_tasks_json() {
-        let json = generate_tasks_json("uuid-1234", 42, "plan");
-
-        assert!(json.contains("Plan Issue #42"));
-        assert!(json.contains(r#""command": "centy""#));
-        assert!(json.contains(r#""issue", "uuid-1234""#));
-        assert!(json.contains(r#""--action", "plan""#));
-    }
-
-    #[test]
-    fn test_generate_tasks_json_implement() {
-        let json = generate_tasks_json("uuid-5678", 10, "implement");
-
-        assert!(json.contains("Implement Issue #10"));
-        assert!(json.contains(r#""--action", "implement""#));
-    }
-
-    #[test]
-    fn test_tasks_json_valid_json() {
-        let json = generate_tasks_json("test-uuid", 1, "plan");
-        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(parsed["version"], "2.0.0");
-        assert!(parsed["tasks"].is_array());
-        assert_eq!(parsed["tasks"][0]["type"], "shell");
-    }
 
     #[test]
     fn test_get_common_vscode_paths_not_empty() {

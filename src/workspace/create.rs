@@ -127,7 +127,7 @@ async fn setup_new_workspace(
 
     // Only setup VS Code config for VS Code editor
     if options.editor == EditorType::VSCode {
-        setup_vscode_config(workspace_path, issue_id, display_number, &options.action).await?;
+        setup_vscode_config(workspace_path).await?;
     }
 
     let entry = TempWorkspaceEntry {
