@@ -2,7 +2,7 @@
 
 use super::storage::{find_user_by_id, read_users, write_users};
 use super::types::{slugify, validate_user_id, User, UserError};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::utils::now_iso;
 use std::path::Path;
 use tracing::info;
@@ -69,7 +69,7 @@ pub async fn create_user(
     write_users(project_path, &users).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     info!("Created user: {}", id);
@@ -177,7 +177,7 @@ pub async fn update_user(
     write_users(project_path, &users).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     info!("Updated user: {}", user_id);
@@ -220,7 +220,7 @@ pub async fn delete_user(
     write_users(project_path, &users).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     info!("Deleted user: {}", user_id);
@@ -272,7 +272,7 @@ pub async fn soft_delete_user(
     write_users(project_path, &users).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     info!("Soft-deleted user: {}", user_id);
@@ -326,7 +326,7 @@ pub async fn restore_user(
     write_users(project_path, &users).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     info!("Restored user: {}", user_id);

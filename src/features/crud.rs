@@ -1,14 +1,14 @@
 //! Feature CRUD operations (WIP - not yet integrated)
 
 use crate::item::entities::issue::{list_issues, Issue};
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
 
 use super::instruction::DEFAULT_INSTRUCTION_CONTENT;
-use super::types::{CompactedIssueRef, FeatureStatus, MigrationFrontmatter};
+use super::types::{CompactedIssueRef, FeatureStatus};
 
 #[derive(Error, Debug)]
 pub enum FeatureError {
@@ -45,13 +45,6 @@ pub async fn get_feature_status(project_path: &Path) -> Result<FeatureStatus, Fe
     let has_compact = features_path.join("compact.md").exists();
     let has_instruction = features_path.join("instruction.md").exists();
 
-    // Count migration files
-    let migration_count = if features_path.join("migrations").exists() {
-        count_migration_files(&features_path.join("migrations")).await?
-    } else {
-        0
-    };
-
     // Count uncompacted issues
     let uncompacted_count = list_uncompacted_issues(project_path).await?.len() as u32;
 
@@ -59,7 +52,6 @@ pub async fn get_feature_status(project_path: &Path) -> Result<FeatureStatus, Fe
         initialized,
         has_compact,
         has_instruction,
-        migration_count,
         uncompacted_count,
     })
 }
@@ -110,7 +102,7 @@ pub async fn update_compact(project_path: &Path, content: &str) -> Result<(), Fe
     fs::write(&compact_path, content).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(())
@@ -158,7 +150,7 @@ pub async fn save_migration(
     fs::write(&migration_path, content).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let relative_path = format!(".centy/features/migrations/{filename}");
@@ -202,7 +194,7 @@ pub async fn mark_issues_compacted(
     }
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(marked_count)
@@ -221,25 +213,6 @@ fn generate_migration_filename(timestamp: &str) -> String {
     format!("{safe_ts}.md")
 }
 
-/// Count migration files in the migrations directory
-async fn count_migration_files(migrations_path: &Path) -> Result<u32, std::io::Error> {
-    if !migrations_path.exists() {
-        return Ok(0);
-    }
-
-    let mut count = 0;
-    let mut entries = fs::read_dir(migrations_path).await?;
-
-    while let Some(entry) = entries.next_entry().await? {
-        let path = entry.path();
-        if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
-            count += 1;
-        }
-    }
-
-    Ok(count)
-}
-
 /// Build compacted issue references from issues
 #[must_use]
 pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
@@ -251,15 +224,6 @@ pub fn build_compacted_refs(issues: &[Issue]) -> Vec<CompactedIssueRef> {
             title: issue.title.clone(),
         })
         .collect()
-}
-
-/// Generate migration frontmatter
-#[must_use]
-pub fn generate_migration_frontmatter(issues: &[Issue]) -> MigrationFrontmatter {
-    MigrationFrontmatter {
-        timestamp: now_iso(),
-        compacted_issues: build_compacted_refs(issues),
-    }
 }
 
 #[cfg(test)]
@@ -368,39 +332,6 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_migration_frontmatter_empty() {
-        let issues: Vec<Issue> = vec![];
-        let frontmatter = generate_migration_frontmatter(&issues);
-
-        assert!(!frontmatter.timestamp.is_empty());
-        assert!(frontmatter.compacted_issues.is_empty());
-    }
-
-    #[test]
-    fn test_generate_migration_frontmatter_with_issues() {
-        let issues = vec![
-            create_test_issue("uuid-1", 1, "First Issue"),
-            create_test_issue("uuid-2", 2, "Second Issue"),
-        ];
-        let frontmatter = generate_migration_frontmatter(&issues);
-
-        assert!(!frontmatter.timestamp.is_empty());
-        assert_eq!(frontmatter.compacted_issues.len(), 2);
-        assert_eq!(frontmatter.compacted_issues[0].id, "uuid-1");
-        assert_eq!(frontmatter.compacted_issues[1].id, "uuid-2");
-    }
-
-    #[test]
-    fn test_generate_migration_frontmatter_timestamp_format() {
-        let issues: Vec<Issue> = vec![];
-        let frontmatter = generate_migration_frontmatter(&issues);
-
-        // Should contain date and time components
-        assert!(frontmatter.timestamp.contains('T'));
-        assert!(frontmatter.timestamp.contains('-'));
-    }
-
-    #[test]
     fn test_compacted_issue_ref_serialization() {
         let issue_ref = CompactedIssueRef {
             id: "test-uuid".to_string(),
@@ -424,22 +355,6 @@ mod tests {
         assert_eq!(issue_ref.id, "uuid");
         assert_eq!(issue_ref.display_number, 5);
         assert_eq!(issue_ref.title, "My Title");
-    }
-
-    #[test]
-    fn test_migration_frontmatter_serialization() {
-        let frontmatter = MigrationFrontmatter {
-            timestamp: "2025-01-01T00:00:00Z".to_string(),
-            compacted_issues: vec![CompactedIssueRef {
-                id: "test".to_string(),
-                display_number: 1,
-                title: "Test".to_string(),
-            }],
-        };
-
-        let json = serde_json::to_string(&frontmatter).expect("Should serialize");
-        assert!(json.contains("timestamp"));
-        assert!(json.contains("compactedIssues"));
     }
 
     #[test]

@@ -14,7 +14,7 @@ use crate::item::entities::doc::{
 use crate::item::entities::issue::{
     // Asset imports
     add_asset,
-    create_issue_with_title_generation,
+    create_issue,
     delete_asset as delete_asset_fn,
     delete_issue,
     duplicate_issue,
@@ -45,17 +45,10 @@ use crate::link::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
     DeleteLinkOptions, TargetType,
 };
-use crate::llm::{
-    self, clear_work_session, get_effective_local_config, has_global_config, has_project_config,
-    is_process_running, read_work_session, record_work_session, spawn_agent as llm_spawn_agent,
-    write_global_local_config, write_project_local_config, AgentType as InternalAgentType,
-    LlmAction, PromptBuilder,
-};
 use crate::manifest::{
     read_manifest, CentyManifest as InternalManifest, ManagedFileType as InternalFileType,
 };
 use crate::metrics::{generate_request_id, OperationTimer};
-use crate::migration::{create_registry, MigrationExecutor};
 use crate::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
@@ -110,7 +103,7 @@ pub mod proto {
 use proto::centy_daemon_server::CentyDaemon;
 use proto::{
     ActionCategory, AddAssetRequest, AddAssetResponse, AdvancedSearchRequest,
-    AdvancedSearchResponse, AgentConfig, AgentType, Asset, CleanupExpiredWorkspacesRequest,
+    AdvancedSearchResponse, Asset, CleanupExpiredWorkspacesRequest,
     CleanupExpiredWorkspacesResponse, ClearLlmWorkRequest, ClearLlmWorkResponse,
     CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, Config, CreateDocRequest,
     CreateDocResponse, CreateIssueRequest, CreateIssueResponse, CreateLinkRequest,
@@ -133,41 +126,40 @@ use proto::{
     GetManifestResponse, GetNextIssueNumberRequest, GetNextIssueNumberResponse,
     GetNextPrNumberRequest, GetNextPrNumberResponse, GetOrganizationRequest,
     GetOrganizationResponse, GetPrByDisplayNumberRequest, GetPrRequest, GetPrResponse,
-    GetProjectInfoRequest, GetProjectInfoResponse, GetProjectVersionRequest, GetPrsByUuidRequest,
-    GetPrsByUuidResponse, GetReconciliationPlanRequest, GetSupportedEditorsRequest,
-    GetSupportedEditorsResponse, GetUserRequest, GetUserResponse,
-    GitContributor as ProtoGitContributor, InitRequest, InitResponse, IsInitializedRequest,
-    IsInitializedResponse, Issue, IssueMetadata, IssueWithProject as ProtoIssueWithProject,
-    Link as ProtoLink, LinkTargetType, LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest,
-    ListAssetsResponse, ListDocsRequest, ListDocsResponse, ListIssuesRequest, ListIssuesResponse,
-    ListLinksRequest, ListLinksResponse, ListOrganizationsRequest, ListOrganizationsResponse,
-    ListProjectsRequest, ListProjectsResponse, ListPrsRequest, ListPrsResponse,
-    ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
-    ListUncompactedIssuesRequest, ListUncompactedIssuesResponse, ListUsersRequest,
-    ListUsersResponse, LlmConfig, LlmWorkSession, LocalLlmConfig, Manifest,
-    MarkIssuesCompactedRequest, MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse,
-    MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
+    GetProjectInfoRequest, GetProjectInfoResponse, GetPrsByUuidRequest, GetPrsByUuidResponse,
+    GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
+    GetUserRequest, GetUserResponse, GitContributor as ProtoGitContributor, InitRequest,
+    InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
+    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
+    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
+    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
+    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
+    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
+    ListTempWorkspacesResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse,
+    ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MarkIssuesCompactedRequest,
+    MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse, MoveIssueRequest,
+    MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
     OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenStandaloneWorkspaceRequest,
     OpenStandaloneWorkspaceResponse, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
-    PrWithProject as ProtoPrWithProject, ProjectVersionInfo, PullRequest, ReconciliationPlan,
-    RegisterProjectRequest, RegisterProjectResponse, RestartRequest, RestartResponse,
-    RestoreDocRequest, RestoreDocResponse, RestoreIssueRequest, RestoreIssueResponse,
-    RestorePrRequest, RestorePrResponse, RestoreUserRequest, RestoreUserResponse,
-    SaveMigrationRequest, SaveMigrationResponse, SearchResultIssue as ProtoSearchResultIssue,
-    SetProjectArchivedRequest, SetProjectArchivedResponse, SetProjectFavoriteRequest,
-    SetProjectFavoriteResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse,
-    SetProjectTitleRequest, SetProjectTitleResponse, SetProjectUserTitleRequest,
-    SetProjectUserTitleResponse, ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest,
-    SoftDeleteDocResponse, SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest,
-    SoftDeletePrResponse, SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest,
-    SpawnAgentResponse, SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace,
+    PrWithProject as ProtoPrWithProject, PullRequest, ReconciliationPlan, RegisterProjectRequest,
+    RegisterProjectResponse, RestartRequest, RestartResponse, RestoreDocRequest,
+    RestoreDocResponse, RestoreIssueRequest, RestoreIssueResponse, RestorePrRequest,
+    RestorePrResponse, RestoreUserRequest, RestoreUserResponse, SaveMigrationRequest,
+    SaveMigrationResponse, SearchResultIssue as ProtoSearchResultIssue, SetProjectArchivedRequest,
+    SetProjectArchivedResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse,
+    SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectTitleRequest,
+    SetProjectTitleResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse,
+    ShutdownRequest, ShutdownResponse, SoftDeleteDocRequest, SoftDeleteDocResponse,
+    SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest, SoftDeletePrResponse,
+    SoftDeleteUserRequest, SoftDeleteUserResponse, SpawnAgentRequest, SpawnAgentResponse,
+    SyncUsersRequest, SyncUsersResponse, TempWorkspace as ProtoTempWorkspace,
     UntrackProjectRequest, UntrackProjectResponse, UpdateCompactRequest, UpdateCompactResponse,
     UpdateConfigRequest, UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse,
     UpdateIssueRequest, UpdateIssueResponse, UpdateLocalLlmConfigRequest,
     UpdateLocalLlmConfigResponse, UpdateOrganizationRequest, UpdateOrganizationResponse,
-    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, UpdateVersionRequest,
-    UpdateVersionResponse, User as ProtoUser, WorkspaceMode,
+    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, User as ProtoUser,
+    WorkspaceMode,
 };
 
 /// Signal type for daemon shutdown/restart
@@ -652,7 +644,7 @@ impl CentyDaemon for CentyDaemonService {
             is_org_issue: req.is_org_issue,
         };
 
-        match create_issue_with_title_generation(project_path, options).await {
+        match create_issue(project_path, options).await {
             #[allow(deprecated)]
             Ok(result) => {
                 // Convert sync results to proto (reusing OrgDocSyncResult since structure is identical)
@@ -2131,100 +2123,15 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         _request: Request<GetDaemonInfoRequest>,
     ) -> Result<Response<DaemonInfo>, Status> {
-        let registry = create_registry();
         let binary_path = std::env::current_exe()
             .map(|p| format_display_path(&p.to_string_lossy()))
             .unwrap_or_default();
 
         Ok(Response::new(DaemonInfo {
             version: CENTY_VERSION.to_string(),
-            available_versions: registry.available_versions(),
             binary_path,
             vscode_available: is_vscode_available(),
         }))
-    }
-
-    async fn get_project_version(
-        &self,
-        request: Request<GetProjectVersionRequest>,
-    ) -> Result<Response<ProjectVersionInfo>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        let config = read_config(project_path).await.ok().flatten();
-        let project_ver_str = config
-            .as_ref()
-            .and_then(|c| c.version.clone())
-            .unwrap_or_else(|| CENTY_VERSION.to_string());
-
-        let project_ver = match semver::Version::parse(&project_ver_str) {
-            Ok(v) => v,
-            Err(e) => return Err(Status::invalid_argument(e.to_string())),
-        };
-        let daemon_ver = match semver::Version::parse(CENTY_VERSION) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Invalid daemon version '{CENTY_VERSION}': {e}"
-                )))
-            }
-        };
-
-        let (comparison_str, degraded) = match project_ver.cmp(&daemon_ver) {
-            std::cmp::Ordering::Equal => ("equal", false),
-            std::cmp::Ordering::Less => ("project_behind", false),
-            std::cmp::Ordering::Greater => ("project_ahead", true),
-        };
-
-        Ok(Response::new(ProjectVersionInfo {
-            project_version: project_ver_str,
-            daemon_version: CENTY_VERSION.to_string(),
-            comparison: comparison_str.to_string(),
-            degraded_mode: degraded,
-        }))
-    }
-
-    async fn update_version(
-        &self,
-        request: Request<UpdateVersionRequest>,
-    ) -> Result<Response<UpdateVersionResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        let target = match semver::Version::parse(&req.target_version) {
-            Ok(v) => v,
-            Err(e) => {
-                return Ok(Response::new(UpdateVersionResponse {
-                    success: false,
-                    error: format!("Invalid target version: {e}"),
-                    from_version: String::new(),
-                    to_version: String::new(),
-                    migrations_applied: vec![],
-                }));
-            }
-        };
-
-        let registry = create_registry();
-        let executor = MigrationExecutor::new(registry);
-
-        match executor.migrate(project_path, &target).await {
-            Ok(result) => Ok(Response::new(UpdateVersionResponse {
-                success: result.success,
-                error: result.error.unwrap_or_default(),
-                from_version: result.from_version,
-                to_version: result.to_version,
-                migrations_applied: result.migrations_applied,
-            })),
-            Err(e) => Ok(Response::new(UpdateVersionResponse {
-                success: false,
-                error: e.to_string(),
-                from_version: String::new(),
-                to_version: String::new(),
-                migrations_applied: vec![],
-            })),
-        }
     }
 
     // ============ Daemon Control RPCs ============
@@ -2714,7 +2621,6 @@ impl CentyDaemon for CentyDaemonService {
                 initialized: status.initialized,
                 has_compact: status.has_compact,
                 has_instruction: status.has_instruction,
-                migration_count: status.migration_count,
                 uncompacted_count: status.uncompacted_count,
             })),
             Err(e) => Err(Status::internal(e.to_string())),
@@ -2845,208 +2751,60 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    // ============ LLM Agent RPCs ============
+    // ============ LLM Agent RPCs (Deprecated - returns not implemented) ============
 
     async fn spawn_agent(
         &self,
-        request: Request<SpawnAgentRequest>,
+        _request: Request<SpawnAgentRequest>,
     ) -> Result<Response<SpawnAgentResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        let err_response = |error: String| {
-            Ok(Response::new(SpawnAgentResponse {
-                success: false,
-                error,
-                agent_name: String::new(),
-                issue_id: String::new(),
-                display_number: 0,
-                prompt_preview: String::new(),
-            }))
-        };
-
-        let action = match LlmAction::from_proto(req.action) {
-            Some(a) => a,
-            None => {
-                return err_response(
-                    "Invalid action. Must be 1 (plan) or 2 (implement).".to_string(),
-                )
-            }
-        };
-
-        let issue = match resolve_issue(project_path, &req.issue_id).await {
-            Ok(i) => i,
-            Err(e) => return err_response(e),
-        };
-
-        let llm_config = match get_effective_local_config(Some(project_path)).await {
-            Ok(c) => c,
-            Err(e) => return err_response(format!("Failed to load LLM config: {e}")),
-        };
-
-        let project_config = read_config(project_path)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        let agent_name = if req.agent_name.is_empty() {
-            None
-        } else {
-            Some(req.agent_name.as_str())
-        };
-
-        match llm_spawn_agent(
-            project_path,
-            &llm_config,
-            &issue,
-            action,
-            agent_name,
-            req.extra_args,
-            project_config.priority_levels,
-        )
-        .await
-        {
-            Ok(result) => {
-                let _ = record_work_session(
-                    project_path,
-                    &issue.id,
-                    issue.metadata.display_number,
-                    &issue.title,
-                    &result.agent_name,
-                    action,
-                    result.pid,
-                )
-                .await;
-                Ok(Response::new(SpawnAgentResponse {
-                    success: true,
-                    error: String::new(),
-                    agent_name: result.agent_name,
-                    issue_id: issue.id,
-                    display_number: issue.metadata.display_number,
-                    prompt_preview: result.prompt_preview,
-                }))
-            }
-            Err(e) => err_response(e.to_string()),
-        }
+        Ok(Response::new(SpawnAgentResponse {
+            success: false,
+            error: "LLM agent spawning has been removed from the daemon. Use external LLM tools directly.".to_string(),
+            agent_name: String::new(),
+            issue_id: String::new(),
+            display_number: 0,
+            prompt_preview: String::new(),
+        }))
     }
 
     async fn get_llm_work(
         &self,
-        request: Request<GetLlmWorkRequest>,
+        _request: Request<GetLlmWorkRequest>,
     ) -> Result<Response<GetLlmWorkResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match read_work_session(project_path).await {
-            Ok(Some(session)) => {
-                // Check if process is still running
-                let pid = session.pid.filter(|&p| is_process_running(p));
-
-                Ok(Response::new(GetLlmWorkResponse {
-                    has_active_work: true,
-                    session: Some(LlmWorkSession {
-                        issue_id: session.issue_id,
-                        display_number: session.display_number,
-                        issue_title: session.issue_title,
-                        agent_name: session.agent_name,
-                        action: match session.action.as_str() {
-                            "plan" => 1,
-                            "implement" => 2,
-                            _ => 0,
-                        },
-                        started_at: session.started_at,
-                        pid: pid.unwrap_or(0),
-                    }),
-                }))
-            }
-            Ok(None) => Ok(Response::new(GetLlmWorkResponse {
-                has_active_work: false,
-                session: None,
-            })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        Ok(Response::new(GetLlmWorkResponse {
+            has_active_work: false,
+            session: None,
+        }))
     }
 
     async fn clear_llm_work(
         &self,
-        request: Request<ClearLlmWorkRequest>,
+        _request: Request<ClearLlmWorkRequest>,
     ) -> Result<Response<ClearLlmWorkResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = Path::new(&req.project_path);
-
-        match clear_work_session(project_path).await {
-            Ok(()) => Ok(Response::new(ClearLlmWorkResponse {
-                success: true,
-                error: String::new(),
-            })),
-            Err(e) => Ok(Response::new(ClearLlmWorkResponse {
-                success: false,
-                error: e.to_string(),
-            })),
-        }
+        Ok(Response::new(ClearLlmWorkResponse {
+            success: true,
+            error: String::new(),
+        }))
     }
 
     async fn get_local_llm_config(
         &self,
-        request: Request<GetLocalLlmConfigRequest>,
+        _request: Request<GetLocalLlmConfigRequest>,
     ) -> Result<Response<GetLocalLlmConfigResponse>, Status> {
-        let req = request.into_inner();
-        let project_path = if req.project_path.is_empty() {
-            None
-        } else {
-            Some(Path::new(&req.project_path))
-        };
-
-        let has_global = has_global_config().await;
-        let has_project = project_path.is_some_and(has_project_config);
-
-        match get_effective_local_config(project_path).await {
-            Ok(config) => Ok(Response::new(GetLocalLlmConfigResponse {
-                config: Some(local_llm_config_to_proto(&config)),
-                has_project_config: has_project,
-                has_global_config: has_global,
-            })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        Err(Status::unimplemented(
+            "LLM configuration has been removed from the daemon",
+        ))
     }
 
     async fn update_local_llm_config(
         &self,
-        request: Request<UpdateLocalLlmConfigRequest>,
+        _request: Request<UpdateLocalLlmConfigRequest>,
     ) -> Result<Response<UpdateLocalLlmConfigResponse>, Status> {
-        let req = request.into_inner();
-
-        let config = match req.config {
-            Some(c) => proto_to_local_llm_config(&c),
-            None => {
-                return Ok(Response::new(UpdateLocalLlmConfigResponse {
-                    success: false,
-                    error: "Config is required".to_string(),
-                    config: None,
-                }));
-            }
-        };
-
-        let result = if req.project_path.is_empty() {
-            write_global_local_config(&config).await
-        } else {
-            let project_path = Path::new(&req.project_path);
-            write_project_local_config(project_path, &config).await
-        };
-
-        match result {
-            Ok(()) => Ok(Response::new(UpdateLocalLlmConfigResponse {
-                success: true,
-                error: String::new(),
-                config: Some(local_llm_config_to_proto(&config)),
-            })),
-            Err(e) => Ok(Response::new(UpdateLocalLlmConfigResponse {
-                success: false,
-                error: e.to_string(),
-                config: None,
-            })),
-        }
+        Ok(Response::new(UpdateLocalLlmConfigResponse {
+            success: false,
+            error: "LLM configuration has been removed from the daemon".to_string(),
+            config: None,
+        }))
     }
 
     // ============ Link RPCs ============
@@ -3595,12 +3353,8 @@ impl CentyDaemon for CentyDaemonService {
             }
         }
 
-        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
-            llm_config
-                .as_ref()
-                .and_then(|c| c.default_agent.clone())
-                .unwrap_or_else(|| "default".to_string())
+            "claude".to_string()
         } else {
             req.agent_name.clone()
         };
@@ -3696,12 +3450,8 @@ impl CentyDaemon for CentyDaemonService {
             }
         }
 
-        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
-            llm_config
-                .as_ref()
-                .and_then(|c| c.default_agent.clone())
-                .unwrap_or_else(|| "default".to_string())
+            "claude".to_string()
         } else {
             req.agent_name.clone()
         };
@@ -3790,32 +3540,16 @@ impl CentyDaemon for CentyDaemonService {
             }
         }
 
-        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
-            llm_config
-                .as_ref()
-                .and_then(|c| c.default_agent.clone())
-                .unwrap_or_else(|| "claude".to_string())
+            "claude".to_string()
         } else {
             req.agent_name.clone()
         };
 
-        let agent_config = llm_config
-            .as_ref()
-            .and_then(|c| c.agents.iter().find(|a| a.name == agent_name).cloned());
-        let (agent_command, agent_args, stdin_prompt_needed) = agent_config
-            .as_ref()
-            .map(|a| (a.command.clone(), a.default_args.clone(), a.stdin_prompt))
-            .unwrap_or_else(|| (agent_name.clone(), Vec::new(), false));
-
-        let stdin_prompt_str = if stdin_prompt_needed {
-            PromptBuilder::new()
-                .build_prompt(project_path, &issue, LlmAction::Implement, None, 1)
-                .await
-                .ok()
-        } else {
-            None
-        };
+        // Use agent_name as the command (simplified without LLM config)
+        let agent_command = agent_name.clone();
+        let agent_args: Vec<String> = Vec::new();
+        let stdin_prompt_str: Option<String> = None;
 
         let workspace_mode = match req.workspace_mode {
             x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
@@ -4009,12 +3743,8 @@ impl CentyDaemon for CentyDaemonService {
             }))
         };
 
-        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
-            llm_config
-                .as_ref()
-                .and_then(|c| c.default_agent.clone())
-                .unwrap_or_else(|| "default".to_string())
+            "claude".to_string()
         } else {
             req.agent_name.clone()
         };
@@ -4078,12 +3808,8 @@ impl CentyDaemon for CentyDaemonService {
             }))
         };
 
-        let llm_config = get_effective_local_config(Some(project_path)).await.ok();
         let agent_name = if req.agent_name.is_empty() {
-            llm_config
-                .as_ref()
-                .and_then(|c| c.default_agent.clone())
-                .unwrap_or_else(|| "default".to_string())
+            "claude".to_string()
         } else {
             req.agent_name.clone()
         };
@@ -4619,69 +4345,5 @@ fn pr_to_proto(pr: &crate::item::entities::pr::PullRequest, priority_levels: u32
             custom_fields: pr.metadata.custom_fields.clone(),
             deleted_at: pr.metadata.deleted_at.clone().unwrap_or_default(),
         }),
-    }
-}
-
-fn local_llm_config_to_proto(config: &llm::LocalLlmConfig) -> LocalLlmConfig {
-    LocalLlmConfig {
-        default_agent: config.default_agent.clone().unwrap_or_default(),
-        agents: config
-            .agents
-            .iter()
-            .map(|a| AgentConfig {
-                agent_type: match a.agent_type {
-                    InternalAgentType::Claude => AgentType::Claude as i32,
-                    InternalAgentType::Gemini => AgentType::Gemini as i32,
-                    InternalAgentType::Codex => AgentType::Codex as i32,
-                    InternalAgentType::Opencode => AgentType::Opencode as i32,
-                    InternalAgentType::Custom => AgentType::Custom as i32,
-                },
-                name: a.name.clone(),
-                command: a.command.clone(),
-                default_args: a.default_args.clone(),
-                stdin_prompt: a.stdin_prompt,
-                plan_template: a.plan_template.clone().unwrap_or_default(),
-                implement_template: a.implement_template.clone().unwrap_or_default(),
-            })
-            .collect(),
-        env_vars: config.env_vars.clone(),
-    }
-}
-
-fn proto_to_local_llm_config(proto: &LocalLlmConfig) -> llm::LocalLlmConfig {
-    llm::LocalLlmConfig {
-        default_agent: if proto.default_agent.is_empty() {
-            None
-        } else {
-            Some(proto.default_agent.clone())
-        },
-        agents: proto
-            .agents
-            .iter()
-            .map(|a| llm::AgentConfig {
-                agent_type: match a.agent_type {
-                    1 => InternalAgentType::Claude,
-                    2 => InternalAgentType::Gemini,
-                    3 => InternalAgentType::Codex,
-                    4 => InternalAgentType::Opencode,
-                    _ => InternalAgentType::Custom,
-                },
-                name: a.name.clone(),
-                command: a.command.clone(),
-                default_args: a.default_args.clone(),
-                stdin_prompt: a.stdin_prompt,
-                plan_template: if a.plan_template.is_empty() {
-                    None
-                } else {
-                    Some(a.plan_template.clone())
-                },
-                implement_template: if a.implement_template.is_empty() {
-                    None
-                } else {
-                    Some(a.implement_template.clone())
-                },
-            })
-            .collect(),
-        env_vars: proto.env_vars.clone(),
     }
 }

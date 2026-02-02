@@ -164,12 +164,6 @@ service CentyDaemon {
   // Get daemon version info
   rpc GetDaemonInfo(GetDaemonInfoRequest) returns (DaemonInfo);
 
-  // Get project version info and comparison with daemon
-  rpc GetProjectVersion(GetProjectVersionRequest) returns (ProjectVersionInfo);
-
-  // Update project to target version (runs migrations)
-  rpc UpdateVersion(UpdateVersionRequest) returns (UpdateVersionResponse);
-
   // ============ PR RPCs ============
 
   // Create a new pull request
@@ -1207,33 +1201,8 @@ message GetDaemonInfoRequest {}
 
 message DaemonInfo {
   string version = 1;                    // Current daemon version (e.g., "0.1.0")
-  repeated string available_versions = 2; // All versions we can migrate to
   string binary_path = 3;                // Absolute path to the running daemon binary
   bool vscode_available = 4;             // Whether VS Code is installed and accessible
-}
-
-message GetProjectVersionRequest {
-  string project_path = 1;
-}
-
-message ProjectVersionInfo {
-  string project_version = 1;            // Version from config (or default)
-  string daemon_version = 2;             // Current daemon version
-  string comparison = 3;                 // "equal", "project_behind", "project_ahead"
-  bool degraded_mode = 4;                // True if project > daemon
-}
-
-message UpdateVersionRequest {
-  string project_path = 1;
-  string target_version = 2;             // Target version to migrate to
-}
-
-message UpdateVersionResponse {
-  bool success = 1;
-  string error = 2;
-  string from_version = 3;
-  string to_version = 4;
-  repeated string migrations_applied = 5;
 }
 
 // ============ Daemon Control Messages ============
@@ -1456,7 +1425,6 @@ message GetFeatureStatusResponse {
   bool initialized = 1;               // features/ folder exists
   bool has_compact = 2;               // compact.md exists
   bool has_instruction = 3;           // instruction.md exists
-  uint32 migration_count = 4;         // Number of migration files
   uint32 uncompacted_count = 5;       // Number of uncompacted issues
 }
 

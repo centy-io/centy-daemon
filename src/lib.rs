@@ -25,11 +25,9 @@ pub mod config;
 pub mod features;
 pub mod item;
 pub mod link;
-pub mod llm;
 pub mod logging;
 pub mod manifest;
 pub mod metrics;
-pub mod migration;
 pub mod reconciliation;
 pub mod registry;
 pub mod search;
@@ -43,10 +41,9 @@ pub mod workspace;
 pub use common::CommonMetadata;
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use features::{
-    build_compacted_refs, generate_migration_frontmatter, get_compact, get_feature_status,
-    get_instruction, list_uncompacted_issues, mark_issues_compacted, save_migration,
-    update_compact, CompactedIssueRef, FeatureError, FeatureStatus, MigrationFrontmatter,
-    DEFAULT_INSTRUCTION_CONTENT,
+    build_compacted_refs, get_compact, get_feature_status, get_instruction,
+    list_uncompacted_issues, mark_issues_compacted, save_migration, update_compact,
+    CompactedIssueRef, FeatureError, FeatureStatus, DEFAULT_INSTRUCTION_CONTENT,
 };
 pub use item::entities::doc::{
     create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult,
@@ -66,16 +63,7 @@ pub use link::{
     CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,
     DeleteLinkResult, Link, LinkError, LinkTypeInfo, LinksFile, TargetType,
 };
-pub use llm::{
-    clear_work_session, get_effective_local_config, read_work_session, record_work_session,
-    spawn_agent, start_agent, AgentConfig, AgentSpawnMode, AgentType, LlmAction, LlmWorkSession,
-    LocalLlmConfig, PromptBuilder,
-};
 pub use manifest::{CentyManifest, ManagedFileType};
-pub use migration::{
-    create_registry, Migration, MigrationDirection, MigrationError, MigrationExecutor,
-    MigrationRegistry, MigrationResult,
-};
 pub use reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions, ReconciliationPlan,
     ReconciliationResult,

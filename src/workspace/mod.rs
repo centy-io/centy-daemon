@@ -114,9 +114,6 @@ pub enum WorkspaceError {
     #[error("Issue error: {0}")]
     IssueError(#[from] crate::item::entities::issue::IssueCrudError),
 
-    #[error("Config error: {0}")]
-    ConfigError(#[from] crate::llm::LocalConfigError),
-
     #[error("Source project not found: {0}")]
     SourceProjectNotFound(String),
 }

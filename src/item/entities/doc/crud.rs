@@ -1,4 +1,4 @@
-use crate::manifest::{read_manifest, update_manifest_timestamp, write_manifest, CentyManifest};
+use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::{get_org_projects, get_project_info, ProjectInfo};
 use crate::template::{DocTemplateContext, TemplateEngine, TemplateError};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
@@ -315,7 +315,7 @@ pub async fn create_doc(
     fs::write(&doc_path, format_markdown(&doc_content)).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let created_file = format!(".centy/docs/{slug}.md");
@@ -413,7 +413,7 @@ async fn create_doc_in_project(
     fs::write(&doc_path, format_markdown(&doc_content)).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(())
@@ -541,7 +541,7 @@ async fn update_or_create_doc_in_project(
     fs::write(&doc_path, format_markdown(&doc_content)).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(())
@@ -734,7 +734,7 @@ pub async fn update_doc(
     };
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     let doc = Doc {
@@ -790,7 +790,7 @@ pub async fn delete_doc(project_path: &Path, slug: &str) -> Result<DeleteDocResu
     fs::remove_file(&doc_path).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     Ok(DeleteDocResult { manifest })
@@ -836,7 +836,7 @@ pub async fn soft_delete_doc(
     fs::write(&doc_path, &doc_content).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the updated doc
@@ -881,7 +881,7 @@ pub async fn restore_doc(project_path: &Path, slug: &str) -> Result<RestoreDocRe
     fs::write(&doc_path, &doc_content).await?;
 
     // Update manifest timestamp
-    update_manifest_timestamp(&mut manifest);
+    update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
 
     // Read and return the restored doc
@@ -966,8 +966,8 @@ pub async fn move_doc(options: MoveDocOptions) -> Result<MoveDocResult, DocError
     fs::remove_file(&source_doc_path).await?;
 
     // Update both manifests
-    update_manifest_timestamp(&mut source_manifest);
-    update_manifest_timestamp(&mut target_manifest);
+    update_manifest(&mut source_manifest);
+    update_manifest(&mut target_manifest);
     write_manifest(&options.source_project_path, &source_manifest).await?;
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
@@ -1050,7 +1050,7 @@ pub async fn duplicate_doc(options: DuplicateDocOptions) -> Result<DuplicateDocR
     fs::write(&target_doc_path, &doc_content).await?;
 
     // Update target manifest
-    update_manifest_timestamp(&mut target_manifest);
+    update_manifest(&mut target_manifest);
     write_manifest(&options.target_project_path, &target_manifest).await?;
 
     // Read the new doc
