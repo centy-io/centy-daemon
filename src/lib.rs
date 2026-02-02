@@ -25,7 +25,6 @@ pub mod config;
 pub mod features;
 pub mod item;
 pub mod link;
-pub mod llm;
 pub mod logging;
 pub mod manifest;
 pub mod metrics;
@@ -63,11 +62,6 @@ pub use link::{
     create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
     CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,
     DeleteLinkResult, Link, LinkError, LinkTypeInfo, LinksFile, TargetType,
-};
-pub use llm::{
-    clear_work_session, get_effective_local_config, read_work_session, record_work_session,
-    spawn_agent, start_agent, AgentConfig, AgentSpawnMode, AgentType, LlmAction, LlmWorkSession,
-    LocalLlmConfig, PromptBuilder,
 };
 pub use manifest::{CentyManifest, ManagedFileType};
 pub use reconciliation::{

@@ -18,9 +18,7 @@ pub use assets::{
 pub use create::IssueError;
 #[allow(deprecated)]
 #[allow(unused_imports)]
-pub use create::{
-    create_issue, create_issue_with_title_generation, CreateIssueOptions, CreateIssueResult,
-};
+pub use create::{create_issue, CreateIssueOptions, CreateIssueResult};
 #[allow(unused_imports)]
 pub use crud::IssueMetadataFlat;
 #[allow(unused_imports)]

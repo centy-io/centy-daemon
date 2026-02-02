@@ -27,7 +27,6 @@ mod features;
 mod grpc_logging;
 mod item;
 mod link;
-mod llm;
 mod logging;
 mod manifest;
 mod metrics;
