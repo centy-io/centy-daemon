@@ -2,4 +2,6 @@ mod engine;
 mod types;
 
 pub use engine::{TemplateEngine, TemplateError};
-pub use types::{DocTemplateContext, IssueTemplateContext, LlmTemplateContext, TemplateType};
+// TemplateType is used in engine.rs internally and exported from lib.rs for external consumers
+#[allow(unused_imports)]
+pub use types::{DocTemplateContext, IssueTemplateContext, TemplateType};
