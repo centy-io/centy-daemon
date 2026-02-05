@@ -339,7 +339,6 @@ fn format_field(field: &Field) -> String {
         Field::DisplayNumber => "displayNumber".to_string(),
         Field::CreatedAt => "createdAt".to_string(),
         Field::UpdatedAt => "updatedAt".to_string(),
-        Field::Compacted => "compacted".to_string(),
         Field::Custom(name) => name.clone(),
     }
 }

@@ -22,12 +22,6 @@ pub struct IssueFrontmatter {
     /// Whether this issue is a draft
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub draft: bool,
-    /// Whether this issue has been compacted into features
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub compacted: bool,
-    /// ISO timestamp when the issue was compacted
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compacted_at: Option<String>,
     /// ISO timestamp when soft-deleted (None if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
@@ -56,8 +50,6 @@ impl IssueFrontmatter {
             created_at: metadata.common.created_at.clone(),
             updated_at: metadata.common.updated_at.clone(),
             draft: metadata.draft,
-            compacted: metadata.compacted,
-            compacted_at: metadata.compacted_at.clone(),
             deleted_at: metadata.deleted_at.clone(),
             is_org_issue: metadata.is_org_issue,
             org_slug: metadata.org_slug.clone(),
@@ -82,8 +74,6 @@ impl IssueFrontmatter {
                     .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
                     .collect(),
             },
-            compacted: self.compacted,
-            compacted_at: self.compacted_at.clone(),
             draft: self.draft,
             deleted_at: self.deleted_at.clone(),
             is_org_issue: self.is_org_issue,
@@ -101,12 +91,6 @@ pub struct IssueMetadata {
     /// Common fields shared with PRs (flattened for backward-compatible JSON)
     #[serde(flatten)]
     pub common: CommonMetadata,
-    /// Whether this issue has been compacted into features
-    #[serde(default)]
-    pub compacted: bool,
-    /// ISO timestamp when the issue was compacted
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compacted_at: Option<String>,
     /// Whether this issue is a draft
     #[serde(default)]
     pub draft: bool,
@@ -135,8 +119,6 @@ impl IssueMetadata {
     ) -> Self {
         Self {
             common: CommonMetadata::new(display_number, status, priority, custom_fields),
-            compacted: false,
-            compacted_at: None,
             draft: false,
             deleted_at: None,
             is_org_issue: false,
@@ -155,8 +137,6 @@ impl IssueMetadata {
     ) -> Self {
         Self {
             common: CommonMetadata::new(display_number, status, priority, custom_fields),
-            compacted: false,
-            compacted_at: None,
             draft,
             deleted_at: None,
             is_org_issue: false,
@@ -182,8 +162,6 @@ impl IssueMetadata {
     ) -> Self {
         Self {
             common: CommonMetadata::new(display_number, status, priority, custom_fields),
-            compacted: false,
-            compacted_at: None,
             draft,
             deleted_at: None,
             is_org_issue: true,

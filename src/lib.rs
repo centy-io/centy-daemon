@@ -22,7 +22,6 @@
 
 pub mod common;
 pub mod config;
-pub mod features;
 pub mod item;
 pub mod link;
 pub mod logging;
@@ -40,11 +39,6 @@ pub mod workspace;
 // Re-export commonly used types
 pub use common::CommonMetadata;
 pub use config::{CentyConfig, CustomFieldDefinition};
-pub use features::{
-    build_compacted_refs, get_compact, get_feature_status, get_instruction,
-    list_uncompacted_issues, mark_issues_compacted, save_migration, update_compact,
-    CompactedIssueRef, FeatureError, FeatureStatus, DEFAULT_INSTRUCTION_CONTENT,
-};
 pub use item::entities::doc::{
     create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult,
     DeleteDocResult, Doc, DocError, DocMetadata, UpdateDocOptions, UpdateDocResult,
