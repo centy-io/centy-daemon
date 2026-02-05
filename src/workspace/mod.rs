@@ -33,10 +33,12 @@
 //! Centy-specific metadata (TTL, issue binding, agent info) is stored separately
 //! in `~/.centy/workspace-metadata.json`.
 
+pub mod builtin_editors;
 pub mod cleanup;
 pub mod create; // Keep for backwards compatibility during transition
 pub mod data;
 pub mod editor;
+pub mod editor_config;
 pub mod gwq_client;
 pub mod metadata;
 pub mod orchestrator;
@@ -51,6 +53,13 @@ pub mod vscode;
 pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
 #[allow(unused_imports)]
 pub use editor::EditorType;
+#[allow(unused_imports)]
+pub use editor::{open_editor_by_id, run_editor_setup_by_id};
+#[allow(unused_imports)]
+pub use editor_config::{
+    find_editor, get_all_editors, is_editor_available, resolve_editor_id, EditorConfig,
+    UserEditorConfig,
+};
 #[allow(unused_imports)]
 pub use orchestrator::{
     create_standalone_workspace, create_temp_workspace, CreateStandaloneWorkspaceOptions,

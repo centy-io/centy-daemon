@@ -105,6 +105,10 @@ pub struct CentyConfig {
     /// Custom link types (in addition to built-in types)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub custom_link_types: Vec<CustomLinkTypeDefinition>,
+    /// Default editor ID for this project (e.g., "vscode", "terminal", "zed").
+    /// Overrides the user-level default. Empty means use user default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_editor: Option<String>,
 }
 
 impl CentyConfig {
@@ -130,6 +134,7 @@ impl Default for CentyConfig {
             priority_colors: HashMap::new(),
             llm: LlmConfig::default(),
             custom_link_types: Vec::new(),
+            default_editor: None,
         }
     }
 }
