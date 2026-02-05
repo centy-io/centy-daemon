@@ -1,13 +1,13 @@
 # Roadmap
 
-- We want to let the user configure custom item like the default "doc" or "issue" items, the user can configure custom items like "feature", "bug", "task", etc. with custom templates for each item.
+- We want to let the user configure custom entity types beyond the built-in "issue", "doc", and "pr" types. Users should be able to define new entity types like "feature", "bug", "task", etc. with custom templates and schemas for each type.
 
-- We want to make the `.centy` folder interface to be generic as possible, so instead of calling the folder `.centy` we want to provide it a generic tasks management name and provide the user an option to configure the name with backward compatibility with `.centy`.
+- We want to make the `.centy` database directory name generic and configurable. Instead of being hardcoded to `.centy`, users should be able to configure the folder name while maintaining backward compatibility with `.centy`.
 
-- We want to let the user configure custom hooks that will be call sync or async before and after each operation like "create", "list", "delete", etc.
+- We want to let the user configure custom hooks that run synchronously or asynchronously before and after each database operation (create, list, delete, update, etc.).
 
-- We want to let the user configure editors instead of hard code for vscode and terminal
+- We want to let the user configure editors instead of hardcoding support for VS Code and terminal.
 
-- We want to let the user configure custom templates for each item type, so they can have different templates for "doc", "issue", "feature", etc.
+- We want to let the user configure custom templates for each entity type, so they can have different record formats for "doc", "issue", "feature", etc.
 
-- We want to let the user configure custom commands for each item type, so they can have different commands for "doc", "issue", "feature", etc.
+- We want to let the user configure custom commands for each entity type, so they can have different operations for "doc", "issue", "feature", etc.

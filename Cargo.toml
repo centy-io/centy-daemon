@@ -2,7 +2,7 @@
 name = "centy-daemon"
 version = "0.2.0"
 edition = "2021"
-description = "Daemon service for Centy - a local-first issue and documentation tracker"
+description = "A file-based database engine that stores structured data as Markdown files with YAML frontmatter, exposed via gRPC"
 authors = ["Centy Team"]
 license-file = "LICENSE"
 
@@ -155,8 +155,8 @@ maintainer = "Centy Team"
 copyright = "2024 Centy Team"
 license-file = ["LICENSE", "0"]
 extended-description = """
-Centy Daemon is a local-first issue and documentation tracker service.
-It provides a gRPC API for managing issues and documentation within your projects.
+Centy Daemon is a file-based database engine that stores structured data as Markdown files with YAML frontmatter.
+It provides a gRPC API for CRUD operations, advanced search, entity linking, and multi-project management.
 """
 depends = "libc6"
 section = "utils"

@@ -1,6 +1,6 @@
 # Contributing to centy-daemon
 
-Thank you for your interest in contributing to centy-daemon! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to centy-daemon — the file-based database engine behind Centy. This document provides guidelines and information for contributors.
 
 ## Getting Started
 
@@ -104,24 +104,41 @@ docs(readme): add grpcui testing instructions
 
 ```
 src/
-├── main.rs              # Entry point, server setup
+├── main.rs              # Entry point, gRPC server setup
 ├── lib.rs               # Public API exports
-├── server/              # gRPC service implementation
-├── manifest/            # Manifest handling
-├── issue/               # Issue CRUD operations
-├── reconciliation/      # .centy folder reconciliation
-├── config/              # Configuration management
-└── utils/               # Shared utilities
+├── server/              # gRPC service implementation (all RPC handlers)
+├── item/                # Core entity management
+│   ├── core/            # Shared abstractions (CRUD, errors, metadata)
+│   ├── entities/        # Entity types
+│   │   ├── issue/       # Issue records (CRUD, reconciliation, assets)
+│   │   ├── doc/         # Document records
+│   │   └── pr/          # Pull request records (with git integration)
+│   ├── lifecycle/       # Soft-delete operations
+│   ├── operations/      # Move and duplicate operations
+│   ├── organization/    # Cross-project organization sync
+│   └── validation/      # Priority and status validation
+├── manifest/            # .centy-manifest.json (schema version, integrity)
+├── config/              # config.json (database schema and defaults)
+├── registry/            # Multi-project tracking (~/.centy/projects.json)
+├── reconciliation/      # Database integrity checking and repair
+├── search/              # Query engine (PEG grammar, AST, evaluator)
+├── link/                # Bidirectional entity relationships
+├── user/                # User records with git history sync
+├── workspace/           # Temporary workspace management
+├── template/            # Handlebars template engine
+├── features/            # Issue compaction (WIP)
+├── common/              # Shared utilities (frontmatter, metadata)
+└── utils/               # Helpers (hashing, paths, formatting)
 ```
 
 ### Adding a New Feature
 
-1. **Update proto** - Add messages/RPCs in `proto/centy.proto`
-2. **Rebuild** - Run `cargo build` to regenerate proto code
-3. **Add domain logic** - Create/update modules in `src/`
-4. **Implement RPC** - Add handler in `src/server/mod.rs`
-5. **Write tests** - Add integration tests in `tests/`
-6. **Update docs** - Update README if needed
+1. **Update proto** — add messages/RPCs in `proto/centy.proto`
+2. **Rebuild** — run `cargo build` to regenerate proto code
+3. **Add domain logic** — create/update modules in `src/`
+4. **Implement RPC** — add handler in `src/server/mod.rs`
+5. **Write tests** — add integration tests in `tests/`
+6. **Update docs** — update README if needed
 
 ## Code Style
 
