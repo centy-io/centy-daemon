@@ -70,7 +70,8 @@
       "Bash(centy workspace --help:*)",
       "Bash(centy workspace open --help:*)",
       "Bash(centy workspace open:*)",
-      "Bash(centy issue create --help:*)"
+      "Bash(centy issue create --help:*)",
+      "Bash(grpcurl:*)"
     ]
   },
   "hooks": {
