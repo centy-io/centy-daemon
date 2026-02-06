@@ -131,7 +131,11 @@
       "Bash(centy install:*)",
       "Bash(npm update:*)",
       "Bash(centy issues get:*)",
-      "Bash(centy llm:*)"
+      "Bash(centy llm:*)",
+      "Bash(do centy delete org:*)",
+      "Bash(done)",
+      "Bash(git cherry-pick:*)",
+      "Bash(gh pr close:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
