@@ -80,7 +80,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(wc:*)",
       "Bash(pnpm test)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Bash(pnpm test:*)"
     ]
   },
   "hooks": {
