@@ -6,7 +6,8 @@
         clippy::unwrap_used,
         clippy::expect_used,
         clippy::panic_in_result_fn,
-        clippy::unwrap_in_result
+        clippy::unwrap_in_result,
+        clippy::arithmetic_side_effects
     )
 )]
 #![cfg_attr(
@@ -16,7 +17,8 @@
         clippy::unwrap_used,
         clippy::expect_used,
         clippy::panic_in_result_fn,
-        clippy::unwrap_in_result
+        clippy::unwrap_in_result,
+        clippy::arithmetic_side_effects
     )
 )]
 

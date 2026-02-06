@@ -277,7 +277,7 @@ async fn count_issues(path: &Path) -> Result<u32, std::io::Error> {
         return Ok(0);
     }
 
-    let mut count = 0;
+    let mut count: u32 = 0;
     let mut entries = fs::read_dir(path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
@@ -291,7 +291,7 @@ async fn count_issues(path: &Path) -> Result<u32, std::io::Error> {
         let is_new_format = file_type.is_file() && is_uuid_file(&name);
         let is_old_format = file_type.is_dir() && is_uuid_folder(&name);
         if is_new_format || is_old_format {
-            count += 1;
+            count = count.saturating_add(1);
         }
     }
 
@@ -318,7 +318,7 @@ async fn count_md_files(path: &Path) -> Result<u32, std::io::Error> {
         return Ok(0);
     }
 
-    let mut count = 0;
+    let mut count: u32 = 0;
     let mut entries = fs::read_dir(path).await?;
 
     while let Some(entry) = entries.next_entry().await? {
@@ -326,7 +326,7 @@ async fn count_md_files(path: &Path) -> Result<u32, std::io::Error> {
         if file_type.is_file() {
             if let Some(ext) = entry.path().extension() {
                 if ext == "md" {
-                    count += 1;
+                    count = count.saturating_add(1);
                 }
             }
         }

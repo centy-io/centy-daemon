@@ -427,7 +427,7 @@ pub async fn migrate_from_old_registry(old_registry_path: &Path) -> Result<u32, 
     }
 
     let old: OldRegistry = serde_json::from_str(&content)?;
-    let mut migrated_count = 0;
+    let mut migrated_count: u32 = 0;
 
     let _guard = get_lock().lock().await;
     let mut registry = read_metadata_registry().await?;
@@ -436,7 +436,7 @@ pub async fn migrate_from_old_registry(old_registry_path: &Path) -> Result<u32, 
         if let std::collections::hash_map::Entry::Vacant(e) = registry.workspaces.entry(path) {
             let metadata = WorkspaceMetadata::from_entry(e.key(), &entry);
             e.insert(metadata);
-            migrated_count += 1;
+            migrated_count = migrated_count.saturating_add(1);
         }
     }
 

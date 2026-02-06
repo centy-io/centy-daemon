@@ -198,13 +198,13 @@ pub async fn delete_link(
     if let Some(link_type) = &options.link_type {
         // Delete specific link type
         if source_links.remove_link(&options.target_id, Some(link_type)) {
-            deleted_count += 1;
+            deleted_count = deleted_count.saturating_add(1);
         }
 
         // Delete inverse link
         if let Some(inverse_type) = get_inverse_link_type(link_type, custom_types) {
             if target_links.remove_link(&options.source_id, Some(&inverse_type)) {
-                deleted_count += 1;
+                deleted_count = deleted_count.saturating_add(1);
             }
         }
     } else {
@@ -219,14 +219,14 @@ pub async fn delete_link(
 
         // Remove forward links
         if source_links.remove_link(&options.target_id, None) {
-            deleted_count += link_types.len() as u32;
+            deleted_count = deleted_count.saturating_add(link_types.len() as u32);
         }
 
         // Remove inverse links for each type
         for link_type in &link_types {
             if let Some(inverse_type) = get_inverse_link_type(link_type, custom_types) {
                 if target_links.remove_link(&options.source_id, Some(&inverse_type)) {
-                    deleted_count += 1;
+                    deleted_count = deleted_count.saturating_add(1);
                 }
             }
         }

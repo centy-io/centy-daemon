@@ -600,7 +600,7 @@ pub async fn copy_assets_folder(
 
             // Copy the file
             fs::copy(&source_file, &target_file).await?;
-            copied_count += 1;
+            copied_count = copied_count.saturating_add(1);
         }
     }
 

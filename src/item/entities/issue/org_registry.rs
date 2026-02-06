@@ -125,7 +125,7 @@ pub async fn get_next_org_display_number(org_slug: &str) -> Result<u32, OrgIssue
     let next = *registry.next_display_number.get(org_slug).unwrap_or(&1);
     registry
         .next_display_number
-        .insert(org_slug.to_string(), next + 1);
+        .insert(org_slug.to_string(), next.saturating_add(1));
     registry.updated_at = now_iso();
 
     write_registry_unlocked(&registry).await?;

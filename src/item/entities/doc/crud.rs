@@ -1115,7 +1115,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         // Find closing ---
         if let Some(end_idx) = lines.iter().skip(1).position(|&line| line == "---") {
             let frontmatter: Vec<&str> = lines[1..=end_idx].to_vec();
-            let body_start = end_idx + 2;
+            let body_start = end_idx.saturating_add(2);
 
             // Parse frontmatter
             let mut title = String::new();
@@ -1193,7 +1193,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
     for (i, line) in lines.iter().enumerate() {
         if line.starts_with("# ") {
             title = line.strip_prefix("# ").unwrap_or("").to_string();
-            body_start = i + 1;
+            body_start = i.saturating_add(1);
             break;
         }
     }

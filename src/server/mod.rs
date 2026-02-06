@@ -465,14 +465,14 @@ async fn startup_org_inference() {
         projects.len()
     );
 
-    let mut inferred_count = 0;
+    let mut inferred_count: u32 = 0;
     for project in projects {
         // Small delay between projects to avoid overloading
         sleep(Duration::from_millis(50)).await;
 
         if let Some(result) = try_auto_assign_organization(&project.path, None).await {
             if result.inferred_org_slug.is_some() && !result.has_mismatch {
-                inferred_count += 1;
+                inferred_count = inferred_count.saturating_add(1);
             }
         }
     }

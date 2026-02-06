@@ -137,7 +137,9 @@ pub fn generate_standalone_workspace_path(
 ///
 /// Returns an RFC3339 formatted timestamp string.
 pub fn calculate_expires_at(ttl_hours: u32) -> String {
-    let expires = Utc::now() + Duration::hours(i64::from(ttl_hours));
+    let expires = Utc::now()
+        .checked_add_signed(Duration::hours(i64::from(ttl_hours)))
+        .unwrap_or_else(Utc::now);
     expires.to_rfc3339()
 }
 

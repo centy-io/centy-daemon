@@ -115,7 +115,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
 
     // Step 4: Process duplicates
     let mut reassignments: Vec<(IssueInfo, u32)> = Vec::new(); // (issue_info, new_display_number)
-    let mut next_available = max_display_number + 1;
+    let mut next_available = max_display_number.saturating_add(1);
 
     for (display_number, mut group) in by_display_number {
         if group.len() <= 1 {
@@ -127,7 +127,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
             // Assign each legacy issue a unique number
             for issue in &group {
                 reassignments.push(((*issue).clone(), next_available));
-                next_available += 1;
+                next_available = next_available.saturating_add(1);
             }
             continue;
         }
@@ -138,7 +138,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
         // Keep the first (oldest), reassign the rest
         for issue in group.iter().skip(1) {
             reassignments.push(((*issue).clone(), next_available));
-            next_available += 1;
+            next_available = next_available.saturating_add(1);
         }
     }
 
@@ -211,7 +211,7 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
         }
     }
 
-    Ok(max_number + 1)
+    Ok(max_number.saturating_add(1))
 }
 
 #[cfg(test)]
