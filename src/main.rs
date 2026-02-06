@@ -198,7 +198,6 @@ async fn main() -> Result<()> {
             eprintln!();
             eprintln!("Logs: {}", log_file.display());
             eprintln!();
-            std::process::exit(1);
         }
         eprintln!();
         eprintln!("Error: Failed to start server: {e}");
