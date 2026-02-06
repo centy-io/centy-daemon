@@ -51,7 +51,7 @@ pub fn parse_frontmatter<T: DeserializeOwned>(
     let metadata: T = serde_yaml::from_str(&frontmatter_yaml)?;
 
     // Extract content after frontmatter
-    let body_start = end_idx + 2; // Skip the closing ---
+    let body_start = end_idx.saturating_add(2); // Skip the closing ---
     let body_lines: Vec<&str> = lines[body_start..]
         .iter()
         .skip_while(|line| line.is_empty())

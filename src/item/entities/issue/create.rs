@@ -347,7 +347,7 @@ fn parse_templated_content(content: &str) -> (String, String) {
         .unwrap_or("")
         .to_string();
 
-    let description = lines[(title_idx + 1)..]
+    let description = lines[title_idx.saturating_add(1)..]
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()
@@ -383,7 +383,7 @@ pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io
         }
     }
 
-    Ok(format!("{:04}", max_number + 1))
+    Ok(format!("{:04}", max_number.saturating_add(1)))
 }
 
 /// Create a new issue

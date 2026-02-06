@@ -114,7 +114,7 @@ pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, Reconc
 
     // Step 4: Process duplicates
     let mut reassignments: Vec<(PrInfo, u32)> = Vec::new(); // (pr_info, new_display_number)
-    let mut next_available = max_display_number + 1;
+    let mut next_available = max_display_number.saturating_add(1);
 
     for (display_number, mut group) in by_display_number {
         if group.len() <= 1 {
@@ -126,7 +126,7 @@ pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, Reconc
             // Assign each PR without display number a unique number
             for pr in &group {
                 reassignments.push(((*pr).clone(), next_available));
-                next_available += 1;
+                next_available = next_available.saturating_add(1);
             }
             continue;
         }
@@ -137,7 +137,7 @@ pub async fn reconcile_pr_display_numbers(prs_path: &Path) -> Result<u32, Reconc
         // Keep the first (oldest), reassign the rest
         for pr in group.iter().skip(1) {
             reassignments.push(((*pr).clone(), next_available));
-            next_available += 1;
+            next_available = next_available.saturating_add(1);
         }
     }
 
@@ -210,7 +210,7 @@ pub async fn get_next_pr_display_number(prs_path: &Path) -> Result<u32, Reconcil
         }
     }
 
-    Ok(max_number + 1)
+    Ok(max_number.saturating_add(1))
 }
 
 #[cfg(test)]

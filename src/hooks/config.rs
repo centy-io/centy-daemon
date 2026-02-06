@@ -174,15 +174,15 @@ impl ParsedPattern {
 
     /// Count of non-wildcard segments (0-3). Higher = more specific.
     pub fn specificity(&self) -> u8 {
-        let mut count = 0;
+        let mut count: u8 = 0;
         if self.phase != PatternSegment::Wildcard {
-            count += 1;
+            count = count.saturating_add(1);
         }
         if self.item_type != PatternSegment::Wildcard {
-            count += 1;
+            count = count.saturating_add(1);
         }
         if self.operation != PatternSegment::Wildcard {
-            count += 1;
+            count = count.saturating_add(1);
         }
         count
     }

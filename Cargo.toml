@@ -111,6 +111,10 @@ panic_in_result_fn = "deny"
 unwrap_in_result = "deny"
 exit = "deny"
 
+# Deny unvalidated arithmetic to prevent overflow panics in debug
+# and silent wrapping in release builds
+arithmetic_side_effects = "deny"
+
 # Warn on long functions - enforces refactoring into smaller functions
 # Note: Using "warn" because tonic::async_trait macro expansion can trigger false positives
 too_many_lines = "warn"

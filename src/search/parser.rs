@@ -216,7 +216,7 @@ fn parse_value(
         Rule::quoted_string => {
             // Remove surrounding quotes and handle escapes
             let raw = inner.as_str();
-            let unquoted = &raw[1..raw.len() - 1];
+            let unquoted = &raw[1..raw.len().saturating_sub(1)];
             let unescaped = unescape_string(unquoted);
             Ok(Value::String(unescaped))
         }
