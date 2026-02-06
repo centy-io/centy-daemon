@@ -1,0 +1,22 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "centy",
+    "displayNumber",
+    "createdAt",
+    "updatedAt",
+    "priorityLevels",
+    "allowedStates",
+    "stateColors",
+    "priorityColors",
+    "autoCloseOnComplete",
+    "updateStatusOnStart",
+    "allowDirectEdits",
+    "centyVersion",
+    "schemaVersion"
+  ],
+  "ignorePaths": [
+    ".centy-manifest.json"
+  ]
+}
