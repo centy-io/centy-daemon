@@ -81,7 +81,8 @@
       "Bash(wc:*)",
       "Bash(pnpm test)",
       "Bash(pgrep:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(node -e:*)"
     ]
   },
   "hooks": {
