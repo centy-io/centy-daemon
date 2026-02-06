@@ -63,6 +63,7 @@
     "parseable",
     "peekable",
     "pkill",
+    "polyformproject",
     "postrun",
     "prepush",
     "prerelease",

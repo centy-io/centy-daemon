@@ -75,7 +75,10 @@
       "Bash(gh repo view:*)",
       "Bash(centy issue:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh pr merge:*)"
+      "Bash(gh pr merge:*)",
+      "WebFetch(domain:polyformproject.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(wc:*)"
     ]
   },
   "hooks": {
