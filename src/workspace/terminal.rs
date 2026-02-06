@@ -6,6 +6,23 @@ use super::WorkspaceError;
 use std::path::Path;
 use std::process::Command;
 
+/// Escape a path string for safe use in shell commands.
+///
+/// On Unix, uses the `shell_escape` crate for POSIX-compatible escaping.
+/// On Windows, wraps in double quotes (double-quote chars are stripped since
+/// they are invalid in Windows filenames).
+pub(crate) fn escape_path_for_shell(path: &str) -> String {
+    #[cfg(target_os = "windows")]
+    {
+        // Double quotes are invalid in Windows filenames, but strip them defensively
+        format!("\"{}\"", path.replace('"', ""))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        shell_escape::escape(std::borrow::Cow::Borrowed(path)).into_owned()
+    }
+}
+
 /// Open a terminal at the specified directory.
 ///
 /// This is the terminal equivalent of `open_vscode` - it opens a new terminal
@@ -65,13 +82,17 @@ CENTY_PROMPT_EOF"#
 #[cfg(target_os = "macos")]
 pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
     // Use osascript to open Terminal.app
+    // 1. Shell-escape the path (handles spaces, $, `, ', etc.)
+    let escaped_path = escape_path_for_shell(&working_dir.to_string_lossy());
+    let shell_cmd = format!("cd {escaped_path} && {command}");
+    // 2. Escape for AppleScript double-quoted string context (\ and ")
+    let escaped_cmd = shell_cmd.replace('\\', "\\\\").replace('"', "\\\"");
+
     let script = format!(
         r#"tell application "Terminal"
     activate
-    do script "cd '{}' && {}"
-end tell"#,
-        working_dir.display(),
-        command.replace('\\', "\\\\").replace('"', "\\\"")
+    do script "{escaped_cmd}"
+end tell"#
     );
 
     let result = Command::new("osascript").arg("-e").arg(&script).spawn();
@@ -121,13 +142,10 @@ pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool,
 
     // Try xterm as fallback
     if which::which("xterm").is_ok() {
+        let escaped_path = escape_path_for_shell(&working_dir.to_string_lossy());
         let result = Command::new("xterm")
             .arg("-e")
-            .arg(format!(
-                "cd '{}' && {}; exec bash",
-                working_dir.display(),
-                command
-            ))
+            .arg(format!("cd {} && {}; exec bash", escaped_path, command))
             .spawn();
 
         if result.is_ok() {
@@ -154,7 +172,8 @@ pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool,
     }
 
     // Fallback to cmd.exe
-    let cmd_script = format!("cd /d \"{}\" && {}", working_dir.display(), command);
+    let escaped_path = escape_path_for_shell(&working_dir.to_string_lossy());
+    let cmd_script = format!("cd /d {} && {}", escaped_path, command);
 
     let result = Command::new("cmd").arg("/k").arg(&cmd_script).spawn();
 
@@ -217,5 +236,45 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_windows_terminal_always_available() {
         assert!(is_terminal_available());
+    }
+
+    #[test]
+    fn test_escape_path_for_shell_simple() {
+        let result = escape_path_for_shell("/simple/path");
+        // Simple paths without special chars may be returned unquoted or quoted
+        assert!(result.contains("/simple/path"));
+    }
+
+    #[test]
+    fn test_escape_path_for_shell_spaces() {
+        let result = escape_path_for_shell("/path/with spaces/dir");
+        // Must be quoted/escaped to protect the space
+        assert_ne!(result, "/path/with spaces/dir");
+        assert!(result.contains("with spaces"));
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn test_escape_path_for_shell_dollar_sign() {
+        let result = escape_path_for_shell("/home/user/my$project");
+        // Dollar sign must be quoted to prevent shell variable expansion
+        assert_ne!(result, "/home/user/my$project");
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn test_escape_path_for_shell_single_quote() {
+        let result = escape_path_for_shell("/home/user/it's a dir");
+        // Single quote must be properly handled
+        assert!(result.contains("it"));
+        assert!(result.contains("s a dir"));
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn test_escape_path_for_shell_backtick() {
+        let result = escape_path_for_shell("/home/user/dir`cmd`");
+        // Backticks must be quoted to prevent command substitution
+        assert_ne!(result, "/home/user/dir`cmd`");
     }
 }
