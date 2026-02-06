@@ -103,7 +103,12 @@
       "Bash(gh run watch:*)",
       "Bash(gh issue list:*)",
       "Bash(gh release view:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(centy)",
+      "Bash(centy-daemon:*)",
+      "Bash(centy start:*)",
+      "Bash(centy info:*)",
+      "Bash(centy close:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
