@@ -1,0 +1,1932 @@
+syntax = "proto3";
+
+package centy.v2;
+
+// CentyDaemon service - manages .centy folder operations
+service CentyDaemon {
+  // Initialize a .centy folder in the specified directory
+  rpc Init(InitRequest) returns (InitResponse);
+
+  // Get reconciliation plan without executing it
+  rpc GetReconciliationPlan(GetReconciliationPlanRequest) returns (ReconciliationPlan);
+
+  // Execute reconciliation with user decisions
+  rpc ExecuteReconciliation(ExecuteReconciliationRequest) returns (InitResponse);
+
+  // Create a new issue
+  rpc CreateIssue(CreateIssueRequest) returns (CreateIssueResponse);
+
+  // Get a single issue by ID (UUID or legacy number)
+  rpc GetIssue(GetIssueRequest) returns (GetIssueResponse);
+
+  // Get a single issue by display number (human-readable number like 1, 2, 3)
+  rpc GetIssueByDisplayNumber(GetIssueByDisplayNumberRequest) returns (GetIssueResponse);
+
+  // Get issues by UUID across all tracked projects (global search)
+  rpc GetIssuesByUuid(GetIssuesByUuidRequest) returns (GetIssuesByUuidResponse);
+
+  // List all issues with optional filtering
+  rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
+
+  // Advanced issue search with query language
+  rpc AdvancedSearch(AdvancedSearchRequest) returns (AdvancedSearchResponse);
+
+  // Update an existing issue
+  rpc UpdateIssue(UpdateIssueRequest) returns (UpdateIssueResponse);
+
+  // Delete an issue (hard delete - permanent removal)
+  rpc DeleteIssue(DeleteIssueRequest) returns (DeleteIssueResponse);
+
+  // Soft-delete an issue (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteIssue(SoftDeleteIssueRequest) returns (SoftDeleteIssueResponse);
+
+  // Restore a soft-deleted issue (clear deleted_at timestamp)
+  rpc RestoreIssue(RestoreIssueRequest) returns (RestoreIssueResponse);
+
+  // Move an issue to another project
+  rpc MoveIssue(MoveIssueRequest) returns (MoveIssueResponse);
+
+  // Duplicate an issue (same project or different project)
+  rpc DuplicateIssue(DuplicateIssueRequest) returns (DuplicateIssueResponse);
+
+  // Get the next issue number
+  rpc GetNextIssueNumber(GetNextIssueNumberRequest) returns (GetNextIssueNumberResponse);
+
+  // Read the manifest
+  rpc GetManifest(GetManifestRequest) returns (GetManifestResponse);
+
+  // Read configuration
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Update configuration
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
+
+  // Check if centy is initialized in a directory
+  rpc IsInitialized(IsInitializedRequest) returns (IsInitializedResponse);
+
+  // ============ Doc RPCs ============
+
+  // Create a new documentation file
+  rpc CreateDoc(CreateDocRequest) returns (CreateDocResponse);
+
+  // Get a single doc by slug
+  rpc GetDoc(GetDocRequest) returns (GetDocResponse);
+
+  // Get docs by slug across all tracked projects (global search)
+  rpc GetDocsBySlug(GetDocsBySlugRequest) returns (GetDocsBySlugResponse);
+
+  // List all docs
+  rpc ListDocs(ListDocsRequest) returns (ListDocsResponse);
+
+  // Update an existing doc
+  rpc UpdateDoc(UpdateDocRequest) returns (UpdateDocResponse);
+
+  // Delete a doc (hard delete - permanent removal)
+  rpc DeleteDoc(DeleteDocRequest) returns (DeleteDocResponse);
+
+  // Soft-delete a doc (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteDoc(SoftDeleteDocRequest) returns (SoftDeleteDocResponse);
+
+  // Restore a soft-deleted doc (clear deleted_at timestamp)
+  rpc RestoreDoc(RestoreDocRequest) returns (RestoreDocResponse);
+
+  // Move a doc to another project
+  rpc MoveDoc(MoveDocRequest) returns (MoveDocResponse);
+
+  // Duplicate a doc (same project or different project)
+  rpc DuplicateDoc(DuplicateDocRequest) returns (DuplicateDocResponse);
+
+  // ============ Asset RPCs ============
+
+  // Add an asset to an issue or as a shared asset
+  rpc AddAsset(AddAssetRequest) returns (AddAssetResponse);
+
+  // List assets for an issue (optionally including shared assets)
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+
+  // Get a specific asset's data
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+
+  // Delete an asset
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
+
+  // List all shared assets
+  rpc ListSharedAssets(ListSharedAssetsRequest) returns (ListAssetsResponse);
+
+  // ============ Project Registry RPCs ============
+
+  // List all tracked projects
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+
+  // Manually register a project for tracking
+  rpc RegisterProject(RegisterProjectRequest) returns (RegisterProjectResponse);
+
+  // Remove a project from tracking
+  rpc UntrackProject(UntrackProjectRequest) returns (UntrackProjectResponse);
+
+  // Get info about a specific project
+  rpc GetProjectInfo(GetProjectInfoRequest) returns (GetProjectInfoResponse);
+
+  // Set project favorite status
+  rpc SetProjectFavorite(SetProjectFavoriteRequest) returns (SetProjectFavoriteResponse);
+
+  // Set project archived status
+  rpc SetProjectArchived(SetProjectArchivedRequest) returns (SetProjectArchivedResponse);
+
+  // Set project organization
+  rpc SetProjectOrganization(SetProjectOrganizationRequest) returns (SetProjectOrganizationResponse);
+
+  // Set user-scope custom title (stored in ~/.centy/projects.json, only visible to current user)
+  rpc SetProjectUserTitle(SetProjectUserTitleRequest) returns (SetProjectUserTitleResponse);
+
+  // Set project-scope custom title (stored in .centy/project.json, visible to all users)
+  rpc SetProjectTitle(SetProjectTitleRequest) returns (SetProjectTitleResponse);
+
+  // ============ Organization RPCs ============
+
+  // Create a new organization
+  rpc CreateOrganization(CreateOrganizationRequest) returns (CreateOrganizationResponse);
+
+  // List all organizations
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+
+  // Get a specific organization
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
+
+  // Update an organization
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse);
+
+  // Delete an organization
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse);
+
+  // ============ Version RPCs ============
+
+  // Get daemon version info
+  rpc GetDaemonInfo(GetDaemonInfoRequest) returns (DaemonInfo);
+
+  // ============ PR RPCs ============
+
+  // Create a new pull request
+  rpc CreatePr(CreatePrRequest) returns (CreatePrResponse);
+
+  // Get a single PR by ID (UUID)
+  rpc GetPr(GetPrRequest) returns (GetPrResponse);
+
+  // Get a single PR by display number (human-readable number like 1, 2, 3)
+  rpc GetPrByDisplayNumber(GetPrByDisplayNumberRequest) returns (GetPrResponse);
+
+  // Get PRs by UUID across all tracked projects (global search)
+  rpc GetPrsByUuid(GetPrsByUuidRequest) returns (GetPrsByUuidResponse);
+
+  // List all PRs with optional filtering
+  rpc ListPrs(ListPrsRequest) returns (ListPrsResponse);
+
+  // Update an existing PR
+  rpc UpdatePr(UpdatePrRequest) returns (UpdatePrResponse);
+
+  // Delete a PR (hard delete - permanent removal)
+  rpc DeletePr(DeletePrRequest) returns (DeletePrResponse);
+
+  // Soft-delete a PR (set deleted_at timestamp - recoverable)
+  rpc SoftDeletePr(SoftDeletePrRequest) returns (SoftDeletePrResponse);
+
+  // Restore a soft-deleted PR (clear deleted_at timestamp)
+  rpc RestorePr(RestorePrRequest) returns (RestorePrResponse);
+
+  // Get the next PR number
+  rpc GetNextPrNumber(GetNextPrNumberRequest) returns (GetNextPrNumberResponse);
+
+  // ============ Daemon Control RPCs ============
+
+  // Shutdown the daemon gracefully
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+
+  // Restart the daemon
+  rpc Restart(RestartRequest) returns (RestartResponse);
+
+  // ============ Temp Workspace RPCs ============
+
+  // Get list of supported workspace editors
+  rpc GetSupportedEditors(GetSupportedEditorsRequest) returns (GetSupportedEditorsResponse);
+
+  // Open a project in a temporary workspace with a configurable editor
+  rpc OpenInTempWorkspace(OpenInTempWorkspaceWithEditorRequest) returns (OpenInTempWorkspaceResponse);
+
+  // Open a standalone workspace with a configurable editor (not tied to an issue)
+  rpc OpenStandaloneWorkspace(OpenStandaloneWorkspaceWithEditorRequest) returns (OpenStandaloneWorkspaceResponse);
+
+  // Open a project in a temporary VS Code workspace (deprecated: use OpenInTempWorkspace)
+  rpc OpenInTempVscode(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
+
+  // Open a project in a temporary terminal workspace (deprecated: use OpenInTempWorkspace)
+  rpc OpenInTempTerminal(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
+
+  // Open an agent in a terminal for working on an issue
+  rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
+
+  // Open a standalone workspace in VS Code (deprecated: use OpenStandaloneWorkspace)
+  rpc OpenStandaloneWorkspaceVscode(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
+
+  // Open a standalone workspace in terminal (deprecated: use OpenStandaloneWorkspace)
+  rpc OpenStandaloneWorkspaceTerminal(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
+
+  // List all temp workspaces
+  rpc ListTempWorkspaces(ListTempWorkspacesRequest) returns (ListTempWorkspacesResponse);
+
+  // Close/cleanup a temp workspace
+  rpc CloseTempWorkspace(CloseTempWorkspaceRequest) returns (CloseTempWorkspaceResponse);
+
+  // Cleanup all expired workspaces
+  rpc CleanupExpiredWorkspaces(CleanupExpiredWorkspacesRequest) returns (CleanupExpiredWorkspacesResponse);
+
+  // ============ Link RPCs ============
+
+  // Create a link between two entities (bidirectional)
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+
+  // Delete a link between two entities (bidirectional)
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+
+  // List all links for an entity
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+
+  // Get all available link types (builtin + custom)
+  rpc GetAvailableLinkTypes(GetAvailableLinkTypesRequest) returns (GetAvailableLinkTypesResponse);
+
+  // ============ User RPCs ============
+
+  // Create a new user
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+
+  // Get a single user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // List all users
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // Update an existing user
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+
+  // Delete a user (hard delete - permanent removal)
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+  // Soft-delete a user (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
+
+  // Restore a soft-deleted user (clear deleted_at timestamp)
+  rpc RestoreUser(RestoreUserRequest) returns (RestoreUserResponse);
+
+  // Sync users from git history
+  rpc SyncUsers(SyncUsersRequest) returns (SyncUsersResponse);
+
+  // ============ Entity Actions RPCs ============
+
+  // Get available actions for an entity (contextual based on entity state)
+  rpc GetEntityActions(GetEntityActionsRequest) returns (GetEntityActionsResponse);
+
+  // ============ Sync RPCs ============
+
+  // List all sync conflicts for a project
+  rpc ListSyncConflicts(ListSyncConflictsRequest) returns (ListSyncConflictsResponse);
+
+  // Get a specific sync conflict by ID
+  rpc GetSyncConflict(GetSyncConflictRequest) returns (GetSyncConflictResponse);
+
+  // Resolve a sync conflict
+  rpc ResolveSyncConflict(ResolveSyncConflictRequest) returns (ResolveSyncConflictResponse);
+
+  // Get sync status for a project
+  rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
+
+  // Manually trigger a sync pull
+  rpc SyncPull(SyncPullRequest) returns (SyncPullResponse);
+
+  // Manually trigger a sync push
+  rpc SyncPush(SyncPushRequest) returns (SyncPushResponse);
+}
+
+// ============ Init Messages ============
+
+message InitRequest {
+  // The project directory path where .centy should be initialized
+  string project_path = 1;
+
+  // If true, skip prompts and use defaults (create all, restore all, reset none)
+  bool force = 2;
+
+  // Decisions for files that need user input (only used when force=false)
+  ReconciliationDecisions decisions = 3;
+}
+
+message InitResponse {
+  bool success = 1;
+  string error = 2;
+
+  // Summary of what was done
+  repeated string created = 3;
+  repeated string restored = 4;
+  repeated string reset = 5;
+  repeated string skipped = 6;
+
+  // The updated manifest
+  Manifest manifest = 7;
+
+  // Organization inference result from git remote
+  OrgInferenceResult org_inference = 8;
+}
+
+message GetReconciliationPlanRequest {
+  string project_path = 1;
+}
+
+message ReconciliationPlan {
+  // Files that need to be created (not on disk, not in manifest)
+  repeated FileInfo to_create = 1;
+
+  // Files that were deleted but exist in manifest (can be restored)
+  repeated FileInfo to_restore = 2;
+
+  // Files that were modified from original (hash mismatch)
+  repeated FileInfo to_reset = 3;
+
+  // Files that are up to date
+  repeated FileInfo up_to_date = 4;
+
+  // User-created files (not managed by centy)
+  repeated FileInfo user_files = 5;
+
+  // Whether user decisions are needed
+  bool needs_decisions = 6;
+}
+
+message ExecuteReconciliationRequest {
+  string project_path = 1;
+  ReconciliationDecisions decisions = 2;
+}
+
+message ReconciliationDecisions {
+  // Paths of files to restore (from to_restore list)
+  repeated string restore = 1;
+
+  // Paths of files to reset (from to_reset list)
+  repeated string reset = 2;
+}
+
+// ============ Issue Messages ============
+
+message CreateIssueRequest {
+  string project_path = 1;
+  string title = 2;
+  string description = 3;
+  int32 priority = 4;   // 1 = highest priority, 0 = use default
+  string status = 5;    // default: "open"
+  map<string, string> custom_fields = 6;
+  string template = 7;  // Optional template name (without .md extension)
+  bool draft = 8;       // Create as draft (default: false)
+  bool is_org_issue = 9; // Create as organization-wide issue (syncs to all org projects)
+}
+
+message CreateIssueResponse {
+  bool success = 1;
+  string error = 2;
+
+  // The created issue ID (UUID)
+  string id = 3;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 4;
+
+  // Legacy: same as id (for backward compatibility)
+  string issue_number = 5;
+
+  // Paths to created files
+  repeated string created_files = 6;
+
+  // The updated manifest
+  Manifest manifest = 7;
+
+  // Org-level display number (only for org issues, 0 if not an org issue)
+  uint32 org_display_number = 8;
+
+  // Results from syncing to other org projects (org issues only)
+  repeated OrgDocSyncResult sync_results = 9;
+}
+
+message GetNextIssueNumberRequest {
+  string project_path = 1;
+}
+
+message GetNextIssueNumberResponse {
+  string issue_number = 1;
+}
+
+// Issue represents a full issue with all its data
+message Issue {
+  // UUID-based issue ID (folder name)
+  string id = 1;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 2;
+
+  // Legacy: same as id (for backward compatibility)
+  string issue_number = 3;
+
+  string title = 4;
+  string description = 5;
+  IssueMetadata metadata = 6;
+}
+
+message IssueMetadata {
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 1;
+  string status = 2;              // e.g., "open", "in-progress", "closed"
+  int32 priority = 3;             // 1 = highest priority, N = lowest
+  string created_at = 4;          // ISO timestamp
+  string updated_at = 5;          // ISO timestamp
+  map<string, string> custom_fields = 6;
+  string priority_label = 7;      // Human-readable label (e.g., "high", "P1")
+  reserved 8, 9;                   // Removed: compacted, compacted_at (moved to CLI)
+  bool draft = 10;                // Whether this issue is a draft
+  string deleted_at = 11;         // ISO timestamp when soft-deleted (empty if not deleted)
+  bool is_org_issue = 12;         // Whether this is an organization-level issue
+  string org_slug = 13;           // Organization slug (empty if not org issue)
+  uint32 org_display_number = 14; // Org-scoped display number (0 if not org issue)
+}
+
+message GetIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number (e.g., "0001")
+}
+
+message GetIssueByDisplayNumberRequest {
+  string project_path = 1;
+  uint32 display_number = 2;      // Human-readable number (1, 2, 3...)
+}
+
+// Wrapper response for GetIssue and GetIssueByDisplayNumber RPCs
+message GetIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;
+}
+
+// ============ Global Issue Search Messages ============
+
+message GetIssuesByUuidRequest {
+  string uuid = 1;                // The UUID to search for (must be valid UUID format)
+}
+
+// An issue with its source project path
+message IssueWithProject {
+  Issue issue = 1;
+  string project_path = 2;        // Absolute path to the project where this issue was found
+  string project_name = 3;        // Human-readable project name (directory name)
+  string display_path = 4;        // Human-readable path with ~/ for home dir (use for display only)
+}
+
+message GetIssuesByUuidResponse {
+  repeated IssueWithProject issues = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;     // Non-fatal errors (e.g., projects that couldn't be accessed)
+}
+
+message ListIssuesRequest {
+  string project_path = 1;
+
+  // Optional filters
+  string status = 2;              // Filter by status (empty = all)
+  int32 priority = 3;             // Filter by priority (0 = all)
+  optional bool draft = 4;        // Filter by draft status (absent = all, true = drafts only, false = non-drafts only)
+  bool include_deleted = 5;       // Include soft-deleted issues (default: false)
+}
+
+message ListIssuesResponse {
+  repeated Issue issues = 1;
+  int32 total_count = 2;
+}
+
+// Advanced search request
+message AdvancedSearchRequest {
+  string query = 1;              // Query string (e.g., "status:open AND priority:1")
+  string sort_by = 2;            // Field to sort by (e.g., "createdAt", "priority")
+  bool sort_descending = 3;      // Sort order (true = descending)
+  bool multi_project = 4;        // Search across all tracked projects
+  string project_path = 5;       // Project path (required if multi_project is false)
+}
+
+// Search result containing issue and project info
+message SearchResultIssue {
+  Issue issue = 1;
+  string project_path = 2;
+  string project_name = 3;
+  string display_path = 4;
+}
+
+// Advanced search response
+message AdvancedSearchResponse {
+  bool success = 1;
+  string error = 2;
+  repeated SearchResultIssue results = 3;
+  int32 total_count = 4;
+  string parsed_query = 5;       // Debug: the parsed query representation
+}
+
+message UpdateIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+
+  // Fields to update (empty string = don't update, 0 = don't update priority)
+  string title = 3;
+  string description = 4;
+  string status = 5;
+  int32 priority = 6;             // 0 = don't update, otherwise 1-N
+  map<string, string> custom_fields = 7;
+  optional bool draft = 8;        // Update draft status (absent = don't update)
+}
+
+message UpdateIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                // The updated issue
+  Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results from syncing to other org projects (org issues only)
+}
+
+message DeleteIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+}
+
+message DeleteIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;          // Updated manifest after deletion
+}
+
+// Soft-delete an issue (set deleted_at timestamp)
+message SoftDeleteIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+}
+
+message SoftDeleteIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                // The soft-deleted issue (with deleted_at set)
+  Manifest manifest = 4;          // Updated manifest
+}
+
+// Restore a soft-deleted issue (clear deleted_at timestamp)
+message RestoreIssueRequest {
+  string project_path = 1;
+  string issue_id = 2;            // UUID or legacy issue number
+}
+
+message RestoreIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                // The restored issue (with deleted_at cleared)
+  Manifest manifest = 4;          // Updated manifest
+}
+
+// ============ Issue Move/Duplicate Messages ============
+
+message MoveIssueRequest {
+  string source_project_path = 1;       // Project containing the issue
+  string issue_id = 2;                  // UUID of the issue to move
+  string target_project_path = 3;       // Target project path
+}
+
+message MoveIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                      // The moved issue (same UUID, new display_number)
+  uint32 old_display_number = 4;        // Original display number for reference
+  Manifest source_manifest = 5;         // Updated source project manifest
+  Manifest target_manifest = 6;         // Updated target project manifest
+}
+
+message DuplicateIssueRequest {
+  string source_project_path = 1;       // Project containing the original issue
+  string issue_id = 2;                  // UUID of the issue to duplicate
+  string target_project_path = 3;       // Target project (can be same as source)
+  string new_title = 4;                 // Optional: override title (default: "Copy of {original}")
+}
+
+message DuplicateIssueResponse {
+  bool success = 1;
+  string error = 2;
+  Issue issue = 3;                      // The new duplicate issue (new UUID, new display_number)
+  string original_issue_id = 4;         // UUID of the original issue
+  Manifest manifest = 5;                // Updated target project manifest
+}
+
+// ============ Manifest Messages ============
+
+message GetManifestRequest {
+  string project_path = 1;
+}
+
+// Wrapper response for GetManifest RPC
+message GetManifestResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
+message Manifest {
+  int32 schema_version = 1;
+  string centy_version = 2;
+  string created_at = 3;
+  string updated_at = 4;
+}
+
+enum FileType {
+  FILE_TYPE_UNSPECIFIED = 0;
+  FILE_TYPE_FILE = 1;
+  FILE_TYPE_DIRECTORY = 2;
+}
+
+message FileInfo {
+  string path = 1;
+  FileType file_type = 2;
+  string hash = 3;
+  string content_preview = 4;  // For display purposes
+}
+
+// ============ Config Messages ============
+
+message GetConfigRequest {
+  string project_path = 1;
+}
+
+// Wrapper response for GetConfig RPC
+message GetConfigResponse {
+  bool success = 1;
+  string error = 2;
+  Config config = 3;
+}
+
+message Config {
+  repeated CustomFieldDefinition custom_fields = 1;
+  map<string, string> defaults = 2;
+  int32 priority_levels = 3;      // Number of priority levels (default: 3)
+  repeated string allowed_states = 4;  // Allowed status values (default: ["open", "in-progress", "closed"])
+  string default_state = 5;            // Default state for new issues (default: "open")
+  string version = 6;                  // Project version (semver, empty = daemon default)
+  map<string, string> state_colors = 7;     // State name → hex color (e.g., "open" → "#10b981")
+  map<string, string> priority_colors = 8;  // Priority level → hex color (e.g., "1" → "#ef4444")
+  LlmConfig llm = 9;                        // LLM-related settings
+  repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
+  string default_editor = 11;                // Default editor ID for this project (e.g., "vscode", "terminal", "zed")
+  repeated HookDefinition hooks = 12;                  // Lifecycle hooks
+}
+
+message CustomFieldDefinition {
+  string name = 1;
+  string field_type = 2;  // "string", "number", "boolean", "enum"
+  bool required = 3;
+  string default_value = 4;
+  repeated string enum_values = 5;  // For enum type
+}
+
+message LlmConfig {
+  bool auto_close_on_complete = 1;    // Auto-close issues when marked complete by LLM
+  optional bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work (null = prompt user)
+  bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
+  WorkspaceMode default_workspace_mode = 4;  // Default workspace mode for agent operations
+}
+
+// Lifecycle hook definition (bash scripts to run before/after operations)
+message HookDefinition {
+  string pattern = 1;                   // Pattern like "pre:issue:create" or "*:*:delete"
+  string command = 2;                   // Bash command to execute
+  bool run_async = 3;                   // If true, run in background (post-hooks only)
+  uint64 timeout = 4;                   // Timeout in seconds (default: 30)
+  bool enabled = 5;                     // Whether hook is enabled (default: true)
+}
+
+// Custom link type definition (for custom relationship types)
+message LinkTypeDefinition {
+  string name = 1;                    // Link type name (e.g., "depends-on")
+  string inverse = 2;                 // Inverse link type (e.g., "dependency-of")
+  string description = 3;             // Optional description
+}
+
+message UpdateConfigRequest {
+  string project_path = 1;
+  Config config = 2;
+}
+
+message UpdateConfigResponse {
+  bool success = 1;
+  string error = 2;
+  Config config = 3;  // The saved config (with any normalization applied)
+}
+
+// ============ Utility Messages ============
+
+message IsInitializedRequest {
+  string project_path = 1;
+}
+
+message IsInitializedResponse {
+  bool initialized = 1;
+  string centy_path = 2;  // Full path to .centy folder if initialized
+}
+
+// ============ Doc Messages ============
+
+message CreateDocRequest {
+  string project_path = 1;
+  string title = 2;               // Doc title (used to generate slug)
+  string content = 3;             // Markdown content
+  string slug = 4;                // Optional custom slug (auto-generated from title if empty)
+  string template = 5;            // Optional template name (without .md extension)
+  bool is_org_doc = 6;            // Create as organization-wide doc (syncs to all org projects)
+}
+
+// Result of syncing an org doc to a project
+message OrgDocSyncResult {
+  string project_path = 1;        // Path of target project
+  bool success = 2;               // Whether sync succeeded
+  string error = 3;               // Error message if failed
+}
+
+message CreateDocResponse {
+  bool success = 1;
+  string error = 2;
+  string slug = 3;                // The created doc slug
+  string created_file = 4;        // Path to created file
+  Manifest manifest = 5;
+  repeated OrgDocSyncResult sync_results = 6;  // Results from syncing to other org projects
+}
+
+message GetDocRequest {
+  string project_path = 1;
+  string slug = 2;                // e.g., "getting-started"
+}
+
+// Wrapper response for GetDoc RPC
+message GetDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;
+}
+
+// ============ Global Doc Search Messages ============
+
+message GetDocsBySlugRequest {
+  string slug = 1;                    // The slug to search for (kebab-case)
+}
+
+// A doc with its source project path
+message DocWithProject {
+  Doc doc = 1;
+  string project_path = 2;            // Absolute path to the project where this doc was found
+  string project_name = 3;            // Human-readable project name (directory name)
+  string display_path = 4;            // Human-readable path with ~/ for home dir (use for display only)
+}
+
+message GetDocsBySlugResponse {
+  repeated DocWithProject docs = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;         // Non-fatal errors (e.g., projects that couldn't be accessed)
+}
+
+message ListDocsRequest {
+  string project_path = 1;
+  bool include_deleted = 2;       // Include soft-deleted docs (default: false)
+}
+
+message ListDocsResponse {
+  repeated Doc docs = 1;
+  int32 total_count = 2;
+}
+
+// Doc represents a documentation file
+message Doc {
+  string slug = 1;                // e.g., "getting-started"
+  string title = 2;
+  string content = 3;             // Full markdown content
+  DocMetadata metadata = 4;
+}
+
+message DocMetadata {
+  string created_at = 1;          // ISO timestamp
+  string updated_at = 2;          // ISO timestamp
+  string deleted_at = 3;          // ISO timestamp when soft-deleted (empty if not deleted)
+  bool is_org_doc = 4;            // Whether this is an organization-level doc
+  string org_slug = 5;            // Organization slug (for org docs)
+}
+
+message UpdateDocRequest {
+  string project_path = 1;
+  string slug = 2;
+
+  // Fields to update (empty string = don't update)
+  string title = 3;
+  string content = 4;
+  string new_slug = 5;            // Rename the doc (empty = keep current slug)
+}
+
+message UpdateDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                    // The updated doc
+  Manifest manifest = 4;
+  repeated OrgDocSyncResult sync_results = 5;  // Results from syncing to other org projects (org docs only)
+}
+
+message DeleteDocRequest {
+  string project_path = 1;
+  string slug = 2;
+}
+
+message DeleteDocResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
+// Soft-delete a doc (set deleted_at timestamp)
+message SoftDeleteDocRequest {
+  string project_path = 1;
+  string slug = 2;
+}
+
+message SoftDeleteDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                    // The soft-deleted doc (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted doc (clear deleted_at timestamp)
+message RestoreDocRequest {
+  string project_path = 1;
+  string slug = 2;
+}
+
+message RestoreDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                    // The restored doc (with deleted_at cleared)
+  Manifest manifest = 4;
+}
+
+// ============ Doc Move/Duplicate Messages ============
+
+message MoveDocRequest {
+  string source_project_path = 1;       // Project containing the doc
+  string slug = 2;                      // Slug of the doc to move
+  string target_project_path = 3;       // Target project path
+  string new_slug = 4;                  // Optional: new slug if conflict exists
+}
+
+message MoveDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                          // The moved doc
+  string old_slug = 4;                  // Original slug for reference
+  Manifest source_manifest = 5;         // Updated source project manifest
+  Manifest target_manifest = 6;         // Updated target project manifest
+}
+
+message DuplicateDocRequest {
+  string source_project_path = 1;       // Project containing the original doc
+  string slug = 2;                      // Slug of the doc to duplicate
+  string target_project_path = 3;       // Target project (can be same as source)
+  string new_slug = 4;                  // Optional: override slug (default: "{slug}-copy")
+  string new_title = 5;                 // Optional: override title (default: "Copy of {original}")
+}
+
+message DuplicateDocResponse {
+  bool success = 1;
+  string error = 2;
+  Doc doc = 3;                          // The new duplicate doc
+  string original_slug = 4;             // Slug of the original doc
+  Manifest manifest = 5;                // Updated target project manifest
+}
+
+// ============ Asset Messages ============
+
+// Asset represents file metadata
+message Asset {
+  string filename = 1;            // Original filename
+  string hash = 2;                // SHA-256 hash
+  uint64 size = 3;                // File size in bytes
+  string mime_type = 4;           // MIME type (e.g., "image/png")
+  bool is_shared = 5;             // Whether this is a shared asset
+  string created_at = 6;          // ISO timestamp
+}
+
+message AddAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Filename to save as
+  bytes data = 4;                 // Binary file data
+  bool is_shared = 5;             // If true, store as shared asset (default: false)
+}
+
+message AddAssetResponse {
+  bool success = 1;
+  string error = 2;
+  Asset asset = 3;                // The created asset info
+  string path = 4;                // Full path to the asset file
+  Manifest manifest = 5;
+}
+
+message ListAssetsRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID to list assets for
+  bool include_shared = 3;        // Include shared assets in result (default: false)
+}
+
+message ListAssetsResponse {
+  repeated Asset assets = 1;
+  int32 total_count = 2;
+}
+
+message GetAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Asset filename
+  bool is_shared = 4;             // Whether to look for a shared asset
+}
+
+message GetAssetResponse {
+  bool success = 1;
+  string error = 2;
+  bytes data = 3;                 // Binary file data
+  Asset asset = 4;                // Asset metadata
+}
+
+message DeleteAssetRequest {
+  string project_path = 1;
+  string issue_id = 2;            // Issue ID (required for issue-specific assets)
+  string filename = 3;            // Asset filename
+  bool is_shared = 4;             // Whether to delete a shared asset
+}
+
+message DeleteAssetResponse {
+  bool success = 1;
+  string error = 2;
+  string filename = 3;            // Deleted filename
+  bool was_shared = 4;            // Whether it was a shared asset
+  Manifest manifest = 5;
+}
+
+message ListSharedAssetsRequest {
+  string project_path = 1;
+}
+
+// ============ Project Registry Messages ============
+
+// Returned by API (enriched with live data from disk)
+message ProjectInfo {
+  string path = 1;                // Absolute path to project (use this for API calls)
+  string first_accessed = 2;      // ISO timestamp
+  string last_accessed = 3;       // ISO timestamp
+  uint32 issue_count = 4;         // Fetched live from .centy/issues/
+  uint32 doc_count = 5;           // Fetched live from .centy/docs/
+  bool initialized = 6;           // Fetched live (manifest exists)
+  string name = 7;                // Fetched live (directory name)
+  bool is_favorite = 8;           // User-marked favorite status
+  bool is_archived = 9;           // User-marked archived status
+  string display_path = 10;       // Human-readable path with ~/ for home dir (use for display only)
+  string organization_slug = 11;  // Organization slug (empty if ungrouped)
+  string organization_name = 12;  // Organization display name (for convenience)
+  string user_title = 13;         // User-scope custom title (from ~/.centy/projects.json)
+  string project_title = 14;      // Project-scope custom title (from .centy/project.json)
+}
+
+message ListProjectsRequest {
+  bool include_stale = 1;         // Include projects where path no longer exists
+  bool include_uninitialized = 2; // Include projects without .centy manifest
+  bool include_archived = 3;      // Include archived projects (default: false)
+  string organization_slug = 4;   // Filter by organization (empty = all)
+  bool ungrouped_only = 5;        // Only show projects without organization
+  bool include_temp = 6;          // Include projects in system temp directory (default: false)
+}
+
+message ListProjectsResponse {
+  repeated ProjectInfo projects = 1;
+  int32 total_count = 2;
+}
+
+message RegisterProjectRequest {
+  string project_path = 1;        // Path to register
+}
+
+message RegisterProjectResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The registered project info
+  OrgInferenceResult org_inference = 4;  // Organization inference result from git remote
+}
+
+message UntrackProjectRequest {
+  string project_path = 1;
+}
+
+message UntrackProjectResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message GetProjectInfoRequest {
+  string project_path = 1;
+}
+
+message GetProjectInfoResponse {
+  bool found = 1;
+  ProjectInfo project = 2;
+}
+
+message SetProjectFavoriteRequest {
+  string project_path = 1;
+  bool is_favorite = 2;
+}
+
+message SetProjectFavoriteResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectArchivedRequest {
+  string project_path = 1;
+  bool is_archived = 2;
+}
+
+message SetProjectArchivedResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectOrganizationRequest {
+  string project_path = 1;
+  string organization_slug = 2;   // Empty to remove from organization
+}
+
+message SetProjectOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectUserTitleRequest {
+  string project_path = 1;
+  string title = 2;               // Custom title (empty to clear)
+}
+
+message SetProjectUserTitleResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+message SetProjectTitleRequest {
+  string project_path = 1;
+  string title = 2;               // Custom title (empty to clear)
+}
+
+message SetProjectTitleResponse {
+  bool success = 1;
+  string error = 2;
+  ProjectInfo project = 3;        // The updated project info
+}
+
+// ============ Organization Messages ============
+
+message Organization {
+  string slug = 1;                // Unique identifier (kebab-case)
+  string name = 2;                // Display name
+  string description = 3;         // Optional description
+  string created_at = 4;          // ISO timestamp
+  string updated_at = 5;          // ISO timestamp
+  uint32 project_count = 6;       // Number of projects in this org
+}
+
+// Organization inference result from git remote
+message OrgInferenceResult {
+  string inferred_org_slug = 1;   // The inferred slug (empty if not found)
+  string inferred_org_name = 2;   // The inferred display name
+  bool org_created = 3;           // Whether a new org was created
+  string existing_org_slug = 4;   // Existing org if already assigned
+  bool has_mismatch = 5;          // True if inferred != existing
+  string message = 6;             // Human-readable status message
+}
+
+message CreateOrganizationRequest {
+  string slug = 1;                // Unique slug (auto-generated from name if empty)
+  string name = 2;                // Display name (required)
+  string description = 3;         // Optional description
+}
+
+message CreateOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  Organization organization = 3;
+}
+
+message ListOrganizationsRequest {}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  int32 total_count = 2;
+}
+
+message GetOrganizationRequest {
+  string slug = 1;
+}
+
+message GetOrganizationResponse {
+  bool found = 1;
+  Organization organization = 2;
+}
+
+message UpdateOrganizationRequest {
+  string slug = 1;                // Current slug
+  string name = 2;                // New name (empty = don't change)
+  string description = 3;         // New description (empty = don't change)
+  string new_slug = 4;            // Rename slug (empty = keep current)
+}
+
+message UpdateOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  Organization organization = 3;
+}
+
+message DeleteOrganizationRequest {
+  string slug = 1;
+}
+
+message DeleteOrganizationResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 unassigned_projects = 3; // Projects that are now ungrouped (should be 0 if block deletion)
+}
+
+// ============ Version Messages ============
+
+message GetDaemonInfoRequest {}
+
+message DaemonInfo {
+  string version = 1;                    // Current daemon version (e.g., "0.1.0")
+  reserved 2;                            // was: repeated string available_versions (removed)
+  string binary_path = 3;                // Absolute path to the running daemon binary
+  bool vscode_available = 4;             // Whether VS Code is installed and accessible
+}
+
+// ============ Daemon Control Messages ============
+
+message ShutdownRequest {
+  // Optional delay in seconds before shutdown (default: 0)
+  uint32 delay_seconds = 1;
+}
+
+message ShutdownResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RestartRequest {
+  // Optional delay in seconds before restart (default: 0)
+  uint32 delay_seconds = 1;
+}
+
+message RestartResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============ PR Messages ============
+
+message CreatePrRequest {
+  string project_path = 1;
+  string title = 2;
+  string description = 3;
+  string source_branch = 4;         // Source branch name (auto-detected if empty)
+  string target_branch = 5;         // Target branch name (default: "main")
+  reserved 6;                       // Removed: linked_issues (use Link system instead)
+  repeated string reviewers = 7;     // Reviewer usernames/identifiers
+  int32 priority = 8;               // 1 = highest priority, 0 = use default
+  string status = 9;                // default: "draft"
+  map<string, string> custom_fields = 10;
+  string template = 11;             // Optional template name (without .md extension)
+}
+
+message CreatePrResponse {
+  bool success = 1;
+  string error = 2;
+
+  // The created PR ID (UUID)
+  string id = 3;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 4;
+
+  // Paths to created files
+  repeated string created_files = 5;
+
+  // The updated manifest
+  Manifest manifest = 6;
+
+  // Git info
+  string detected_source_branch = 7;  // The source branch that was used
+}
+
+message GetNextPrNumberRequest {
+  string project_path = 1;
+}
+
+message GetNextPrNumberResponse {
+  uint32 next_number = 1;
+}
+
+// PullRequest represents a full PR with all its data
+message PullRequest {
+  // UUID-based PR ID (folder name)
+  string id = 1;
+
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 2;
+
+  string title = 3;
+  string description = 4;
+  PrMetadata metadata = 5;
+}
+
+message PrMetadata {
+  // Human-readable display number (1, 2, 3...)
+  uint32 display_number = 1;
+  string status = 2;                  // e.g., "draft", "open", "merged", "closed"
+  string source_branch = 3;
+  string target_branch = 4;
+  reserved 5;                         // Removed: linked_issues (use Link system instead)
+  repeated string reviewers = 6;
+  int32 priority = 7;                 // 1 = highest priority, N = lowest
+  string priority_label = 8;          // Human-readable label (e.g., "high", "P1")
+  string created_at = 9;              // ISO timestamp
+  string updated_at = 10;             // ISO timestamp
+  string merged_at = 11;              // ISO timestamp (empty if not merged)
+  string closed_at = 12;              // ISO timestamp (empty if not closed)
+  map<string, string> custom_fields = 13;
+  string deleted_at = 14;             // ISO timestamp when soft-deleted (empty if not deleted)
+}
+
+message GetPrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID
+}
+
+message GetPrByDisplayNumberRequest {
+  string project_path = 1;
+  uint32 display_number = 2;          // Human-readable number (1, 2, 3...)
+}
+
+// Wrapper response for GetPr and GetPrByDisplayNumber RPCs
+message GetPrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;
+}
+
+// ============ Global PR Search Messages ============
+
+message GetPrsByUuidRequest {
+  string uuid = 1;                    // The UUID to search for (must be valid UUID format)
+}
+
+// A PR with its source project path
+message PrWithProject {
+  PullRequest pr = 1;
+  string project_path = 2;            // Absolute path to the project where this PR was found
+  string project_name = 3;            // Human-readable project name (directory name)
+  string display_path = 4;            // Human-readable path with ~/ for home dir (use for display only)
+}
+
+message GetPrsByUuidResponse {
+  repeated PrWithProject prs = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;         // Non-fatal errors (e.g., projects that couldn't be accessed)
+}
+
+message ListPrsRequest {
+  string project_path = 1;
+
+  // Optional filters
+  string status = 2;                  // Filter by status (empty = all)
+  string source_branch = 3;           // Filter by source branch (empty = all)
+  string target_branch = 4;           // Filter by target branch (empty = all)
+  int32 priority = 5;                 // Filter by priority (0 = all)
+  bool include_deleted = 6;           // Include soft-deleted PRs (default: false)
+}
+
+message ListPrsResponse {
+  repeated PullRequest prs = 1;
+  int32 total_count = 2;
+}
+
+message UpdatePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+
+  // Fields to update (empty string = don't update, 0 = don't update priority)
+  string title = 3;
+  string description = 4;
+  string status = 5;
+  string source_branch = 6;
+  string target_branch = 7;
+  reserved 8;                         // Removed: linked_issues (use Link system instead)
+  repeated string reviewers = 9;
+  int32 priority = 10;                // 0 = don't update, otherwise 1-N
+  map<string, string> custom_fields = 11;
+}
+
+message UpdatePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The updated PR
+  Manifest manifest = 4;
+}
+
+message DeletePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message DeletePrResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;              // Updated manifest after deletion
+}
+
+// Soft-delete a PR (set deleted_at timestamp)
+message SoftDeletePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message SoftDeletePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The soft-deleted PR (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted PR (clear deleted_at timestamp)
+message RestorePrRequest {
+  string project_path = 1;
+  string pr_id = 2;                   // UUID or display number
+}
+
+message RestorePrResponse {
+  bool success = 1;
+  string error = 2;
+  PullRequest pr = 3;                 // The restored PR (with deleted_at cleared)
+  Manifest manifest = 4;
+}
+
+// ============ Temp Workspace Messages ============
+
+// Action types for workspace operations
+enum LlmAction {
+  LLM_ACTION_UNSPECIFIED = 0;
+  LLM_ACTION_PLAN = 1;
+  LLM_ACTION_IMPLEMENT = 2;
+  LLM_ACTION_DEEPDIVE = 3;
+}
+
+// Workspace mode for agent operations
+enum WorkspaceMode {
+  WORKSPACE_MODE_UNSPECIFIED = 0;       // Use project default or prompt user
+  WORKSPACE_MODE_TEMP = 1;              // Create temporary worktree
+  WORKSPACE_MODE_CURRENT = 2;           // Use current project directory
+}
+
+// Editor type for opening workspaces
+enum EditorType {
+  EDITOR_TYPE_UNSPECIFIED = 0;
+  EDITOR_TYPE_VSCODE = 1;             // VS Code editor
+  EDITOR_TYPE_TERMINAL = 2;           // OS terminal
+}
+
+// Request to get supported editors (empty request)
+message GetSupportedEditorsRequest {}
+
+// Information about a supported editor
+message EditorInfo {
+  EditorType editor_type = 1;         // Editor type enum value (deprecated: use editor_id)
+  string name = 2;                    // Display name (e.g., "VS Code", "Terminal")
+  string description = 3;             // Brief description
+  bool available = 4;                 // Whether this editor is available on the current system
+  string editor_id = 5;              // String-based editor identifier (e.g., "vscode", "terminal", "zed")
+  bool terminal_wrapper = 6;         // Whether this editor runs inside a terminal
+}
+
+// Response with list of supported editors
+message GetSupportedEditorsResponse {
+  repeated EditorInfo editors = 1;    // List of supported editors
+}
+
+// Request for unified OpenInTempWorkspace (new, configurable editor)
+message OpenInTempWorkspaceWithEditorRequest {
+  string project_path = 1;              // Source project path
+  string issue_id = 2;                  // Issue UUID or display number
+  LlmAction action = 3;                 // Plan or Implement
+  string agent_name = 4;                // Agent to use (empty = default)
+  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
+  string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
+}
+
+// Request for unified OpenStandaloneWorkspace (new, configurable editor)
+message OpenStandaloneWorkspaceWithEditorRequest {
+  string project_path = 1;              // Source project path
+  string name = 2;                      // Optional custom name for the workspace
+  string description = 3;               // Optional description/goals for this workspace
+  uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
+  string agent_name = 5;                // Agent to use (empty = default)
+  string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
+}
+
+// Shared request for OpenInTempVscode and OpenInTempTerminal (deprecated: use OpenInTempWorkspaceWithEditorRequest)
+message OpenInTempWorkspaceRequest {
+  string project_path = 1;              // Source project path
+  string issue_id = 2;                  // Issue UUID or display number
+  LlmAction action = 3;                 // Plan or Implement
+  string agent_name = 4;                // Agent to use (empty = default)
+  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
+}
+
+// Shared response for OpenInTempVscode and OpenInTempTerminal
+message OpenInTempWorkspaceResponse {
+  bool success = 1;
+  string error = 2;
+  string workspace_path = 3;            // Path to the temp workspace
+  string issue_id = 4;                  // Resolved issue UUID
+  uint32 display_number = 5;            // Issue display number
+  string expires_at = 6;                // ISO timestamp when workspace expires
+  bool editor_opened = 7;               // Whether the editor (VS Code or Terminal) was successfully opened
+  bool requires_status_config = 8;      // True if user must configure update_status_on_start setting
+  bool workspace_reused = 9;            // True if an existing workspace was reopened instead of creating new
+  string original_created_at = 10;      // Original creation timestamp (only set if workspace_reused is true)
+}
+
+// Request to open an agent in a terminal
+message OpenAgentInTerminalRequest {
+  string project_path = 1;              // Source project path
+  string issue_id = 2;                  // Issue UUID or display number
+  string agent_name = 3;                // Agent to use (empty = default)
+  WorkspaceMode workspace_mode = 4;     // Temp worktree or current project
+  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = default, only for temp mode)
+}
+
+message OpenAgentInTerminalResponse {
+  bool success = 1;
+  string error = 2;
+  string working_directory = 3;         // Path where agent was launched
+  string issue_id = 4;                  // Resolved issue UUID
+  uint32 display_number = 5;            // Issue display number
+  string agent_command = 6;             // The agent command that was executed
+  bool terminal_opened = 7;             // Whether terminal was successfully opened
+  string expires_at = 8;                // ISO timestamp (only for temp mode)
+  bool requires_status_config = 9;      // True if user must configure update_status_on_start setting
+}
+
+// Request to open a standalone workspace (not tied to an issue)
+message OpenStandaloneWorkspaceRequest {
+  string project_path = 1;              // Source project path
+  string name = 2;                      // Optional custom name for the workspace
+  string description = 3;               // Optional description/goals for this workspace
+  uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
+  string agent_name = 5;                // Agent to use (empty = default)
+}
+
+// Response for opening a standalone workspace
+message OpenStandaloneWorkspaceResponse {
+  bool success = 1;
+  string error = 2;
+  string workspace_path = 3;            // Path to the temp workspace
+  string workspace_id = 4;              // Unique workspace identifier (UUID)
+  string name = 5;                      // Workspace name (provided or generated)
+  string expires_at = 6;                // ISO timestamp when workspace expires
+  bool editor_opened = 7;               // Whether the editor was successfully opened
+  bool workspace_reused = 8;            // True if an existing workspace was reopened
+  string original_created_at = 9;       // Original creation timestamp (only set if workspace_reused)
+}
+
+// A temporary workspace entry
+message TempWorkspace {
+  string workspace_path = 1;            // Absolute path to temp workspace
+  string source_project_path = 2;       // Original project path
+  string issue_id = 3;                  // Issue UUID (empty for standalone workspaces)
+  uint32 issue_display_number = 4;      // Issue display number (0 for standalone)
+  string issue_title = 5;               // Issue title (empty for standalone)
+  string agent_name = 6;                // Agent being used
+  LlmAction action = 7;                 // Plan or Implement
+  string created_at = 8;                // ISO timestamp
+  string expires_at = 9;                // ISO timestamp when workspace expires
+  bool is_standalone = 10;              // True if this is a standalone workspace (not tied to an issue)
+  string workspace_id = 11;             // Unique workspace ID (UUID, used for standalone workspaces)
+  string workspace_name = 12;           // Custom workspace name (for standalone)
+  string workspace_description = 13;    // Custom workspace description (for standalone)
+}
+
+message ListTempWorkspacesRequest {
+  bool include_expired = 1;             // Include expired workspaces (default: false)
+  string source_project_path = 2;       // Filter by source project (empty = all)
+}
+
+message ListTempWorkspacesResponse {
+  repeated TempWorkspace workspaces = 1;
+  uint32 total_count = 2;
+  uint32 expired_count = 3;             // Number of expired workspaces (not included unless include_expired)
+}
+
+message CloseTempWorkspaceRequest {
+  string workspace_path = 1;            // Path to the workspace to close
+  bool force = 2;                       // Force removal even if VS Code may be open
+}
+
+message CloseTempWorkspaceResponse {
+  bool success = 1;
+  string error = 2;
+  bool worktree_removed = 3;            // Whether git worktree was removed
+  bool directory_removed = 4;           // Whether directory was removed
+}
+
+message CleanupExpiredWorkspacesRequest {}
+
+message CleanupExpiredWorkspacesResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 cleaned_count = 3;             // Number of workspaces cleaned up
+  repeated string cleaned_paths = 4;    // Paths that were cleaned
+  repeated string failed_paths = 5;     // Paths that failed to clean
+}
+
+// ============ Link Messages ============
+
+// Target entity type for links
+enum LinkTargetType {
+  LINK_TARGET_TYPE_UNSPECIFIED = 0;
+  LINK_TARGET_TYPE_ISSUE = 1;
+  LINK_TARGET_TYPE_DOC = 2;
+  LINK_TARGET_TYPE_PR = 3;
+}
+
+// A link between two entities
+message Link {
+  string target_id = 1;               // Target entity ID (UUID for issues/PRs, slug for docs)
+  LinkTargetType target_type = 2;     // Type of the target entity
+  string link_type = 3;               // Relationship type (e.g., "blocks", "parent-of")
+  string created_at = 4;              // ISO timestamp when link was created
+}
+
+// Create a link between two entities (bidirectional - also creates inverse)
+message CreateLinkRequest {
+  string project_path = 1;
+  string source_id = 2;               // Source entity ID
+  LinkTargetType source_type = 3;     // Source entity type
+  string target_id = 4;               // Target entity ID
+  LinkTargetType target_type = 5;     // Target entity type
+  string link_type = 6;               // Link type (e.g., "blocks")
+}
+
+message CreateLinkResponse {
+  bool success = 1;
+  string error = 2;
+  Link created_link = 3;              // The forward link that was created
+  Link inverse_link = 4;              // The inverse link that was created
+}
+
+// Delete a link between two entities (also deletes inverse)
+message DeleteLinkRequest {
+  string project_path = 1;
+  string source_id = 2;               // Source entity ID
+  LinkTargetType source_type = 3;     // Source entity type
+  string target_id = 4;               // Target entity ID
+  LinkTargetType target_type = 5;     // Target entity type
+  string link_type = 6;               // Optional: specific link type to delete (empty = all links between entities)
+}
+
+message DeleteLinkResponse {
+  bool success = 1;
+  string error = 2;
+  uint32 deleted_count = 3;           // Number of links deleted (including inverse)
+}
+
+// List all links for an entity
+message ListLinksRequest {
+  string project_path = 1;
+  string entity_id = 2;               // Entity ID to list links for
+  LinkTargetType entity_type = 3;     // Entity type
+}
+
+message ListLinksResponse {
+  repeated Link links = 1;
+  int32 total_count = 2;
+}
+
+// Get all available link types (builtin + custom)
+message GetAvailableLinkTypesRequest {
+  string project_path = 1;
+}
+
+// Information about a link type
+message LinkTypeInfo {
+  string name = 1;                    // Link type name (e.g., "blocks")
+  string inverse = 2;                 // Inverse link type (e.g., "blocked-by")
+  string description = 3;             // Optional description
+  bool is_builtin = 4;                // Whether this is a built-in type
+}
+
+message GetAvailableLinkTypesResponse {
+  repeated LinkTypeInfo link_types = 1;
+}
+
+// ============ User Messages ============
+
+// A project user/team member
+message User {
+  string id = 1;                        // Unique identifier (slug format, e.g., "john-doe")
+  string name = 2;                      // Display name
+  string email = 3;                     // Email address (optional)
+  repeated string git_usernames = 4;    // Git usernames (e.g., GitHub handles)
+  string created_at = 5;                // ISO timestamp
+  string updated_at = 6;                // ISO timestamp
+  string deleted_at = 7;                // ISO timestamp when soft-deleted (empty if not deleted)
+}
+
+message CreateUserRequest {
+  string project_path = 1;
+  string id = 2;                        // User ID (slug format)
+  string name = 3;                      // Display name (required)
+  string email = 4;                     // Email address (optional)
+  repeated string git_usernames = 5;    // Git usernames (optional)
+}
+
+message CreateUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The created user
+  Manifest manifest = 4;
+}
+
+message GetUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+// Wrapper response for GetUser RPC
+message GetUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;
+}
+
+message ListUsersRequest {
+  string project_path = 1;
+  string git_username = 2;              // Optional: filter by git username
+  bool include_deleted = 3;             // Include soft-deleted users (default: false)
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total_count = 2;
+}
+
+message UpdateUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+  string name = 3;                      // Empty = don't update
+  string email = 4;                     // Empty = don't update
+  repeated string git_usernames = 5;    // Empty array = don't update
+}
+
+message UpdateUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The updated user
+  Manifest manifest = 4;
+}
+
+message DeleteUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string error = 2;
+  Manifest manifest = 3;
+}
+
+// Soft-delete a user (set deleted_at timestamp)
+message SoftDeleteUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message SoftDeleteUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The soft-deleted user (with deleted_at set)
+  Manifest manifest = 4;
+}
+
+// Restore a soft-deleted user (clear deleted_at timestamp)
+message RestoreUserRequest {
+  string project_path = 1;
+  string user_id = 2;                   // User ID (slug format)
+}
+
+message RestoreUserResponse {
+  bool success = 1;
+  string error = 2;
+  User user = 3;                        // The restored user (with deleted_at cleared)
+  Manifest manifest = 4;
+}
+
+// Git contributor found in history
+message GitContributor {
+  string name = 1;
+  string email = 2;
+}
+
+message SyncUsersRequest {
+  string project_path = 1;
+  bool dry_run = 2;                     // If true, don't create users, just show what would be created
+}
+
+message SyncUsersResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string created = 3;          // User IDs that were created
+  repeated string skipped = 4;          // Emails that were skipped (already exist)
+  repeated string errors = 5;           // Errors during creation
+  repeated GitContributor would_create = 6;  // For dry run: users that would be created
+  repeated GitContributor would_skip = 7;    // For dry run: users that would be skipped
+  Manifest manifest = 8;
+}
+
+// ============ Entity Actions Messages ============
+
+// Entity type for actions
+enum EntityType {
+  ENTITY_TYPE_UNSPECIFIED = 0;
+  ENTITY_TYPE_ISSUE = 1;
+  ENTITY_TYPE_PR = 2;
+  ENTITY_TYPE_DOC = 3;
+}
+
+// Action category for grouping in UI
+enum ActionCategory {
+  ACTION_CATEGORY_UNSPECIFIED = 0;
+  ACTION_CATEGORY_CRUD = 1;             // Create, Delete, Duplicate, Move
+  ACTION_CATEGORY_MODE = 2;             // Plan, Implement (LLM actions)
+  ACTION_CATEGORY_STATUS = 3;           // Status/state changes
+  ACTION_CATEGORY_EXTERNAL = 4;         // Open in VSCode, external tools
+}
+
+// An action that can be performed on an entity
+message EntityAction {
+  string id = 1;                        // Action identifier (e.g., "delete", "duplicate", "status:closed")
+  string label = 2;                     // Human-readable label (e.g., "Delete", "Mark as Closed")
+  ActionCategory category = 3;          // Category for grouping in UI
+  bool enabled = 4;                     // Whether action is available for current entity state
+  string disabled_reason = 5;           // Explanation if action is disabled
+  bool destructive = 6;                 // UI hint: show in red, require confirmation
+  string keyboard_shortcut = 7;         // Optional keyboard shortcut (e.g., "d" for delete)
+}
+
+// Request to get available actions for an entity
+message GetEntityActionsRequest {
+  string project_path = 1;              // Project path for config/state lookup
+  EntityType entity_type = 2;           // Type of entity (issue, PR, doc)
+  string entity_id = 3;                 // Optional: entity ID for contextual actions (empty = general actions like "create")
+}
+
+// Response with available actions
+message GetEntityActionsResponse {
+  repeated EntityAction actions = 1;    // Available actions, ordered by category then priority
+  bool success = 2;
+  string error = 3;
+}
+
+// ============ Sync Messages ============
+
+// Sync conflict information
+message SyncConflict {
+  string id = 1;                        // Unique conflict ID
+  string item_type = 2;                 // Type of item (issue, doc, pr)
+  string item_id = 3;                   // ID of the item with conflict
+  string file_path = 4;                 // Relative file path within .centy
+  string created_at = 5;                // When the conflict was detected
+  string description = 6;               // Description of the conflict
+  string base_content = 7;              // Base content (common ancestor)
+  string ours_content = 8;              // Our version of the content
+  string theirs_content = 9;            // Their version of the content
+}
+
+// Sync mode enum
+enum SyncMode {
+  SYNC_MODE_UNSPECIFIED = 0;
+  SYNC_MODE_FULL = 1;                   // Full sync with remote
+  SYNC_MODE_LOCAL_ONLY = 2;             // Local-only mode (no remote)
+  SYNC_MODE_DISABLED = 3;               // Sync disabled (not a git repo)
+}
+
+// Request to list sync conflicts
+message ListSyncConflictsRequest {
+  string project_path = 1;
+}
+
+// Response with list of sync conflicts
+message ListSyncConflictsResponse {
+  repeated SyncConflict conflicts = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Request to get a specific sync conflict
+message GetSyncConflictRequest {
+  string project_path = 1;
+  string conflict_id = 2;
+}
+
+// Response with sync conflict details
+message GetSyncConflictResponse {
+  SyncConflict conflict = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Conflict resolution type
+enum ConflictResolutionType {
+  CONFLICT_RESOLUTION_UNSPECIFIED = 0;
+  CONFLICT_RESOLUTION_TAKE_OURS = 1;
+  CONFLICT_RESOLUTION_TAKE_THEIRS = 2;
+  CONFLICT_RESOLUTION_MERGE = 3;
+}
+
+// Request to resolve a sync conflict
+message ResolveSyncConflictRequest {
+  string project_path = 1;
+  string conflict_id = 2;
+  ConflictResolutionType resolution = 3;
+  string merged_content = 4;            // Only used when resolution is MERGE
+}
+
+// Response after resolving a conflict
+message ResolveSyncConflictResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Request to get sync status
+message GetSyncStatusRequest {
+  string project_path = 1;
+}
+
+// Response with sync status
+message GetSyncStatusResponse {
+  SyncMode mode = 1;                    // Current sync mode
+  bool has_pending_changes = 2;         // Whether there are uncommitted changes
+  bool has_pending_push = 3;            // Whether there are unpushed commits
+  int32 conflict_count = 4;             // Number of unresolved conflicts
+  string last_sync_time = 5;            // Last successful sync timestamp
+  bool success = 6;
+  string error = 7;
+}
+
+// Request to manually trigger sync pull
+message SyncPullRequest {
+  string project_path = 1;
+}
+
+// Response from sync pull
+message SyncPullResponse {
+  bool success = 1;
+  string error = 2;
+  bool had_changes = 3;                 // Whether any changes were pulled
+  repeated string conflict_files = 4;   // Files with conflicts (if any)
+}
+
+// Request to manually trigger sync push
+message SyncPushRequest {
+  string project_path = 1;
+  string commit_message = 2;            // Optional custom commit message
+}
+
+// Response from sync push
+message SyncPushResponse {
+  bool success = 1;
+  string error = 2;
+  bool had_changes = 3;                 // Whether any changes were pushed
+}
