@@ -1,15 +1,23 @@
 # centy-daemon
 
-A gRPC daemon service for [Centy](https://github.com/centy-io/centy-cli) - a local-first issue and documentation tracker.
+A file-based database engine that stores structured data as Markdown files with YAML frontmatter, exposed via gRPC.
 
-## Overview
+## What is centy-daemon?
 
-centy-daemon manages `.centy` folder operations, providing a backend service for:
+centy-daemon is the **storage and query engine** behind [Centy](https://centy.io). It persists all data directly to the filesystem — no external database required. Every record is a human-readable Markdown file with structured metadata in YAML frontmatter, stored inside a `.centy` directory that can be version-controlled with git.
 
-- Initializing and reconciling `.centy` project folders
-- Creating and managing issues with metadata
-- Tracking managed files with SHA-256 integrity hashes
-- Configuration management for custom fields and defaults
+The daemon runs as a local gRPC service and provides:
+
+- **File-based persistence** — all data lives as `.md` files on disk
+- **Structured metadata** — YAML frontmatter for typed fields (status, priority, timestamps, custom fields)
+- **CRUD operations** — create, read, update, delete for all entity types
+- **Query engine** — advanced search with a custom query language (boolean logic, field operators, wildcards, regex)
+- **File integrity** — SHA-256 hashing and reconciliation for managed files
+- **Entity linking** — bidirectional relationships between records
+- **Multi-project support** — a registry that tracks multiple databases across the filesystem
+- **Organization grouping** — sync records across projects within an organization
+
+This entire directory is designed to be committed to git, making the database portable, diffable, and mergeable.
 
 ## Requirements
 
@@ -30,7 +38,6 @@ cargo build --release
 
 ```bash
 # Default: binds to 127.0.0.1:50051
-# Automatically allows *.centy.io and localhost origins
 centy-daemon
 
 # Custom address
@@ -43,128 +50,51 @@ centy-daemon --cors-origins=http://localhost:5180
 CENTY_DAEMON_ADDR=127.0.0.1:50052 centy-daemon
 ```
 
-### CLI Options
-
-| Option | Environment Variable | Default | Description |
-|--------|---------------------|---------|-------------|
-| `-a, --addr` | `CENTY_DAEMON_ADDR` | `127.0.0.1:50051` | Address to bind the server to |
-| `--cors-origins` | `CENTY_CORS_ORIGINS` | `http://localhost,...` | Comma-separated list of allowed CORS origins |
-
 ### gRPC API
 
 The daemon supports both **native gRPC** (HTTP/2) and **gRPC-Web** (HTTP/1.1), making it compatible with:
+
 - Native gRPC clients (CLI tools, backend services)
 - Browser-based applications (via gRPC-Web/Connect)
+
+#### Core Operations
+
+See [`proto/centy.proto`](proto/centy.proto) for the full API specification (70+ RPCs).
 
 ### CORS Configuration
 
 The daemon always allows CORS requests from:
+
 - All `*.centy.io` subdomains (e.g., `https://app.centy.io`)
 - Localhost origins (`http://localhost`, `https://localhost`, `http://127.0.0.1`, `https://127.0.0.1`)
 
-This means the hosted web app at [app.centy.io](https://app.centy.io) works out of the box with no additional configuration.
-
-To allow additional custom origins, use the `--cors-origins` flag:
+To allow additional custom origins:
 
 ```bash
 centy-daemon --cors-origins=http://localhost:5180,https://myapp.example.com
 ```
 
-Use `*` to allow all origins (not recommended for production):
+### Testing the API
 
 ```bash
-centy-daemon --cors-origins='*'
-```
-
-The daemon exposes the `CentyDaemon` service with the following RPCs:
-
-| RPC | Description |
-|-----|-------------|
-| `Init` | Initialize a `.centy` folder in a project directory |
-| `GetReconciliationPlan` | Preview changes without executing |
-| `ExecuteReconciliation` | Apply reconciliation with user decisions |
-| `CreateIssue` | Create a new issue with title, description, and metadata |
-| `GetNextIssueNumber` | Get the next sequential issue number |
-| `GetManifest` | Read the project manifest |
-| `GetConfig` | Read project configuration |
-| `IsInitialized` | Check if centy is initialized in a directory |
-
-See [`proto/centy.proto`](proto/centy.proto) for the full API specification.
-
-### Testing with grpcui
-
-[grpcui](https://github.com/fullstorydev/grpcui) provides a web-based UI for interacting with the gRPC API.
-
-```bash
-# Install grpcui
+# Install grpcui for a web-based API explorer
 go install github.com/fullstorydev/grpcui/cmd/grpcui@latest
-
-# Start the daemon first, then launch grpcui
 grpcui -plaintext 127.0.0.1:50051
-```
 
-This opens a browser with an interactive interface to call any RPC method.
+# Or use grpcurl for CLI-based interaction
+grpcurl -plaintext 127.0.0.1:50051 list
+grpcurl -plaintext -d '{"project_path": "/path/to/project"}' \
+  127.0.0.1:50051 centy.CentyDaemon/IsInitialized
+```
 
 ## E2E Tests
 
-The `e2e/` directory contains end-to-end tests for the gRPC API using Node.js and Vitest.
-
-### Prerequisites
-
-- Node.js >= 20.0.0
-- pnpm 10.24.0
-- Running daemon (build with `cargo build --release`)
-
-### Running E2E Tests
-
 ```bash
-# Install dependencies
 cd e2e
 pnpm install
-
-# Build the daemon (if not already built)
 pnpm daemon:build
-
-# Start the daemon in another terminal
-pnpm daemon:start
-
-# Run tests
+pnpm daemon:start   # in another terminal
 pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-```
-
-### Test Structure
-
-```
-e2e/
-├── fixtures/
-│   ├── grpc-client.ts      # gRPC client wrapper
-│   ├── temp-project.ts     # Temp project helpers
-│   └── daemon-manager.ts   # Daemon lifecycle management
-├── daemon.e2e.spec.ts      # Daemon control tests
-├── init.e2e.spec.ts        # Project initialization tests
-├── issues.e2e.spec.ts      # Issue CRUD tests
-├── docs.e2e.spec.ts        # Documentation CRUD tests
-├── assets.e2e.spec.ts      # Asset management tests
-└── config.e2e.spec.ts      # Configuration tests
-```
-
-## Project Structure
-
-```
-.centy/                     # Created in your project root
-├── .centy-manifest.json    # Tracks managed files with hashes
-├── config.json             # Custom fields and defaults
-├── README.md               # Project README
-├── issues/                 # Issue storage
-│   └── 0001/
-│       ├── issue.md        # Issue content
-│       ├── metadata.json   # Status, priority, timestamps
-│       └── assets/         # Attachments
-├── docs/                   # Documentation
-└── assets/                 # Shared assets
 ```
 
 ## Contributing
