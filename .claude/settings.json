@@ -73,7 +73,9 @@
       "Bash(centy issue create --help:*)",
       "Bash(grpcurl:*)",
       "Bash(gh repo view:*)",
-      "Bash(centy issue:*)"
+      "Bash(centy issue:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr merge:*)"
     ]
   },
   "hooks": {
