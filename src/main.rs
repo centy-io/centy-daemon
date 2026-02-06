@@ -105,6 +105,8 @@ async fn main() -> Result<()> {
             .join("logs")
     });
 
+    let log_file = log_dir.join("centy-daemon.log");
+
     let log_config = LogConfig {
         log_dir,
         json_format: args.log_json,
@@ -194,8 +196,15 @@ async fn main() -> Result<()> {
             eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
             eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
             eprintln!();
+            eprintln!("Logs: {}", log_file.display());
+            eprintln!();
             std::process::exit(1);
         }
+        eprintln!();
+        eprintln!("Error: Failed to start server: {e}");
+        eprintln!();
+        eprintln!("Logs: {}", log_file.display());
+        eprintln!();
         return Err(e.into());
     }
 
