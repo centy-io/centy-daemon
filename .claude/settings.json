@@ -97,7 +97,8 @@
       "Bash(npx vitest run)",
       "Bash(git clean:*)",
       "Bash(git reset:*)",
-      "Bash(gh release list:*)"
+      "Bash(gh release list:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
