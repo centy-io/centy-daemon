@@ -97,10 +97,6 @@ pub struct IssueMetadataFlat {
     pub created_at: String,
     pub updated_at: String,
     pub custom_fields: HashMap<String, String>,
-    /// Whether this issue has been compacted into features
-    pub compacted: bool,
-    /// ISO timestamp when the issue was compacted
-    pub compacted_at: Option<String>,
     /// Whether this issue is a draft
     pub draft: bool,
     /// ISO timestamp when soft-deleted (None if not deleted)
@@ -256,8 +252,7 @@ async fn migrate_issue_to_new_format(
         created_at: issue.metadata.created_at.clone(),
         updated_at: issue.metadata.updated_at.clone(),
         draft: issue.metadata.draft,
-        compacted: issue.metadata.compacted,
-        compacted_at: issue.metadata.compacted_at.clone(),
+
         deleted_at: issue.metadata.deleted_at.clone(),
         is_org_issue: issue.metadata.is_org_issue,
         org_slug: issue.metadata.org_slug.clone(),
@@ -461,8 +456,6 @@ fn build_updated_metadata(current: &Issue, updates: &AppliedIssueUpdates) -> Iss
                 .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
                 .collect(),
         },
-        compacted: current.metadata.compacted,
-        compacted_at: current.metadata.compacted_at.clone(),
         draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
         is_org_issue: current.metadata.is_org_issue,
@@ -516,8 +509,7 @@ fn build_issue_struct(
             created_at: current.metadata.created_at.clone(),
             updated_at: updated_at.to_string(),
             custom_fields: updates.custom_fields.clone(),
-            compacted: current.metadata.compacted,
-            compacted_at: current.metadata.compacted_at.clone(),
+
             draft: updates.draft,
             deleted_at: current.metadata.deleted_at.clone(),
             is_org_issue: current.metadata.is_org_issue,
@@ -816,8 +808,6 @@ pub async fn soft_delete_issue(
         created_at: current.metadata.created_at.clone(),
         updated_at: now.clone(),
         draft: current.metadata.draft,
-        compacted: current.metadata.compacted,
-        compacted_at: current.metadata.compacted_at.clone(),
         deleted_at: Some(now),
         is_org_issue: current.metadata.is_org_issue,
         org_slug: current.metadata.org_slug.clone(),
@@ -895,8 +885,6 @@ pub async fn restore_issue(
         created_at: current.metadata.created_at.clone(),
         updated_at: now_iso(),
         draft: current.metadata.draft,
-        compacted: current.metadata.compacted,
-        compacted_at: current.metadata.compacted_at.clone(),
         deleted_at: None,
         is_org_issue: current.metadata.is_org_issue,
         org_slug: current.metadata.org_slug.clone(),
@@ -1011,8 +999,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         created_at: source_issue.metadata.created_at.clone(),
         updated_at: now_iso(),
         draft: source_issue.metadata.draft,
-        compacted: source_issue.metadata.compacted,
-        compacted_at: source_issue.metadata.compacted_at.clone(),
+
         deleted_at: source_issue.metadata.deleted_at.clone(),
         is_org_issue: source_issue.metadata.is_org_issue,
         org_slug: source_issue.metadata.org_slug.clone(),
@@ -1155,8 +1142,6 @@ pub async fn duplicate_issue(
         created_at: now.clone(),
         updated_at: now,
         draft: source_issue.metadata.draft,
-        compacted: false, // Reset compacted status for new issue
-        compacted_at: None,
         deleted_at: None,    // New duplicate is not deleted
         is_org_issue: false, // Duplicate is always a local copy
         org_slug: None,
@@ -1229,8 +1214,6 @@ async fn read_issue_from_frontmatter(
             created_at: frontmatter.created_at,
             updated_at: frontmatter.updated_at,
             custom_fields: frontmatter.custom_fields,
-            compacted: frontmatter.compacted,
-            compacted_at: frontmatter.compacted_at,
             draft: frontmatter.draft,
             deleted_at: frontmatter.deleted_at,
             is_org_issue: frontmatter.is_org_issue,
@@ -1289,8 +1272,6 @@ async fn read_issue_from_legacy_folder(
             created_at: metadata.common.created_at,
             updated_at: metadata.common.updated_at,
             custom_fields,
-            compacted: metadata.compacted,
-            compacted_at: metadata.compacted_at,
             draft: metadata.draft,
             deleted_at: metadata.deleted_at,
             is_org_issue: metadata.is_org_issue,
@@ -1437,8 +1418,6 @@ async fn create_issue_in_project(
         created_at: now.clone(),
         updated_at: now,
         draft: source_metadata.draft,
-        compacted: false,
-        compacted_at: None,
         deleted_at: None,
         is_org_issue: true,
         org_slug: Some(org_slug.to_string()),
@@ -1531,8 +1510,6 @@ async fn update_or_create_issue_in_project(
         created_at: existing.metadata.created_at.clone(), // Preserve original created_at
         updated_at: now_iso(),
         draft: source_metadata.draft,
-        compacted: existing.metadata.compacted, // Preserve local compaction state
-        compacted_at: existing.metadata.compacted_at.clone(),
         deleted_at: source_metadata.deleted_at.clone(),
         is_org_issue: true,
         org_slug: Some(org_slug.to_string()),
