@@ -249,4 +249,146 @@ mod tests {
         assert!(json.contains("\"targetType\":\"issue\""));
         assert!(json.contains("\"linkType\":\"blocks\""));
     }
+
+    #[test]
+    fn test_target_type_as_str() {
+        assert_eq!(TargetType::Issue.as_str(), "issue");
+        assert_eq!(TargetType::Doc.as_str(), "doc");
+        assert_eq!(TargetType::Pr.as_str(), "pr");
+    }
+
+    #[test]
+    fn test_target_type_display() {
+        assert_eq!(format!("{}", TargetType::Issue), "issue");
+        assert_eq!(format!("{}", TargetType::Doc), "doc");
+        assert_eq!(format!("{}", TargetType::Pr), "pr");
+    }
+
+    #[test]
+    fn test_target_type_serialization() {
+        let json = serde_json::to_string(&TargetType::Issue).unwrap();
+        assert_eq!(json, "\"issue\"");
+
+        let json = serde_json::to_string(&TargetType::Doc).unwrap();
+        assert_eq!(json, "\"doc\"");
+
+        let json = serde_json::to_string(&TargetType::Pr).unwrap();
+        assert_eq!(json, "\"pr\"");
+    }
+
+    #[test]
+    fn test_target_type_deserialization() {
+        let tt: TargetType = serde_json::from_str("\"issue\"").unwrap();
+        assert_eq!(tt, TargetType::Issue);
+
+        let tt: TargetType = serde_json::from_str("\"doc\"").unwrap();
+        assert_eq!(tt, TargetType::Doc);
+
+        let tt: TargetType = serde_json::from_str("\"pr\"").unwrap();
+        assert_eq!(tt, TargetType::Pr);
+    }
+
+    #[test]
+    fn test_target_type_eq() {
+        assert_eq!(TargetType::Issue, TargetType::Issue);
+        assert_ne!(TargetType::Issue, TargetType::Doc);
+        assert_ne!(TargetType::Doc, TargetType::Pr);
+    }
+
+    #[test]
+    fn test_link_new_creates_timestamp() {
+        let link = Link::new(
+            "target-1".to_string(),
+            TargetType::Doc,
+            "relates-to".to_string(),
+        );
+        assert_eq!(link.target_id, "target-1");
+        assert_eq!(link.target_type, TargetType::Doc);
+        assert_eq!(link.link_type, "relates-to");
+        assert!(!link.created_at.is_empty());
+    }
+
+    #[test]
+    fn test_link_deserialization() {
+        let json = r#"{
+            "targetId": "abc-123",
+            "targetType": "issue",
+            "linkType": "blocks",
+            "createdAt": "2024-01-01T00:00:00Z"
+        }"#;
+
+        let link: Link = serde_json::from_str(json).unwrap();
+        assert_eq!(link.target_id, "abc-123");
+        assert_eq!(link.target_type, TargetType::Issue);
+        assert_eq!(link.link_type, "blocks");
+        assert_eq!(link.created_at, "2024-01-01T00:00:00Z");
+    }
+
+    #[test]
+    fn test_custom_link_type_definition_serialization() {
+        let def = CustomLinkTypeDefinition {
+            name: "depends-on".to_string(),
+            inverse: "dependency-of".to_string(),
+            description: Some("Dependency relationship".to_string()),
+        };
+
+        let json = serde_json::to_string(&def).unwrap();
+        let deserialized: CustomLinkTypeDefinition = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.name, "depends-on");
+        assert_eq!(deserialized.inverse, "dependency-of");
+        assert_eq!(
+            deserialized.description,
+            Some("Dependency relationship".to_string())
+        );
+    }
+
+    #[test]
+    fn test_custom_link_type_definition_without_description() {
+        let def = CustomLinkTypeDefinition {
+            name: "test".to_string(),
+            inverse: "test-inverse".to_string(),
+            description: None,
+        };
+
+        let json = serde_json::to_string(&def).unwrap();
+        assert!(!json.contains("description"));
+    }
+
+    #[test]
+    fn test_builtin_link_types_count() {
+        assert_eq!(BUILTIN_LINK_TYPES.len(), 8); // 4 pairs = 8 entries
+    }
+
+    #[test]
+    fn test_builtin_link_types_symmetry() {
+        // Every forward type should have its inverse present
+        for (name, inverse) in BUILTIN_LINK_TYPES {
+            let has_inverse = BUILTIN_LINK_TYPES.iter().any(|(n, _)| *n == *inverse);
+            assert!(
+                has_inverse,
+                "Inverse '{inverse}' of '{name}' not found in BUILTIN_LINK_TYPES"
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_valid_link_type_all_builtins() {
+        let custom: Vec<CustomLinkTypeDefinition> = vec![];
+        for (name, _) in BUILTIN_LINK_TYPES {
+            assert!(is_valid_link_type(name, &custom), "{name} should be valid");
+        }
+    }
+
+    #[test]
+    fn test_get_inverse_all_builtins() {
+        let custom: Vec<CustomLinkTypeDefinition> = vec![];
+        for (name, expected_inverse) in BUILTIN_LINK_TYPES {
+            let inverse = get_inverse_link_type(name, &custom);
+            assert_eq!(
+                inverse.as_deref(),
+                Some(*expected_inverse),
+                "Inverse of '{name}' should be '{expected_inverse}'"
+            );
+        }
+    }
 }

@@ -471,4 +471,215 @@ mod tests {
         let result = parse_query("(status:open OR status:planning) AND priority<=2").unwrap();
         assert!(result.is_some());
     }
+
+    #[test]
+    fn test_whitespace_query() {
+        let result = parse_query("  ").unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_not_eq_operator() {
+        let result = parse_query("status!=closed").unwrap();
+        assert!(result.is_some());
+        let query = result.unwrap();
+        if let Query::Condition(cond) = query {
+            assert_eq!(cond.operator, Operator::NotEq);
+        } else {
+            panic!("Expected condition");
+        }
+    }
+
+    #[test]
+    fn test_contains_operator() {
+        let result = parse_query("title~login").unwrap();
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_starts_with_operator() {
+        let result = parse_query("title^bug").unwrap();
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_gte_operator() {
+        let result = parse_query("priority>=2").unwrap();
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_lt_operator() {
+        let result = parse_query("priority<3").unwrap();
+        assert!(result.is_some());
+    }
+
+    // --- format_query tests ---
+
+    #[test]
+    fn test_format_simple_condition() {
+        let query = Query::Condition(Condition {
+            field: Field::Status,
+            operator: Operator::Eq,
+            value: Value::String("open".to_string()),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "status:open");
+    }
+
+    #[test]
+    fn test_format_contains() {
+        let query = Query::Condition(Condition {
+            field: Field::Title,
+            operator: Operator::Contains,
+            value: Value::String("bug".to_string()),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "title~bug");
+    }
+
+    #[test]
+    fn test_format_number() {
+        let query = Query::Condition(Condition {
+            field: Field::Priority,
+            operator: Operator::Lte,
+            value: Value::Number(2),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "priority<=2");
+    }
+
+    #[test]
+    fn test_format_and() {
+        let query = Query::And(
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("open".to_string()),
+            })),
+            Box::new(Query::Condition(Condition {
+                field: Field::Priority,
+                operator: Operator::Eq,
+                value: Value::Number(1),
+            })),
+        );
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "(status:open AND priority:1)");
+    }
+
+    #[test]
+    fn test_format_or() {
+        let query = Query::Or(
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("open".to_string()),
+            })),
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("closed".to_string()),
+            })),
+        );
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "(status:open OR status:closed)");
+    }
+
+    #[test]
+    fn test_format_not() {
+        let query = Query::Not(Box::new(Query::Condition(Condition {
+            field: Field::Status,
+            operator: Operator::Eq,
+            value: Value::String("closed".to_string()),
+        })));
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "NOT status:closed");
+    }
+
+    #[test]
+    fn test_format_quoted_string() {
+        let query = Query::Condition(Condition {
+            field: Field::Title,
+            operator: Operator::Eq,
+            value: Value::String("bug fix".to_string()),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "title:\"bug fix\"");
+    }
+
+    #[test]
+    fn test_format_boolean() {
+        let query = Query::Condition(Condition {
+            field: Field::Custom("flag".to_string()),
+            operator: Operator::Eq,
+            value: Value::Boolean(true),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "flag:true");
+    }
+
+    #[test]
+    fn test_format_date() {
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        let query = Query::Condition(Condition {
+            field: Field::CreatedAt,
+            operator: Operator::Gt,
+            value: Value::Date(date),
+        });
+        let formatted = format_query(&query);
+        assert_eq!(formatted, "createdAt>2024-06-15");
+    }
+
+    #[test]
+    fn test_format_all_operators() {
+        let operators = [
+            (Operator::Eq, ":"),
+            (Operator::NotEq, "!="),
+            (Operator::Contains, "~"),
+            (Operator::StartsWith, "^"),
+            (Operator::EndsWith, "$"),
+            (Operator::Gt, ">"),
+            (Operator::Lt, "<"),
+            (Operator::Gte, ">="),
+            (Operator::Lte, "<="),
+        ];
+        for (op, expected) in operators {
+            let query = Query::Condition(Condition {
+                field: Field::Status,
+                operator: op,
+                value: Value::String("test".to_string()),
+            });
+            let formatted = format_query(&query);
+            assert!(
+                formatted.contains(expected),
+                "Expected '{expected}' in '{formatted}'"
+            );
+        }
+    }
+
+    #[test]
+    fn test_format_all_fields() {
+        let fields_and_names = [
+            (Field::Title, "title"),
+            (Field::Description, "description"),
+            (Field::Status, "status"),
+            (Field::Priority, "priority"),
+            (Field::DisplayNumber, "displayNumber"),
+            (Field::CreatedAt, "createdAt"),
+            (Field::UpdatedAt, "updatedAt"),
+            (Field::Custom("env".to_string()), "env"),
+        ];
+        for (field, expected) in fields_and_names {
+            let query = Query::Condition(Condition {
+                field,
+                operator: Operator::Eq,
+                value: Value::String("test".to_string()),
+            });
+            let formatted = format_query(&query);
+            assert!(
+                formatted.starts_with(expected),
+                "Expected '{expected}' at start of '{formatted}'"
+            );
+        }
+    }
 }
