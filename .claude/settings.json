@@ -108,7 +108,8 @@
       "Bash(centy-daemon:*)",
       "Bash(centy start:*)",
       "Bash(centy info:*)",
-      "Bash(centy close:*)"
+      "Bash(centy close:*)",
+      "Bash(centy init:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
