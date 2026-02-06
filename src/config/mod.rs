@@ -111,7 +111,7 @@ pub struct CentyConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_editor: Option<String>,
     /// Lifecycle hooks (bash scripts to run before/after operations)
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub hooks: Vec<HookDefinition>,
 }
 
@@ -144,7 +144,9 @@ impl Default for CentyConfig {
     }
 }
 
-/// Read the configuration file
+/// Read the configuration file.
+/// Automatically normalizes the config by adding missing sections (e.g. `hooks`)
+/// that were introduced after the project was created, then writes back to disk.
 pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, ConfigError> {
     let config_path = get_centy_path(project_path).join("config.json");
 
@@ -154,6 +156,15 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
 
     let content = fs::read_to_string(&config_path).await?;
     let config: CentyConfig = serde_json::from_str(&content)?;
+
+    // Normalize: if the raw JSON is missing the "hooks" key, write back
+    // to ensure all projects have the hooks section in config.json.
+    let raw: serde_json::Value = serde_json::from_str(&content)?;
+    if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
+        let normalized = serde_json::to_string_pretty(&config)?;
+        fs::write(&config_path, normalized).await?;
+    }
+
     Ok(Some(config))
 }
 
@@ -509,5 +520,100 @@ mod tests {
 
         let title = get_project_title(temp_dir.path()).await;
         assert!(title.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_read_config_normalizes_missing_hooks() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Write a config.json WITHOUT the hooks key (simulating a pre-hooks project)
+        let config_without_hooks = r#"{
+  "priorityLevels": 3,
+  "customFields": [],
+  "defaults": {},
+  "allowedStates": ["open", "planning", "in-progress", "closed"],
+  "defaultState": "open",
+  "stateColors": {},
+  "priorityColors": {},
+  "llm": {}
+}"#;
+        let config_path = centy_dir.join("config.json");
+        fs::write(&config_path, config_without_hooks)
+            .await
+            .expect("Should write config");
+
+        // Reading should succeed and return empty hooks
+        let config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+        assert!(config.hooks.is_empty());
+
+        // The file should now contain the hooks key
+        let raw = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read file");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("Should parse");
+        assert!(
+            value.as_object().unwrap().contains_key("hooks"),
+            "config.json should now contain the hooks key"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_read_config_does_not_rewrite_when_hooks_present() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Write a config.json WITH the hooks key already present
+        let config_with_hooks = r#"{
+  "priorityLevels": 3,
+  "customFields": [],
+  "defaults": {},
+  "allowedStates": ["open", "planning", "in-progress", "closed"],
+  "defaultState": "open",
+  "stateColors": {},
+  "priorityColors": {},
+  "llm": {},
+  "hooks": []
+}"#;
+        let config_path = centy_dir.join("config.json");
+        fs::write(&config_path, config_with_hooks)
+            .await
+            .expect("Should write config");
+
+        // Read config
+        let config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+        assert!(config.hooks.is_empty());
+
+        // File content should remain unchanged (not rewritten)
+        let raw = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read file");
+        assert_eq!(raw, config_with_hooks);
+    }
+
+    #[test]
+    fn test_hooks_always_serialized_even_when_empty() {
+        let config = CentyConfig::default();
+        let json = serde_json::to_string(&config).expect("Should serialize");
+        assert!(
+            json.contains("\"hooks\""),
+            "hooks key should be present in serialized JSON even when empty"
+        );
     }
 }

@@ -101,14 +101,14 @@ unsafe_code = "forbid"
 # Enable pedantic lints
 pedantic = { level = "warn", priority = -1 }
 
-# Warn on panic/unwrap/expect to encourage proper error handling
+# Deny panic/unwrap/expect to enforce proper error handling
 # These lints prevent runtime panics in favor of explicit error handling
-# Set to warn level - lib.rs and main.rs promote to deny for non-test code
-panic = "warn"
-unwrap_used = "warn"
-expect_used = "warn"
-panic_in_result_fn = "warn"
-unwrap_in_result = "warn"
+# Test code is exempted via cfg_attr(test, allow(...)) in lib.rs and main.rs
+panic = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic_in_result_fn = "deny"
+unwrap_in_result = "deny"
 exit = "deny"
 
 # Deny unvalidated arithmetic to prevent overflow panics in debug

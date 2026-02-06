@@ -130,7 +130,8 @@
       "Bash(npm run build:*)",
       "Bash(centy install:*)",
       "Bash(npm update:*)",
-      "Bash(centy issues get:*)"
+      "Bash(centy issues get:*)",
+      "Bash(centy llm:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
