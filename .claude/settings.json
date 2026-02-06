@@ -83,7 +83,8 @@
       "Bash(pgrep:*)",
       "Bash(pnpm test:*)",
       "Bash(node -e:*)"
-    ]
+    ],
+    "deny": ["Bash(gh issue create:*)"]
   },
   "hooks": {
     "PreToolUse": [
