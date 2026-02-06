@@ -180,7 +180,8 @@ pub fn open_editor_by_config(editor: &EditorConfig, workspace_path: &Path) -> bo
         return false;
     }
 
-    let command_str = editor.open_dir.replace("{dir}", &dir_str);
+    let escaped_dir = super::terminal::escape_path_for_shell(&dir_str);
+    let command_str = editor.open_dir.replace("{dir}", &escaped_dir);
 
     if editor.terminal_wrapper {
         // Run inside a platform terminal
@@ -203,7 +204,8 @@ pub async fn run_editor_setup(editor: &EditorConfig, workspace_path: &Path) {
 
     if let Some(ref setup_cmd) = editor.setup_workspace {
         let dir_str = workspace_path.to_string_lossy();
-        let cmd = setup_cmd.replace("{dir}", &dir_str);
+        let escaped_dir = super::terminal::escape_path_for_shell(&dir_str);
+        let cmd = setup_cmd.replace("{dir}", &escaped_dir);
 
         #[cfg(target_os = "windows")]
         let result = Command::new("cmd").arg("/C").arg(&cmd).output();
