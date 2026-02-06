@@ -43,7 +43,7 @@ use clap::Parser;
 use color_eyre::eyre::Result;
 use cors::{build_cors_layer, DEFAULT_CORS_ORIGINS};
 use grpc_logging::GrpcLoggingLayer;
-use logging::{init_logging, parse_rotation, LogConfig};
+use logging::{init_logging, parse_rotation, LogConfig, LOG_FILENAME};
 use server::proto::centy_daemon_server::CentyDaemonServer;
 use server::{CentyDaemonService, ShutdownSignal};
 use std::path::PathBuf;
@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
             .join("logs")
     });
 
-    let log_file = log_dir.join("centy-daemon.log");
+    let log_file = log_dir.join(LOG_FILENAME);
 
     let log_config = LogConfig {
         log_dir,

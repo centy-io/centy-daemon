@@ -10,6 +10,9 @@ use tracing_subscriber::{
     EnvFilter, Layer,
 };
 
+/// Log filename used by the daemon.
+pub const LOG_FILENAME: &str = "centy-daemon.log";
+
 /// Configuration for the logging system.
 pub struct LogConfig {
     /// Directory where log files will be written.
@@ -54,7 +57,7 @@ pub fn init_logging(config: LogConfig) -> Result<()> {
 
     // File appender with rotation
     let file_appender =
-        RollingFileAppender::new(config.rotation, &config.log_dir, "centy-daemon.log");
+        RollingFileAppender::new(config.rotation, &config.log_dir, LOG_FILENAME);
 
     // Build env filter (runtime configurable via RUST_LOG)
     // Default to the configured level for centy_daemon
