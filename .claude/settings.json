@@ -101,7 +101,9 @@
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(gh run watch:*)",
-      "Bash(gh issue list:*)"
+      "Bash(gh issue list:*)",
+      "Bash(gh release view:*)",
+      "Bash(git tag:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
