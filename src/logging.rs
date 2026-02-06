@@ -56,8 +56,7 @@ pub fn init_logging(config: LogConfig) -> Result<()> {
     std::fs::create_dir_all(&config.log_dir)?;
 
     // File appender with rotation
-    let file_appender =
-        RollingFileAppender::new(config.rotation, &config.log_dir, LOG_FILENAME);
+    let file_appender = RollingFileAppender::new(config.rotation, &config.log_dir, LOG_FILENAME);
 
     // Build env filter (runtime configurable via RUST_LOG)
     // Default to the configured level for centy_daemon
