@@ -62,6 +62,7 @@
     "osascript",
     "parseable",
     "peekable",
+    "pgrep",
     "pkill",
     "polyformproject",
     "postrun",

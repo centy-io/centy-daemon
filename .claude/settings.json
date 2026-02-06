@@ -79,7 +79,8 @@
       "WebFetch(domain:polyformproject.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(wc:*)",
-      "Bash(pnpm test)"
+      "Bash(pnpm test)",
+      "Bash(pgrep:*)"
     ]
   },
   "hooks": {
