@@ -117,7 +117,10 @@
       "Bash(centy install --help:*)",
       "Bash(lsof:*)",
       "Bash(npm ls:*)",
-      "Bash(pnpm ls:*)"
+      "Bash(pnpm ls:*)",
+      "Bash(gh repo list:*)",
+      "Bash(gh pr list:*)",
+      "Bash(centy list:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
