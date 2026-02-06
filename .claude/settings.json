@@ -127,7 +127,10 @@
       "Bash(centy version:*)",
       "Bash(kill:*)",
       "Bash(pkill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(centy install:*)",
+      "Bash(npm update:*)",
+      "Bash(centy issues get:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
