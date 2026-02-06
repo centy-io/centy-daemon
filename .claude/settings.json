@@ -71,7 +71,9 @@
       "Bash(centy workspace open --help:*)",
       "Bash(centy workspace open:*)",
       "Bash(centy issue create --help:*)",
-      "Bash(grpcurl:*)"
+      "Bash(grpcurl:*)",
+      "Bash(gh repo view:*)",
+      "Bash(centy issue:*)"
     ]
   },
   "hooks": {
