@@ -3,7 +3,7 @@ import * as protoLoader from '@grpc/proto-loader';
 import { join } from 'node:path';
 
 // Proto path is relative to the e2e directory - go up one level to find proto/
-const PROTO_PATH = join(process.cwd(), '../proto/centy.proto');
+const PROTO_PATH = join(process.cwd(), '../proto/centy/v1/centy.proto');
 
 // Load proto definition
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -1337,7 +1337,7 @@ export interface SyncUsersResponse {
 export function createGrpcClient(
   address: string = '127.0.0.1:50051'
 ): CentyClient {
-  const CentyDaemon = protoDescriptor.centy.CentyDaemon;
+  const CentyDaemon = protoDescriptor.centy.v1.CentyDaemon;
 
   const client = new CentyDaemon(
     address,

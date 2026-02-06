@@ -98,7 +98,7 @@ static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
 pub mod proto {
     #![allow(clippy::pedantic)]
     #![allow(clippy::all)]
-    tonic::include_proto!("centy");
+    tonic::include_proto!("centy.v1");
 }
 
 use proto::centy_daemon_server::CentyDaemon;

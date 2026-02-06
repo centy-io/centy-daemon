@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package centy;
+package centy.v1;
 
 // CentyDaemon service - manages .centy folder operations
 service CentyDaemon {
