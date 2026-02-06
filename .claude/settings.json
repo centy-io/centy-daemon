@@ -112,7 +112,8 @@
       "Bash(centy init:*)",
       "Bash(centy manifest:*)",
       "Bash(centy restart:*)",
-      "Bash(centy shutdown:*)"
+      "Bash(centy shutdown:*)",
+      "Bash(~/.centy/bin/centy-daemon:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
