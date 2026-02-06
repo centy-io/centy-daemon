@@ -94,7 +94,9 @@
       "Bash(python3:*)",
       "Bash(xargs:*)",
       "Bash(sort:*)",
-      "Bash(npx vitest run)"
+      "Bash(npx vitest run)",
+      "Bash(git clean:*)",
+      "Bash(git reset:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
