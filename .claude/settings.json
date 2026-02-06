@@ -120,7 +120,14 @@
       "Bash(pnpm ls:*)",
       "Bash(gh repo list:*)",
       "Bash(gh pr list:*)",
-      "Bash(centy list:*)"
+      "Bash(centy list:*)",
+      "Bash(centy task get:*)",
+      "Bash(centy daemon start:*)",
+      "Bash(centy daemon:*)",
+      "Bash(centy version:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
