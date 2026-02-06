@@ -109,7 +109,10 @@
       "Bash(centy start:*)",
       "Bash(centy info:*)",
       "Bash(centy close:*)",
-      "Bash(centy init:*)"
+      "Bash(centy init:*)",
+      "Bash(centy manifest:*)",
+      "Bash(centy restart:*)",
+      "Bash(centy shutdown:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
