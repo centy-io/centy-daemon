@@ -19,11 +19,6 @@ The daemon runs as a local gRPC service and provides:
 
 This entire directory is designed to be committed to git, making the database portable, diffable, and mergeable.
 
-## Requirements
-
-- Rust 1.70+ (2021 edition)
-- Protocol Buffers compiler (`protoc`)
-
 ## Installation
 
 ```bash
