@@ -67,7 +67,8 @@ use crate::utils::{format_display_path, get_centy_path, CENTY_VERSION};
 use crate::workspace::{
     cleanup_expired_workspaces as internal_cleanup_expired,
     cleanup_workspace as internal_cleanup_workspace, create_standalone_workspace,
-    create_temp_workspace, list_workspaces as internal_list_workspaces,
+    create_temp_workspace, get_all_editors, is_editor_available,
+    list_workspaces as internal_list_workspaces, resolve_editor_id,
     terminal::{is_terminal_available, open_terminal_with_agent},
     vscode::is_vscode_available,
     CreateStandaloneWorkspaceOptions, CreateWorkspaceOptions, EditorType,
@@ -130,8 +131,9 @@ use proto::{
     ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
     ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MoveDocRequest, MoveDocResponse,
     MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
-    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenStandaloneWorkspaceRequest,
-    OpenStandaloneWorkspaceResponse, OrgDocSyncResult,
+    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest,
+    OpenStandaloneWorkspaceRequest, OpenStandaloneWorkspaceResponse,
+    OpenStandaloneWorkspaceWithEditorRequest, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
     PrWithProject as ProtoPrWithProject, PullRequest, ReconciliationPlan, RegisterProjectRequest,
     RegisterProjectResponse, RestartRequest, RestartResponse, RestoreDocRequest,
@@ -1140,6 +1142,7 @@ impl CentyDaemon for CentyDaemonService {
                         default_workspace_mode: 0,
                     }),
                     custom_link_types: vec![],
+                    default_editor: String::new(),
                 }),
             })),
             Err(e) => Ok(Response::new(GetConfigResponse {
@@ -3059,25 +3062,129 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         _request: Request<GetSupportedEditorsRequest>,
     ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
-        let editors = vec![
-            EditorInfo {
-                editor_type: ProtoEditorType::Vscode.into(),
-                name: "VS Code".to_string(),
-                description: "Open workspace in Visual Studio Code with auto-running agent task"
-                    .to_string(),
-                available: is_vscode_available(),
-            },
-            EditorInfo {
-                editor_type: ProtoEditorType::Terminal.into(),
-                name: "Terminal".to_string(),
-                description: "Open workspace in the OS terminal".to_string(),
-                available: is_terminal_available(),
-            },
-        ];
+        let all_editors = get_all_editors().await;
+        let editors: Vec<EditorInfo> = all_editors
+            .iter()
+            .map(|e| {
+                let editor_type = match e.id.as_str() {
+                    "vscode" => ProtoEditorType::Vscode,
+                    "terminal" => ProtoEditorType::Terminal,
+                    _ => ProtoEditorType::Unspecified,
+                };
+                EditorInfo {
+                    editor_type: editor_type.into(),
+                    name: e.name.clone(),
+                    description: e.description.clone(),
+                    available: is_editor_available(e),
+                    editor_id: e.id.clone(),
+                    terminal_wrapper: e.terminal_wrapper,
+                }
+            })
+            .collect();
 
         Ok(Response::new(GetSupportedEditorsResponse { editors }))
     }
 
+    async fn open_in_temp_workspace(
+        &self,
+        request: Request<OpenInTempWorkspaceWithEditorRequest>,
+    ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
+            Ok(Response::new(OpenInTempWorkspaceResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                issue_id,
+                display_number: dn,
+                expires_at: String::new(),
+                editor_opened: false,
+                requires_status_config: req_cfg,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
+        let action_str = match req.action {
+            1 => "plan",
+            2 => "implement",
+            _ => "plan",
+        };
+
+        let issue = match resolve_issue(project_path, &req.issue_id).await {
+            Ok(i) => i,
+            Err(e) => return err_response(e, String::new(), 0, false),
+        };
+
+        let config = read_config(project_path).await.ok().flatten();
+        let requires_status_config = config
+            .as_ref()
+            .map(|c| c.llm.update_status_on_start.is_none())
+            .unwrap_or(true);
+        if requires_status_config {
+            return err_response(
+                "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string(),
+                issue.id.clone(), issue.metadata.display_number, true,
+            );
+        }
+
+        if let Some(ref cfg) = config {
+            if cfg.llm.update_status_on_start == Some(true)
+                && issue.metadata.status != "in-progress"
+                && issue.metadata.status != "closed"
+            {
+                let _ = update_issue(
+                    project_path,
+                    &issue.id,
+                    UpdateIssueOptions {
+                        status: Some("in-progress".to_string()),
+                        ..Default::default()
+                    },
+                )
+                .await;
+            }
+        }
+
+        let agent_name = if req.agent_name.is_empty() {
+            "claude".to_string()
+        } else {
+            req.agent_name.clone()
+        };
+
+        // Resolve editor ID from request, project config, or user defaults
+        let project_default = config.as_ref().and_then(|c| c.default_editor.as_deref());
+        let editor_id = resolve_editor_id(Some(&req.editor_id), project_default).await;
+
+        match create_temp_workspace(CreateWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            issue: issue.clone(),
+            action: action_str.to_string(),
+            agent_name,
+            ttl_hours: req.ttl_hours,
+            editor: EditorType::from_id(&editor_id),
+        })
+        .await
+        {
+            Ok(result) => Ok(Response::new(OpenInTempWorkspaceResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                expires_at: result.entry.expires_at,
+                editor_opened: result.editor_opened,
+                requires_status_config: false,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
+            })),
+            Err(e) => err_response(e.to_string(), String::new(), 0, false),
+        }
+    }
+
+    // Deprecated: thin wrapper delegating to unified OpenInTempWorkspace with "vscode" editor
     async fn open_in_temp_vscode(
         &self,
         request: Request<OpenInTempWorkspaceRequest>,
@@ -3504,6 +3611,77 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
+    async fn open_standalone_workspace(
+        &self,
+        request: Request<OpenStandaloneWorkspaceWithEditorRequest>,
+    ) -> Result<Response<OpenStandaloneWorkspaceResponse>, Status> {
+        let req = request.into_inner();
+        track_project_async(req.project_path.clone());
+        let project_path = Path::new(&req.project_path);
+
+        let err_response = |error: String| {
+            Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: false,
+                error,
+                workspace_path: String::new(),
+                workspace_id: String::new(),
+                name: String::new(),
+                expires_at: String::new(),
+                editor_opened: false,
+                workspace_reused: false,
+                original_created_at: String::new(),
+            }))
+        };
+
+        let agent_name = if req.agent_name.is_empty() {
+            "claude".to_string()
+        } else {
+            req.agent_name.clone()
+        };
+
+        let name = if req.name.is_empty() {
+            None
+        } else {
+            Some(req.name.clone())
+        };
+
+        let description = if req.description.is_empty() {
+            None
+        } else {
+            Some(req.description.clone())
+        };
+
+        // Resolve editor ID from request, project config, or user defaults
+        let config = read_config(project_path).await.ok().flatten();
+        let project_default = config.as_ref().and_then(|c| c.default_editor.as_deref());
+        let editor_id = resolve_editor_id(Some(&req.editor_id), project_default).await;
+
+        match create_standalone_workspace(CreateStandaloneWorkspaceOptions {
+            source_project_path: project_path.to_path_buf(),
+            name,
+            description,
+            ttl_hours: req.ttl_hours,
+            agent_name,
+            editor: EditorType::from_id(&editor_id),
+        })
+        .await
+        {
+            Ok(result) => Ok(Response::new(OpenStandaloneWorkspaceResponse {
+                success: true,
+                error: String::new(),
+                workspace_path: result.workspace_path.to_string_lossy().to_string(),
+                workspace_id: result.entry.workspace_id.clone(),
+                name: result.entry.workspace_name.clone(),
+                expires_at: result.entry.expires_at,
+                editor_opened: result.editor_opened,
+                workspace_reused: result.workspace_reused,
+                original_created_at: result.original_created_at.unwrap_or_default(),
+            })),
+            Err(e) => err_response(e.to_string()),
+        }
+    }
+
+    // Deprecated: thin wrapper delegating to unified OpenStandaloneWorkspace with "vscode" editor
     async fn open_standalone_workspace_vscode(
         &self,
         request: Request<OpenStandaloneWorkspaceRequest>,
@@ -3887,6 +4065,7 @@ fn config_to_proto(config: &CentyConfig) -> Config {
                 description: lt.description.clone().unwrap_or_default(),
             })
             .collect(),
+        default_editor: config.default_editor.clone().unwrap_or_default(),
     }
 }
 
@@ -3943,6 +4122,11 @@ fn proto_to_config(proto: &Config) -> CentyConfig {
                 },
             })
             .collect(),
+        default_editor: if proto.default_editor.is_empty() {
+            None
+        } else {
+            Some(proto.default_editor.clone())
+        },
     }
 }
 

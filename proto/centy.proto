@@ -209,19 +209,25 @@ service CentyDaemon {
   // Get list of supported workspace editors
   rpc GetSupportedEditors(GetSupportedEditorsRequest) returns (GetSupportedEditorsResponse);
 
-  // Open a project in a temporary VS Code workspace
+  // Open a project in a temporary workspace with a configurable editor
+  rpc OpenInTempWorkspace(OpenInTempWorkspaceWithEditorRequest) returns (OpenInTempWorkspaceResponse);
+
+  // Open a standalone workspace with a configurable editor (not tied to an issue)
+  rpc OpenStandaloneWorkspace(OpenStandaloneWorkspaceWithEditorRequest) returns (OpenStandaloneWorkspaceResponse);
+
+  // Open a project in a temporary VS Code workspace (deprecated: use OpenInTempWorkspace)
   rpc OpenInTempVscode(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
 
-  // Open a project in a temporary terminal workspace
+  // Open a project in a temporary terminal workspace (deprecated: use OpenInTempWorkspace)
   rpc OpenInTempTerminal(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
 
   // Open an agent in a terminal for working on an issue
   rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
 
-  // Open a standalone workspace in VS Code (not tied to an issue)
+  // Open a standalone workspace in VS Code (deprecated: use OpenStandaloneWorkspace)
   rpc OpenStandaloneWorkspaceVscode(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
 
-  // Open a standalone workspace in terminal (not tied to an issue)
+  // Open a standalone workspace in terminal (deprecated: use OpenStandaloneWorkspace)
   rpc OpenStandaloneWorkspaceTerminal(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
 
   // List all temp workspaces
@@ -672,6 +678,7 @@ message Config {
   map<string, string> priority_colors = 8;  // Priority level → hex color (e.g., "1" → "#ef4444")
   LlmConfig llm = 9;                        // LLM-related settings
   repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
+  string default_editor = 11;                // Default editor ID for this project (e.g., "vscode", "terminal", "zed")
 }
 
 message CustomFieldDefinition {
@@ -1403,10 +1410,12 @@ message GetSupportedEditorsRequest {}
 
 // Information about a supported editor
 message EditorInfo {
-  EditorType editor_type = 1;         // Editor type enum value
+  EditorType editor_type = 1;         // Editor type enum value (deprecated: use editor_id)
   string name = 2;                    // Display name (e.g., "VS Code", "Terminal")
   string description = 3;             // Brief description
   bool available = 4;                 // Whether this editor is available on the current system
+  string editor_id = 5;              // String-based editor identifier (e.g., "vscode", "terminal", "zed")
+  bool terminal_wrapper = 6;         // Whether this editor runs inside a terminal
 }
 
 // Response with list of supported editors
@@ -1414,7 +1423,27 @@ message GetSupportedEditorsResponse {
   repeated EditorInfo editors = 1;    // List of supported editors
 }
 
-// Shared request for OpenInTempVscode and OpenInTempTerminal
+// Request for unified OpenInTempWorkspace (new, configurable editor)
+message OpenInTempWorkspaceWithEditorRequest {
+  string project_path = 1;              // Source project path
+  string issue_id = 2;                  // Issue UUID or display number
+  LlmAction action = 3;                 // Plan or Implement
+  string agent_name = 4;                // Agent to use (empty = default)
+  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
+  string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
+}
+
+// Request for unified OpenStandaloneWorkspace (new, configurable editor)
+message OpenStandaloneWorkspaceWithEditorRequest {
+  string project_path = 1;              // Source project path
+  string name = 2;                      // Optional custom name for the workspace
+  string description = 3;               // Optional description/goals for this workspace
+  uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
+  string agent_name = 5;                // Agent to use (empty = default)
+  string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
+}
+
+// Shared request for OpenInTempVscode and OpenInTempTerminal (deprecated: use OpenInTempWorkspaceWithEditorRequest)
 message OpenInTempWorkspaceRequest {
   string project_path = 1;              // Source project path
   string issue_id = 2;                  // Issue UUID or display number

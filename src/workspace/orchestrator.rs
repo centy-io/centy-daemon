@@ -13,7 +13,7 @@
 //! - VS Code configuration setup
 
 use super::data::{copy_issue_data_to_workspace, copy_project_config_to_workspace};
-use super::editor::{open_editor, EditorType};
+use super::editor::{open_editor, run_editor_setup_by_id, EditorType};
 use super::gwq_client::{GwqClient, GwqError};
 use super::metadata::{
     find_metadata_for_issue, find_standalone_metadata, get_default_ttl_from_metadata,
@@ -23,7 +23,6 @@ use super::path::{
     calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
 };
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
-use super::vscode::setup_vscode_config;
 use super::WorkspaceError;
 use crate::item::entities::issue::Issue;
 use crate::item::entities::pr::git::is_git_repository;
@@ -129,10 +128,8 @@ async fn setup_new_workspace(
     // Copy issue data to workspace
     copy_issue_data_to_workspace(source_path, workspace_path, issue_id).await?;
 
-    // Only setup VS Code config for VS Code editor
-    if options.editor == EditorType::VSCode {
-        setup_vscode_config(workspace_path).await?;
-    }
+    // Run editor-specific workspace setup
+    run_editor_setup_by_id(options.editor.to_id(), workspace_path).await;
 
     let entry = TempWorkspaceEntry {
         source_project_path: source_path.to_string_lossy().to_string(),

@@ -63,7 +63,7 @@ CENTY_PROMPT_EOF"#
 
 /// Open a terminal at the specified directory with a command to run.
 #[cfg(target_os = "macos")]
-fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
+pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
     // Use osascript to open Terminal.app
     let script = format!(
         r#"tell application "Terminal"
@@ -83,7 +83,7 @@ end tell"#,
 }
 
 #[cfg(target_os = "linux")]
-fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
+pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
     // Try common terminal emulators in order of preference
     let working_dir_str = working_dir.to_string_lossy();
 
@@ -139,7 +139,7 @@ fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, Wor
 }
 
 #[cfg(target_os = "windows")]
-fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
+pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, WorkspaceError> {
     // Try Windows Terminal first
     let wt_result = Command::new("wt")
         .arg("-d")
@@ -165,7 +165,7 @@ fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool, Wor
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn open_platform_terminal(_working_dir: &Path, _command: &str) -> Result<bool, WorkspaceError> {
+pub fn open_platform_terminal(_working_dir: &Path, _command: &str) -> Result<bool, WorkspaceError> {
     Err(WorkspaceError::TerminalNotFound)
 }
 
