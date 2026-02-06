@@ -577,7 +577,6 @@ export class CLIWrapper {
       const lines = [
         `Centy Daemon`,
         `Version: ${result.version}`,
-        `Available versions: ${result.availableVersions.join(', ')}`,
       ];
 
       return {

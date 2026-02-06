@@ -118,23 +118,6 @@ describe('gRPC: Config Operations', () => {
       expect(result.config?.priorityColors).toBeDefined();
     });
 
-    it('should update LLM config', async () => {
-      const result = await project.client.updateConfig({
-        projectPath: project.path,
-        config: {
-          ...baseConfig,
-          llm: {
-            autoCloseOnComplete: true,
-            updateStatusOnStart: true,
-            allowDirectEdits: false,
-          },
-        },
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.config?.llm).toBeDefined();
-      expect(result.config?.llm?.autoCloseOnComplete).toBe(true);
-    });
   });
 
   describe('GetManifest', () => {
@@ -161,27 +144,4 @@ describe('gRPC: Config Operations', () => {
     });
   });
 
-  describe('GetProjectVersion', () => {
-    it('should get project version info', async () => {
-      const versionInfo = await project.client.getProjectVersion({
-        projectPath: project.path,
-      });
-
-      expect(versionInfo).toBeDefined();
-      expect(versionInfo.projectVersion).toBeDefined();
-      expect(versionInfo.daemonVersion).toBeDefined();
-      expect(versionInfo.comparison).toBeDefined();
-    });
-
-    it('should indicate version comparison status', async () => {
-      const versionInfo = await project.client.getProjectVersion({
-        projectPath: project.path,
-      });
-
-      // comparison should be one of: equal, project_behind, project_ahead
-      expect(['equal', 'project_behind', 'project_ahead']).toContain(
-        versionInfo.comparison
-      );
-    });
-  });
 });

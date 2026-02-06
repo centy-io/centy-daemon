@@ -52,11 +52,11 @@ export interface CentyClient {
   ): void;
   getIssue(
     request: GetIssueRequest,
-    callback: (error: grpc.ServiceError | null, response: Issue) => void
+    callback: (error: grpc.ServiceError | null, response: GetIssueResponse) => void
   ): void;
   getIssueByDisplayNumber(
     request: GetIssueByDisplayNumberRequest,
-    callback: (error: grpc.ServiceError | null, response: Issue) => void
+    callback: (error: grpc.ServiceError | null, response: GetIssueResponse) => void
   ): void;
   listIssues(
     request: ListIssuesRequest,
@@ -97,7 +97,7 @@ export interface CentyClient {
   ): void;
   getDoc(
     request: GetDocRequest,
-    callback: (error: grpc.ServiceError | null, response: Doc) => void
+    callback: (error: grpc.ServiceError | null, response: GetDocResponse) => void
   ): void;
   listDocs(
     request: ListDocsRequest,
@@ -191,7 +191,7 @@ export interface CentyClient {
   // Config
   getConfig(
     request: GetConfigRequest,
-    callback: (error: grpc.ServiceError | null, response: Config) => void
+    callback: (error: grpc.ServiceError | null, response: GetConfigResponse) => void
   ): void;
   updateConfig(
     request: UpdateConfigRequest,
@@ -202,27 +202,13 @@ export interface CentyClient {
   ): void;
   getManifest(
     request: GetManifestRequest,
-    callback: (error: grpc.ServiceError | null, response: Manifest) => void
+    callback: (error: grpc.ServiceError | null, response: GetManifestResponse) => void
   ): void;
 
   // Daemon control
   getDaemonInfo(
     request: GetDaemonInfoRequest,
     callback: (error: grpc.ServiceError | null, response: DaemonInfo) => void
-  ): void;
-  getProjectVersion(
-    request: GetProjectVersionRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: ProjectVersionInfo
-    ) => void
-  ): void;
-  updateVersion(
-    request: UpdateVersionRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: UpdateVersionResponse
-    ) => void
   ): void;
   shutdown(
     request: ShutdownRequest,
@@ -249,11 +235,11 @@ export interface CentyClient {
   ): void;
   getPr(
     request: GetPrRequest,
-    callback: (error: grpc.ServiceError | null, response: PullRequest) => void
+    callback: (error: grpc.ServiceError | null, response: GetPrResponse) => void
   ): void;
   getPrByDisplayNumber(
     request: GetPrByDisplayNumberRequest,
-    callback: (error: grpc.ServiceError | null, response: PullRequest) => void
+    callback: (error: grpc.ServiceError | null, response: GetPrResponse) => void
   ): void;
   listPrs(
     request: ListPrsRequest,
@@ -410,7 +396,7 @@ export interface CentyClient {
   ): void;
   getUser(
     request: GetUserRequest,
-    callback: (error: grpc.ServiceError | null, response: User) => void
+    callback: (error: grpc.ServiceError | null, response: GetUserResponse) => void
   ): void;
   listUsers(
     request: ListUsersRequest,
@@ -550,9 +536,17 @@ export interface IssueMetadata {
   updatedAt: string;
   customFields: Record<string, string>;
   priorityLabel: string;
+  draft?: boolean;
+  deletedAt?: string;
   isOrgIssue?: boolean;
   orgSlug?: string;
   orgDisplayNumber?: number;
+}
+
+export interface GetIssueResponse {
+  success: boolean;
+  error: string;
+  issue: Issue;
 }
 
 export interface ListIssuesRequest {
@@ -634,6 +628,12 @@ export interface Doc {
 export interface DocMetadata {
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GetDocResponse {
+  success: boolean;
+  error: string;
+  doc: Doc;
 }
 
 export interface ListDocsRequest {
@@ -791,6 +791,12 @@ export interface GetConfigRequest {
   projectPath: string;
 }
 
+export interface GetConfigResponse {
+  success: boolean;
+  error: string;
+  config: Config;
+}
+
 export interface Config {
   customFields: CustomFieldDefinition[];
   defaults: Record<string, string>;
@@ -800,7 +806,6 @@ export interface Config {
   version: string;
   stateColors: Record<string, string>;
   priorityColors: Record<string, string>;
-  llm?: LlmConfig;
 }
 
 export interface CustomFieldDefinition {
@@ -809,12 +814,6 @@ export interface CustomFieldDefinition {
   required: boolean;
   defaultValue: string;
   enumValues: string[];
-}
-
-export interface LlmConfig {
-  autoCloseOnComplete: boolean;
-  updateStatusOnStart: boolean;
-  allowDirectEdits: boolean;
 }
 
 export interface UpdateConfigRequest {
@@ -839,6 +838,12 @@ export interface Manifest {
   updatedAt: string;
 }
 
+export interface GetManifestResponse {
+  success: boolean;
+  error: string;
+  manifest: Manifest;
+}
+
 export interface FileInfo {
   path: string;
   fileType: string;
@@ -850,31 +855,8 @@ export interface GetDaemonInfoRequest {}
 
 export interface DaemonInfo {
   version: string;
-  availableVersions: string[];
-}
-
-export interface GetProjectVersionRequest {
-  projectPath: string;
-}
-
-export interface ProjectVersionInfo {
-  projectVersion: string;
-  daemonVersion: string;
-  comparison: string;
-  degradedMode: boolean;
-}
-
-export interface UpdateVersionRequest {
-  projectPath: string;
-  targetVersion: string;
-}
-
-export interface UpdateVersionResponse {
-  success: boolean;
-  error: string;
-  fromVersion: string;
-  toVersion: string;
-  migrationsApplied: string[];
+  binaryPath: string;
+  vscodeAvailable: boolean;
 }
 
 export interface ShutdownRequest {
@@ -951,6 +933,12 @@ export interface PrMetadata {
   mergedAt: string;
   closedAt: string;
   customFields: Record<string, string>;
+}
+
+export interface GetPrResponse {
+  success: boolean;
+  error: string;
+  pr: PullRequest;
 }
 
 export interface ListPrsRequest {
@@ -1259,6 +1247,12 @@ export interface User {
   updatedAt: string;
 }
 
+export interface GetUserResponse {
+  success: boolean;
+  error: string;
+  user: User;
+}
+
 export interface CreateUserRequest {
   projectPath: string;
   id: string;
@@ -1382,10 +1376,10 @@ export function promisifyClient(client: CentyClient) {
 
     // Issues
     createIssue: promisify<CreateIssueRequest, CreateIssueResponse>(client.createIssue),
-    getIssue: promisify<GetIssueRequest, Issue>(client.getIssue),
-    getIssueByDisplayNumber: promisify<GetIssueByDisplayNumberRequest, Issue>(
-      client.getIssueByDisplayNumber
-    ),
+    getIssue: (request: GetIssueRequest): Promise<Issue> =>
+      promisify<GetIssueRequest, GetIssueResponse>(client.getIssue)(request).then((r) => r.issue),
+    getIssueByDisplayNumber: (request: GetIssueByDisplayNumberRequest): Promise<Issue> =>
+      promisify<GetIssueByDisplayNumberRequest, GetIssueResponse>(client.getIssueByDisplayNumber)(request).then((r) => r.issue),
     listIssues: promisify<ListIssuesRequest, ListIssuesResponse>(client.listIssues),
     updateIssue: promisify<UpdateIssueRequest, UpdateIssueResponse>(client.updateIssue),
     deleteIssue: promisify<DeleteIssueRequest, DeleteIssueResponse>(client.deleteIssue),
@@ -1395,7 +1389,8 @@ export function promisifyClient(client: CentyClient) {
 
     // Docs
     createDoc: promisify<CreateDocRequest, CreateDocResponse>(client.createDoc),
-    getDoc: promisify<GetDocRequest, Doc>(client.getDoc),
+    getDoc: (request: GetDocRequest): Promise<Doc> =>
+      promisify<GetDocRequest, GetDocResponse>(client.getDoc)(request).then((r) => r.doc),
     listDocs: promisify<ListDocsRequest, ListDocsResponse>(client.listDocs),
     updateDoc: promisify<UpdateDocRequest, UpdateDocResponse>(client.updateDoc),
     deleteDoc: promisify<DeleteDocRequest, DeleteDocResponse>(client.deleteDoc),
@@ -1422,27 +1417,23 @@ export function promisifyClient(client: CentyClient) {
     ),
 
     // Config
-    getConfig: promisify<GetConfigRequest, Config>(client.getConfig),
+    getConfig: (request: GetConfigRequest): Promise<Config> =>
+      promisify<GetConfigRequest, GetConfigResponse>(client.getConfig)(request).then((r) => r.config),
     updateConfig: promisify<UpdateConfigRequest, UpdateConfigResponse>(client.updateConfig),
-    getManifest: promisify<GetManifestRequest, Manifest>(client.getManifest),
+    getManifest: (request: GetManifestRequest): Promise<Manifest> =>
+      promisify<GetManifestRequest, GetManifestResponse>(client.getManifest)(request).then((r) => r.manifest),
 
     // Daemon control
     getDaemonInfo: promisify<GetDaemonInfoRequest, DaemonInfo>(client.getDaemonInfo),
-    getProjectVersion: promisify<GetProjectVersionRequest, ProjectVersionInfo>(
-      client.getProjectVersion
-    ),
-    updateVersion: promisify<UpdateVersionRequest, UpdateVersionResponse>(
-      client.updateVersion
-    ),
     shutdown: promisify<ShutdownRequest, ShutdownResponse>(client.shutdown),
     restart: promisify<RestartRequest, RestartResponse>(client.restart),
 
     // PRs
     createPr: promisify<CreatePrRequest, CreatePrResponse>(client.createPr),
-    getPr: promisify<GetPrRequest, PullRequest>(client.getPr),
-    getPrByDisplayNumber: promisify<GetPrByDisplayNumberRequest, PullRequest>(
-      client.getPrByDisplayNumber
-    ),
+    getPr: (request: GetPrRequest): Promise<PullRequest> =>
+      promisify<GetPrRequest, GetPrResponse>(client.getPr)(request).then((r) => r.pr),
+    getPrByDisplayNumber: (request: GetPrByDisplayNumberRequest): Promise<PullRequest> =>
+      promisify<GetPrByDisplayNumberRequest, GetPrResponse>(client.getPrByDisplayNumber)(request).then((r) => r.pr),
     listPrs: promisify<ListPrsRequest, ListPrsResponse>(client.listPrs),
     updatePr: promisify<UpdatePrRequest, UpdatePrResponse>(client.updatePr),
     deletePr: promisify<DeletePrRequest, DeletePrResponse>(client.deletePr),
@@ -1499,7 +1490,8 @@ export function promisifyClient(client: CentyClient) {
 
     // Users
     createUser: promisify<CreateUserRequest, CreateUserResponse>(client.createUser),
-    getUser: promisify<GetUserRequest, User>(client.getUser),
+    getUser: (request: GetUserRequest): Promise<User> =>
+      promisify<GetUserRequest, GetUserResponse>(client.getUser)(request).then((r) => r.user),
     listUsers: promisify<ListUsersRequest, ListUsersResponse>(client.listUsers),
     updateUser: promisify<UpdateUserRequest, UpdateUserResponse>(client.updateUser),
     deleteUser: promisify<DeleteUserRequest, DeleteUserResponse>(client.deleteUser),

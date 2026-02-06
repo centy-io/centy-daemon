@@ -104,7 +104,7 @@ describe('CLI with Filesystem Snapshots', () => {
 
       // Verify issue files were created
       expect(diff.added.some((p) => p.startsWith('.centy/issues/'))).toBe(true);
-      expect(diff.added.some((p) => p.endsWith('issue.md'))).toBe(true);
+      expect(diff.added.some((p) => p.startsWith('.centy/issues/') && p.endsWith('.md'))).toBe(true);
     });
 
     it('should list issues', async () => {
@@ -160,9 +160,9 @@ describe('CLI with Filesystem Snapshots', () => {
       expect(diff.added).toHaveLength(0);
       expect(diff.removed).toHaveLength(0);
 
-      // Verify issue file was modified
+      // Verify issue file was modified (issue files are now <uuid>.md)
       expect(
-        diff.modified.some((p) => p.includes('issue.md') || p.includes('metadata.json'))
+        diff.modified.some((p) => p.startsWith('.centy/issues/') && p.endsWith('.md'))
       ).toBe(true);
     });
 
@@ -260,8 +260,10 @@ describe('CLI with Filesystem Snapshots', () => {
 
       const snapshot = await snapshots.take('with-issue', true);
 
-      // Find the issue.md file and check its content
-      const issueFile = snapshot.files.find((f) => f.path.endsWith('issue.md'));
+      // Find the issue file (stored as <uuid>.md in .centy/issues/)
+      const issueFile = snapshot.files.find(
+        (f) => f.path.startsWith('.centy/issues/') && f.path.endsWith('.md') && f.path !== '.centy/issues/README.md'
+      );
       expect(issueFile).toBeDefined();
       expect(issueFile?.content).toBeDefined();
       expect(issueFile?.content).toContain('Content Test');

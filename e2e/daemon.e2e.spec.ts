@@ -24,11 +24,11 @@ describe('gRPC: Daemon Control', () => {
       expect(info.version.length).toBeGreaterThan(0);
     });
 
-    it('should return available versions for migration', async () => {
+    it('should return binary path', async () => {
       const info = await client.getDaemonInfo({});
 
-      expect(info.availableVersions).toBeDefined();
-      expect(Array.isArray(info.availableVersions)).toBe(true);
+      expect(info.binaryPath).toBeDefined();
+      expect(typeof info.binaryPath).toBe('string');
     });
   });
 

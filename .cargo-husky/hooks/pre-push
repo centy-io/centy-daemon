@@ -23,7 +23,10 @@ cargo check --all-targets
 echo "[5/6] Building project..."
 cargo build --all-targets
 
-echo "[6/6] Running tests..."
+echo "[6/7] Running tests..."
 cargo test --all-targets
+
+echo "[7/7] Running e2e tests..."
+cd e2e && pnpm test && cd ..
 
 echo "Pre-push checks passed!"
