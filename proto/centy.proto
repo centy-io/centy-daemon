@@ -204,29 +204,6 @@ service CentyDaemon {
   // Restart the daemon
   rpc Restart(RestartRequest) returns (RestartResponse);
 
-  // ============ Features RPCs ============
-
-  // Get the status of the features system
-  rpc GetFeatureStatus(GetFeatureStatusRequest) returns (GetFeatureStatusResponse);
-
-  // List all uncompacted issues
-  rpc ListUncompactedIssues(ListUncompactedIssuesRequest) returns (ListUncompactedIssuesResponse);
-
-  // Get the instruction.md content
-  rpc GetInstruction(GetInstructionRequest) returns (GetInstructionResponse);
-
-  // Get the current compact.md content
-  rpc GetCompact(GetCompactRequest) returns (GetCompactResponse);
-
-  // Update the compact.md content
-  rpc UpdateCompact(UpdateCompactRequest) returns (UpdateCompactResponse);
-
-  // Save a new migration file
-  rpc SaveMigration(SaveMigrationRequest) returns (SaveMigrationResponse);
-
-  // Mark multiple issues as compacted
-  rpc MarkIssuesCompacted(MarkIssuesCompactedRequest) returns (MarkIssuesCompactedResponse);
-
   // ============ Temp Workspace RPCs ============
 
   // Get list of supported workspace editors
@@ -468,8 +445,7 @@ message IssueMetadata {
   string updated_at = 5;          // ISO timestamp
   map<string, string> custom_fields = 6;
   string priority_label = 7;      // Human-readable label (e.g., "high", "P1")
-  bool compacted = 8;             // Whether issue has been compacted into features
-  string compacted_at = 9;        // ISO timestamp when compacted (empty if not)
+  reserved 8, 9;                   // Removed: compacted, compacted_at (moved to CLI)
   bool draft = 10;                // Whether this issue is a draft
   string deleted_at = 11;         // ISO timestamp when soft-deleted (empty if not deleted)
   bool is_org_issue = 12;         // Whether this is an organization-level issue
@@ -1403,78 +1379,6 @@ message RestorePrResponse {
   string error = 2;
   PullRequest pr = 3;                 // The restored PR (with deleted_at cleared)
   Manifest manifest = 4;
-}
-
-// ============ Features Messages ============
-
-message GetFeatureStatusRequest {
-  string project_path = 1;
-}
-
-message GetFeatureStatusResponse {
-  bool initialized = 1;               // features/ folder exists
-  bool has_compact = 2;               // compact.md exists
-  bool has_instruction = 3;           // instruction.md exists
-  uint32 uncompacted_count = 5;       // Number of uncompacted issues
-}
-
-message ListUncompactedIssuesRequest {
-  string project_path = 1;
-}
-
-message ListUncompactedIssuesResponse {
-  repeated Issue issues = 1;
-  int32 total_count = 2;
-}
-
-message GetInstructionRequest {
-  string project_path = 1;
-}
-
-message GetInstructionResponse {
-  string content = 1;                 // instruction.md content
-}
-
-message GetCompactRequest {
-  string project_path = 1;
-}
-
-message GetCompactResponse {
-  bool exists = 1;                    // Whether compact.md exists
-  string content = 2;                 // compact.md content (empty if not exists)
-}
-
-message UpdateCompactRequest {
-  string project_path = 1;
-  string content = 2;                 // New compact.md content
-}
-
-message UpdateCompactResponse {
-  bool success = 1;
-  string error = 2;
-}
-
-message SaveMigrationRequest {
-  string project_path = 1;
-  string content = 2;                 // Migration file content (markdown with YAML frontmatter)
-}
-
-message SaveMigrationResponse {
-  bool success = 1;
-  string error = 2;
-  string filename = 3;                // Created migration filename (e.g., "2025-12-06T19-30-00.md")
-  string path = 4;                    // Full relative path to migration file
-}
-
-message MarkIssuesCompactedRequest {
-  string project_path = 1;
-  repeated string issue_ids = 2;      // UUIDs of issues to mark as compacted
-}
-
-message MarkIssuesCompactedResponse {
-  bool success = 1;
-  string error = 2;
-  uint32 marked_count = 3;            // Number of issues successfully marked
 }
 
 // ============ Temp Workspace Messages ============

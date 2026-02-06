@@ -2,10 +2,6 @@ use crate::config::{
     read_config, set_project_title as set_project_title_config, write_config, CentyConfig,
     CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig,
 };
-use crate::features::{
-    get_compact, get_feature_status, get_instruction, list_uncompacted_issues,
-    mark_issues_compacted, save_migration, update_compact,
-};
 use crate::item::entities::doc::{
     create_doc, delete_doc, duplicate_doc, get_doc, get_docs_by_slug, list_docs, move_doc,
     restore_doc, soft_delete_doc, update_doc, CreateDocOptions, DuplicateDocOptions,
@@ -117,28 +113,24 @@ use proto::{
     DuplicateIssueRequest, DuplicateIssueResponse, EditorInfo, EditorType as ProtoEditorType,
     EntityAction, EntityType, ExecuteReconciliationRequest, FileInfo, FileType, GetAssetRequest,
     GetAssetResponse, GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse,
-    GetCompactRequest, GetCompactResponse, GetConfigRequest, GetConfigResponse,
-    GetDaemonInfoRequest, GetDocRequest, GetDocResponse, GetDocsBySlugRequest,
-    GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
-    GetFeatureStatusRequest, GetFeatureStatusResponse, GetInstructionRequest,
-    GetInstructionResponse, GetIssueByDisplayNumberRequest, GetIssueRequest, GetIssueResponse,
-    GetIssuesByUuidRequest, GetIssuesByUuidResponse, GetManifestRequest, GetManifestResponse,
-    GetNextIssueNumberRequest, GetNextIssueNumberResponse, GetNextPrNumberRequest,
-    GetNextPrNumberResponse, GetOrganizationRequest, GetOrganizationResponse,
-    GetPrByDisplayNumberRequest, GetPrRequest, GetPrResponse, GetProjectInfoRequest,
-    GetProjectInfoResponse, GetPrsByUuidRequest, GetPrsByUuidResponse,
-    GetReconciliationPlanRequest, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
-    GetUserRequest, GetUserResponse, GitContributor as ProtoGitContributor, InitRequest,
-    InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
-    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
-    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
-    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
-    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
-    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
-    ListTempWorkspacesResponse, ListUncompactedIssuesRequest, ListUncompactedIssuesResponse,
-    ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MarkIssuesCompactedRequest,
-    MarkIssuesCompactedResponse, MoveDocRequest, MoveDocResponse, MoveIssueRequest,
-    MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
+    GetConfigRequest, GetConfigResponse, GetDaemonInfoRequest, GetDocRequest, GetDocResponse,
+    GetDocsBySlugRequest, GetDocsBySlugResponse, GetEntityActionsRequest, GetEntityActionsResponse,
+    GetIssueByDisplayNumberRequest, GetIssueRequest, GetIssueResponse, GetIssuesByUuidRequest,
+    GetIssuesByUuidResponse, GetManifestRequest, GetManifestResponse, GetNextIssueNumberRequest,
+    GetNextIssueNumberResponse, GetNextPrNumberRequest, GetNextPrNumberResponse,
+    GetOrganizationRequest, GetOrganizationResponse, GetPrByDisplayNumberRequest, GetPrRequest,
+    GetPrResponse, GetProjectInfoRequest, GetProjectInfoResponse, GetPrsByUuidRequest,
+    GetPrsByUuidResponse, GetReconciliationPlanRequest, GetSupportedEditorsRequest,
+    GetSupportedEditorsResponse, GetUserRequest, GetUserResponse,
+    GitContributor as ProtoGitContributor, InitRequest, InitResponse, IsInitializedRequest,
+    IsInitializedResponse, Issue, IssueMetadata, IssueWithProject as ProtoIssueWithProject,
+    Link as ProtoLink, LinkTargetType, LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest,
+    ListAssetsResponse, ListDocsRequest, ListDocsResponse, ListIssuesRequest, ListIssuesResponse,
+    ListLinksRequest, ListLinksResponse, ListOrganizationsRequest, ListOrganizationsResponse,
+    ListProjectsRequest, ListProjectsResponse, ListPrsRequest, ListPrsResponse,
+    ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
+    ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MoveDocRequest, MoveDocResponse,
+    MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
     OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest,
     OpenStandaloneWorkspaceRequest, OpenStandaloneWorkspaceResponse,
     OpenStandaloneWorkspaceWithEditorRequest, OrgDocSyncResult,
@@ -146,8 +138,8 @@ use proto::{
     PrWithProject as ProtoPrWithProject, PullRequest, ReconciliationPlan, RegisterProjectRequest,
     RegisterProjectResponse, RestartRequest, RestartResponse, RestoreDocRequest,
     RestoreDocResponse, RestoreIssueRequest, RestoreIssueResponse, RestorePrRequest,
-    RestorePrResponse, RestoreUserRequest, RestoreUserResponse, SaveMigrationRequest,
-    SaveMigrationResponse, SearchResultIssue as ProtoSearchResultIssue, SetProjectArchivedRequest,
+    RestorePrResponse, RestoreUserRequest, RestoreUserResponse,
+    SearchResultIssue as ProtoSearchResultIssue, SetProjectArchivedRequest,
     SetProjectArchivedResponse, SetProjectFavoriteRequest, SetProjectFavoriteResponse,
     SetProjectOrganizationRequest, SetProjectOrganizationResponse, SetProjectTitleRequest,
     SetProjectTitleResponse, SetProjectUserTitleRequest, SetProjectUserTitleResponse,
@@ -155,10 +147,10 @@ use proto::{
     SoftDeleteIssueRequest, SoftDeleteIssueResponse, SoftDeletePrRequest, SoftDeletePrResponse,
     SoftDeleteUserRequest, SoftDeleteUserResponse, SyncUsersRequest, SyncUsersResponse,
     TempWorkspace as ProtoTempWorkspace, UntrackProjectRequest, UntrackProjectResponse,
-    UpdateCompactRequest, UpdateCompactResponse, UpdateConfigRequest, UpdateConfigResponse,
-    UpdateDocRequest, UpdateDocResponse, UpdateIssueRequest, UpdateIssueResponse,
-    UpdateOrganizationRequest, UpdateOrganizationResponse, UpdatePrRequest, UpdatePrResponse,
-    UpdateUserRequest, UpdateUserResponse, User as ProtoUser, WorkspaceMode,
+    UpdateConfigRequest, UpdateConfigResponse, UpdateDocRequest, UpdateDocResponse,
+    UpdateIssueRequest, UpdateIssueResponse, UpdateOrganizationRequest, UpdateOrganizationResponse,
+    UpdatePrRequest, UpdatePrResponse, UpdateUserRequest, UpdateUserResponse, User as ProtoUser,
+    WorkspaceMode,
 };
 
 /// Signal type for daemon shutdown/restart
@@ -2606,151 +2598,6 @@ impl CentyDaemon for CentyDaemonService {
         }
     }
 
-    // ============ Features RPCs ============
-
-    async fn get_feature_status(
-        &self,
-        request: Request<GetFeatureStatusRequest>,
-    ) -> Result<Response<GetFeatureStatusResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match get_feature_status(project_path).await {
-            Ok(status) => Ok(Response::new(GetFeatureStatusResponse {
-                initialized: status.initialized,
-                has_compact: status.has_compact,
-                has_instruction: status.has_instruction,
-                uncompacted_count: status.uncompacted_count,
-            })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
-    }
-
-    async fn list_uncompacted_issues(
-        &self,
-        request: Request<ListUncompactedIssuesRequest>,
-    ) -> Result<Response<ListUncompactedIssuesResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        // Read config for priority_levels (for label generation)
-        let config = read_config(project_path).await.ok().flatten();
-        let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
-
-        match list_uncompacted_issues(project_path).await {
-            Ok(issues) => {
-                let total_count = issues.len() as i32;
-                Ok(Response::new(ListUncompactedIssuesResponse {
-                    issues: issues
-                        .into_iter()
-                        .map(|i| issue_to_proto(&i, priority_levels))
-                        .collect(),
-                    total_count,
-                }))
-            }
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
-    }
-
-    async fn get_instruction(
-        &self,
-        request: Request<GetInstructionRequest>,
-    ) -> Result<Response<GetInstructionResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match get_instruction(project_path).await {
-            Ok(content) => Ok(Response::new(GetInstructionResponse { content })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
-    }
-
-    async fn get_compact(
-        &self,
-        request: Request<GetCompactRequest>,
-    ) -> Result<Response<GetCompactResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match get_compact(project_path).await {
-            Ok(content) => Ok(Response::new(GetCompactResponse {
-                exists: content.is_some(),
-                content: content.unwrap_or_default(),
-            })),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
-    }
-
-    async fn update_compact(
-        &self,
-        request: Request<UpdateCompactRequest>,
-    ) -> Result<Response<UpdateCompactResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match update_compact(project_path, &req.content).await {
-            Ok(()) => Ok(Response::new(UpdateCompactResponse {
-                success: true,
-                error: String::new(),
-            })),
-            Err(e) => Ok(Response::new(UpdateCompactResponse {
-                success: false,
-                error: e.to_string(),
-            })),
-        }
-    }
-
-    async fn save_migration(
-        &self,
-        request: Request<SaveMigrationRequest>,
-    ) -> Result<Response<SaveMigrationResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match save_migration(project_path, &req.content).await {
-            Ok((filename, path)) => Ok(Response::new(SaveMigrationResponse {
-                success: true,
-                error: String::new(),
-                filename,
-                path,
-            })),
-            Err(e) => Ok(Response::new(SaveMigrationResponse {
-                success: false,
-                error: e.to_string(),
-                filename: String::new(),
-                path: String::new(),
-            })),
-        }
-    }
-
-    async fn mark_issues_compacted(
-        &self,
-        request: Request<MarkIssuesCompactedRequest>,
-    ) -> Result<Response<MarkIssuesCompactedResponse>, Status> {
-        let req = request.into_inner();
-        track_project_async(req.project_path.clone());
-        let project_path = Path::new(&req.project_path);
-
-        match mark_issues_compacted(project_path, &req.issue_ids).await {
-            Ok(marked_count) => Ok(Response::new(MarkIssuesCompactedResponse {
-                success: true,
-                error: String::new(),
-                marked_count,
-            })),
-            Err(e) => Ok(Response::new(MarkIssuesCompactedResponse {
-                success: false,
-                error: e.to_string(),
-                marked_count: 0,
-            })),
-        }
-    }
-
     // ============ Link RPCs ============
 
     async fn create_link(
@@ -4354,8 +4201,6 @@ fn issue_to_proto(issue: &crate::item::entities::issue::Issue, priority_levels: 
             updated_at: issue.metadata.updated_at.clone(),
             custom_fields: issue.metadata.custom_fields.clone(),
             priority_label: priority_label(issue.metadata.priority, priority_levels),
-            compacted: issue.metadata.compacted,
-            compacted_at: issue.metadata.compacted_at.clone().unwrap_or_default(),
             draft: issue.metadata.draft,
             deleted_at: issue.metadata.deleted_at.clone().unwrap_or_default(),
             is_org_issue: issue.metadata.is_org_issue,

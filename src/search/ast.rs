@@ -28,7 +28,6 @@ pub enum Field {
     DisplayNumber,
     CreatedAt,
     UpdatedAt,
-    Compacted,
     Custom(String),
 }
 
@@ -42,7 +41,6 @@ impl Field {
             "displaynumber" | "number" | "num" | "n" => Field::DisplayNumber,
             "createdat" | "created" => Field::CreatedAt,
             "updatedat" | "updated" => Field::UpdatedAt,
-            "compacted" => Field::Compacted,
             other => Field::Custom(other.to_string()),
         }
     }
@@ -56,7 +54,7 @@ impl Field {
     }
 
     pub fn is_boolean(&self) -> bool {
-        matches!(self, Field::Compacted)
+        false
     }
 }
 

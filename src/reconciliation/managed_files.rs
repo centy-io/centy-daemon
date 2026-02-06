@@ -211,7 +211,6 @@ const CSPELL_JSON_CONTENT: &str = r#"{
     "displayNumber",
     "createdAt",
     "updatedAt",
-    "compacted",
     "priorityLevels",
     "allowedStates",
     "stateColors",

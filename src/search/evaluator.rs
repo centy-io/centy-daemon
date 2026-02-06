@@ -23,9 +23,6 @@ fn evaluate_condition(condition: &Condition, issue: &Issue) -> bool {
         FieldValue::Number(n) => {
             evaluate_number_condition(&condition.operator, n, &condition.value)
         }
-        FieldValue::Boolean(b) => {
-            evaluate_boolean_condition(&condition.operator, b, &condition.value)
-        }
         FieldValue::Date(d) => evaluate_date_condition(&condition.operator, &d, &condition.value),
         FieldValue::None => false,
     }
@@ -35,7 +32,6 @@ fn evaluate_condition(condition: &Condition, issue: &Issue) -> bool {
 enum FieldValue {
     String(String),
     Number(i64),
-    Boolean(bool),
     Date(NaiveDate),
     None,
 }
@@ -53,7 +49,6 @@ fn get_field_value(field: &Field, issue: &Issue) -> FieldValue {
         Field::UpdatedAt => parse_date(&issue.metadata.updated_at)
             .map(FieldValue::Date)
             .unwrap_or(FieldValue::None),
-        Field::Compacted => FieldValue::Boolean(issue.metadata.compacted),
         Field::Custom(name) => issue
             .metadata
             .custom_fields
@@ -121,21 +116,6 @@ fn evaluate_number_condition(operator: &Operator, field_value: i64, query_value:
     }
 }
 
-fn evaluate_boolean_condition(operator: &Operator, field_value: bool, query_value: &Value) -> bool {
-    match query_value {
-        Value::Boolean(b) => {
-            match operator {
-                Operator::Eq => field_value == *b,
-                Operator::NotEq => field_value != *b,
-                // Other operators don't make sense for booleans
-                _ => false,
-            }
-        }
-        // Other value types don't match booleans
-        _ => false,
-    }
-}
-
 fn evaluate_date_condition(
     operator: &Operator,
     field_value: &NaiveDate,
@@ -179,8 +159,6 @@ mod tests {
                 created_at: "2024-06-15T10:30:00Z".to_string(),
                 updated_at: "2024-06-15T10:30:00Z".to_string(),
                 custom_fields: HashMap::new(),
-                compacted: false,
-                compacted_at: None,
                 draft: false,
                 deleted_at: None,
                 is_org_issue: false,
