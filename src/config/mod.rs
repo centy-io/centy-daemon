@@ -1,3 +1,4 @@
+use crate::hooks::HookDefinition;
 use crate::link::CustomLinkTypeDefinition;
 use crate::utils::get_centy_path;
 use serde::{Deserialize, Serialize};
@@ -109,6 +110,9 @@ pub struct CentyConfig {
     /// Overrides the user-level default. Empty means use user default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_editor: Option<String>,
+    /// Lifecycle hooks (bash scripts to run before/after operations)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<HookDefinition>,
 }
 
 impl CentyConfig {
@@ -135,6 +139,7 @@ impl Default for CentyConfig {
             llm: LlmConfig::default(),
             custom_link_types: Vec::new(),
             default_editor: None,
+            hooks: Vec::new(),
         }
     }
 }
@@ -254,6 +259,7 @@ mod tests {
         assert!(config.state_colors.is_empty());
         assert!(config.priority_colors.is_empty());
         assert!(config.custom_link_types.is_empty());
+        assert!(config.hooks.is_empty());
     }
 
     #[test]

@@ -679,6 +679,7 @@ message Config {
   LlmConfig llm = 9;                        // LLM-related settings
   repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
   string default_editor = 11;                // Default editor ID for this project (e.g., "vscode", "terminal", "zed")
+  repeated HookDefinition hooks = 12;                  // Lifecycle hooks
 }
 
 message CustomFieldDefinition {
@@ -694,6 +695,15 @@ message LlmConfig {
   optional bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work (null = prompt user)
   bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
   WorkspaceMode default_workspace_mode = 4;  // Default workspace mode for agent operations
+}
+
+// Lifecycle hook definition (bash scripts to run before/after operations)
+message HookDefinition {
+  string pattern = 1;                   // Pattern like "pre:issue:create" or "*:*:delete"
+  string command = 2;                   // Bash command to execute
+  bool run_async = 3;                   // If true, run in background (post-hooks only)
+  uint64 timeout = 4;                   // Timeout in seconds (default: 30)
+  bool enabled = 5;                     // Whether hook is enabled (default: true)
 }
 
 // Custom link type definition (for custom relationship types)

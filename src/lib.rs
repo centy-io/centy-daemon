@@ -22,6 +22,7 @@
 
 pub mod common;
 pub mod config;
+pub mod hooks;
 pub mod item;
 pub mod link;
 pub mod logging;
@@ -39,6 +40,7 @@ pub mod workspace;
 // Re-export commonly used types
 pub use common::CommonMetadata;
 pub use config::{CentyConfig, CustomFieldDefinition};
+pub use hooks::{HookContext, HookDefinition, HookError};
 pub use item::entities::doc::{
     create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult,
     DeleteDocResult, Doc, DocError, DocMetadata, UpdateDocOptions, UpdateDocResult,
