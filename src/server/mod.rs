@@ -2,6 +2,10 @@ use crate::config::{
     read_config, set_project_title as set_project_title_config, write_config, CentyConfig,
     CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig,
 };
+use crate::hooks::{
+    run_post_hooks, run_pre_hooks, HookContext, HookDefinition as InternalHookDefinition,
+    HookItemType, HookOperation, Phase,
+};
 use crate::item::entities::doc::{
     create_doc, delete_doc, duplicate_doc, get_doc, get_docs_by_slug, list_docs, move_doc,
     restore_doc, soft_delete_doc, update_doc, CreateDocOptions, DuplicateDocOptions,
@@ -122,16 +126,17 @@ use proto::{
     GetPrResponse, GetProjectInfoRequest, GetProjectInfoResponse, GetPrsByUuidRequest,
     GetPrsByUuidResponse, GetReconciliationPlanRequest, GetSupportedEditorsRequest,
     GetSupportedEditorsResponse, GetUserRequest, GetUserResponse,
-    GitContributor as ProtoGitContributor, InitRequest, InitResponse, IsInitializedRequest,
-    IsInitializedResponse, Issue, IssueMetadata, IssueWithProject as ProtoIssueWithProject,
-    Link as ProtoLink, LinkTargetType, LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest,
-    ListAssetsResponse, ListDocsRequest, ListDocsResponse, ListIssuesRequest, ListIssuesResponse,
-    ListLinksRequest, ListLinksResponse, ListOrganizationsRequest, ListOrganizationsResponse,
-    ListProjectsRequest, ListProjectsResponse, ListPrsRequest, ListPrsResponse,
-    ListSharedAssetsRequest, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
-    ListUsersRequest, ListUsersResponse, LlmConfig, Manifest, MoveDocRequest, MoveDocResponse,
-    MoveIssueRequest, MoveIssueResponse, OpenAgentInTerminalRequest, OpenAgentInTerminalResponse,
-    OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest,
+    GitContributor as ProtoGitContributor, HookDefinition as ProtoHookDefinition, InitRequest,
+    InitResponse, IsInitializedRequest, IsInitializedResponse, Issue, IssueMetadata,
+    IssueWithProject as ProtoIssueWithProject, Link as ProtoLink, LinkTargetType,
+    LinkTypeDefinition, LinkTypeInfo, ListAssetsRequest, ListAssetsResponse, ListDocsRequest,
+    ListDocsResponse, ListIssuesRequest, ListIssuesResponse, ListLinksRequest, ListLinksResponse,
+    ListOrganizationsRequest, ListOrganizationsResponse, ListProjectsRequest, ListProjectsResponse,
+    ListPrsRequest, ListPrsResponse, ListSharedAssetsRequest, ListTempWorkspacesRequest,
+    ListTempWorkspacesResponse, ListUsersRequest, ListUsersResponse, LlmConfig, Manifest,
+    MoveDocRequest, MoveDocResponse, MoveIssueRequest, MoveIssueResponse,
+    OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, OpenInTempWorkspaceRequest,
+    OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest,
     OpenStandaloneWorkspaceRequest, OpenStandaloneWorkspaceResponse,
     OpenStandaloneWorkspaceWithEditorRequest, OrgDocSyncResult,
     OrgInferenceResult as ProtoOrgInferenceResult, Organization as ProtoOrganization, PrMetadata,
@@ -611,6 +616,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_request_data = serde_json::json!({
+            "title": &req.title,
+            "description": &req.description,
+            "priority": req.priority,
+            "status": &req.status,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Issue,
+            HookOperation::Create,
+            &hook_project_path,
+            None,
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(CreateIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Convert int32 priority: 0 means use default, otherwise use the value
         let options = CreateIssueOptions {
             title: req.title,
@@ -638,6 +668,17 @@ impl CentyDaemon for CentyDaemonService {
         match create_issue(project_path, options).await {
             #[allow(deprecated)]
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&result.id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 // Convert sync results to proto (reusing OrgDocSyncResult since structure is identical)
                 let sync_results: Vec<OrgDocSyncResult> = result
                     .sync_results
@@ -661,17 +702,30 @@ impl CentyDaemon for CentyDaemonService {
                     sync_results,
                 }))
             }
-            Err(e) => Ok(Response::new(CreateIssueResponse {
-                success: false,
-                error: e.to_string(),
-                id: String::new(),
-                display_number: 0,
-                issue_number: String::new(),
-                created_files: vec![],
-                manifest: None,
-                org_display_number: 0,
-                sync_results: vec![],
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    None,
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(CreateIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    id: String::new(),
+                    display_number: 0,
+                    issue_number: String::new(),
+                    created_files: vec![],
+                    manifest: None,
+                    org_display_number: 0,
+                    sync_results: vec![],
+                }))
+            }
         }
     }
 
@@ -838,6 +892,33 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "issue_id": &req.issue_id,
+            "title": &req.title,
+            "description": &req.description,
+            "priority": req.priority,
+            "status": &req.status,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Issue,
+            HookOperation::Update,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(UpdateIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
@@ -870,6 +951,17 @@ impl CentyDaemon for CentyDaemonService {
 
         match update_issue(project_path, &req.issue_id, options).await {
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 // Convert sync results to proto
                 let sync_results: Vec<OrgDocSyncResult> = result
                     .sync_results
@@ -889,13 +981,26 @@ impl CentyDaemon for CentyDaemonService {
                     sync_results,
                 }))
             }
-            Err(e) => Ok(Response::new(UpdateIssueResponse {
-                success: false,
-                error: e.to_string(),
-                issue: None,
-                manifest: None,
-                sync_results: vec![],
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(UpdateIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    issue: None,
+                    manifest: None,
+                    sync_results: vec![],
+                }))
+            }
         }
     }
 
@@ -907,17 +1012,66 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match delete_issue(project_path, &req.issue_id).await {
-            Ok(result) => Ok(Response::new(DeleteIssueResponse {
-                success: true,
-                error: String::new(),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DeleteIssueResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "issue_id": &req.issue_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Issue,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeleteIssueResponse {
                 success: false,
-                error: e.to_string(),
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match delete_issue(project_path, &req.issue_id).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DeleteIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeleteIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -929,23 +1083,72 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "issue_id": &req.issue_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Issue,
+            HookOperation::SoftDelete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(SoftDeleteIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match soft_delete_issue(project_path, &req.issue_id).await {
-            Ok(result) => Ok(Response::new(SoftDeleteIssueResponse {
-                success: true,
-                error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(SoftDeleteIssueResponse {
-                success: false,
-                error: e.to_string(),
-                issue: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    issue: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -957,23 +1160,72 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "issue_id": &req.issue_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Issue,
+            HookOperation::Restore,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(RestoreIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match restore_issue(project_path, &req.issue_id).await {
-            Ok(result) => Ok(Response::new(RestoreIssueResponse {
-                success: true,
-                error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(RestoreIssueResponse {
-                success: false,
-                error: e.to_string(),
-                issue: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(RestoreIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Issue,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(RestoreIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    issue: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -984,6 +1236,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
+
+        // Pre-hook
+        let hook_project_path = req.source_project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "source_project_path": &req.source_project_path,
+            "target_project_path": &req.target_project_path,
+            "issue_id": &req.issue_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            Path::new(&hook_project_path),
+            HookItemType::Issue,
+            HookOperation::Move,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         // Read target config for priority_levels
         let target_config = read_config(Path::new(&req.target_project_path))
@@ -999,22 +1276,48 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match move_issue(options).await {
-            Ok(result) => Ok(Response::new(MoveIssueResponse {
-                success: true,
-                error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                old_display_number: result.old_display_number,
-                source_manifest: Some(manifest_to_proto(&result.source_manifest)),
-                target_manifest: Some(manifest_to_proto(&result.target_manifest)),
-            })),
-            Err(e) => Ok(Response::new(MoveIssueResponse {
-                success: false,
-                error: e.to_string(),
-                issue: None,
-                old_display_number: 0,
-                source_manifest: None,
-                target_manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Issue,
+                    HookOperation::Move,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(MoveIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                    old_display_number: result.old_display_number,
+                    source_manifest: Some(manifest_to_proto(&result.source_manifest)),
+                    target_manifest: Some(manifest_to_proto(&result.target_manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Issue,
+                    HookOperation::Move,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(MoveIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    issue: None,
+                    old_display_number: 0,
+                    source_manifest: None,
+                    target_manifest: None,
+                }))
+            }
         }
     }
 
@@ -1025,6 +1328,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
+
+        // Pre-hook
+        let hook_project_path = req.source_project_path.clone();
+        let hook_item_id = req.issue_id.clone();
+        let hook_request_data = serde_json::json!({
+            "source_project_path": &req.source_project_path,
+            "target_project_path": &req.target_project_path,
+            "issue_id": &req.issue_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            Path::new(&hook_project_path),
+            HookItemType::Issue,
+            HookOperation::Duplicate,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DuplicateIssueResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         // Read target config for priority_levels
         let target_config = read_config(Path::new(&req.target_project_path))
@@ -1045,20 +1373,46 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match duplicate_issue(options).await {
-            Ok(result) => Ok(Response::new(DuplicateIssueResponse {
-                success: true,
-                error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                original_issue_id: result.original_issue_id,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DuplicateIssueResponse {
-                success: false,
-                error: e.to_string(),
-                issue: None,
-                original_issue_id: String::new(),
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Issue,
+                    HookOperation::Duplicate,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DuplicateIssueResponse {
+                    success: true,
+                    error: String::new(),
+                    issue: Some(issue_to_proto(&result.issue, priority_levels)),
+                    original_issue_id: result.original_issue_id,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Issue,
+                    HookOperation::Duplicate,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DuplicateIssueResponse {
+                    success: false,
+                    error: e.to_string(),
+                    issue: None,
+                    original_issue_id: String::new(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1143,6 +1497,7 @@ impl CentyDaemon for CentyDaemonService {
                     }),
                     custom_link_types: vec![],
                     default_editor: String::new(),
+                    hooks: vec![],
                 }),
             })),
             Err(e) => Ok(Response::new(GetConfigResponse {
@@ -1242,6 +1597,30 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_request_data = serde_json::json!({
+            "title": &req.title,
+            "content": &req.content,
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Doc,
+            HookOperation::Create,
+            &hook_project_path,
+            None,
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(CreateDocResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let options = CreateDocOptions {
             title: req.title,
             content: req.content,
@@ -1260,6 +1639,17 @@ impl CentyDaemon for CentyDaemonService {
 
         match create_doc(project_path, options).await {
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&result.slug),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 // Convert sync results to proto
                 let sync_results: Vec<OrgDocSyncResult> = result
                     .sync_results
@@ -1280,14 +1670,27 @@ impl CentyDaemon for CentyDaemonService {
                     sync_results,
                 }))
             }
-            Err(e) => Ok(Response::new(CreateDocResponse {
-                success: false,
-                error: e.to_string(),
-                slug: String::new(),
-                created_file: String::new(),
-                manifest: None,
-                sync_results: Vec::new(),
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    None,
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(CreateDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    slug: String::new(),
+                    created_file: String::new(),
+                    manifest: None,
+                    sync_results: Vec::new(),
+                }))
+            }
         }
     }
 
@@ -1378,6 +1781,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "slug": &req.slug,
+            "title": &req.title,
+            "content": &req.content,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Doc,
+            HookOperation::Update,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(UpdateDocResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let options = UpdateDocOptions {
             title: if req.title.is_empty() {
                 None
@@ -1398,6 +1826,17 @@ impl CentyDaemon for CentyDaemonService {
 
         match update_doc(project_path, &req.slug, options).await {
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 let sync_results: Vec<OrgDocSyncResult> = result
                     .sync_results
                     .into_iter()
@@ -1416,13 +1855,26 @@ impl CentyDaemon for CentyDaemonService {
                     sync_results,
                 }))
             }
-            Err(e) => Ok(Response::new(UpdateDocResponse {
-                success: false,
-                error: e.to_string(),
-                doc: None,
-                manifest: None,
-                sync_results: Vec::new(),
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(UpdateDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    doc: None,
+                    manifest: None,
+                    sync_results: Vec::new(),
+                }))
+            }
         }
     }
 
@@ -1434,17 +1886,66 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match delete_doc(project_path, &req.slug).await {
-            Ok(result) => Ok(Response::new(DeleteDocResponse {
-                success: true,
-                error: String::new(),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DeleteDocResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Doc,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeleteDocResponse {
                 success: false,
-                error: e.to_string(),
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match delete_doc(project_path, &req.slug).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DeleteDocResponse {
+                    success: true,
+                    error: String::new(),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeleteDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1456,19 +1957,68 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match soft_delete_doc(project_path, &req.slug).await {
-            Ok(result) => Ok(Response::new(SoftDeleteDocResponse {
-                success: true,
-                error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(SoftDeleteDocResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Doc,
+            HookOperation::SoftDelete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(SoftDeleteDocResponse {
                 success: false,
-                error: e.to_string(),
-                doc: None,
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match soft_delete_doc(project_path, &req.slug).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteDocResponse {
+                    success: true,
+                    error: String::new(),
+                    doc: Some(doc_to_proto(&result.doc)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    doc: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1480,19 +2030,68 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match restore_doc(project_path, &req.slug).await {
-            Ok(result) => Ok(Response::new(RestoreDocResponse {
-                success: true,
-                error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(RestoreDocResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Doc,
+            HookOperation::Restore,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(RestoreDocResponse {
                 success: false,
-                error: e.to_string(),
-                doc: None,
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match restore_doc(project_path, &req.slug).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(RestoreDocResponse {
+                    success: true,
+                    error: String::new(),
+                    doc: Some(doc_to_proto(&result.doc)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Doc,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(RestoreDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    doc: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1503,6 +2102,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
+
+        // Pre-hook
+        let hook_project_path = req.source_project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "source_project_path": &req.source_project_path,
+            "target_project_path": &req.target_project_path,
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            Path::new(&hook_project_path),
+            HookItemType::Doc,
+            HookOperation::Move,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(MoveDocResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         let options = MoveDocOptions {
             source_project_path: PathBuf::from(&req.source_project_path),
@@ -1516,22 +2140,48 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match move_doc(options).await {
-            Ok(result) => Ok(Response::new(MoveDocResponse {
-                success: true,
-                error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                old_slug: result.old_slug,
-                source_manifest: Some(manifest_to_proto(&result.source_manifest)),
-                target_manifest: Some(manifest_to_proto(&result.target_manifest)),
-            })),
-            Err(e) => Ok(Response::new(MoveDocResponse {
-                success: false,
-                error: e.to_string(),
-                doc: None,
-                old_slug: req.slug,
-                source_manifest: None,
-                target_manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Doc,
+                    HookOperation::Move,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(MoveDocResponse {
+                    success: true,
+                    error: String::new(),
+                    doc: Some(doc_to_proto(&result.doc)),
+                    old_slug: result.old_slug,
+                    source_manifest: Some(manifest_to_proto(&result.source_manifest)),
+                    target_manifest: Some(manifest_to_proto(&result.target_manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Doc,
+                    HookOperation::Move,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(MoveDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    doc: None,
+                    old_slug: req.slug,
+                    source_manifest: None,
+                    target_manifest: None,
+                }))
+            }
         }
     }
 
@@ -1542,6 +2192,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.source_project_path.clone());
         track_project_async(req.target_project_path.clone());
+
+        // Pre-hook
+        let hook_project_path = req.source_project_path.clone();
+        let hook_item_id = req.slug.clone();
+        let hook_request_data = serde_json::json!({
+            "source_project_path": &req.source_project_path,
+            "target_project_path": &req.target_project_path,
+            "slug": &req.slug,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            Path::new(&hook_project_path),
+            HookItemType::Doc,
+            HookOperation::Duplicate,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DuplicateDocResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         let options = DuplicateDocOptions {
             source_project_path: PathBuf::from(&req.source_project_path),
@@ -1560,20 +2235,46 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match duplicate_doc(options).await {
-            Ok(result) => Ok(Response::new(DuplicateDocResponse {
-                success: true,
-                error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                original_slug: result.original_slug,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DuplicateDocResponse {
-                success: false,
-                error: e.to_string(),
-                doc: None,
-                original_slug: req.slug,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Doc,
+                    HookOperation::Duplicate,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DuplicateDocResponse {
+                    success: true,
+                    error: String::new(),
+                    doc: Some(doc_to_proto(&result.doc)),
+                    original_slug: result.original_slug,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    Path::new(&hook_project_path),
+                    HookItemType::Doc,
+                    HookOperation::Duplicate,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DuplicateDocResponse {
+                    success: false,
+                    error: e.to_string(),
+                    doc: None,
+                    original_slug: req.slug,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1586,6 +2287,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
+
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.filename.clone();
+        let hook_request_data = serde_json::json!({
+            "filename": &req.filename,
+            "issue_id": &req.issue_id,
+            "is_shared": req.is_shared,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Asset,
+            HookOperation::Create,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(AddAssetResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         let scope = if req.is_shared {
             AssetScope::Shared
@@ -1601,6 +2327,17 @@ impl CentyDaemon for CentyDaemonService {
 
         match add_asset(project_path, issue_id, req.data, &req.filename, scope).await {
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Asset,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 // Re-read manifest for response
                 let manifest = read_manifest(project_path).await.ok().flatten();
                 Ok(Response::new(AddAssetResponse {
@@ -1611,13 +2348,26 @@ impl CentyDaemon for CentyDaemonService {
                     manifest: manifest.map(|m| manifest_to_proto(&m)),
                 }))
             }
-            Err(e) => Ok(Response::new(AddAssetResponse {
-                success: false,
-                error: e.to_string(),
-                asset: None,
-                path: String::new(),
-                manifest: None,
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Asset,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(AddAssetResponse {
+                    success: false,
+                    error: e.to_string(),
+                    asset: None,
+                    path: String::new(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -1679,6 +2429,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.filename.clone();
+        let hook_request_data = serde_json::json!({
+            "filename": &req.filename,
+            "issue_id": &req.issue_id,
+            "is_shared": req.is_shared,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Asset,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeleteAssetResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let issue_id = if req.issue_id.is_empty() {
             None
         } else {
@@ -1687,6 +2462,17 @@ impl CentyDaemon for CentyDaemonService {
 
         match delete_asset_fn(project_path, issue_id, &req.filename, req.is_shared).await {
             Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Asset,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
                 // Re-read manifest for response
                 let manifest = read_manifest(project_path).await.ok().flatten();
                 Ok(Response::new(DeleteAssetResponse {
@@ -1697,13 +2483,26 @@ impl CentyDaemon for CentyDaemonService {
                     manifest: manifest.map(|m| manifest_to_proto(&m)),
                 }))
             }
-            Err(e) => Ok(Response::new(DeleteAssetResponse {
-                success: false,
-                error: e.to_string(),
-                filename: String::new(),
-                was_shared: false,
-                manifest: None,
-            })),
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Asset,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeleteAssetResponse {
+                    success: false,
+                    error: e.to_string(),
+                    filename: String::new(),
+                    was_shared: false,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2233,6 +3032,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_request_data = serde_json::json!({
+            "title": &req.title,
+            "description": &req.description,
+            "source_branch": &req.source_branch,
+            "target_branch": &req.target_branch,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Pr,
+            HookOperation::Create,
+            &hook_project_path,
+            None,
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(CreatePrResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let options = CreatePrOptions {
             title: req.title,
             description: req.description,
@@ -2266,24 +3090,50 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match create_pr(project_path, options).await {
-            Ok(result) => Ok(Response::new(CreatePrResponse {
-                success: true,
-                error: String::new(),
-                id: result.id,
-                display_number: result.display_number,
-                created_files: result.created_files,
-                manifest: Some(manifest_to_proto(&result.manifest)),
-                detected_source_branch: result.detected_source_branch,
-            })),
-            Err(e) => Ok(Response::new(CreatePrResponse {
-                success: false,
-                error: e.to_string(),
-                id: String::new(),
-                display_number: 0,
-                created_files: vec![],
-                manifest: None,
-                detected_source_branch: String::new(),
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&result.id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(CreatePrResponse {
+                    success: true,
+                    error: String::new(),
+                    id: result.id,
+                    display_number: result.display_number,
+                    created_files: result.created_files,
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                    detected_source_branch: result.detected_source_branch,
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    None,
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(CreatePrResponse {
+                    success: false,
+                    error: e.to_string(),
+                    id: String::new(),
+                    display_number: 0,
+                    created_files: vec![],
+                    manifest: None,
+                    detected_source_branch: String::new(),
+                }))
+            }
         }
     }
 
@@ -2446,6 +3296,32 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.pr_id.clone();
+        let hook_request_data = serde_json::json!({
+            "pr_id": &req.pr_id,
+            "title": &req.title,
+            "description": &req.description,
+            "status": &req.status,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Pr,
+            HookOperation::Update,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(UpdatePrResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels (for label generation)
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
@@ -2490,18 +3366,44 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match update_pr(project_path, &req.pr_id, options).await {
-            Ok(result) => Ok(Response::new(UpdatePrResponse {
-                success: true,
-                error: String::new(),
-                pr: Some(pr_to_proto(&result.pr, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(UpdatePrResponse {
-                success: false,
-                error: e.to_string(),
-                pr: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(UpdatePrResponse {
+                    success: true,
+                    error: String::new(),
+                    pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(UpdatePrResponse {
+                    success: false,
+                    error: e.to_string(),
+                    pr: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2513,17 +3415,66 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match delete_pr(project_path, &req.pr_id).await {
-            Ok(result) => Ok(Response::new(DeletePrResponse {
-                success: true,
-                error: String::new(),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DeletePrResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.pr_id.clone();
+        let hook_request_data = serde_json::json!({
+            "pr_id": &req.pr_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Pr,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeletePrResponse {
                 success: false,
-                error: e.to_string(),
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match delete_pr(project_path, &req.pr_id).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DeletePrResponse {
+                    success: true,
+                    error: String::new(),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeletePrResponse {
+                    success: false,
+                    error: e.to_string(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2535,23 +3486,72 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.pr_id.clone();
+        let hook_request_data = serde_json::json!({
+            "pr_id": &req.pr_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Pr,
+            HookOperation::SoftDelete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(SoftDeletePrResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match soft_delete_pr(project_path, &req.pr_id).await {
-            Ok(result) => Ok(Response::new(SoftDeletePrResponse {
-                success: true,
-                error: String::new(),
-                pr: Some(pr_to_proto(&result.pr, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(SoftDeletePrResponse {
-                success: false,
-                error: e.to_string(),
-                pr: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeletePrResponse {
+                    success: true,
+                    error: String::new(),
+                    pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeletePrResponse {
+                    success: false,
+                    error: e.to_string(),
+                    pr: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2563,23 +3563,72 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.pr_id.clone();
+        let hook_request_data = serde_json::json!({
+            "pr_id": &req.pr_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Pr,
+            HookOperation::Restore,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(RestorePrResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Read config for priority_levels
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
         match restore_pr(project_path, &req.pr_id).await {
-            Ok(result) => Ok(Response::new(RestorePrResponse {
-                success: true,
-                error: String::new(),
-                pr: Some(pr_to_proto(&result.pr, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(RestorePrResponse {
-                success: false,
-                error: e.to_string(),
-                pr: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(RestorePrResponse {
+                    success: true,
+                    error: String::new(),
+                    pr: Some(pr_to_proto(&result.pr, priority_levels)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Pr,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(RestorePrResponse {
+                    success: false,
+                    error: e.to_string(),
+                    pr: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2608,6 +3657,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.source_id.clone();
+        let hook_request_data = serde_json::json!({
+            "source_id": &req.source_id,
+            "target_id": &req.target_id,
+            "link_type": &req.link_type,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Link,
+            HookOperation::Create,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(CreateLinkResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         // Convert proto types to internal types
         let source_type = proto_link_target_to_internal(req.source_type());
         let target_type = proto_link_target_to_internal(req.target_type());
@@ -2628,18 +3702,44 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match create_link(project_path, options, &custom_types).await {
-            Ok(result) => Ok(Response::new(CreateLinkResponse {
-                success: true,
-                error: String::new(),
-                created_link: Some(internal_link_to_proto(&result.created_link)),
-                inverse_link: Some(internal_link_to_proto(&result.inverse_link)),
-            })),
-            Err(e) => Ok(Response::new(CreateLinkResponse {
-                success: false,
-                error: e.to_string(),
-                created_link: None,
-                inverse_link: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Link,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(CreateLinkResponse {
+                    success: true,
+                    error: String::new(),
+                    created_link: Some(internal_link_to_proto(&result.created_link)),
+                    inverse_link: Some(internal_link_to_proto(&result.inverse_link)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Link,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(CreateLinkResponse {
+                    success: false,
+                    error: e.to_string(),
+                    created_link: None,
+                    inverse_link: None,
+                }))
+            }
         }
     }
 
@@ -2650,6 +3750,31 @@ impl CentyDaemon for CentyDaemonService {
         let req = request.into_inner();
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
+
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.source_id.clone();
+        let hook_request_data = serde_json::json!({
+            "source_id": &req.source_id,
+            "target_id": &req.target_id,
+            "link_type": &req.link_type,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::Link,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeleteLinkResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
 
         // Convert proto types to internal types
         let source_type = proto_link_target_to_internal(req.source_type());
@@ -2675,16 +3800,42 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match delete_link(project_path, options, &custom_types).await {
-            Ok(result) => Ok(Response::new(DeleteLinkResponse {
-                success: true,
-                error: String::new(),
-                deleted_count: result.deleted_count,
-            })),
-            Err(e) => Ok(Response::new(DeleteLinkResponse {
-                success: false,
-                error: e.to_string(),
-                deleted_count: 0,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Link,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DeleteLinkResponse {
+                    success: true,
+                    error: String::new(),
+                    deleted_count: result.deleted_count,
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::Link,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeleteLinkResponse {
+                    success: false,
+                    error: e.to_string(),
+                    deleted_count: 0,
+                }))
+            }
         }
     }
 
@@ -2752,6 +3903,30 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_request_data = serde_json::json!({
+            "id": &req.id,
+            "name": &req.name,
+            "email": &req.email,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::User,
+            HookOperation::Create,
+            &hook_project_path,
+            None,
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(CreateUserResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let options = CreateUserOptions {
             id: req.id,
             name: req.name,
@@ -2764,18 +3939,44 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match internal_create_user(project_path, options).await {
-            Ok(result) => Ok(Response::new(CreateUserResponse {
-                success: true,
-                error: String::new(),
-                user: Some(user_to_proto(&result.user)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(CreateUserResponse {
-                success: false,
-                error: e.to_string(),
-                user: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    Some(&result.user.id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(CreateUserResponse {
+                    success: true,
+                    error: String::new(),
+                    user: Some(user_to_proto(&result.user)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Create,
+                    &hook_project_path,
+                    None,
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(CreateUserResponse {
+                    success: false,
+                    error: e.to_string(),
+                    user: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2835,6 +4036,31 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.user_id.clone();
+        let hook_request_data = serde_json::json!({
+            "user_id": &req.user_id,
+            "name": &req.name,
+            "email": &req.email,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::User,
+            HookOperation::Update,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(UpdateUserResponse {
+                success: false,
+                error: e,
+                ..Default::default()
+            }));
+        }
+
         let options = UpdateUserOptions {
             name: if req.name.is_empty() {
                 None
@@ -2854,18 +4080,44 @@ impl CentyDaemon for CentyDaemonService {
         };
 
         match internal_update_user(project_path, &req.user_id, options).await {
-            Ok(result) => Ok(Response::new(UpdateUserResponse {
-                success: true,
-                error: String::new(),
-                user: Some(user_to_proto(&result.user)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(UpdateUserResponse {
-                success: false,
-                error: e.to_string(),
-                user: None,
-                manifest: None,
-            })),
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(UpdateUserResponse {
+                    success: true,
+                    error: String::new(),
+                    user: Some(user_to_proto(&result.user)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Update,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(UpdateUserResponse {
+                    success: false,
+                    error: e.to_string(),
+                    user: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2877,17 +4129,66 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match internal_delete_user(project_path, &req.user_id).await {
-            Ok(result) => Ok(Response::new(DeleteUserResponse {
-                success: true,
-                error: String::new(),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(DeleteUserResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.user_id.clone();
+        let hook_request_data = serde_json::json!({
+            "user_id": &req.user_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::User,
+            HookOperation::Delete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(DeleteUserResponse {
                 success: false,
-                error: e.to_string(),
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match internal_delete_user(project_path, &req.user_id).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(DeleteUserResponse {
+                    success: true,
+                    error: String::new(),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Delete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(DeleteUserResponse {
+                    success: false,
+                    error: e.to_string(),
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2899,19 +4200,68 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match internal_soft_delete_user(project_path, &req.user_id).await {
-            Ok(result) => Ok(Response::new(SoftDeleteUserResponse {
-                success: true,
-                error: String::new(),
-                user: Some(user_to_proto(&result.user)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(SoftDeleteUserResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.user_id.clone();
+        let hook_request_data = serde_json::json!({
+            "user_id": &req.user_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::User,
+            HookOperation::SoftDelete,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(SoftDeleteUserResponse {
                 success: false,
-                error: e.to_string(),
-                user: None,
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match internal_soft_delete_user(project_path, &req.user_id).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteUserResponse {
+                    success: true,
+                    error: String::new(),
+                    user: Some(user_to_proto(&result.user)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::SoftDelete,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(SoftDeleteUserResponse {
+                    success: false,
+                    error: e.to_string(),
+                    user: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -2923,19 +4273,68 @@ impl CentyDaemon for CentyDaemonService {
         track_project_async(req.project_path.clone());
         let project_path = Path::new(&req.project_path);
 
-        match internal_restore_user(project_path, &req.user_id).await {
-            Ok(result) => Ok(Response::new(RestoreUserResponse {
-                success: true,
-                error: String::new(),
-                user: Some(user_to_proto(&result.user)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
-            })),
-            Err(e) => Ok(Response::new(RestoreUserResponse {
+        // Pre-hook
+        let hook_project_path = req.project_path.clone();
+        let hook_item_id = req.user_id.clone();
+        let hook_request_data = serde_json::json!({
+            "user_id": &req.user_id,
+        });
+        if let Err(e) = maybe_run_pre_hooks(
+            project_path,
+            HookItemType::User,
+            HookOperation::Restore,
+            &hook_project_path,
+            Some(&hook_item_id),
+            Some(hook_request_data.clone()),
+        )
+        .await
+        {
+            return Ok(Response::new(RestoreUserResponse {
                 success: false,
-                error: e.to_string(),
-                user: None,
-                manifest: None,
-            })),
+                error: e,
+                ..Default::default()
+            }));
+        }
+
+        match internal_restore_user(project_path, &req.user_id).await {
+            Ok(result) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    true,
+                )
+                .await;
+
+                Ok(Response::new(RestoreUserResponse {
+                    success: true,
+                    error: String::new(),
+                    user: Some(user_to_proto(&result.user)),
+                    manifest: Some(manifest_to_proto(&result.manifest)),
+                }))
+            }
+            Err(e) => {
+                maybe_run_post_hooks(
+                    project_path,
+                    HookItemType::User,
+                    HookOperation::Restore,
+                    &hook_project_path,
+                    Some(&hook_item_id),
+                    Some(hook_request_data),
+                    false,
+                )
+                .await;
+
+                Ok(Response::new(RestoreUserResponse {
+                    success: false,
+                    error: e.to_string(),
+                    user: None,
+                    manifest: None,
+                }))
+            }
         }
     }
 
@@ -4066,6 +5465,17 @@ fn config_to_proto(config: &CentyConfig) -> Config {
             })
             .collect(),
         default_editor: config.default_editor.clone().unwrap_or_default(),
+        hooks: config
+            .hooks
+            .iter()
+            .map(|h| ProtoHookDefinition {
+                pattern: h.pattern.clone(),
+                command: h.command.clone(),
+                run_async: h.is_async,
+                timeout: h.timeout,
+                enabled: h.enabled,
+            })
+            .collect(),
     }
 }
 
@@ -4127,6 +5537,17 @@ fn proto_to_config(proto: &Config) -> CentyConfig {
         } else {
             Some(proto.default_editor.clone())
         },
+        hooks: proto
+            .hooks
+            .iter()
+            .map(|h| InternalHookDefinition {
+                pattern: h.pattern.clone(),
+                command: h.command.clone(),
+                is_async: h.run_async,
+                timeout: if h.timeout == 0 { 30 } else { h.timeout },
+                enabled: h.enabled,
+            })
+            .collect(),
     }
 }
 
@@ -4182,7 +5603,85 @@ fn validate_config(config: &CentyConfig) -> Result<(), String> {
         }
     }
 
+    // Validate hooks
+    for hook in &config.hooks {
+        if hook.command.is_empty() {
+            return Err(format!(
+                "hook with pattern '{}' has an empty command",
+                hook.pattern
+            ));
+        }
+        if hook.timeout == 0 || hook.timeout > 300 {
+            return Err(format!(
+                "hook '{}' timeout must be between 1 and 300 seconds, got {}",
+                hook.pattern, hook.timeout
+            ));
+        }
+        // Validate pattern syntax
+        if let Err(e) = crate::hooks::config::ParsedPattern::parse(&hook.pattern) {
+            return Err(format!("invalid hook pattern '{}': {e}", hook.pattern));
+        }
+        // Async is only valid for post-hooks
+        if hook.is_async {
+            let parsed = crate::hooks::config::ParsedPattern::parse(&hook.pattern)
+                .map_err(|e| format!("invalid hook pattern: {e}"))?;
+            if let crate::hooks::config::PatternSegment::Exact(ref phase) = parsed.phase {
+                if phase == "pre" {
+                    return Err(format!(
+                        "hook '{}' cannot be async: pre-hooks must be synchronous",
+                        hook.pattern
+                    ));
+                }
+            }
+        }
+    }
+
     Ok(())
+}
+
+/// Build pre-hook context and run pre-hooks. Returns Err(String) if blocked.
+async fn maybe_run_pre_hooks(
+    project_path: &Path,
+    item_type: HookItemType,
+    operation: HookOperation,
+    project_path_str: &str,
+    item_id: Option<&str>,
+    request_data: Option<serde_json::Value>,
+) -> Result<(), String> {
+    let context = HookContext::new(
+        Phase::Pre,
+        item_type,
+        operation,
+        project_path_str,
+        item_id,
+        request_data,
+        None,
+    );
+    run_pre_hooks(project_path, item_type, operation, &context)
+        .await
+        .map_err(|e| format!("Hook blocked operation: {e}"))
+}
+
+/// Build post-hook context and run post-hooks (sync ones block, async ones are spawned).
+async fn maybe_run_post_hooks(
+    project_path: &Path,
+    item_type: HookItemType,
+    operation: HookOperation,
+    project_path_str: &str,
+    item_id: Option<&str>,
+    request_data: Option<serde_json::Value>,
+    success: bool,
+) {
+    let context = HookContext::new(
+        Phase::Post,
+        item_type,
+        operation,
+        project_path_str,
+        item_id,
+        request_data,
+        Some(success),
+    );
+    run_post_hooks(project_path, item_type, operation, &context).await;
 }
 
 #[allow(deprecated)]
