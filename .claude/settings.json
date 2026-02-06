@@ -82,7 +82,11 @@
       "Bash(pnpm test)",
       "Bash(pgrep:*)",
       "Bash(pnpm test:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(centy issue:*)",
+      "Bash(centy update:*)",
+      "Bash(git restore:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
