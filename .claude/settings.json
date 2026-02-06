@@ -78,7 +78,8 @@
       "Bash(gh pr merge:*)",
       "WebFetch(domain:polyformproject.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(pnpm test)"
     ]
   },
   "hooks": {
