@@ -92,7 +92,8 @@
       "Bash(centy delete:*)",
       "Bash(centy list issues:*)",
       "Bash(python3:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(sort:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
