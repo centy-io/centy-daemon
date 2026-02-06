@@ -1,14 +1,4 @@
-// Deny panic/unwrap/expect in production code, allow in tests
-#![cfg_attr(
-    not(test),
-    deny(
-        clippy::panic,
-        clippy::unwrap_used,
-        clippy::expect_used,
-        clippy::panic_in_result_fn,
-        clippy::unwrap_in_result
-    )
-)]
+// Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 #![cfg_attr(
     test,
     allow(
