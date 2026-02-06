@@ -89,7 +89,9 @@
       "Bash(git rebase:*)",
       "Bash(ls:*)",
       "Bash(centy help:*)",
-      "Bash(centy delete:*)"
+      "Bash(centy delete:*)",
+      "Bash(centy list issues:*)",
+      "Bash(python3:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
