@@ -160,10 +160,7 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
     // Normalize: if the raw JSON is missing the "hooks" key, write back
     // to ensure all projects have the hooks section in config.json.
     let raw: serde_json::Value = serde_json::from_str(&content)?;
-    if !raw
-        .as_object()
-        .is_some_and(|o| o.contains_key("hooks"))
-    {
+    if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
         let normalized = serde_json::to_string_pretty(&config)?;
         fs::write(&config_path, normalized).await?;
     }
