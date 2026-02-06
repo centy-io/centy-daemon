@@ -332,6 +332,97 @@ describe('gRPC: Issue Operations', () => {
     });
   });
 
+  describe('Display number resolution', () => {
+    it('should get issue by display number string via getIssue', async () => {
+      const created = await project.client.createIssue({
+        projectPath: project.path,
+        title: 'Display Num Get Test',
+      });
+
+      const issue = await project.client.getIssue({
+        projectPath: project.path,
+        issueId: String(created.displayNumber),
+      });
+
+      expect(issue.id).toBe(created.id);
+      expect(issue.title).toBe('Display Num Get Test');
+    });
+
+    it('should update issue by display number string', async () => {
+      const created = await project.client.createIssue({
+        projectPath: project.path,
+        title: 'Display Num Update Test',
+      });
+
+      const result = await project.client.updateIssue({
+        projectPath: project.path,
+        issueId: String(created.displayNumber),
+        title: 'Updated via Display Number',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.issue?.title).toBe('Updated via Display Number');
+    });
+
+    it('should soft-delete issue by display number string', async () => {
+      const created = await project.client.createIssue({
+        projectPath: project.path,
+        title: 'Display Num Soft Delete Test',
+      });
+
+      const result = await project.client.softDeleteIssue({
+        projectPath: project.path,
+        issueId: String(created.displayNumber),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.issue?.metadata.deletedAt).toBeDefined();
+      expect(result.issue?.metadata.deletedAt).not.toBe('');
+    });
+
+    it('should restore issue by display number string', async () => {
+      const created = await project.client.createIssue({
+        projectPath: project.path,
+        title: 'Display Num Restore Test',
+      });
+
+      // First soft-delete
+      await project.client.softDeleteIssue({
+        projectPath: project.path,
+        issueId: created.id,
+      });
+
+      // Then restore using display number
+      const result = await project.client.restoreIssue({
+        projectPath: project.path,
+        issueId: String(created.displayNumber),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.issue?.metadata.deletedAt).toBe('');
+    });
+
+    it('should delete issue by display number string', async () => {
+      const created = await project.client.createIssue({
+        projectPath: project.path,
+        title: 'Display Num Delete Test',
+      });
+
+      const deleteResult = await project.client.deleteIssue({
+        projectPath: project.path,
+        issueId: String(created.displayNumber),
+      });
+
+      expect(deleteResult.success).toBe(true);
+
+      // Verify it's gone
+      const listResult = await project.client.listIssues({
+        projectPath: project.path,
+      });
+      expect(listResult.totalCount).toBe(0);
+    });
+  });
+
   describe('GetNextIssueNumber', () => {
     it('should return next available number', async () => {
       const result1 = await project.client.getNextIssueNumber({

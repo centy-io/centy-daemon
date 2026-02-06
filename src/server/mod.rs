@@ -184,6 +184,46 @@ async fn resolve_issue(
     }
 }
 
+/// Resolve an issue ID (display number or UUID) to a UUID string.
+async fn resolve_issue_id(project_path: &Path, issue_id: &str) -> Result<String, String> {
+    if let Ok(display_num) = issue_id.parse::<u32>() {
+        get_issue_by_display_number(project_path, display_num)
+            .await
+            .map(|issue| issue.id)
+            .map_err(|e| format!("Issue not found: {e}"))
+    } else {
+        Ok(issue_id.to_string())
+    }
+}
+
+/// Resolve a PR by display number or UUID.
+async fn resolve_pr(
+    project_path: &Path,
+    pr_id: &str,
+) -> Result<crate::item::entities::pr::PullRequest, String> {
+    if let Ok(display_num) = pr_id.parse::<u32>() {
+        get_pr_by_display_number(project_path, display_num)
+            .await
+            .map_err(|e| format!("PR not found: {e}"))
+    } else {
+        get_pr(project_path, pr_id)
+            .await
+            .map_err(|e| format!("PR not found: {e}"))
+    }
+}
+
+/// Resolve a PR ID (display number or UUID) to a UUID string.
+async fn resolve_pr_id(project_path: &Path, pr_id: &str) -> Result<String, String> {
+    if let Ok(display_num) = pr_id.parse::<u32>() {
+        get_pr_by_display_number(project_path, display_num)
+            .await
+            .map(|pr| pr.id)
+            .map_err(|e| format!("PR not found: {e}"))
+    } else {
+        Ok(pr_id.to_string())
+    }
+}
+
 /// Create a simple EntityAction.
 fn make_action(
     id: &str,
@@ -747,7 +787,7 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match get_issue(project_path, &req.issue_id).await {
+        match resolve_issue(project_path, &req.issue_id).await {
             Ok(issue) => Ok(Response::new(GetIssueResponse {
                 success: true,
                 error: String::new(),
@@ -755,7 +795,7 @@ impl CentyDaemon for CentyDaemonService {
             })),
             Err(e) => Ok(Response::new(GetIssueResponse {
                 success: false,
-                error: e.to_string(),
+                error: e,
                 issue: None,
             })),
         }
@@ -949,7 +989,18 @@ impl CentyDaemon for CentyDaemonService {
             draft: req.draft,
         };
 
-        match update_issue(project_path, &req.issue_id, options).await {
+        let issue_id = match resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(UpdateIssueResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match update_issue(project_path, &issue_id, options).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -1035,7 +1086,18 @@ impl CentyDaemon for CentyDaemonService {
             }));
         }
 
-        match delete_issue(project_path, &req.issue_id).await {
+        let issue_id = match resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(DeleteIssueResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match delete_issue(project_path, &issue_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -1110,7 +1172,18 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match soft_delete_issue(project_path, &req.issue_id).await {
+        let issue_id = match resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(SoftDeleteIssueResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match soft_delete_issue(project_path, &issue_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -1187,7 +1260,18 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match restore_issue(project_path, &req.issue_id).await {
+        let issue_id = match resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(RestoreIssueResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match restore_issue(project_path, &issue_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -3149,7 +3233,7 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match get_pr(project_path, &req.pr_id).await {
+        match resolve_pr(project_path, &req.pr_id).await {
             Ok(pr) => Ok(Response::new(GetPrResponse {
                 success: true,
                 error: String::new(),
@@ -3157,7 +3241,7 @@ impl CentyDaemon for CentyDaemonService {
             })),
             Err(e) => Ok(Response::new(GetPrResponse {
                 success: false,
-                error: e.to_string(),
+                error: e,
                 pr: None,
             })),
         }
@@ -3365,7 +3449,18 @@ impl CentyDaemon for CentyDaemonService {
             custom_fields: req.custom_fields,
         };
 
-        match update_pr(project_path, &req.pr_id, options).await {
+        let pr_id = match resolve_pr_id(project_path, &req.pr_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(UpdatePrResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match update_pr(project_path, &pr_id, options).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -3438,7 +3533,18 @@ impl CentyDaemon for CentyDaemonService {
             }));
         }
 
-        match delete_pr(project_path, &req.pr_id).await {
+        let pr_id = match resolve_pr_id(project_path, &req.pr_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(DeletePrResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match delete_pr(project_path, &pr_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -3513,7 +3619,18 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match soft_delete_pr(project_path, &req.pr_id).await {
+        let pr_id = match resolve_pr_id(project_path, &req.pr_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(SoftDeletePrResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match soft_delete_pr(project_path, &pr_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,
@@ -3590,7 +3707,18 @@ impl CentyDaemon for CentyDaemonService {
         let config = read_config(project_path).await.ok().flatten();
         let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
 
-        match restore_pr(project_path, &req.pr_id).await {
+        let pr_id = match resolve_pr_id(project_path, &req.pr_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(RestorePrResponse {
+                    success: false,
+                    error: e,
+                    ..Default::default()
+                }))
+            }
+        };
+
+        match restore_pr(project_path, &pr_id).await {
             Ok(result) => {
                 maybe_run_post_hooks(
                     project_path,

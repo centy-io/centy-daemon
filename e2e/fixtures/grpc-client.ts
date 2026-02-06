@@ -79,6 +79,20 @@ export interface CentyClient {
       response: DeleteIssueResponse
     ) => void
   ): void;
+  softDeleteIssue(
+    request: SoftDeleteIssueRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: SoftDeleteIssueResponse
+    ) => void
+  ): void;
+  restoreIssue(
+    request: RestoreIssueRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: RestoreIssueResponse
+    ) => void
+  ): void;
   getNextIssueNumber(
     request: GetNextIssueNumberRequest,
     callback: (
@@ -260,6 +274,20 @@ export interface CentyClient {
     callback: (
       error: grpc.ServiceError | null,
       response: DeletePrResponse
+    ) => void
+  ): void;
+  softDeletePr(
+    request: SoftDeletePrRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: SoftDeletePrResponse
+    ) => void
+  ): void;
+  restorePr(
+    request: RestorePrRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: RestorePrResponse
     ) => void
   ): void;
   getNextPrNumber(
@@ -586,6 +614,30 @@ export interface DeleteIssueRequest {
 export interface DeleteIssueResponse {
   success: boolean;
   error: string;
+  manifest?: Manifest;
+}
+
+export interface SoftDeleteIssueRequest {
+  projectPath: string;
+  issueId: string;
+}
+
+export interface SoftDeleteIssueResponse {
+  success: boolean;
+  error: string;
+  issue?: Issue;
+  manifest?: Manifest;
+}
+
+export interface RestoreIssueRequest {
+  projectPath: string;
+  issueId: string;
+}
+
+export interface RestoreIssueResponse {
+  success: boolean;
+  error: string;
+  issue?: Issue;
   manifest?: Manifest;
 }
 
@@ -982,6 +1034,30 @@ export interface DeletePrRequest {
 export interface DeletePrResponse {
   success: boolean;
   error: string;
+  manifest?: Manifest;
+}
+
+export interface SoftDeletePrRequest {
+  projectPath: string;
+  prId: string;
+}
+
+export interface SoftDeletePrResponse {
+  success: boolean;
+  error: string;
+  pr?: PullRequest;
+  manifest?: Manifest;
+}
+
+export interface RestorePrRequest {
+  projectPath: string;
+  prId: string;
+}
+
+export interface RestorePrResponse {
+  success: boolean;
+  error: string;
+  pr?: PullRequest;
   manifest?: Manifest;
 }
 
@@ -1383,6 +1459,8 @@ export function promisifyClient(client: CentyClient) {
     listIssues: promisify<ListIssuesRequest, ListIssuesResponse>(client.listIssues),
     updateIssue: promisify<UpdateIssueRequest, UpdateIssueResponse>(client.updateIssue),
     deleteIssue: promisify<DeleteIssueRequest, DeleteIssueResponse>(client.deleteIssue),
+    softDeleteIssue: promisify<SoftDeleteIssueRequest, SoftDeleteIssueResponse>(client.softDeleteIssue),
+    restoreIssue: promisify<RestoreIssueRequest, RestoreIssueResponse>(client.restoreIssue),
     getNextIssueNumber: promisify<GetNextIssueNumberRequest, GetNextIssueNumberResponse>(
       client.getNextIssueNumber
     ),
@@ -1437,6 +1515,8 @@ export function promisifyClient(client: CentyClient) {
     listPrs: promisify<ListPrsRequest, ListPrsResponse>(client.listPrs),
     updatePr: promisify<UpdatePrRequest, UpdatePrResponse>(client.updatePr),
     deletePr: promisify<DeletePrRequest, DeletePrResponse>(client.deletePr),
+    softDeletePr: promisify<SoftDeletePrRequest, SoftDeletePrResponse>(client.softDeletePr),
+    restorePr: promisify<RestorePrRequest, RestorePrResponse>(client.restorePr),
     getNextPrNumber: promisify<GetNextPrNumberRequest, GetNextPrNumberResponse>(
       client.getNextPrNumber
     ),

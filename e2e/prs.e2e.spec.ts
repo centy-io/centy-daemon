@@ -398,6 +398,112 @@ describe('PR E2E Tests', () => {
     });
   });
 
+  describe('Display number resolution', () => {
+    it('should get PR by display number string via getPr', async () => {
+      createGitBranch(project.path, 'feature/dn-get');
+
+      const created = await project.client.createPr({
+        projectPath: project.path,
+        title: 'Display Num Get Test',
+        sourceBranch: 'feature/dn-get',
+      });
+
+      const pr = await project.client.getPr({
+        projectPath: project.path,
+        prId: String(created.displayNumber),
+      });
+
+      expect(pr.id).toBe(created.id);
+      expect(pr.title).toBe('Display Num Get Test');
+    });
+
+    it('should update PR by display number string', async () => {
+      createGitBranch(project.path, 'feature/dn-update');
+
+      const created = await project.client.createPr({
+        projectPath: project.path,
+        title: 'Display Num Update Test',
+        sourceBranch: 'feature/dn-update',
+      });
+
+      const result = await project.client.updatePr({
+        projectPath: project.path,
+        prId: String(created.displayNumber),
+        title: 'Updated via Display Number',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.pr?.title).toBe('Updated via Display Number');
+    });
+
+    it('should soft-delete PR by display number string', async () => {
+      createGitBranch(project.path, 'feature/dn-soft-del');
+
+      const created = await project.client.createPr({
+        projectPath: project.path,
+        title: 'Display Num Soft Delete Test',
+        sourceBranch: 'feature/dn-soft-del',
+      });
+
+      const result = await project.client.softDeletePr({
+        projectPath: project.path,
+        prId: String(created.displayNumber),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.pr?.metadata.deletedAt).toBeDefined();
+      expect(result.pr?.metadata.deletedAt).not.toBe('');
+    });
+
+    it('should restore PR by display number string', async () => {
+      createGitBranch(project.path, 'feature/dn-restore');
+
+      const created = await project.client.createPr({
+        projectPath: project.path,
+        title: 'Display Num Restore Test',
+        sourceBranch: 'feature/dn-restore',
+      });
+
+      // First soft-delete
+      await project.client.softDeletePr({
+        projectPath: project.path,
+        prId: created.id,
+      });
+
+      // Then restore using display number
+      const result = await project.client.restorePr({
+        projectPath: project.path,
+        prId: String(created.displayNumber),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.pr?.metadata.deletedAt).toBe('');
+    });
+
+    it('should delete PR by display number string', async () => {
+      createGitBranch(project.path, 'feature/dn-delete');
+
+      const created = await project.client.createPr({
+        projectPath: project.path,
+        title: 'Display Num Delete Test',
+        sourceBranch: 'feature/dn-delete',
+      });
+
+      const deleteResult = await project.client.deletePr({
+        projectPath: project.path,
+        prId: String(created.displayNumber),
+      });
+
+      expect(deleteResult.success).toBe(true);
+
+      // Verify it's gone
+      const listResult = await project.client.listPrs({
+        projectPath: project.path,
+      });
+      expect(listResult.totalCount).toBe(0);
+    });
+  });
+
   describe('GetNextPrNumber', () => {
     it('should return 1 for empty project', async () => {
       const result = await project.client.getNextPrNumber({
