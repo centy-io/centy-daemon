@@ -136,7 +136,9 @@
       "Bash(done)",
       "Bash(git cherry-pick:*)",
       "Bash(gh pr close:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(do wc -l \"$f\")",
+      "Bash(done)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
