@@ -135,7 +135,8 @@
       "Bash(do centy delete org:*)",
       "Bash(done)",
       "Bash(git cherry-pick:*)",
-      "Bash(gh pr close:*)"
+      "Bash(gh pr close:*)",
+      "Bash(cat:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
