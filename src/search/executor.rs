@@ -227,4 +227,95 @@ mod tests {
             SortField::Custom("custom".to_string())
         );
     }
+
+    #[test]
+    fn test_sort_field_status() {
+        assert_eq!("status".parse::<SortField>().unwrap(), SortField::Status);
+    }
+
+    #[test]
+    fn test_sort_field_display_number() {
+        assert_eq!(
+            "displaynumber".parse::<SortField>().unwrap(),
+            SortField::DisplayNumber
+        );
+        assert_eq!(
+            "number".parse::<SortField>().unwrap(),
+            SortField::DisplayNumber
+        );
+        assert_eq!(
+            "num".parse::<SortField>().unwrap(),
+            SortField::DisplayNumber
+        );
+        assert_eq!("n".parse::<SortField>().unwrap(), SortField::DisplayNumber);
+    }
+
+    #[test]
+    fn test_sort_field_updated_at() {
+        assert_eq!(
+            "updatedAt".parse::<SortField>().unwrap(),
+            SortField::UpdatedAt
+        );
+        assert_eq!(
+            "updated".parse::<SortField>().unwrap(),
+            SortField::UpdatedAt
+        );
+    }
+
+    #[test]
+    fn test_sort_field_priority_aliases() {
+        assert_eq!("p".parse::<SortField>().unwrap(), SortField::Priority);
+        assert_eq!("prio".parse::<SortField>().unwrap(), SortField::Priority);
+        assert_eq!(
+            "priority".parse::<SortField>().unwrap(),
+            SortField::Priority
+        );
+    }
+
+    #[test]
+    fn test_sort_field_case_insensitive() {
+        assert_eq!("TITLE".parse::<SortField>().unwrap(), SortField::Title);
+        assert_eq!(
+            "Priority".parse::<SortField>().unwrap(),
+            SortField::Priority
+        );
+    }
+
+    #[test]
+    fn test_sort_field_custom() {
+        let field: SortField = "environment".parse().unwrap();
+        assert_eq!(field, SortField::Custom("environment".to_string()));
+    }
+
+    #[test]
+    fn test_search_options_debug() {
+        let opts = SearchOptions {
+            query: "status:open".to_string(),
+            sort: None,
+            multi_project: false,
+            project_path: Some("/test".to_string()),
+        };
+        let debug = format!("{opts:?}");
+        assert!(debug.contains("SearchOptions"));
+        assert!(debug.contains("status:open"));
+    }
+
+    #[test]
+    fn test_sort_options_debug() {
+        let sort = SortOptions {
+            field: SortField::Priority,
+            descending: true,
+        };
+        let debug = format!("{sort:?}");
+        assert!(debug.contains("SortOptions"));
+        assert!(debug.contains("Priority"));
+        assert!(debug.contains("true"));
+    }
+
+    #[test]
+    fn test_sort_field_clone() {
+        let field = SortField::Custom("env".to_string());
+        let cloned = field.clone();
+        assert_eq!(cloned, SortField::Custom("env".to_string()));
+    }
 }

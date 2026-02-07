@@ -143,6 +143,7 @@ fn evaluate_date_condition(
 mod tests {
     use super::*;
     use crate::item::entities::issue::IssueMetadataFlat;
+    use crate::search::ast::CompiledPattern;
     use std::collections::HashMap;
 
     #[allow(deprecated)]
@@ -246,5 +247,265 @@ mod tests {
             value: Value::String("closed".to_string()),
         })));
         assert!(evaluate(&query, &issue));
+    }
+
+    #[test]
+    fn test_string_not_eq() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::Status,
+            operator: Operator::NotEq,
+            value: Value::String("closed".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_string_starts_with() {
+        let issue = create_test_issue("Bug: login failure", "open", 1);
+        let condition = Condition {
+            field: Field::Title,
+            operator: Operator::StartsWith,
+            value: Value::String("bug".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_string_ends_with() {
+        let issue = create_test_issue("Login failure bug", "open", 1);
+        let condition = Condition {
+            field: Field::Title,
+            operator: Operator::EndsWith,
+            value: Value::String("bug".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_string_gt() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::Status,
+            operator: Operator::Gt,
+            value: Value::String("a".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_eq() {
+        let issue = create_test_issue("Bug fix", "open", 2);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Eq,
+            value: Value::Number(2),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_not_eq() {
+        let issue = create_test_issue("Bug fix", "open", 2);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::NotEq,
+            value: Value::Number(1),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_gt() {
+        let issue = create_test_issue("Bug fix", "open", 3);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Gt,
+            value: Value::Number(2),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_lt() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Lt,
+            value: Value::Number(2),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_gte() {
+        let issue = create_test_issue("Bug fix", "open", 2);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Gte,
+            value: Value::Number(2),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_contains_returns_false() {
+        let issue = create_test_issue("Bug fix", "open", 2);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Contains,
+            value: Value::Number(2),
+        };
+        assert!(!evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_number_wrong_value_type() {
+        let issue = create_test_issue("Bug fix", "open", 2);
+        let condition = Condition {
+            field: Field::Priority,
+            operator: Operator::Eq,
+            value: Value::String("2".to_string()),
+        };
+        assert!(!evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_date_comparison() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        let condition = Condition {
+            field: Field::CreatedAt,
+            operator: Operator::Eq,
+            value: Value::Date(date),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_date_gt() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let condition = Condition {
+            field: Field::CreatedAt,
+            operator: Operator::Gt,
+            value: Value::Date(date),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_date_contains_returns_false() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        let condition = Condition {
+            field: Field::CreatedAt,
+            operator: Operator::Contains,
+            value: Value::Date(date),
+        };
+        assert!(!evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_display_number_field() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::DisplayNumber,
+            operator: Operator::Eq,
+            value: Value::Number(1),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_description_field() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::Description,
+            operator: Operator::Contains,
+            value: Value::String("test".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_custom_field_not_found() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let condition = Condition {
+            field: Field::Custom("nonexistent".to_string()),
+            operator: Operator::Eq,
+            value: Value::String("value".to_string()),
+        };
+        assert!(!evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_case_insensitive_matching() {
+        let issue = create_test_issue("Bug Fix", "Open", 1);
+        let condition = Condition {
+            field: Field::Status,
+            operator: Operator::Eq,
+            value: Value::String("open".to_string()),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_wildcard_pattern_matching() {
+        let issue = create_test_issue("Bug fix for login", "open", 1);
+        let pattern = CompiledPattern::from_wildcard("bug*login").unwrap();
+        let condition = Condition {
+            field: Field::Title,
+            operator: Operator::Contains,
+            value: Value::Pattern(pattern),
+        };
+        assert!(evaluate_condition(&condition, &issue));
+    }
+
+    #[test]
+    fn test_and_query_false() {
+        let issue = create_test_issue("Bug fix", "closed", 1);
+        let query = Query::And(
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("open".to_string()),
+            })),
+            Box::new(Query::Condition(Condition {
+                field: Field::Priority,
+                operator: Operator::Eq,
+                value: Value::Number(1),
+            })),
+        );
+        assert!(!evaluate(&query, &issue));
+    }
+
+    #[test]
+    fn test_or_query_both_false() {
+        let issue = create_test_issue("Bug fix", "in-progress", 3);
+        let query = Query::Or(
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("open".to_string()),
+            })),
+            Box::new(Query::Condition(Condition {
+                field: Field::Status,
+                operator: Operator::Eq,
+                value: Value::String("closed".to_string()),
+            })),
+        );
+        assert!(!evaluate(&query, &issue));
+    }
+
+    #[test]
+    fn test_not_query_false() {
+        let issue = create_test_issue("Bug fix", "open", 1);
+        let query = Query::Not(Box::new(Query::Condition(Condition {
+            field: Field::Status,
+            operator: Operator::Eq,
+            value: Value::String("open".to_string()),
+        })));
+        assert!(!evaluate(&query, &issue));
     }
 }
