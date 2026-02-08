@@ -1,0 +1,103 @@
+use std::path::Path;
+
+use crate::config::read_config;
+use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
+use crate::registry::track_project_async;
+use crate::server::proto::{OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse};
+use crate::server::resolve::resolve_issue;
+use crate::workspace::{create_temp_workspace, CreateWorkspaceOptions, EditorType};
+use tonic::{Response, Status};
+
+pub async fn open_in_temp_terminal(
+    req: OpenInTempWorkspaceRequest,
+) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
+    track_project_async(req.project_path.clone());
+    let project_path = Path::new(&req.project_path);
+    let action_str = match req.action {
+        1 => "plan",
+        2 => "implement",
+        _ => "plan",
+    };
+
+    let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
+        Ok(Response::new(OpenInTempWorkspaceResponse {
+            success: false,
+            error,
+            workspace_path: String::new(),
+            issue_id,
+            display_number: dn,
+            expires_at: String::new(),
+            editor_opened: false,
+            requires_status_config: req_cfg,
+            workspace_reused: false,
+            original_created_at: String::new(),
+        }))
+    };
+
+    let issue = match resolve_issue(project_path, &req.issue_id).await {
+        Ok(i) => i,
+        Err(e) => return err_response(e, String::new(), 0, false),
+    };
+
+    let config = read_config(project_path).await.ok().flatten();
+    if config
+        .as_ref()
+        .map(|c| c.llm.update_status_on_start.is_none())
+        .unwrap_or(true)
+    {
+        return err_response(
+            "Status update preference not configured".to_string(),
+            issue.id.clone(),
+            issue.metadata.display_number,
+            true,
+        );
+    }
+
+    if let Some(ref cfg) = config {
+        if cfg.llm.update_status_on_start == Some(true) {
+            let current_status = &issue.metadata.status;
+            if current_status != "in-progress" && current_status != "closed" {
+                let _ = update_issue(
+                    project_path,
+                    &issue.id,
+                    UpdateIssueOptions {
+                        status: Some("in-progress".to_string()),
+                        ..Default::default()
+                    },
+                )
+                .await;
+            }
+        }
+    }
+
+    let agent_name = if req.agent_name.is_empty() {
+        "claude".to_string()
+    } else {
+        req.agent_name.clone()
+    };
+
+    match create_temp_workspace(CreateWorkspaceOptions {
+        source_project_path: project_path.to_path_buf(),
+        issue: issue.clone(),
+        action: action_str.to_string(),
+        agent_name,
+        ttl_hours: req.ttl_hours,
+        editor: EditorType::Terminal,
+    })
+    .await
+    {
+        Ok(result) => Ok(Response::new(OpenInTempWorkspaceResponse {
+            success: true,
+            error: String::new(),
+            workspace_path: result.workspace_path.to_string_lossy().to_string(),
+            issue_id: issue.id.clone(),
+            display_number: issue.metadata.display_number,
+            expires_at: result.entry.expires_at,
+            editor_opened: result.editor_opened,
+            requires_status_config: false,
+            workspace_reused: result.workspace_reused,
+            original_created_at: result.original_created_at.unwrap_or_default(),
+        })),
+        Err(e) => err_response(e.to_string(), String::new(), 0, false),
+    }
+}
