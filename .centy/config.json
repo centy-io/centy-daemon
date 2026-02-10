@@ -14,7 +14,7 @@
   "llm.allowDirectEdits": false,
   "llm.autoCloseOnComplete": false,
   "llm.defaultWorkspaceMode": 0,
-  "llm.updateStatusOnStart": false,
+  "llm.updateStatusOnStart": true,
   "priorityColors": {},
   "priorityLevels": 3,
   "stateColors": {},
