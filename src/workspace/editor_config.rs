@@ -88,8 +88,8 @@ pub async fn get_all_editors() -> Vec<EditorConfig> {
     if let Some(config) = user_config {
         for user_editor in config.editors {
             // Override built-in if same ID, otherwise append
-            if let Some(pos) = editors.iter().position(|e| e.id == user_editor.id) {
-                editors[pos] = user_editor;
+            if let Some(existing) = editors.iter_mut().find(|e| e.id == user_editor.id) {
+                *existing = user_editor;
             } else {
                 editors.push(user_editor);
             }

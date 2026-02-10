@@ -1,3 +1,4 @@
+#![allow(clippy::indexing_slicing)]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 //! Integration tests for organization inference from git remotes.

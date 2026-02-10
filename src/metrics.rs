@@ -43,7 +43,8 @@ impl Drop for OperationTimer {
 /// Generate a short request ID for correlation.
 #[must_use]
 pub fn generate_request_id() -> String {
-    uuid::Uuid::new_v4().to_string()[..8].to_string()
+    let uuid_str = uuid::Uuid::new_v4().to_string();
+    uuid_str.get(..8).unwrap_or(&uuid_str).to_string()
 }
 
 #[cfg(test)]

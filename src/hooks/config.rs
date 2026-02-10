@@ -122,11 +122,23 @@ impl ParsedPattern {
             )));
         }
 
-        let phase = Self::parse_segment(parts[0], &["pre", "post"])?;
-        let item_type =
-            Self::parse_segment(parts[1], &["issue", "doc", "pr", "user", "link", "asset"])?;
+        let phase_str = parts.first().ok_or_else(|| {
+            HookError::InvalidPattern(format!("Missing phase segment in pattern: '{pattern}'"))
+        })?;
+        let item_type_str = parts.get(1).ok_or_else(|| {
+            HookError::InvalidPattern(format!("Missing item_type segment in pattern: '{pattern}'"))
+        })?;
+        let operation_str = parts.get(2).ok_or_else(|| {
+            HookError::InvalidPattern(format!("Missing operation segment in pattern: '{pattern}'"))
+        })?;
+
+        let phase = Self::parse_segment(phase_str, &["pre", "post"])?;
+        let item_type = Self::parse_segment(
+            item_type_str,
+            &["issue", "doc", "pr", "user", "link", "asset"],
+        )?;
         let operation = Self::parse_segment(
-            parts[2],
+            operation_str,
             &[
                 "create",
                 "update",

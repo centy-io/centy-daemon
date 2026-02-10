@@ -48,11 +48,7 @@ pub fn generate_pr_id() -> String {
 #[allow(dead_code)] // Utility function for future CLI display features
 #[must_use]
 pub fn short_id(id: &str) -> &str {
-    if id.len() >= 8 {
-        &id[..8]
-    } else {
-        id
-    }
+    id.get(..8).unwrap_or(id)
 }
 
 #[cfg(test)]

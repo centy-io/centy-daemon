@@ -933,13 +933,16 @@ fn parse_pr_md(content: &str) -> (String, String) {
     }
 
     // First line should be the title (# Title)
-    let title = lines[0]
+    let first_line = lines.first().copied().unwrap_or("");
+    let title = first_line
         .strip_prefix('#')
-        .map_or(lines[0], str::trim)
+        .map_or(first_line, str::trim)
         .to_string();
 
     // Rest is description (skip empty lines after title)
-    let description_lines: Vec<&str> = lines[1..]
+    let description_lines: Vec<&str> = lines
+        .get(1..)
+        .unwrap_or(&[])
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()

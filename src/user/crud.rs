@@ -143,12 +143,10 @@ pub async fn update_user(
     let mut users = read_users(project_path).await?;
 
     // Find and update user
-    let user_idx = users
-        .iter()
-        .position(|u| u.id == user_id)
+    let user = users
+        .iter_mut()
+        .find(|u| u.id == user_id)
         .ok_or_else(|| UserError::UserNotFound(user_id.to_string()))?;
-
-    let user = &mut users[user_idx];
 
     if let Some(name) = options.name {
         if !name.is_empty() {
@@ -249,12 +247,10 @@ pub async fn soft_delete_user(
     let mut users = read_users(project_path).await?;
 
     // Find user
-    let user_idx = users
-        .iter()
-        .position(|u| u.id == user_id)
+    let user = users
+        .iter_mut()
+        .find(|u| u.id == user_id)
         .ok_or_else(|| UserError::UserNotFound(user_id.to_string()))?;
-
-    let user = &mut users[user_idx];
 
     // Check if already deleted
     if user.deleted_at.is_some() {
@@ -304,12 +300,10 @@ pub async fn restore_user(
     let mut users = read_users(project_path).await?;
 
     // Find user
-    let user_idx = users
-        .iter()
-        .position(|u| u.id == user_id)
+    let user = users
+        .iter_mut()
+        .find(|u| u.id == user_id)
         .ok_or_else(|| UserError::UserNotFound(user_id.to_string()))?;
-
-    let user = &mut users[user_idx];
 
     // Check if actually deleted
     if user.deleted_at.is_none() {

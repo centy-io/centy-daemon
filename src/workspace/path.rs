@@ -50,10 +50,10 @@ pub fn sanitize_project_name(project_path: &Path) -> String {
     let result = result.trim_end_matches('-');
     if result.len() > 30 {
         // Find a clean break point (avoid cutting mid-word)
-        let truncated = &result[..30];
+        let truncated = result.get(..30).unwrap_or(result);
         truncated
             .rfind('-')
-            .map(|i| &truncated[..i])
+            .and_then(|i| truncated.get(..i))
             .unwrap_or(truncated)
             .to_string()
     } else {
@@ -107,7 +107,11 @@ pub fn sanitize_workspace_name(name: &str) -> String {
 
     let result = result.trim_matches('-');
     if result.len() > 20 {
-        result[..20].trim_end_matches('-').to_string()
+        result
+            .get(..20)
+            .unwrap_or(result)
+            .trim_end_matches('-')
+            .to_string()
     } else {
         result.to_string()
     }
@@ -122,7 +126,8 @@ pub fn generate_standalone_workspace_path(
     workspace_name: Option<&str>,
 ) -> PathBuf {
     let project_name = sanitize_project_name(project_path);
-    let short_uuid = &Uuid::new_v4().to_string()[..8];
+    let uuid_str = Uuid::new_v4().to_string();
+    let short_uuid = uuid_str.get(..8).unwrap_or(&uuid_str);
 
     let ws_name = workspace_name
         .map(sanitize_workspace_name)
