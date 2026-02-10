@@ -1,5 +1,6 @@
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
+use crate::config::{write_config, CentyConfig};
 use crate::manifest::{
     create_manifest, read_manifest, update_manifest, write_manifest, CentyManifest, ManagedFileType,
 };
@@ -19,6 +20,9 @@ pub enum ExecuteError {
 
     #[error("Plan error: {0}")]
     PlanError(#[from] super::plan::PlanError),
+
+    #[error("Config error: {0}")]
+    ConfigError(#[from] crate::config::ConfigError),
 }
 
 /// User decisions for reconciliation
@@ -88,6 +92,14 @@ pub async fn execute_reconciliation(
         } else {
             result.skipped.push(file_info.path.clone());
         }
+    }
+
+    // Create config.json with defaults if it doesn't exist
+    let config_path = centy_path.join("config.json");
+    if !config_path.exists() {
+        let default_config = CentyConfig::default();
+        write_config(project_path, &default_config).await?;
+        result.created.push("config.json".to_string());
     }
 
     // Update manifest timestamp and version
@@ -356,6 +368,36 @@ mod tests {
 
         // README should be in skipped (modified but no decision to reset)
         assert!(result.skipped.contains(&"README.md".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_execute_reconciliation_creates_config_json() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let decisions = ReconciliationDecisions::default();
+
+        let result = execute_reconciliation(temp_dir.path(), decisions, false)
+            .await
+            .expect("Should execute reconciliation");
+
+        // config.json should be created
+        let config_path = temp_dir.path().join(".centy").join("config.json");
+        assert!(config_path.exists(), "config.json should be created");
+        assert!(
+            result.created.contains(&"config.json".to_string()),
+            "Should report config.json as created"
+        );
+
+        // Should contain hooks key
+        let content = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read");
+        let value: serde_json::Value = serde_json::from_str(&content).expect("Should parse");
+        assert!(
+            value.as_object().unwrap().contains_key("hooks"),
+            "config.json should contain hooks key"
+        );
     }
 
     #[tokio::test]

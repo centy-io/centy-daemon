@@ -36,4 +36,8 @@ pub fn verify_centy_structure(project_path: &Path) {
         centy_path.join("README.md").exists(),
         "README.md should exist"
     );
+    assert!(
+        centy_path.join("config.json").exists(),
+        "config.json should exist"
+    );
 }
