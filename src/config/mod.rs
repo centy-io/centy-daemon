@@ -1,3 +1,5 @@
+pub mod migrate;
+
 use crate::hooks::HookDefinition;
 use crate::link::CustomLinkTypeDefinition;
 use crate::utils::get_centy_path;
@@ -6,6 +8,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
+use tracing::warn;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -145,8 +148,9 @@ impl Default for CentyConfig {
 }
 
 /// Read the configuration file.
-/// Automatically normalizes the config by adding missing sections (e.g. `hooks`)
-/// that were introduced after the project was created, then writes back to disk.
+/// Automatically migrates the deprecated nested config format to flat dot-separated keys.
+/// Also normalizes by adding missing sections (e.g. `hooks`) that were introduced
+/// after the project was created, then writes back to disk.
 pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, ConfigError> {
     let config_path = get_centy_path(project_path).join("config.json");
 
@@ -155,23 +159,42 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
     }
 
     let content = fs::read_to_string(&config_path).await?;
-    let config: CentyConfig = serde_json::from_str(&content)?;
+    let mut raw: serde_json::Value = serde_json::from_str(&content)?;
 
-    // Normalize: if the raw JSON is missing the "hooks" key, write back
-    // to ensure all projects have the hooks section in config.json.
-    let raw: serde_json::Value = serde_json::from_str(&content)?;
+    // Migrate nested format to flat dot-separated keys if needed
+    let mut needs_write = false;
+    if migrate::needs_migration(&raw) {
+        warn!(
+            "Detected deprecated nested config format in {}, auto-converting to flat dot-separated keys",
+            config_path.display()
+        );
+        raw = migrate::flatten_config(raw);
+        needs_write = true;
+    }
+
+    // Check if normalization is needed (e.g. missing "hooks" key)
     if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
-        let normalized = serde_json::to_string_pretty(&config)?;
-        fs::write(&config_path, normalized).await?;
+        needs_write = true;
+    }
+
+    // Unflatten for serde deserialization (serde expects nested objects)
+    let nested = migrate::unflatten_config(raw);
+    let config: CentyConfig = serde_json::from_value(nested)?;
+
+    // Write back if migration or normalization occurred
+    if needs_write {
+        write_config(project_path, &config).await?;
     }
 
     Ok(Some(config))
 }
 
-/// Write the configuration file
+/// Write the configuration file in flat dot-separated format.
 pub async fn write_config(project_path: &Path, config: &CentyConfig) -> Result<(), ConfigError> {
     let config_path = get_centy_path(project_path).join("config.json");
-    let content = serde_json::to_string_pretty(config)?;
+    let nested_value = serde_json::to_value(config)?;
+    let flat_value = migrate::flatten_config(nested_value);
+    let content = serde_json::to_string_pretty(&flat_value)?;
     fs::write(&config_path, content).await?;
     Ok(())
 }
@@ -236,6 +259,7 @@ pub async fn set_project_title(
 #[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_default_priority_levels() {
@@ -532,7 +556,7 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json WITHOUT the hooks key (simulating a pre-hooks project)
+        // Write a config.json in flat format WITHOUT the hooks key
         let config_without_hooks = r#"{
   "priorityLevels": 3,
   "customFields": [],
@@ -541,7 +565,9 @@ mod tests {
   "defaultState": "open",
   "stateColors": {},
   "priorityColors": {},
-  "llm": {}
+  "llm.autoCloseOnComplete": false,
+  "llm.allowDirectEdits": false,
+  "llm.defaultWorkspaceMode": 0
 }"#;
         let config_path = centy_dir.join("config.json");
         fs::write(&config_path, config_without_hooks)
@@ -555,7 +581,7 @@ mod tests {
             .expect("Config should exist");
         assert!(config.hooks.is_empty());
 
-        // The file should now contain the hooks key
+        // The file should now contain the hooks key (in flat format)
         let raw = fs::read_to_string(&config_path)
             .await
             .expect("Should read file");
@@ -564,10 +590,15 @@ mod tests {
             value.as_object().unwrap().contains_key("hooks"),
             "config.json should now contain the hooks key"
         );
+        // Should remain in flat format (no nested llm object)
+        assert!(
+            value.as_object().unwrap().get("llm").is_none(),
+            "config.json should use flat format, not nested llm"
+        );
     }
 
     #[tokio::test]
-    async fn test_read_config_does_not_rewrite_when_hooks_present() {
+    async fn test_read_config_does_not_rewrite_when_hooks_present_flat_format() {
         use tempfile::tempdir;
 
         let temp_dir = tempdir().expect("Should create temp dir");
@@ -576,7 +607,7 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json WITH the hooks key already present
+        // Write a config.json in flat format WITH the hooks key
         let config_with_hooks = r#"{
   "priorityLevels": 3,
   "customFields": [],
@@ -585,7 +616,9 @@ mod tests {
   "defaultState": "open",
   "stateColors": {},
   "priorityColors": {},
-  "llm": {},
+  "llm.autoCloseOnComplete": false,
+  "llm.allowDirectEdits": false,
+  "llm.defaultWorkspaceMode": 0,
   "hooks": []
 }"#;
         let config_path = centy_dir.join("config.json");
@@ -605,6 +638,146 @@ mod tests {
             .await
             .expect("Should read file");
         assert_eq!(raw, config_with_hooks);
+    }
+
+    #[tokio::test]
+    async fn test_read_config_migrates_nested_to_flat() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Write a config.json in the old nested format
+        let nested_config = r#"{
+  "version": "0.1.0",
+  "priorityLevels": 3,
+  "customFields": [],
+  "defaults": {},
+  "allowedStates": ["open", "in-progress", "closed"],
+  "defaultState": "open",
+  "stateColors": {},
+  "priorityColors": {},
+  "llm": {
+    "autoCloseOnComplete": true,
+    "updateStatusOnStart": false,
+    "allowDirectEdits": true,
+    "defaultWorkspaceMode": 1
+  },
+  "hooks": []
+}"#;
+        let config_path = centy_dir.join("config.json");
+        fs::write(&config_path, nested_config)
+            .await
+            .expect("Should write config");
+
+        // Read should succeed and parse correctly
+        let config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+        assert!(config.llm.auto_close_on_complete);
+        assert_eq!(config.llm.update_status_on_start, Some(false));
+        assert!(config.llm.allow_direct_edits);
+        assert_eq!(config.llm.default_workspace_mode, 1);
+
+        // The file should now be in flat format
+        let raw = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read file");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("Should parse");
+        let obj = value.as_object().unwrap();
+
+        // Should have flat llm keys
+        assert!(obj.contains_key("llm.autoCloseOnComplete"));
+        assert!(obj.contains_key("llm.updateStatusOnStart"));
+        assert!(obj.contains_key("llm.allowDirectEdits"));
+        assert!(obj.contains_key("llm.defaultWorkspaceMode"));
+
+        // Should NOT have nested llm object
+        assert!(
+            obj.get("llm").is_none(),
+            "nested llm object should have been migrated to flat keys"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_read_config_flat_format_works() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Write a config.json already in flat format
+        let flat_config = r#"{
+  "version": "0.1.0",
+  "priorityLevels": 5,
+  "customFields": [],
+  "defaults": {},
+  "allowedStates": ["open", "closed"],
+  "defaultState": "open",
+  "stateColors": {},
+  "priorityColors": {},
+  "llm.autoCloseOnComplete": true,
+  "llm.allowDirectEdits": false,
+  "llm.defaultWorkspaceMode": 2,
+  "hooks": []
+}"#;
+        let config_path = centy_dir.join("config.json");
+        fs::write(&config_path, flat_config)
+            .await
+            .expect("Should write config");
+
+        let config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+
+        assert_eq!(config.version, Some("0.1.0".to_string()));
+        assert_eq!(config.priority_levels, 5);
+        assert!(config.llm.auto_close_on_complete);
+        assert!(!config.llm.allow_direct_edits);
+        assert_eq!(config.llm.default_workspace_mode, 2);
+        assert!(config.llm.update_status_on_start.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_write_config_produces_flat_format() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        let mut config = CentyConfig::default();
+        config.llm.auto_close_on_complete = true;
+        config.llm.allow_direct_edits = true;
+
+        write_config(temp_dir.path(), &config)
+            .await
+            .expect("Should write");
+
+        let config_path = centy_dir.join("config.json");
+        let raw = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read file");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("Should parse");
+        let obj = value.as_object().unwrap();
+
+        // Should have flat llm keys
+        assert_eq!(obj.get("llm.autoCloseOnComplete"), Some(&json!(true)));
+        assert_eq!(obj.get("llm.allowDirectEdits"), Some(&json!(true)));
+        assert_eq!(obj.get("llm.defaultWorkspaceMode"), Some(&json!(0)));
+
+        // Should NOT have nested llm object
+        assert!(obj.get("llm").is_none());
     }
 
     #[test]
