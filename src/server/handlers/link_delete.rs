@@ -8,6 +8,7 @@ use crate::server::convert_link::proto_link_target_to_internal;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteLinkRequest, DeleteLinkResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn delete_link(req: DeleteLinkRequest) -> Result<Response<DeleteLinkResponse>, Status> {
@@ -32,7 +33,7 @@ pub async fn delete_link(req: DeleteLinkRequest) -> Result<Response<DeleteLinkRe
     {
         return Ok(Response::new(DeleteLinkResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -83,7 +84,7 @@ pub async fn delete_link(req: DeleteLinkRequest) -> Result<Response<DeleteLinkRe
             .await;
             Ok(Response::new(DeleteLinkResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 deleted_count: 0,
             }))
         }

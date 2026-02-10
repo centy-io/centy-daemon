@@ -5,6 +5,7 @@ use crate::registry::track_project_async;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteUserRequest, DeleteUserResponse};
+use crate::server::structured_error::to_error_json;
 use crate::user::delete_user as internal_delete_user;
 use tonic::{Response, Status};
 
@@ -30,7 +31,7 @@ pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserRe
     {
         return Ok(Response::new(DeleteUserResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -68,7 +69,7 @@ pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserRe
 
             Ok(Response::new(DeleteUserResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 manifest: None,
             }))
         }

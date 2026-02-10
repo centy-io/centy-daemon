@@ -8,6 +8,7 @@ use crate::server::convert_entity::issue_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{MoveIssueRequest, MoveIssueResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueResponse>, Status> {
@@ -34,7 +35,7 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
     {
         return Ok(Response::new(MoveIssueResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.source_project_path, &e),
             ..Default::default()
         }));
     }
@@ -88,7 +89,7 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
 
             Ok(Response::new(MoveIssueResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.source_project_path, &e),
                 issue: None,
                 old_display_number: 0,
                 source_manifest: None,

@@ -7,6 +7,7 @@ use crate::registry::track_project_async;
 use crate::server::convert_link::{internal_link_to_proto, proto_link_target_to_internal};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreateLinkRequest, CreateLinkResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkResponse>, Status> {
@@ -31,7 +32,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     {
         return Ok(Response::new(CreateLinkResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -83,7 +84,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
             .await;
             Ok(Response::new(CreateLinkResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 created_link: None,
                 inverse_link: None,
             }))

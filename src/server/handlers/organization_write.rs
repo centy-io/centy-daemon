@@ -3,6 +3,7 @@ use crate::server::proto::{
     DeleteOrganizationRequest, DeleteOrganizationResponse, UpdateOrganizationRequest,
     UpdateOrganizationResponse,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn update_organization(
@@ -32,7 +33,7 @@ pub async fn update_organization(
         })),
         Err(e) => Ok(Response::new(UpdateOrganizationResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             organization: None,
         })),
     }
@@ -49,7 +50,7 @@ pub async fn delete_organization(
         })),
         Err(e) => Ok(Response::new(DeleteOrganizationResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             unassigned_projects: 0,
         })),
     }

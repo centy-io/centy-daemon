@@ -3,6 +3,7 @@ use std::process::Command;
 use std::sync::Arc;
 
 use crate::server::proto::{RestartRequest, RestartResponse};
+use crate::server::structured_error::StructuredError;
 use crate::server::ShutdownSignal;
 use tokio::sync::watch;
 use tonic::{Response, Status};
@@ -23,7 +24,12 @@ pub async fn restart(
         None => {
             return Ok(Response::new(RestartResponse {
                 success: false,
-                message: "Cannot restart: unable to determine executable path".to_string(),
+                message: StructuredError::new(
+                    "",
+                    "RESTART_ERROR",
+                    "Cannot restart: unable to determine executable path".to_string(),
+                )
+                .to_json(),
             }));
         }
     };

@@ -10,6 +10,7 @@ use crate::server::proto::{
     GetPrResponse,
 };
 use crate::server::resolve::resolve_pr;
+use crate::server::structured_error::to_error_json;
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
 
@@ -29,7 +30,7 @@ pub async fn get_pr(req: GetPrRequest) -> Result<Response<GetPrResponse>, Status
         })),
         Err(e) => Ok(Response::new(GetPrResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             pr: None,
         })),
     }
@@ -55,7 +56,7 @@ pub async fn get_pr_by_display_number(
         })),
         Err(e) => Ok(Response::new(GetPrResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             pr: None,
         })),
     }
@@ -76,7 +77,7 @@ pub async fn get_next_pr_number(
         })),
         Err(e) => Ok(Response::new(GetNextPrNumberResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             next_number: 0,
         })),
     }

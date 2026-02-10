@@ -8,6 +8,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DuplicateDocRequest, DuplicateDocResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn duplicate_doc_handler(
@@ -36,7 +37,7 @@ pub async fn duplicate_doc_handler(
     {
         return Ok(Response::new(DuplicateDocResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.source_project_path, &e),
             ..Default::default()
         }));
     }
@@ -84,7 +85,7 @@ pub async fn duplicate_doc_handler(
 
             Ok(Response::new(DuplicateDocResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.source_project_path, &e),
                 doc: None,
                 original_slug: req.slug,
                 manifest: None,

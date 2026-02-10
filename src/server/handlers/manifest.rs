@@ -4,6 +4,7 @@ use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::proto::{GetManifestRequest, GetManifestResponse};
+use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
 pub async fn get_manifest(
@@ -20,12 +21,17 @@ pub async fn get_manifest(
         })),
         Ok(None) => Ok(Response::new(GetManifestResponse {
             success: false,
-            error: "Manifest not found".to_string(),
+            error: StructuredError::new(
+                &req.project_path,
+                "MANIFEST_NOT_FOUND",
+                "Manifest not found".to_string(),
+            )
+            .to_json(),
             manifest: None,
         })),
         Err(e) => Ok(Response::new(GetManifestResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             manifest: None,
         })),
     }

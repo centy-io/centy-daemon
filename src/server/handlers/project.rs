@@ -4,6 +4,7 @@ use crate::server::proto::{
     GetProjectInfoRequest, GetProjectInfoResponse, ListProjectsRequest, ListProjectsResponse,
     UntrackProjectRequest, UntrackProjectResponse,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_projects(
@@ -37,7 +38,7 @@ pub async fn list_projects(
         }
         Err(e) => Ok(Response::new(ListProjectsResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             projects: vec![],
             total_count: 0,
         })),
@@ -54,7 +55,7 @@ pub async fn untrack_project(
         })),
         Err(e) => Ok(Response::new(UntrackProjectResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
         })),
     }
 }
@@ -77,7 +78,7 @@ pub async fn get_project_info(
         })),
         Err(e) => Ok(Response::new(GetProjectInfoResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             found: false,
             project: None,
         })),

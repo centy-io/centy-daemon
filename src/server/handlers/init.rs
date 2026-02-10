@@ -8,6 +8,7 @@ use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
 use crate::server::proto::{
     InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse,
 };
+use crate::server::structured_error::to_error_json;
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
 
@@ -52,7 +53,7 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
         }
         Err(e) => Ok(Response::new(InitResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             created: vec![],
             restored: vec![],
             reset: vec![],

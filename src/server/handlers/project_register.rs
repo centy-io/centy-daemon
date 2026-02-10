@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::registry::{get_project_info, infer_organization_from_remote, set_project_organization};
 use crate::server::convert_infra::{org_inference_to_proto, project_info_to_proto};
 use crate::server::proto::{RegisterProjectRequest, RegisterProjectResponse};
+use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
 pub async fn register_project(
@@ -14,7 +15,7 @@ pub async fn register_project(
     if let Err(e) = crate::registry::track_project(&req.project_path).await {
         return Ok(Response::new(RegisterProjectResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
             org_inference: None,
         }));
@@ -45,13 +46,18 @@ pub async fn register_project(
         })),
         Ok(None) => Ok(Response::new(RegisterProjectResponse {
             success: false,
-            error: "Failed to retrieve project after registration".to_string(),
+            error: StructuredError::new(
+                &req.project_path,
+                "REGISTRATION_ERROR",
+                "Failed to retrieve project after registration".to_string(),
+            )
+            .to_json(),
             project: None,
             org_inference: Some(org_inference_to_proto(&inference)),
         })),
         Err(e) => Ok(Response::new(RegisterProjectResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
             org_inference: Some(org_inference_to_proto(&inference)),
         })),

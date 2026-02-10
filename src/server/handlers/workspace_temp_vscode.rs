@@ -5,6 +5,7 @@ use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
 use crate::server::proto::{OpenInTempWorkspaceRequest, OpenInTempWorkspaceResponse};
 use crate::server::resolve::resolve_issue;
+use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::workspace::{create_temp_workspace, CreateWorkspaceOptions, EditorType};
 use tonic::{Response, Status};
 
@@ -38,7 +39,14 @@ pub async fn open_in_temp_vscode(
 
     let issue = match resolve_issue(project_path, &req.issue_id).await {
         Ok(i) => i,
-        Err(e) => return err_response(e, String::new(), 0, false),
+        Err(e) => {
+            return err_response(
+                to_error_json(&req.project_path, &e),
+                String::new(),
+                0,
+                false,
+            )
+        }
     };
 
     let config = read_config(project_path).await.ok().flatten();
@@ -48,7 +56,7 @@ pub async fn open_in_temp_vscode(
         .unwrap_or(true);
     if requires_status_config {
         return err_response(
-            "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string(),
+            StructuredError::new(&req.project_path, "STATUS_CONFIG_REQUIRED", "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string()).to_json(),
             issue.id.clone(), issue.metadata.display_number, true,
         );
     }
@@ -98,6 +106,11 @@ pub async fn open_in_temp_vscode(
             workspace_reused: result.workspace_reused,
             original_created_at: result.original_created_at.unwrap_or_default(),
         })),
-        Err(e) => err_response(e.to_string(), String::new(), 0, false),
+        Err(e) => err_response(
+            to_error_json(&req.project_path, &e),
+            String::new(),
+            0,
+            false,
+        ),
     }
 }

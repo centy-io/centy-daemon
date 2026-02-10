@@ -10,6 +10,7 @@ use crate::server::convert_infra::{file_info_to_proto, manifest_to_proto, org_in
 use crate::server::proto::{
     ExecuteReconciliationRequest, GetReconciliationPlanRequest, InitResponse, ReconciliationPlan,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn get_reconciliation_plan(
@@ -46,7 +47,7 @@ pub async fn get_reconciliation_plan(
         }
         Err(e) => Ok(Response::new(ReconciliationPlan {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         })),
     }
@@ -94,7 +95,7 @@ pub async fn execute_reconciliation_handler(
         }
         Err(e) => Ok(Response::new(InitResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             created: vec![],
             restored: vec![],
             reset: vec![],

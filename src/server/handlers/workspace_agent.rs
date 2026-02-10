@@ -5,6 +5,7 @@ use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
 use crate::server::proto::{OpenAgentInTerminalRequest, OpenAgentInTerminalResponse};
 use crate::server::resolve::resolve_issue;
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn open_agent_in_terminal(
@@ -15,7 +16,14 @@ pub async fn open_agent_in_terminal(
 
     let issue = match resolve_issue(project_path, &req.issue_id).await {
         Ok(i) => i,
-        Err(e) => return Ok(agent_err_response(e, String::new(), 0, false)),
+        Err(e) => {
+            return Ok(agent_err_response(
+                to_error_json(&req.project_path, &e),
+                String::new(),
+                0,
+                false,
+            ))
+        }
     };
 
     let config = read_config(project_path).await.ok().flatten();

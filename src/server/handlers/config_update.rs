@@ -5,6 +5,7 @@ use crate::registry::track_project_async;
 use crate::server::config_to_proto::config_to_proto;
 use crate::server::proto::{UpdateConfigRequest, UpdateConfigResponse};
 use crate::server::proto_to_config::proto_to_config;
+use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::server::validate_config::validate_config;
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
@@ -21,7 +22,12 @@ pub async fn update_config(
     if !manifest_path.exists() {
         return Ok(Response::new(UpdateConfigResponse {
             success: false,
-            error: "Project not initialized".to_string(),
+            error: StructuredError::new(
+                &req.project_path,
+                "NOT_INITIALIZED",
+                "Project not initialized".to_string(),
+            )
+            .to_json(),
             config: None,
         }));
     }
@@ -32,7 +38,12 @@ pub async fn update_config(
         None => {
             return Ok(Response::new(UpdateConfigResponse {
                 success: false,
-                error: "No config provided".to_string(),
+                error: StructuredError::new(
+                    &req.project_path,
+                    "INVALID_REQUEST",
+                    "No config provided".to_string(),
+                )
+                .to_json(),
                 config: None,
             }));
         }
@@ -43,7 +54,7 @@ pub async fn update_config(
     if let Err(e) = validate_config(&config) {
         return Ok(Response::new(UpdateConfigResponse {
             success: false,
-            error: e,
+            error: StructuredError::new(&req.project_path, "VALIDATION_ERROR", e).to_json(),
             config: None,
         }));
     }
@@ -57,7 +68,7 @@ pub async fn update_config(
         })),
         Err(e) => Ok(Response::new(UpdateConfigResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             config: None,
         })),
     }

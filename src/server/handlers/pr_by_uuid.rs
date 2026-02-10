@@ -4,6 +4,7 @@ use crate::server::convert_entity::pr_to_proto;
 use crate::server::proto::{
     GetPrsByUuidRequest, GetPrsByUuidResponse, PrWithProject as ProtoPrWithProject,
 };
+use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::utils::format_display_path;
 use tonic::{Response, Status};
 
@@ -16,7 +17,12 @@ pub async fn get_prs_by_uuid(
         Err(e) => {
             return Ok(Response::new(GetPrsByUuidResponse {
                 success: false,
-                error: format!("Failed to list projects: {e}"),
+                error: StructuredError::new(
+                    "",
+                    "REGISTRY_ERROR",
+                    format!("Failed to list projects: {e}"),
+                )
+                .to_json(),
                 prs: vec![],
                 total_count: 0,
                 errors: vec![],
@@ -54,7 +60,7 @@ pub async fn get_prs_by_uuid(
         }
         Err(e) => Ok(Response::new(GetPrsByUuidResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             prs: vec![],
             total_count: 0,
             errors: vec![],

@@ -1,4 +1,5 @@
 use crate::server::proto;
+use crate::server::structured_error::StructuredError;
 use tonic::{Response, Status};
 
 pub async fn list_sync_conflicts(
@@ -19,10 +20,15 @@ pub async fn get_sync_conflict(
     Ok(Response::new(proto::GetSyncConflictResponse {
         conflict: None,
         success: false,
-        error: format!(
-            "Sync feature disabled. Conflict not found: {}",
-            req.conflict_id
-        ),
+        error: StructuredError::new(
+            "",
+            "SYNC_DISABLED",
+            format!(
+                "Sync feature disabled. Conflict not found: {}",
+                req.conflict_id
+            ),
+        )
+        .to_json(),
     }))
 }
 
@@ -32,7 +38,8 @@ pub async fn resolve_sync_conflict(
     // Sync feature removed - cannot resolve conflicts
     Ok(Response::new(proto::ResolveSyncConflictResponse {
         success: false,
-        error: "Sync feature is disabled".to_string(),
+        error: StructuredError::new("", "SYNC_DISABLED", "Sync feature is disabled".to_string())
+            .to_json(),
     }))
 }
 

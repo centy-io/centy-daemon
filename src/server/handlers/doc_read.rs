@@ -7,6 +7,7 @@ use crate::server::proto::{
     DocWithProject as ProtoDocWithProject, GetDocRequest, GetDocResponse, GetDocsBySlugRequest,
     GetDocsBySlugResponse, ListDocsRequest, ListDocsResponse,
 };
+use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::utils::format_display_path;
 use tonic::{Response, Status};
 
@@ -22,7 +23,7 @@ pub async fn get_doc_handler(req: GetDocRequest) -> Result<Response<GetDocRespon
         })),
         Err(e) => Ok(Response::new(GetDocResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             doc: None,
         })),
     }
@@ -37,7 +38,12 @@ pub async fn get_docs_by_slug_handler(
         Err(e) => {
             return Ok(Response::new(GetDocsBySlugResponse {
                 success: false,
-                error: format!("Failed to list projects: {e}"),
+                error: StructuredError::new(
+                    "",
+                    "REGISTRY_ERROR",
+                    format!("Failed to list projects: {e}"),
+                )
+                .to_json(),
                 docs: vec![],
                 total_count: 0,
                 errors: vec![],
@@ -70,7 +76,7 @@ pub async fn get_docs_by_slug_handler(
         }
         Err(e) => Ok(Response::new(GetDocsBySlugResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             docs: vec![],
             total_count: 0,
             errors: vec![],
@@ -94,7 +100,7 @@ pub async fn list_docs_handler(req: ListDocsRequest) -> Result<Response<ListDocs
         }
         Err(e) => Ok(Response::new(ListDocsResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             docs: vec![],
             total_count: 0,
         })),

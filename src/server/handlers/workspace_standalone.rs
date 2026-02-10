@@ -5,6 +5,7 @@ use crate::registry::track_project_async;
 use crate::server::proto::{
     OpenStandaloneWorkspaceResponse, OpenStandaloneWorkspaceWithEditorRequest,
 };
+use crate::server::structured_error::to_error_json;
 use crate::workspace::{
     create_standalone_workspace, resolve_editor_id, CreateStandaloneWorkspaceOptions, EditorType,
 };
@@ -74,6 +75,6 @@ pub async fn open_standalone_workspace(
             workspace_reused: result.workspace_reused,
             original_created_at: result.original_created_at.unwrap_or_default(),
         })),
-        Err(e) => err_response(e.to_string()),
+        Err(e) => err_response(to_error_json(&req.project_path, &e)),
     }
 }

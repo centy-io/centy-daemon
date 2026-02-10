@@ -14,8 +14,8 @@ pub use crud::PrMetadataFlat;
 #[allow(unused_imports)]
 pub use crud::{
     delete_pr, get_pr, get_pr_by_display_number, get_prs_by_uuid, list_prs, restore_pr,
-    soft_delete_pr, update_pr, DeletePrResult, PrWithProject, PullRequest, RestorePrResult,
-    SoftDeletePrResult, UpdatePrOptions, UpdatePrResult,
+    soft_delete_pr, update_pr, DeletePrResult, GetPrsByUuidResult, PrCrudError, PrWithProject,
+    PullRequest, RestorePrResult, SoftDeletePrResult, UpdatePrOptions, UpdatePrResult,
 };
 #[allow(unused_imports)]
 pub use remote::{parse_remote_url, ParsedRemote};
