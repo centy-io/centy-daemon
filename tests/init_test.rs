@@ -6,6 +6,7 @@ use centy_daemon::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use common::{create_test_dir, init_centy_project, verify_centy_structure};
+use serde_json::Value;
 use tokio::fs;
 
 #[tokio::test]
@@ -241,5 +242,82 @@ async fn test_reconciliation_skip_modified_without_decision() {
     assert!(
         result.skipped.contains(&"README.md".to_string()),
         "Should report README as skipped"
+    );
+}
+
+#[tokio::test]
+async fn test_init_creates_config_json_with_hooks() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // config.json should be created
+    let config_path = project_path.join(".centy").join("config.json");
+    assert!(
+        config_path.exists(),
+        "config.json should be created on init"
+    );
+    assert!(
+        result.created.contains(&"config.json".to_string()),
+        "Should report config.json as created"
+    );
+
+    // Verify it contains the hooks property
+    let content = fs::read_to_string(&config_path)
+        .await
+        .expect("Should read config.json");
+    let value: Value = serde_json::from_str(&content).expect("Should parse config.json");
+    let obj = value.as_object().expect("Config should be an object");
+
+    assert!(
+        obj.contains_key("hooks"),
+        "config.json should contain hooks property"
+    );
+    assert_eq!(
+        obj.get("hooks"),
+        Some(&Value::Array(vec![])),
+        "hooks should be an empty array"
+    );
+}
+
+#[tokio::test]
+async fn test_init_does_not_overwrite_existing_config_json() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Create .centy dir and a pre-existing config.json
+    let centy_path = project_path.join(".centy");
+    fs::create_dir_all(&centy_path)
+        .await
+        .expect("Should create .centy dir");
+    let custom_config = r#"{"priorityLevels": 5, "hooks": []}"#;
+    fs::write(centy_path.join("config.json"), custom_config)
+        .await
+        .expect("Should write config");
+
+    // Initialize
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // config.json should NOT be in the created list
+    assert!(
+        !result.created.contains(&"config.json".to_string()),
+        "Should not re-create existing config.json"
+    );
+
+    // Content should remain unchanged
+    let content = fs::read_to_string(centy_path.join("config.json"))
+        .await
+        .expect("Should read config.json");
+    assert_eq!(
+        content, custom_config,
+        "Existing config.json should not be overwritten"
     );
 }
