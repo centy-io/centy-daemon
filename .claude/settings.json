@@ -142,7 +142,9 @@
       "Bash(gh api:*)",
       "Bash(npx centy issue list)",
       "Bash(uuidgen:*)",
-      "Bash(centy config:*)"
+      "Bash(centy config:*)",
+      "Bash(npx centy --help:*)",
+      "Bash(pnpm centy --help:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
