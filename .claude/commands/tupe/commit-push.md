@@ -24,8 +24,6 @@ Stage, commit, and push only the changes relevant to the latest task using the s
 
 ### Active Context
 
-- Active specs: !`ls -1 .kiro/specs/ 2>/dev/null || echo "No specs"`
-- Recent spec changes: !`git status --porcelain .kiro/specs/ 2>/dev/null || echo "No spec changes"`
 - Recent command changes: !`git status --porcelain .claude/commands/ 2>/dev/null || echo "No command changes"`
 
 ## Instructions
@@ -38,7 +36,6 @@ Follow these steps to intelligently commit and push only relevant changes:
 
 **Identify the latest task** by examining:
 
-- Active specifications in `.kiro/specs/`
 - Recent changes in the working directory
 - Last commit message for context
 - Modified files to understand what was being worked on

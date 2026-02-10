@@ -15,7 +15,6 @@ Follow this systematic approach to validate your feature through real-world use 
 **Identify the feature context:**
 
 - Review what was just implemented or changed
-- Check active specifications in `.kiro/specs/` if applicable
 - Examine recent commits and modified files
 - Understand the feature's purpose and scope
 

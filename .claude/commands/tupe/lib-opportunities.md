@@ -9,6 +9,7 @@ You are an expert code analyst focused on identifying custom implementations tha
 ## Your Mission
 
 Perform a comprehensive analysis of the codebase to identify:
+
 1. Custom utility functions that duplicate npm package functionality
 2. Complex implementations that could use existing libraries
 3. Opportunities to reduce maintenance burden and improve code quality
@@ -19,6 +20,7 @@ Perform a comprehensive analysis of the codebase to identify:
 ### Step 1: Map the Codebase Structure
 
 1. **Identify all source directories**:
+
    ```bash
    # Find all TypeScript/JavaScript files
    find . -type f \( -name "*.ts" -o -name "*.js" -o -name "*.tsx" -o -name "*.jsx" \) \
@@ -50,7 +52,9 @@ Perform a comprehensive analysis of the codebase to identify:
 Use the **Explore agent** to analyze different code categories:
 
 #### Category 1: Utility Functions
+
 Look for custom implementations of:
+
 - Array manipulation (map, reduce, filter extensions)
 - Object operations (deep clone, merge, pick, omit)
 - Type checking utilities
@@ -62,7 +66,9 @@ Look for custom implementations of:
 **Common replacements**: lodash, ramda, radash, remeda
 
 #### Category 2: String Operations
+
 Look for:
+
 - String formatting/templating
 - Slug generation
 - String validation
@@ -73,7 +79,9 @@ Look for:
 **Common replacements**: string-lib, slugify, pluralize, camelcase, change-case
 
 #### Category 3: Date/Time Handling
+
 Look for:
+
 - Date parsing/formatting
 - Date arithmetic
 - Timezone handling
@@ -83,7 +91,9 @@ Look for:
 **Common replacements**: date-fns, dayjs, luxon, ms
 
 #### Category 4: Validation
+
 Look for:
+
 - Schema validation
 - Email/URL validation
 - Input sanitization
@@ -92,7 +102,9 @@ Look for:
 **Common replacements**: zod, yup, joi, validator
 
 #### Category 5: Data Structures
+
 Look for:
+
 - Custom queue/stack implementations
 - LRU cache implementations
 - Event emitters
@@ -102,7 +114,9 @@ Look for:
 **Common replacements**: eventemitter3, lru-cache, xstate, graphology
 
 #### Category 6: Async/Promise Utilities
+
 Look for:
+
 - Promise wrappers
 - Async queue/pool implementations
 - Retry with backoff
@@ -112,7 +126,9 @@ Look for:
 **Common replacements**: p-queue, p-retry, p-timeout, p-limit, promise-pool
 
 #### Category 7: File/Path Operations
+
 Look for:
+
 - Path manipulation
 - File reading/writing wrappers
 - Directory traversal
@@ -122,7 +138,9 @@ Look for:
 **Common replacements**: globby, fast-glob, chokidar, fs-extra
 
 #### Category 8: HTTP/API Utilities
+
 Look for:
+
 - HTTP client wrappers
 - Request retry logic
 - URL building/parsing
@@ -132,7 +150,9 @@ Look for:
 **Common replacements**: ky, axios, ofetch, query-string
 
 #### Category 9: Parsing/Serialization
+
 Look for:
+
 - JSON parsing with error handling
 - CSV parsing
 - XML parsing
@@ -142,7 +162,9 @@ Look for:
 **Common replacements**: superjson, papaparse, fast-xml-parser, yaml
 
 #### Category 10: Cryptography/Hashing
+
 Look for:
+
 - UUID generation
 - Hash generation
 - Random string generation
@@ -152,7 +174,9 @@ Look for:
 **Common replacements**: uuid, nanoid, crypto-js, bcrypt
 
 #### Category 11: Testing Utilities
+
 Look for:
+
 - Test data generators
 - Mock factories
 - Assertion helpers
@@ -161,7 +185,9 @@ Look for:
 **Common replacements**: faker, factory.ts, test-data-bot
 
 #### Category 12: Error Handling
+
 Look for:
+
 - Custom error classes
 - Error formatting
 - Error tracking utilities
@@ -173,7 +199,9 @@ Look for:
 For each identified opportunity:
 
 ### Step 1: Verify Package Exists and is Maintained
+
 Use web search to:
+
 1. Find the most popular package for the use case
 2. Check npm download statistics
 3. Verify maintenance status (recent updates, active issues)
@@ -181,12 +209,15 @@ Use web search to:
 5. Review security advisories
 
 ### Step 2: Analyze Migration Complexity
+
 - **Low**: Simple drop-in replacement, minimal API changes
 - **Medium**: Some refactoring needed, moderate API differences
 - **High**: Significant refactoring, major architectural changes
 
 ### Step 3: Calculate Value Score
+
 Consider:
+
 - **Lines of code saved**: More custom code removed = higher value
 - **Maintenance burden reduced**: Complex logic = higher value
 - **Bug risk reduced**: Security/crypto/parsing = higher value
@@ -201,7 +232,7 @@ Create a detailed markdown report: `lib-opportunities-report.md`
 
 ### Report Structure
 
-```markdown
+````markdown
 # Library Replacement Opportunities Report
 
 **Generated**: [Date]
@@ -224,11 +255,13 @@ For each opportunity in priority order:
 **Priority**: 🔴 Critical | 🟡 High | 🟢 Medium | ⚪ Low
 
 **Current Implementation**:
+
 - File(s): `path/to/file.ts:123-156`
 - Lines of Code: ~34 LOC
 - What it does: [Brief description]
 
 **Suggested Package**: `[package-name]` v[version]
+
 - NPM: https://npmjs.com/package/[package-name]
 - Weekly downloads: [number]
 - Bundle size: [size] (minified + gzipped)
@@ -236,6 +269,7 @@ For each opportunity in priority order:
 - Maintenance: ✅ Active | ⚠️ Stale | ❌ Abandoned
 
 **Benefits**:
+
 - ✅ Reduces custom code by ~34 LOC
 - ✅ Battle-tested with [X] weekly downloads
 - ✅ Better performance (if applicable)
@@ -244,10 +278,12 @@ For each opportunity in priority order:
 - ✅ TypeScript support
 
 **Migration Effort**:
+
 - Estimated time: [hours/days]
 - Breaking changes: Yes/No
 - Test coverage needed: Yes/No
 - API comparison:
+
   ```typescript
   // Current
   const result = ourCustomFunction(input)
@@ -256,8 +292,10 @@ For each opportunity in priority order:
   import { packageFunction } from 'package-name'
   const result = packageFunction(input)
   ```
+````
 
 **Risks/Considerations**:
+
 - 📦 Adds dependency ([size])
 - ⚠️ [Any specific concerns]
 
@@ -281,7 +319,9 @@ For each opportunity in priority order:
 [List analyzed code that should NOT be replaced and why]
 
 ### [Functionality Name]
+
 **Reason**: [Why custom implementation is better]
+
 - Custom logic is simpler
 - No suitable package exists
 - Package is too heavy/unmaintained
@@ -290,28 +330,31 @@ For each opportunity in priority order:
 
 ## Summary Statistics
 
-| Category | Opportunities | Total LOC Saved | New Dependencies | Net Benefit |
-|----------|--------------|----------------|------------------|-------------|
-| Utilities | X | XXX | X | High/Med/Low |
-| Date/Time | X | XXX | X | High/Med/Low |
-| Validation | X | XXX | X | High/Med/Low |
-| ... | ... | ... | ... | ... |
-| **Total** | **XX** | **XXXX** | **XX** | **High** |
+| Category   | Opportunities | Total LOC Saved | New Dependencies | Net Benefit  |
+| ---------- | ------------- | --------------- | ---------------- | ------------ |
+| Utilities  | X             | XXX             | X                | High/Med/Low |
+| Date/Time  | X             | XXX             | X                | High/Med/Low |
+| Validation | X             | XXX             | X                | High/Med/Low |
+| ...        | ...           | ...             | ...              | ...          |
+| **Total**  | **XX**        | **XXXX**        | **XX**           | **High**     |
 
 ## Implementation Roadmap
 
 ### Phase 1: Quick Wins (Week 1)
+
 1. [Opportunity #1]
 2. [Opportunity #2]
-...
+   ...
 
 ### Phase 2: Medium Complexity (Week 2-3)
+
 1. [Opportunity #X]
-...
+   ...
 
 ### Phase 3: High Complexity (Week 4+)
+
 1. [Opportunity #Y]
-...
+   ...
 
 ## Package Installation Commands
 
@@ -334,17 +377,20 @@ pnpm add -D [dev-package1] [dev-package2]
 ## Appendix
 
 ### Analysis Methodology
+
 - [Describe search patterns used]
 - [Tools and commands used]
 - [Files analyzed vs skipped]
 
 ### Package Evaluation Criteria
+
 - Minimum weekly downloads: 10,000
 - Maximum bundle size: 50KB (with exceptions)
 - Last update: Within 12 months
 - TypeScript support: Preferred
 - Zero known critical vulnerabilities
-```
+
+````
 
 ## Phase 4: Implementation Assistance (Optional)
 
@@ -362,11 +408,12 @@ Would you like me to:
 4. **Just Review** - Review the report and decide later
 
 Let me know how you'd like to proceed!
-```
+````
 
 ## Important Guidelines
 
 ### DO:
+
 - ✅ Use the **Explore agent** extensively to find custom implementations
 - ✅ Search across all source directories systematically
 - ✅ Research packages thoroughly before recommending
@@ -379,6 +426,7 @@ Let me know how you'd like to proceed!
 - ✅ Include both pros and cons for each recommendation
 
 ### DO NOT:
+
 - ❌ Recommend unmaintained or abandoned packages
 - ❌ Suggest packages with known security vulnerabilities
 - ❌ Ignore bundle size impact
@@ -423,6 +471,7 @@ Focus on finding substantial implementations that would benefit from using a lib
 ## Success Criteria
 
 You are done when:
+
 1. ✅ All source code has been systematically analyzed
 2. ✅ All opportunities have been researched and validated
 3. ✅ Comprehensive report is generated with all sections complete
@@ -433,6 +482,7 @@ You are done when:
 ## Output Files
 
 Generate these files:
+
 - `lib-opportunities-report.md` - Main comprehensive report
 - Keep all analysis notes in your working memory for reference
 

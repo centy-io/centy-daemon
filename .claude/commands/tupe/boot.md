@@ -10,6 +10,7 @@ Complete project onboarding and then boot/start all project services with compre
 ## Current State
 
 ### System Information
+
 - Current directory: !`pwd`
 - Current branch: !`git branch --show-current 2>/dev/null || echo "N/A"`
 - Node version: !`node --version 2>/dev/null || echo "Node.js not found"`
@@ -18,11 +19,13 @@ Complete project onboarding and then boot/start all project services with compre
 - Python version: !`python --version 2>/dev/null || python3 --version 2>/dev/null || echo "Python not found"`
 
 ### Project Configuration
+
 - Package file: @package.json
 - Dependencies status: !`git status package-lock.json pnpm-lock.yaml yarn.lock 2>/dev/null | head -5 || echo "No lock files found"`
 - Node modules: !`[ -d "node_modules" ] && echo "✓ node_modules exists" || echo "✗ node_modules missing - needs installation"`
 
 ### Environment
+
 - Environment example: @.env.example
 - Environment file: !`[ -f ".env" ] && echo "✓ .env exists" || echo "⚠ .env missing - may need to be created from .env.example"`
 - Docker: !`docker --version 2>/dev/null || echo "Docker not installed"`
@@ -41,6 +44,7 @@ First, run the comprehensive project onboarding to learn everything about the pr
 ```
 
 **Wait for the onboarding to complete** before proceeding to the next phase. You should understand:
+
 - Project purpose and architecture
 - Technology stack and dependencies
 - How to install, run, test, and build
@@ -74,6 +78,7 @@ First, run the comprehensive project onboarding to learn everything about the pr
 Before booting, verify the project is ready:
 
 1. **Type Checking** (for TypeScript):
+
    ```bash
    # Check for type errors
    npx tsc --noEmit
@@ -84,6 +89,7 @@ Before booting, verify the project is ready:
    ```
 
 2. **Linting** (if configured):
+
    ```bash
    npm run lint
    # or
@@ -111,6 +117,7 @@ Identify and start all necessary services:
    Based on project type, run the appropriate command:
 
    **Web Applications**:
+
    ```bash
    npm run dev
    # or
@@ -120,6 +127,7 @@ Identify and start all necessary services:
    ```
 
    **API Servers**:
+
    ```bash
    npm run start:dev
    # or
@@ -127,6 +135,7 @@ Identify and start all necessary services:
    ```
 
    **CLI Tools**:
+
    ```bash
    npm run build && npm link
    # or test locally
@@ -134,6 +143,7 @@ Identify and start all necessary services:
    ```
 
    **Docker Services**:
+
    ```bash
    docker-compose up -d
    ```
@@ -156,6 +166,7 @@ After booting, verify everything is working:
    - For APIs: Test a health check endpoint if available
 
 2. **Run Tests**:
+
    ```bash
    # Unit tests
    npm test
@@ -169,6 +180,7 @@ After booting, verify everything is working:
    ```
 
 3. **Build Verification**:
+
    ```bash
    # Verify production build works
    npm run build
@@ -187,6 +199,7 @@ After booting, verify everything is working:
 Ensure your tools are ready for development:
 
 1. **Git Status Check**:
+
    ```bash
    git status
    git log -5 --oneline
@@ -199,7 +212,6 @@ Ensure your tools are ready for development:
 
 3. **Development Tools**:
    - Verify linting works: Try `/tupe:lint` if errors exist
-   - Check if specs are active: `ls .kiro/specs/`
    - Review available slash commands
 
 ## Output Requirements
@@ -207,10 +219,12 @@ Ensure your tools are ready for development:
 Provide a comprehensive boot report including:
 
 ### 1. Onboarding Summary
+
 - Brief recap of project understanding
 - Key takeaways from onboarding phase
 
 ### 2. Environment Status
+
 - ✓/✗ Dependencies installed
 - ✓/✗ Environment configured
 - ✓/✗ Build successful
@@ -218,23 +232,27 @@ Provide a comprehensive boot report including:
 - ✓/✗ Linting passed
 
 ### 3. Services Status
+
 - **Primary Service**: Running on [URL/port] or process details
 - **Additional Services**: Status of each service
 - **Logs**: Any important warnings or errors
 
 ### 4. Verification Results
+
 - ✓/✗ Tests passed (with summary)
 - ✓/✗ Health checks passed
 - ✓/✗ Build completed successfully
 - ✓/✗ No critical diagnostics
 
 ### 5. Ready for Development
+
 - **Project is ready**: Yes/No
 - **Access URLs**: Local development URLs if applicable
 - **Next steps**: Suggested actions or areas to explore
 - **Known issues**: Any problems encountered during boot
 
 ### 6. Available Tools & Commands
+
 - Key npm/pnpm scripts you can use
 - Custom Claude commands available
 - Useful development workflows
@@ -285,13 +303,13 @@ After completing this command, you should have:
 
 Common issues and solutions:
 
-| Issue | Solution |
-|-------|----------|
-| Dependencies fail to install | Clear cache: `npm/pnpm/yarn cache clean` then reinstall |
-| Port already in use | Find and kill process: `lsof -ti:PORT \| xargs kill -9` |
-| Build fails | Check for missing env vars or TypeScript errors |
-| Tests fail | May be expected - review test output and fix if critical |
-| Service won't start | Check logs, verify dependencies, ensure ports are free |
+| Issue                        | Solution                                                 |
+| ---------------------------- | -------------------------------------------------------- |
+| Dependencies fail to install | Clear cache: `npm/pnpm/yarn cache clean` then reinstall  |
+| Port already in use          | Find and kill process: `lsof -ti:PORT \| xargs kill -9`  |
+| Build fails                  | Check for missing env vars or TypeScript errors          |
+| Tests fail                   | May be expected - review test output and fix if critical |
+| Service won't start          | Check logs, verify dependencies, ensure ports are free   |
 
 ## Follow-Up Actions
 

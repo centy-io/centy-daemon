@@ -72,23 +72,16 @@ Use this command after:
 **Search for feature-related specs** in common locations:
 
 ```bash
-# Check for Kiro specs
-ls -la .kiro/specs/ 2>/dev/null
-
-# Search for the feature in spec files
-find .kiro/specs -type f -name "*.md" 2>/dev/null | while read file; do
-  grep -l "<feature-name>" "$file"
-done
-
-# Check for other common spec locations
+# Search for spec files
 find . -type f -name "requirements.md" -o -name "design.md" -o -name "spec.md" 2>/dev/null
+
+# Search for feature-related docs
+find . -type d -name "specs" -o -name "specifications" 2>/dev/null
 ```
 
 **Read all relevant documentation**:
 
-- `.kiro/specs/<feature>/requirements.md` - Feature requirements
-- `.kiro/specs/<feature>/design.md` - Technical design
-- `.kiro/specs/<feature>/tasks.md` - Implementation tasks
+- `specifications/` or `specs/` - Feature specifications
 - `docs/` directory - Any related documentation
 - `README.md` sections - Feature documentation
 
@@ -579,7 +572,7 @@ pnpm exec playwright test --debug
 
 # 3. Command analyzes session
 # - Identifies "login feature" from conversation
-# - Finds .kiro/specs/auth/requirements.md
+# - Finds specs/auth/requirements.md or other docs
 # - Lists modified files (LoginForm.tsx, auth.routes.ts, etc.)
 # - Gathers testing setup (Playwright configured)
 

@@ -29,18 +29,6 @@ Conduct a comprehensive exploration and learning session about the current proje
 - CLAUDE.md (project instructions): @CLAUDE.md
 - Main README: @README.md
 
-### Steering Documents
-
-- Steering directory: !`ls -la .kiro/steering/ 2>/dev/null || echo "No steering documents"`
-- Product overview: @.kiro/steering/product.md
-- Technology stack: @.kiro/steering/tech.md
-- Project structure: @.kiro/steering/structure.md
-
-### Active Specifications
-
-- Specifications: !`ls -1 .kiro/specs/ 2>/dev/null || echo "No active specs"`
-- Spec status: !`find .kiro/specs/ -name "spec.json" -exec sh -c 'echo "=== $(dirname {}) ===" && cat {}' \; 2>/dev/null || echo "No spec metadata"`
-
 ## Instructions
 
 **IMPORTANT**: This command initiates a comprehensive learning session. Your goal is to become deeply familiar with the project.
@@ -52,17 +40,6 @@ Conduct a comprehensive exploration and learning session about the current proje
    - Read CLAUDE.md for project-specific AI instructions
    - Review any CONTRIBUTING.md or DEVELOPMENT.md files
    - Check CHANGELOG.md or release notes for recent changes
-
-2. **Study Steering Documents** (if they exist):
-   - Product overview: Business context and objectives
-   - Technology stack: Frameworks, tools, and architecture
-   - Project structure: File organization and patterns
-   - Any custom steering files
-
-3. **Review Active Specifications** (if they exist):
-   - Check .kiro/specs/ for active feature development
-   - Read requirements, design, and tasks documents
-   - Understand current development priorities
 
 ### Phase 2: Project Configuration Analysis
 
@@ -226,11 +203,10 @@ Use these tools effectively:
 ### Recommended Exploration Order
 
 1. Start broad: README, package.json, root-level configs
-2. Review steering: .kiro/steering/ documents if they exist
-3. Explore structure: Directory layout and organization
-4. Dive into code: Entry points, core modules, utilities
-5. Understand workflows: Scripts, tests, build processes
-6. Check current state: Git history, active work, specs
+2. Explore structure: Directory layout and organization
+3. Dive into code: Entry points, core modules, utilities
+4. Understand workflows: Scripts, tests, build processes
+5. Check current state: Git history, active work
 
 ## Important Notes
 

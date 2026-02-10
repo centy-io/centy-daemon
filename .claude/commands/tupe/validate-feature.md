@@ -17,15 +17,16 @@ Deep validation and testing of feature: **$1**
 Automatically search for feature documentation in common locations:
 
 **Documentation Patterns to Search**:
+
 - `README*.md` - Feature descriptions in main README
 - `docs/**/*.md` - Documentation folders
 - `specifications/**/*.md` or `specs/**/*.md` - Specification documents
 - `design/**/*.md` - Design documents
-- `.kiro/specs/$1/**/*.md` - Kiro specs (if using Kiro workflow)
 - `*.md` files in project root
 - Code comments and JSDoc/TSDoc in source files
 
 **Search Strategy**:
+
 1. Use Task tool with Explore agent to find all documentation mentioning "$1"
 2. Search for files containing feature name in title or content
 3. Identify requirements, design docs, API docs, user guides
@@ -33,6 +34,7 @@ Automatically search for feature documentation in common locations:
 
 **Fallback Strategy**:
 If no documentation found:
+
 - Proceed with code-only analysis
 - Infer feature scope from code implementation
 - Document the lack of documentation as a finding
@@ -40,9 +42,10 @@ If no documentation found:
 ### Project Context Discovery
 
 Search for project-level documentation (if available):
-- Architecture docs: `docs/architecture.md`, `ARCHITECTURE.md`, `.kiro/steering/structure.md`
-- Tech stack: `docs/tech.md`, `TECH_STACK.md`, `.kiro/steering/tech.md`
-- Product context: `docs/product.md`, `.kiro/steering/product.md`
+
+- Architecture docs: `docs/architecture.md`, `ARCHITECTURE.md`
+- Tech stack: `docs/tech.md`, `TECH_STACK.md`
+- Product context: `docs/product.md`
 - Contributing guide: `CONTRIBUTING.md`, `docs/CONTRIBUTING.md`
 
 **Adaptive Approach**: Use whatever documentation exists, don't require specific structure.
@@ -53,6 +56,7 @@ Search for project-level documentation (if available):
 
 **Documentation Discovery & Review**:
 Use Task tool with Explore agent to:
+
 - Find ALL documentation related to "$1" feature
 - Search across entire codebase for mentions of the feature
 - Extract expected behavior from any available docs
@@ -60,6 +64,7 @@ Use Task tool with Explore agent to:
 - Note success metrics (if defined)
 
 **Documentation Quality Assessment**:
+
 - Code comments alignment with implementation
 - API documentation accuracy (if applicable)
 - User-facing documentation completeness
@@ -70,6 +75,7 @@ Use Task tool with Explore agent to:
 
 **Implementation Discovery**:
 Use the Task tool with subagent_type=Explore (very thorough mode) to:
+
 - Identify ALL files implementing the feature
 - Map complete code flow and execution paths
 - Trace data flow through the system
@@ -78,6 +84,7 @@ Use the Task tool with subagent_type=Explore (very thorough mode) to:
 - Find related configuration files
 
 **Code Quality Analysis**:
+
 - Architecture alignment with project patterns
 - Code consistency with existing codebase conventions
 - Error handling and edge case coverage
@@ -87,6 +94,7 @@ Use the Task tool with subagent_type=Explore (very thorough mode) to:
 - Code duplication and reusability
 
 **Technical Debt Assessment**:
+
 - TODO/FIXME/HACK comments related to the feature
 - Workarounds or temporary solutions
 - Known limitations documented or discovered
@@ -97,6 +105,7 @@ Use the Task tool with subagent_type=Explore (very thorough mode) to:
 
 **Expected Behavior Extraction**:
 From any available documentation:
+
 - Core functionality requirements
 - User stories or use cases
 - Business rules and constraints
@@ -105,12 +114,14 @@ From any available documentation:
 - Security requirements
 
 **Implementation Verification**:
+
 - Map each requirement (if documented) to implementation
 - Identify implemented features not documented
 - Find documented features not implemented
 - Check acceptance criteria fulfillment
 
 **Gap Analysis**:
+
 - Missing functionality vs documentation
 - Extra functionality not documented
 - Inconsistencies between docs and code
@@ -119,6 +130,7 @@ From any available documentation:
 ### Phase 4: Interactive Testing with Playwright
 
 **Test Planning**:
+
 - Identify user-facing components requiring UI testing
 - Map user flows based on requirements (or inferred from code)
 - Identify edge cases and error scenarios
@@ -127,6 +139,7 @@ From any available documentation:
 **Automated Testing Execution**:
 
 **For UI Features**:
+
 1. Launch browser with Playwright MCP
 2. Navigate to feature location
 3. Test primary user flows
@@ -139,6 +152,7 @@ From any available documentation:
 10. Test error recovery and user feedback
 
 **For API Features**:
+
 1. Test successful request/response flows
 2. Test all HTTP methods (GET, POST, PUT, DELETE, PATCH)
 3. Test error conditions (4xx, 5xx responses)
@@ -149,6 +163,7 @@ From any available documentation:
 8. Check error message quality
 
 **For CLI/Backend Features**:
+
 1. Test command-line interface (if applicable)
 2. Test with valid inputs
 3. Test with invalid inputs
@@ -156,6 +171,7 @@ From any available documentation:
 5. Verify output format and content
 
 **Test Result Documentation**:
+
 - All tests executed with pass/fail outcomes
 - Screenshots of UI states (stored in `/tmp/`, NOT repo)
 - API response examples (stored in `/tmp/`, NOT repo)
@@ -166,6 +182,7 @@ From any available documentation:
 ### Phase 5: Bug Analysis & Issue Identification
 
 **Comprehensive Bug Detection**:
+
 - Functional bugs (feature doesn't work as expected)
 - UI/UX issues (poor user experience, confusing interactions)
 - Performance problems (slow responses, memory leaks)
@@ -176,6 +193,7 @@ From any available documentation:
 - Integration issues (API failures, database errors, third-party service problems)
 
 **Bug Classification**:
+
 - **Critical**: Feature broken, data loss/corruption, security vulnerability, system crash
 - **High**: Major functionality impaired, poor UX, security concern, performance severely degraded
 - **Medium**: Minor functionality issues, edge case failures, moderate performance impact
@@ -183,6 +201,7 @@ From any available documentation:
 
 **Root Cause Analysis**:
 For each bug identified:
+
 - Exact reproduction steps (numbered list)
 - Expected behavior vs actual behavior
 - Code location causing the issue (file:line references)
@@ -201,6 +220,7 @@ Generate a detailed validation report with:
 **Feature**: $1
 
 **Overall Result**: [Choose one]
+
 - ✅ **PASS** - Feature fully functional, production ready
 - ⚠️ **PASS WITH ISSUES** - Feature works but has non-critical issues
 - ❌ **FAIL** - Feature has critical bugs or missing core functionality
@@ -208,6 +228,7 @@ Generate a detailed validation report with:
 **Key Findings**: [2-3 sentence summary of most important discoveries]
 
 **Recommendation**: [Choose one]
+
 - **PRODUCTION READY** - Deploy with confidence
 - **NEEDS FIXES** - Fix identified issues before deployment
 - **REQUIRES REWORK** - Significant changes needed
@@ -221,6 +242,7 @@ Generate a detailed validation report with:
 **Scope**: [What the feature is supposed to do]
 
 **Implementation Summary**:
+
 - Files created/modified: [count and list key files]
 - Lines of code: [approximate]
 - Test coverage: [percentage if available, or "Unknown"]
@@ -231,16 +253,19 @@ Generate a detailed validation report with:
 #### Documentation Analysis
 
 **Documentation Found**:
+
 - [List all documentation files found with brief description]
 - OR: "⚠️ No documentation found for this feature"
 
 **Documentation Quality**: [Excellent / Good / Fair / Poor / Missing]
 
 **Documentation Gaps Identified**:
+
 - [List what should be documented but isn't]
 - [Missing API docs, user guides, architecture decisions, etc.]
 
 **Recommendations**:
+
 - [What documentation should be created or improved]
 
 ---
@@ -248,39 +273,46 @@ Generate a detailed validation report with:
 #### Implementation Analysis
 
 **Architecture Alignment**: [Excellent / Good / Fair / Poor]
+
 - [How well does implementation follow project patterns]
 - [Integration points and dependencies]
 - [Modularity and separation of concerns]
 
 **Code Quality**: [Excellent / Good / Fair / Poor]
+
 - Readability: [assessment]
 - Maintainability: [assessment]
 - Consistency with codebase: [assessment]
 - Code patterns used: [list notable patterns]
 
 **Error Handling**: [Excellent / Good / Fair / Poor]
+
 - Edge case coverage: [assessment]
 - Error messages quality: [assessment]
 - Graceful degradation: [assessment]
 
 **Security**: [Excellent / Good / Fair / Poor]
+
 - Input validation: [assessment]
 - Authentication/Authorization: [assessment]
 - Data sanitization: [assessment]
 - Vulnerabilities found: [list or "None detected"]
 
 **Performance**: [Excellent / Good / Fair / Poor]
+
 - Response times: [measurements or observations]
 - Resource usage: [assessment]
 - Scalability concerns: [list or "None identified"]
 - Optimization opportunities: [list or "None identified"]
 
 **Type Safety** (if TypeScript): [Excellent / Good / Fair / Poor]
+
 - Proper type definitions: [assessment]
 - `any` usage: [assessment]
 - Type safety violations: [list or "None found"]
 
 **Technical Debt Identified**:
+
 1. [TODO/FIXME items with file:line references]
 2. [Workarounds or hacks that need proper solutions]
 3. [Code duplication that should be refactored]
@@ -291,6 +323,7 @@ Generate a detailed validation report with:
 #### Testing Results
 
 **Automated Tests Summary**:
+
 - Total tests executed: [number]
 - Passed: [number] ✅
 - Failed: [number] ❌
@@ -299,32 +332,38 @@ Generate a detailed validation report with:
 **Playwright Testing Results** (if UI feature):
 
 **User Flows Tested**:
+
 1. [Flow 1] - ✅ PASS / ❌ FAIL
 2. [Flow 2] - ✅ PASS / ❌ FAIL
-...
+   ...
 
 **Edge Cases Tested**:
+
 1. [Edge case 1] - ✅ PASS / ❌ FAIL
 2. [Edge case 2] - ✅ PASS / ❌ FAIL
-...
+   ...
 
 **Visual Testing**:
+
 - Screenshots captured: [count] (saved to /tmp/)
 - UI states verified: [list]
 - Responsive testing: [Desktop ✅/❌, Mobile ✅/❌, Tablet ✅/❌]
 
 **Console Output**:
+
 - Errors detected: [count and list]
 - Warnings detected: [count and list]
 - Network failures: [count and list]
 
 **API Testing Results** (if applicable):
+
 - Endpoints tested: [list with HTTP methods]
 - Success rate: [percentage]
 - Average response time: [milliseconds]
 - Error handling: [assessment]
 
 **Accessibility Testing**:
+
 - ARIA labels: [✅ Present / ❌ Missing / N/A]
 - Keyboard navigation: [✅ Works / ❌ Broken / N/A]
 - Color contrast: [✅ Adequate / ❌ Poor / N/A]
@@ -378,6 +417,7 @@ For each bug found, use this format:
 **Requirements Traceability** (if requirements documented):
 
 For each requirement:
+
 ```
 REQ-001: [Requirement description]
 Status: ✅ Implemented / ⚠️ Partial / ❌ Missing
@@ -404,7 +444,7 @@ Notes: [Any deviations or concerns]
    - **Fix Approach**:
      1. [Specific step 1]
      2. [Specific step 2]
-     ...
+        ...
    - **Testing Approach**: [How to verify the fix]
    - **Risks**: [Any risks in implementing this fix]
 
@@ -430,12 +470,14 @@ Notes: [Any deviations or concerns]
 [Repeat for each debt item]
 
 **Documentation Improvements Needed**:
+
 1. [Create/update X documentation]
 2. [Add API documentation for Y]
 3. [Document architecture decision for Z]
-...
+   ...
 
 **Implementation Timeline**:
+
 - **Phase 1**: Critical fixes - [X hours/days]
 - **Phase 2**: High priority fixes - [X hours/days]
 - **Phase 3**: Medium improvements - [X hours/days]
@@ -443,6 +485,7 @@ Notes: [Any deviations or concerns]
 - **Total Estimated Effort**: [X hours/days]
 
 **Testing Strategy After Fixes**:
+
 - Regression testing areas: [list affected areas]
 - New test cases needed: [list tests to add]
 - Validation approach: [how to verify all fixes]
@@ -452,6 +495,7 @@ Notes: [Any deviations or concerns]
 #### Production Readiness Assessment
 
 **Production Readiness Checklist**:
+
 - [ ] All critical bugs fixed
 - [ ] All high priority bugs fixed or risk-accepted
 - [ ] Core functionality working as expected
@@ -477,16 +521,19 @@ Notes: [Any deviations or concerns]
 #### Recommendations
 
 **Immediate Next Steps**:
+
 1. [Most important action to take]
 2. [Second most important action]
 3. [Third most important action]
 
 **Long-term Improvements**:
+
 - [Strategic improvements for future iterations]
 - [Architecture changes to consider]
 - [Tooling or process improvements]
 
 **Monitoring Recommendations**:
+
 - [What to monitor in production]
 - [Key metrics to track]
 - [Alerts to set up]
@@ -531,6 +578,7 @@ Notes: [Any deviations or concerns]
 ```
 
 The command will:
+
 1. Search for any documentation about the feature
 2. Analyze implementation in codebase
 3. Test functionality with Playwright (if UI/API)

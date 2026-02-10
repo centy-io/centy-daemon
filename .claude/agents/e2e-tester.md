@@ -929,7 +929,7 @@ Tests run automatically on:
 
 - [Playwright Documentation](https://playwright.dev)
 - [Project Testing Guide](../../docs/testing.md)
-- [Feature Specification](.kiro/specs/feature-name/)
+- [Feature Specification](specifications/feature-name/)
 ```
 
 ### Step 17: Create Setup/Teardown Scripts

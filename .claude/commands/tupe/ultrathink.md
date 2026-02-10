@@ -16,11 +16,6 @@ Continue with the current task at hand using deep, methodical thinking and analy
 - Git status summary: !`git status --short 2>/dev/null | head -10 || echo "N/A"`
 - Recent files modified: !`git diff --name-only HEAD 2>/dev/null | head -10 || echo "N/A"`
 
-### Active Specifications
-
-- Active specs: !`ls -1 .kiro/specs/ 2>/dev/null || echo "No specs found"`
-- Spec status: !`find .kiro/specs/ -name "spec.json" -exec sh -c 'echo "=== $(dirname {}) ===" && cat {}' \; 2>/dev/null || echo "No spec metadata found"`
-
 ### Recent Activity
 
 - Last commit: !`git log -1 --oneline 2>/dev/null || echo "N/A"`
@@ -34,12 +29,10 @@ Continue with the current task at hand using deep, methodical thinking and analy
 
 1. **Analyze the current context thoroughly**:
    - Review git status and recent changes
-   - Check for any active specifications
    - Identify what task is currently in progress
    - Examine recent commit history for context
 
 2. **Continue with the current task**:
-   - If there's an active specification with incomplete tasks, continue implementation
    - If there are uncommitted changes, analyze what's being worked on and continue
    - If unclear what the current task is, ask the user for clarification
    - Use all available context to understand the state and continue purposefully
