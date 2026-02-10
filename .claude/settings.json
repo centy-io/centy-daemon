@@ -138,7 +138,8 @@
       "Bash(gh pr close:*)",
       "Bash(cat:*)",
       "Bash(do wc -l \"$f\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(gh api:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
