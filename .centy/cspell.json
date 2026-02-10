@@ -2,21 +2,19 @@
   "version": "0.2",
   "language": "en",
   "words": [
-    "allowDirectEdits",
-    "allowedStates",
-    "autoCloseOnComplete",
     "centy",
-    "centyVersion",
-    "createdAt",
     "displayNumber",
-    "eprintln",
-    "priorityColors",
-    "priorityLevels",
-    "promisified",
-    "schemaVersion",
-    "stateColors",
+    "createdAt",
     "updatedAt",
-    "updateStatusOnStart"
+    "priorityLevels",
+    "allowedStates",
+    "stateColors",
+    "priorityColors",
+    "autoCloseOnComplete",
+    "updateStatusOnStart",
+    "allowDirectEdits",
+    "centyVersion",
+    "schemaVersion"
   ],
   "ignorePaths": [
     ".centy-manifest.json"
