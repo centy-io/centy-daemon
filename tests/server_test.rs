@@ -398,7 +398,7 @@ fn test_llm_config_defaults() {
 #[test]
 fn test_requires_status_config_when_none() {
     // When update_status_on_start is None, the server should return requires_status_config = true
-    // This tests the logic used in open_in_temp_vscode handler
+    // This tests the logic used in open_in_temp_workspace handler
     let config = CentyConfig::default();
 
     // The check used in the server: cfg.llm.update_status_on_start.is_none()
@@ -739,7 +739,7 @@ async fn test_config_update_status_on_start_default_is_none() {
     let config = read_config(project_path).await.expect("Should read config");
 
     // By default, update_status_on_start should be None (not configured)
-    // This is what triggers the "requires_status_config" response in open_in_temp_vscode
+    // This is what triggers the "requires_status_config" response in open_in_temp_workspace
     if let Some(cfg) = config {
         assert!(
             cfg.llm.update_status_on_start.is_none(),
