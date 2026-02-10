@@ -54,8 +54,15 @@ pub async fn list_prs(req: ListPrsRequest) -> Result<Response<ListPrsResponse>, 
                     .map(|p| pr_to_proto(&p, priority_levels))
                     .collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListPrsResponse {
+            success: false,
+            error: e.to_string(),
+            prs: vec![],
+            total_count: 0,
+        })),
     }
 }

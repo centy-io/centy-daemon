@@ -74,9 +74,17 @@ pub async fn list_temp_workspaces(
                 total_count: proto_workspaces.len() as u32,
                 workspaces: proto_workspaces,
                 expired_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListTempWorkspacesResponse {
+            success: false,
+            error: e.to_string(),
+            workspaces: vec![],
+            total_count: 0,
+            expired_count: 0,
+        })),
     }
 }
 

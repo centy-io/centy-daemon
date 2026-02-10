@@ -34,7 +34,15 @@ pub async fn get_docs_by_slug_handler(
     // Get all initialized projects from registry
     let projects = match list_projects(ListProjectsOptions::default()).await {
         Ok(p) => p,
-        Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        Err(e) => {
+            return Ok(Response::new(GetDocsBySlugResponse {
+                success: false,
+                error: format!("Failed to list projects: {e}"),
+                docs: vec![],
+                total_count: 0,
+                errors: vec![],
+            }))
+        }
     };
 
     match get_docs_by_slug(&req.slug, &projects).await {
@@ -56,9 +64,17 @@ pub async fn get_docs_by_slug_handler(
                 docs: docs_with_projects,
                 total_count,
                 errors: result.errors,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::invalid_argument(e.to_string())),
+        Err(e) => Ok(Response::new(GetDocsBySlugResponse {
+            success: false,
+            error: e.to_string(),
+            docs: vec![],
+            total_count: 0,
+            errors: vec![],
+        })),
     }
 }
 
@@ -72,8 +88,15 @@ pub async fn list_docs_handler(req: ListDocsRequest) -> Result<Response<ListDocs
             Ok(Response::new(ListDocsResponse {
                 docs: docs.into_iter().map(|d| doc_to_proto(&d)).collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListDocsResponse {
+            success: false,
+            error: e.to_string(),
+            docs: vec![],
+            total_count: 0,
+        })),
     }
 }

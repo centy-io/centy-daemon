@@ -42,9 +42,16 @@ pub async fn list_organizations(
             Ok(Response::new(ListOrganizationsResponse {
                 organizations: orgs.into_iter().map(|o| org_info_to_proto(&o)).collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListOrganizationsResponse {
+            success: false,
+            error: e.to_string(),
+            organizations: vec![],
+            total_count: 0,
+        })),
     }
 }
 
@@ -55,11 +62,20 @@ pub async fn get_organization(
         Ok(Some(org)) => Ok(Response::new(GetOrganizationResponse {
             found: true,
             organization: Some(org_info_to_proto(&org)),
+            success: true,
+            error: String::new(),
         })),
         Ok(None) => Ok(Response::new(GetOrganizationResponse {
             found: false,
             organization: None,
+            success: true,
+            error: String::new(),
         })),
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(GetOrganizationResponse {
+            success: false,
+            error: e.to_string(),
+            found: false,
+            organization: None,
+        })),
     }
 }

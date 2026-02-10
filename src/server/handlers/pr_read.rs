@@ -69,7 +69,15 @@ pub async fn get_next_pr_number(
     let prs_path = get_centy_path(project_path).join("prs");
 
     match get_next_pr_display_number(&prs_path).await {
-        Ok(next_number) => Ok(Response::new(GetNextPrNumberResponse { next_number })),
-        Err(e) => Err(Status::internal(e.to_string())),
+        Ok(next_number) => Ok(Response::new(GetNextPrNumberResponse {
+            next_number,
+            success: true,
+            error: String::new(),
+        })),
+        Err(e) => Ok(Response::new(GetNextPrNumberResponse {
+            success: false,
+            error: e.to_string(),
+            next_number: 0,
+        })),
     }
 }

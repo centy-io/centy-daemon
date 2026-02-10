@@ -40,9 +40,15 @@ pub async fn get_reconciliation_plan(
                     .map(file_info_to_proto)
                     .collect(),
                 needs_decisions,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ReconciliationPlan {
+            success: false,
+            error: e.to_string(),
+            ..Default::default()
+        })),
     }
 }
 pub async fn execute_reconciliation_handler(
