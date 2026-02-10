@@ -31,9 +31,16 @@ pub async fn list_projects(
                     .map(|p| project_info_to_proto(&p))
                     .collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListProjectsResponse {
+            success: false,
+            error: e.to_string(),
+            projects: vec![],
+            total_count: 0,
+        })),
     }
 }
 
@@ -59,11 +66,20 @@ pub async fn get_project_info(
         Ok(Some(info)) => Ok(Response::new(GetProjectInfoResponse {
             found: true,
             project: Some(project_info_to_proto(&info)),
+            success: true,
+            error: String::new(),
         })),
         Ok(None) => Ok(Response::new(GetProjectInfoResponse {
             found: false,
             project: None,
+            success: true,
+            error: String::new(),
         })),
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(GetProjectInfoResponse {
+            success: false,
+            error: e.to_string(),
+            found: false,
+            project: None,
+        })),
     }
 }

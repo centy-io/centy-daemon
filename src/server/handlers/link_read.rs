@@ -24,8 +24,15 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
                 .map(internal_link_to_proto)
                 .collect(),
             total_count: links_file.links.len() as i32,
+            success: true,
+            error: String::new(),
         })),
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListLinksResponse {
+            success: false,
+            error: e.to_string(),
+            links: vec![],
+            total_count: 0,
+        })),
     }
 }
 

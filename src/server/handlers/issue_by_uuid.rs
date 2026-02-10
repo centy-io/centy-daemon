@@ -12,7 +12,15 @@ pub async fn get_issues_by_uuid(
     // Get all initialized projects from registry
     let projects = match list_projects(ListProjectsOptions::default()).await {
         Ok(p) => p,
-        Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        Err(e) => {
+            return Ok(Response::new(GetIssuesByUuidResponse {
+                success: false,
+                error: format!("Failed to list projects: {e}"),
+                issues: vec![],
+                total_count: 0,
+                errors: vec![],
+            }))
+        }
     };
 
     match crate::item::entities::issue::get_issues_by_uuid(&req.uuid, &projects).await {
@@ -39,8 +47,16 @@ pub async fn get_issues_by_uuid(
                 issues: issues_with_projects,
                 total_count,
                 errors: result.errors,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::invalid_argument(e.to_string())),
+        Err(e) => Ok(Response::new(GetIssuesByUuidResponse {
+            success: false,
+            error: e.to_string(),
+            issues: vec![],
+            total_count: 0,
+            errors: vec![],
+        })),
     }
 }

@@ -71,7 +71,15 @@ pub async fn get_next_issue_number(
 
     #[allow(deprecated)]
     match crate::item::entities::issue::create::get_next_issue_number(&issues_path).await {
-        Ok(issue_number) => Ok(Response::new(GetNextIssueNumberResponse { issue_number })),
-        Err(e) => Err(Status::internal(e.to_string())),
+        Ok(issue_number) => Ok(Response::new(GetNextIssueNumberResponse {
+            issue_number,
+            success: true,
+            error: String::new(),
+        })),
+        Err(e) => Ok(Response::new(GetNextIssueNumberResponse {
+            success: false,
+            error: e.to_string(),
+            issue_number: String::new(),
+        })),
     }
 }

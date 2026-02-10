@@ -40,8 +40,15 @@ pub async fn list_users(req: ListUsersRequest) -> Result<Response<ListUsersRespo
             Ok(Response::new(ListUsersResponse {
                 users: users.iter().map(user_to_proto).collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListUsersResponse {
+            success: false,
+            error: e.to_string(),
+            users: vec![],
+            total_count: 0,
+        })),
     }
 }

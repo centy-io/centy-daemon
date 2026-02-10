@@ -13,7 +13,15 @@ pub async fn get_prs_by_uuid(
     // Get all initialized projects from registry
     let projects = match list_projects(ListProjectsOptions::default()).await {
         Ok(p) => p,
-        Err(e) => return Err(Status::internal(format!("Failed to list projects: {e}"))),
+        Err(e) => {
+            return Ok(Response::new(GetPrsByUuidResponse {
+                success: false,
+                error: format!("Failed to list projects: {e}"),
+                prs: vec![],
+                total_count: 0,
+                errors: vec![],
+            }))
+        }
     };
 
     match crate::item::entities::pr::get_prs_by_uuid(&req.uuid, &projects).await {
@@ -40,8 +48,16 @@ pub async fn get_prs_by_uuid(
                 prs: prs_with_projects,
                 total_count,
                 errors: result.errors,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::invalid_argument(e.to_string())),
+        Err(e) => Ok(Response::new(GetPrsByUuidResponse {
+            success: false,
+            error: e.to_string(),
+            prs: vec![],
+            total_count: 0,
+            errors: vec![],
+        })),
     }
 }

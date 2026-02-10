@@ -45,8 +45,15 @@ pub async fn list_issues(req: ListIssuesRequest) -> Result<Response<ListIssuesRe
                     .map(|i| issue_to_proto(&i, priority_levels))
                     .collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListIssuesResponse {
+            success: false,
+            error: e.to_string(),
+            issues: vec![],
+            total_count: 0,
+        })),
     }
 }

@@ -20,9 +20,16 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
             Ok(Response::new(ListAssetsResponse {
                 assets: assets.iter().map(asset_info_to_proto).collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListAssetsResponse {
+            success: false,
+            error: e.to_string(),
+            assets: vec![],
+            total_count: 0,
+        })),
     }
 }
 
@@ -71,8 +78,15 @@ pub async fn list_shared_assets(
             Ok(Response::new(ListAssetsResponse {
                 assets: assets.iter().map(asset_info_to_proto).collect(),
                 total_count,
+                success: true,
+                error: String::new(),
             }))
         }
-        Err(e) => Err(Status::internal(e.to_string())),
+        Err(e) => Ok(Response::new(ListAssetsResponse {
+            success: false,
+            error: e.to_string(),
+            assets: vec![],
+            total_count: 0,
+        })),
     }
 }
