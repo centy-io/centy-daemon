@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_needs_migration_with_nested_llm() {
         let raw = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm": {
                 "autoCloseOnComplete": false,
                 "allowDirectEdits": false
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_needs_migration_with_flat_keys() {
         let raw = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm.autoCloseOnComplete": false,
             "llm.allowDirectEdits": false
         });
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_needs_migration_with_no_llm() {
         let raw = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "priorityLevels": 3
         });
         assert!(!needs_migration(&raw));
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn test_flatten_nested_llm() {
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "priorityLevels": 3,
             "llm": {
                 "autoCloseOnComplete": false,
@@ -150,7 +150,7 @@ mod tests {
         let result = flatten_config(input);
         let obj = result.as_object().unwrap();
 
-        assert_eq!(obj.get("version"), Some(&json!("0.1.0")));
+        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
         assert_eq!(obj.get("priorityLevels"), Some(&json!(3)));
         assert_eq!(obj.get("llm.autoCloseOnComplete"), Some(&json!(false)));
         assert_eq!(obj.get("llm.updateStatusOnStart"), Some(&json!(false)));
@@ -162,14 +162,14 @@ mod tests {
     #[test]
     fn test_flatten_empty_section() {
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm": {}
         });
 
         let result = flatten_config(input);
         let obj = result.as_object().unwrap();
 
-        assert_eq!(obj.get("version"), Some(&json!("0.1.0")));
+        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
         assert!(obj.get("llm").is_none());
     }
 
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_flatten_already_flat() {
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm.autoCloseOnComplete": false
         });
 
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn test_unflatten_flat_keys() {
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm.autoCloseOnComplete": false,
             "llm.allowDirectEdits": true,
             "hooks": []
@@ -211,7 +211,7 @@ mod tests {
         let result = unflatten_config(input);
         let obj = result.as_object().unwrap();
 
-        assert_eq!(obj.get("version"), Some(&json!("0.1.0")));
+        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
         assert_eq!(obj.get("hooks"), Some(&json!([])));
 
         let llm = obj.get("llm").unwrap().as_object().unwrap();
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn test_unflatten_no_section_keys() {
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "priorityLevels": 3
         });
 
@@ -234,7 +234,7 @@ mod tests {
     fn test_unflatten_already_nested() {
         // If already nested (no dot keys), unflatten should pass through
         let input = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "llm": { "autoCloseOnComplete": false }
         });
 
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_roundtrip_flatten_unflatten() {
         let nested = json!({
-            "version": "0.1.0",
+            "version": "0.0.1",
             "priorityLevels": 3,
             "customFields": [],
             "defaults": {},

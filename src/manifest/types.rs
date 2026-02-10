@@ -35,7 +35,7 @@ mod tests {
     fn test_centy_manifest_serialization() {
         let manifest = CentyManifest {
             schema_version: 1,
-            centy_version: "0.1.0".to_string(),
+            centy_version: "0.0.1".to_string(),
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-06-15T12:00:00Z".to_string(),
         };
@@ -49,7 +49,7 @@ mod tests {
     fn test_centy_manifest_camel_case_json() {
         let manifest = CentyManifest {
             schema_version: 1,
-            centy_version: "0.1.0".to_string(),
+            centy_version: "0.0.1".to_string(),
             created_at: "2024-01-01".to_string(),
             updated_at: "2024-01-01".to_string(),
         };

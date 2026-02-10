@@ -652,7 +652,7 @@ mod tests {
 
         // Write a config.json in the old nested format
         let nested_config = r#"{
-  "version": "0.1.0",
+  "version": "0.0.1",
   "priorityLevels": 3,
   "customFields": [],
   "defaults": {},
@@ -715,7 +715,7 @@ mod tests {
 
         // Write a config.json already in flat format
         let flat_config = r#"{
-  "version": "0.1.0",
+  "version": "0.0.1",
   "priorityLevels": 5,
   "customFields": [],
   "defaults": {},
@@ -738,7 +738,7 @@ mod tests {
             .expect("Should read")
             .expect("Config should exist");
 
-        assert_eq!(config.version, Some("0.1.0".to_string()));
+        assert_eq!(config.version, Some("0.0.1".to_string()));
         assert_eq!(config.priority_levels, 5);
         assert!(config.llm.auto_close_on_complete);
         assert!(!config.llm.allow_direct_edits);
