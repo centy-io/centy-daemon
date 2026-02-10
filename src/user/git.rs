@@ -45,9 +45,9 @@ pub fn get_git_contributors(project_path: &Path) -> Result<Vec<GitContributor>, 
 
     for line in log_output.lines() {
         let parts: Vec<&str> = line.split('|').collect();
-        if parts.len() == 2 {
-            let name = parts[0].trim().to_string();
-            let email = parts[1].trim().to_string();
+        if let (Some(name_part), Some(email_part)) = (parts.first(), parts.get(1)) {
+            let name = name_part.trim().to_string();
+            let email = email_part.trim().to_string();
             let email_lower = email.to_lowercase();
 
             if !email.is_empty() && !seen_emails.contains(&email_lower) {

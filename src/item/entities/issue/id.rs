@@ -54,11 +54,7 @@ pub fn generate_issue_id() -> String {
 /// Useful for display purposes
 #[must_use]
 pub fn short_id(id: &str) -> &str {
-    if id.len() >= 8 {
-        &id[..8]
-    } else {
-        id
-    }
+    id.get(..8).unwrap_or(id)
 }
 
 #[cfg(test)]

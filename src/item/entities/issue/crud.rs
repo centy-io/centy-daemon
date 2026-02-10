@@ -1309,7 +1309,9 @@ fn parse_issue_md(content: &str) -> (String, String) {
         .to_string();
 
     // Rest is description (skip empty lines after title)
-    let description_lines: Vec<&str> = lines[title_idx.saturating_add(1)..]
+    let description_lines: Vec<&str> = lines
+        .get(title_idx.saturating_add(1)..)
+        .unwrap_or(&[])
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()

@@ -347,7 +347,9 @@ fn parse_templated_content(content: &str) -> (String, String) {
         .unwrap_or("")
         .to_string();
 
-    let description = lines[title_idx.saturating_add(1)..]
+    let description = lines
+        .get(title_idx.saturating_add(1)..)
+        .unwrap_or(&[])
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()

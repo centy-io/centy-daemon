@@ -47,12 +47,14 @@ pub fn parse_frontmatter<T: DeserializeOwned>(
         })?;
 
     // Extract and parse frontmatter YAML
-    let frontmatter_yaml = lines[1..=end_idx].join("\n");
+    let frontmatter_yaml = lines.get(1..=end_idx).unwrap_or(&[]).join("\n");
     let metadata: T = serde_yaml::from_str(&frontmatter_yaml)?;
 
     // Extract content after frontmatter
     let body_start = end_idx.saturating_add(2); // Skip the closing ---
-    let body_lines: Vec<&str> = lines[body_start..]
+    let body_lines: Vec<&str> = lines
+        .get(body_start..)
+        .unwrap_or(&[])
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()
@@ -60,8 +62,11 @@ pub fn parse_frontmatter<T: DeserializeOwned>(
 
     // Extract title from H1 heading
     let (title, body) = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
-        let title = body_lines[0].strip_prefix("# ").unwrap_or("").to_string();
-        let body = body_lines[1..]
+        let first_line = body_lines.first().unwrap_or(&"");
+        let title = first_line.strip_prefix("# ").unwrap_or("").to_string();
+        let body = body_lines
+            .get(1..)
+            .unwrap_or(&[])
             .iter()
             .skip_while(|line| line.is_empty())
             .copied()

@@ -65,15 +65,14 @@ fn parse_path_segments(host: &str, path: &str) -> Option<ParsedRemote> {
     let path = path.strip_suffix(".git").unwrap_or(path);
     let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
-    if parts.len() >= 2 {
-        Some(ParsedRemote {
-            host: host.to_string(),
-            org: parts[0].to_string(),
-            repo: parts[1].to_string(),
-        })
-    } else {
-        None
-    }
+    let org = parts.first()?;
+    let repo = parts.get(1)?;
+
+    Some(ParsedRemote {
+        host: host.to_string(),
+        org: (*org).to_string(),
+        repo: (*repo).to_string(),
+    })
 }
 
 #[cfg(test)]

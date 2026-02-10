@@ -1114,7 +1114,7 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
     if lines.first() == Some(&"---") {
         // Find closing ---
         if let Some(end_idx) = lines.iter().skip(1).position(|&line| line == "---") {
-            let frontmatter: Vec<&str> = lines[1..=end_idx].to_vec();
+            let frontmatter: Vec<&str> = lines.get(1..=end_idx).unwrap_or(&[]).to_vec();
             let body_start = end_idx.saturating_add(2);
 
             // Parse frontmatter
@@ -1148,7 +1148,9 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
             }
 
             // Get body (skip empty lines after frontmatter)
-            let body_lines: Vec<&str> = lines[body_start..]
+            let body_lines: Vec<&str> = lines
+                .get(body_start..)
+                .unwrap_or(&[])
                 .iter()
                 .skip_while(|line| line.is_empty())
                 .copied()
@@ -1156,7 +1158,9 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
 
             // Skip the title line if it matches (# Title)
             let body = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
-                body_lines[1..]
+                body_lines
+                    .get(1..)
+                    .unwrap_or(&[])
                     .iter()
                     .skip_while(|line| line.is_empty())
                     .copied()
@@ -1198,7 +1202,9 @@ fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
         }
     }
 
-    let body = lines[body_start..]
+    let body = lines
+        .get(body_start..)
+        .unwrap_or(&[])
         .iter()
         .skip_while(|line| line.is_empty())
         .copied()

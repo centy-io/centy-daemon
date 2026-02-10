@@ -163,13 +163,19 @@ fn parse_condition(pair: pest::iterators::Pair<Rule>) -> Result<Query, SearchErr
     let (operator, value_str) = match remaining.len() {
         1 => {
             // Just value, no explicit operator - use default
-            let value_pair = &remaining[0];
+            let value_pair = remaining.first().ok_or_else(|| {
+                SearchError::ParseError("Expected value in condition".to_string())
+            })?;
             (default_operator(&field), value_pair.clone())
         }
         2 => {
             // Operator and value
-            let op_pair = &remaining[0];
-            let value_pair = &remaining[1];
+            let op_pair = remaining.first().ok_or_else(|| {
+                SearchError::ParseError("Expected operator in condition".to_string())
+            })?;
+            let value_pair = remaining.get(1).ok_or_else(|| {
+                SearchError::ParseError("Expected value in condition".to_string())
+            })?;
             let op_str = op_pair.as_str();
             let operator = Operator::from_str(op_str).ok_or_else(|| {
                 SearchError::InvalidOperator(op_str.to_string(), field_str.to_string())
@@ -216,7 +222,7 @@ fn parse_value(
         Rule::quoted_string => {
             // Remove surrounding quotes and handle escapes
             let raw = inner.as_str();
-            let unquoted = &raw[1..raw.len().saturating_sub(1)];
+            let unquoted = raw.get(1..raw.len().saturating_sub(1)).unwrap_or("");
             let unescaped = unescape_string(unquoted);
             Ok(Value::String(unescaped))
         }
