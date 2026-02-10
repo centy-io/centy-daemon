@@ -390,9 +390,7 @@ mod tests {
         );
 
         // Should contain hooks key
-        let content = fs::read_to_string(&config_path)
-            .await
-            .expect("Should read");
+        let content = fs::read_to_string(&config_path).await.expect("Should read");
         let value: serde_json::Value = serde_json::from_str(&content).expect("Should parse");
         assert!(
             value.as_object().unwrap().contains_key("hooks"),

@@ -258,7 +258,10 @@ async fn test_init_creates_config_json_with_hooks() {
 
     // config.json should be created
     let config_path = project_path.join(".centy").join("config.json");
-    assert!(config_path.exists(), "config.json should be created on init");
+    assert!(
+        config_path.exists(),
+        "config.json should be created on init"
+    );
     assert!(
         result.created.contains(&"config.json".to_string()),
         "Should report config.json as created"
@@ -313,5 +316,8 @@ async fn test_init_does_not_overwrite_existing_config_json() {
     let content = fs::read_to_string(centy_path.join("config.json"))
         .await
         .expect("Should read config.json");
-    assert_eq!(content, custom_config, "Existing config.json should not be overwritten");
+    assert_eq!(
+        content, custom_config,
+        "Existing config.json should not be overwritten"
+    );
 }
