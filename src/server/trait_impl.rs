@@ -135,27 +135,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::issue_read::get_next_issue_number(request.into_inner()).await
     }
 
-    async fn get_manifest(
-        &self,
-        request: Request<GetManifestRequest>,
-    ) -> Result<Response<GetManifestResponse>, Status> {
-        handlers::manifest::get_manifest(request.into_inner()).await
-    }
-
-    async fn get_config(
-        &self,
-        request: Request<GetConfigRequest>,
-    ) -> Result<Response<GetConfigResponse>, Status> {
-        handlers::config::get_config(request.into_inner()).await
-    }
-
-    async fn update_config(
-        &self,
-        request: Request<UpdateConfigRequest>,
-    ) -> Result<Response<UpdateConfigResponse>, Status> {
-        handlers::config_update::update_config(request.into_inner()).await
-    }
-
     async fn is_initialized(
         &self,
         request: Request<IsInitializedRequest>,

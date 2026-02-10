@@ -202,23 +202,6 @@ export interface CentyClient {
     ) => void
   ): void;
 
-  // Config
-  getConfig(
-    request: GetConfigRequest,
-    callback: (error: grpc.ServiceError | null, response: GetConfigResponse) => void
-  ): void;
-  updateConfig(
-    request: UpdateConfigRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: UpdateConfigResponse
-    ) => void
-  ): void;
-  getManifest(
-    request: GetManifestRequest,
-    callback: (error: grpc.ServiceError | null, response: GetManifestResponse) => void
-  ): void;
-
   // Daemon control
   getDaemonInfo(
     request: GetDaemonInfoRequest,
@@ -453,6 +436,28 @@ export interface CentyClient {
       error: grpc.ServiceError | null,
       response: SyncUsersResponse
     ) => void
+  ): void;
+
+  // For cleanup
+  close(): void;
+}
+
+// ConfigService client interface
+export interface ConfigClient {
+  getConfig(
+    request: GetConfigRequest,
+    callback: (error: grpc.ServiceError | null, response: GetConfigResponse) => void
+  ): void;
+  updateConfig(
+    request: UpdateConfigRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: UpdateConfigResponse
+    ) => void
+  ): void;
+  getManifest(
+    request: GetManifestRequest,
+    callback: (error: grpc.ServiceError | null, response: GetManifestResponse) => void
   ): void;
 
   // For cleanup
@@ -1412,13 +1417,36 @@ export interface SyncUsersResponse {
  */
 export function createGrpcClient(
   address: string = '127.0.0.1:50051'
-): CentyClient {
+): { centyClient: CentyClient; configClient: ConfigClient } {
   const CentyDaemon = protoDescriptor.centy.v1.CentyDaemon;
+  const ConfigService = protoDescriptor.centy.v1.ConfigService;
 
-  const client = new CentyDaemon(
+  const centyClient = new CentyDaemon(
     address,
     grpc.credentials.createInsecure()
   ) as CentyClient;
+
+  const configClient = new ConfigService(
+    address,
+    grpc.credentials.createInsecure()
+  ) as ConfigClient;
+
+  return { centyClient, configClient };
+}
+
+/**
+ * Create a gRPC config client for the Centy daemon.
+ * Uses plain text (insecure) transport for testing.
+ */
+export function createConfigClient(
+  address: string = '127.0.0.1:50051'
+): ConfigClient {
+  const ConfigService = protoDescriptor.centy.v1.ConfigService;
+
+  const client = new ConfigService(
+    address,
+    grpc.credentials.createInsecure()
+  ) as ConfigClient;
 
   return client;
 }
@@ -1426,12 +1454,12 @@ export function createGrpcClient(
 /**
  * Promisified wrapper for gRPC client methods.
  */
-export function promisifyClient(client: CentyClient) {
+export function promisifyClient(client: CentyClient, configClient: ConfigClient) {
   const promisify =
-    <TReq, TRes>(method: (req: TReq, cb: (err: any, res: TRes) => void) => void) =>
+    <TReq, TRes>(method: (req: TReq, cb: (err: any, res: TRes) => void) => void, bindTo: any = client) =>
     (request: TReq): Promise<TRes> =>
       new Promise((resolve, reject) => {
-        method.call(client, request, (err: any, response: TRes) => {
+        method.call(bindTo, request, (err: any, response: TRes) => {
           if (err) reject(err);
           else resolve(response);
         });
@@ -1494,12 +1522,12 @@ export function promisifyClient(client: CentyClient) {
       client.getProjectInfo
     ),
 
-    // Config
+    // Config (via ConfigService)
     getConfig: (request: GetConfigRequest): Promise<Config> =>
-      promisify<GetConfigRequest, GetConfigResponse>(client.getConfig)(request).then((r) => r.config),
-    updateConfig: promisify<UpdateConfigRequest, UpdateConfigResponse>(client.updateConfig),
+      promisify<GetConfigRequest, GetConfigResponse>(configClient.getConfig, configClient)(request).then((r) => r.config),
+    updateConfig: promisify<UpdateConfigRequest, UpdateConfigResponse>(configClient.updateConfig, configClient),
     getManifest: (request: GetManifestRequest): Promise<Manifest> =>
-      promisify<GetManifestRequest, GetManifestResponse>(client.getManifest)(request).then((r) => r.manifest),
+      promisify<GetManifestRequest, GetManifestResponse>(configClient.getManifest, configClient)(request).then((r) => r.manifest),
 
     // Daemon control
     getDaemonInfo: promisify<GetDaemonInfoRequest, DaemonInfo>(client.getDaemonInfo),
@@ -1577,8 +1605,11 @@ export function promisifyClient(client: CentyClient) {
     deleteUser: promisify<DeleteUserRequest, DeleteUserResponse>(client.deleteUser),
     syncUsers: promisify<SyncUsersRequest, SyncUsersResponse>(client.syncUsers),
 
-    // Close connection
-    close: () => client.close(),
+    // Close connections
+    close: () => {
+      client.close();
+      configClient.close();
+    },
   };
 }
 

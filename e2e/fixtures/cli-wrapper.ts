@@ -41,8 +41,8 @@ export class CLIWrapper {
   constructor(options: CLIWrapperOptions) {
     this.cwd = options.cwd;
     this.verbose = options.verbose ?? false;
-    const rawClient = createGrpcClient(options.daemonAddress ?? '127.0.0.1:50051');
-    this.client = promisifyClient(rawClient);
+    const { centyClient, configClient } = createGrpcClient(options.daemonAddress ?? '127.0.0.1:50051');
+    this.client = promisifyClient(centyClient, configClient);
   }
 
   /**

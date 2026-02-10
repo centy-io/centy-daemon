@@ -2,6 +2,7 @@ mod action_builders;
 mod action_builders_extra;
 mod actions;
 mod config_to_proto;
+mod config_trait_impl;
 mod convert_entity;
 mod convert_infra;
 mod convert_link;
@@ -50,5 +51,20 @@ impl CentyDaemonService {
             shutdown_tx,
             exe_path,
         }
+    }
+}
+
+pub struct ConfigServiceImpl;
+
+impl Default for ConfigServiceImpl {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl ConfigServiceImpl {
+    #[must_use]
+    pub fn new() -> Self {
+        Self
     }
 }

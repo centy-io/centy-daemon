@@ -46,8 +46,8 @@ export async function createTempProject(
   await mkdir(projectPath, { recursive: true });
 
   const centyPath = join(projectPath, '.centy');
-  const rawClient = createGrpcClient(opts.daemonAddress);
-  const client = promisifyClient(rawClient);
+  const { centyClient, configClient } = createGrpcClient(opts.daemonAddress);
+  const client = promisifyClient(centyClient, configClient);
 
   // Initialize if requested
   if (opts.initialize) {
@@ -264,8 +264,8 @@ export async function createTempGitProject(
   }
 
   const centyPath = join(projectPath, '.centy');
-  const rawClient = createGrpcClient(opts.daemonAddress);
-  const client = promisifyClient(rawClient);
+  const { centyClient, configClient } = createGrpcClient(opts.daemonAddress);
+  const client = promisifyClient(centyClient, configClient);
 
   // Initialize centy if requested
   if (opts.initialize) {

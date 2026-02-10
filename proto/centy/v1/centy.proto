@@ -52,15 +52,6 @@ service CentyDaemon {
   // Get the next issue number
   rpc GetNextIssueNumber(GetNextIssueNumberRequest) returns (GetNextIssueNumberResponse);
 
-  // Read the manifest
-  rpc GetManifest(GetManifestRequest) returns (GetManifestResponse);
-
-  // Read configuration
-  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
-
-  // Update configuration
-  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
-
   // Check if centy is initialized in a directory
   rpc IsInitialized(IsInitializedRequest) returns (IsInitializedResponse);
 
@@ -303,6 +294,18 @@ service CentyDaemon {
 
   // Manually trigger a sync push
   rpc SyncPush(SyncPushRequest) returns (SyncPushResponse);
+}
+
+// ConfigService - manages project configuration and manifest
+service ConfigService {
+  // Read the manifest
+  rpc GetManifest(GetManifestRequest) returns (GetManifestResponse);
+
+  // Read configuration
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Update configuration
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
 }
 
 // ============ Init Messages ============

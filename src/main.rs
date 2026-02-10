@@ -36,7 +36,8 @@ use cors::{build_cors_layer, DEFAULT_CORS_ORIGINS};
 use grpc_logging::GrpcLoggingLayer;
 use logging::{init_logging, parse_rotation, LogConfig, LOG_FILENAME};
 use server::proto::centy_daemon_server::CentyDaemonServer;
-use server::{CentyDaemonService, ShutdownSignal};
+use server::proto::config_service_server::ConfigServiceServer;
+use server::{CentyDaemonService, ConfigServiceImpl, ShutdownSignal};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -140,6 +141,7 @@ async fn main() -> Result<()> {
     let exe_path = std::env::current_exe().ok();
 
     let service = CentyDaemonService::new(shutdown_tx.clone(), exe_path);
+    let config_service = ConfigServiceImpl::new();
 
     // Create reflection service
     let reflection_service = tonic_reflection::server::Builder::configure()
@@ -155,6 +157,7 @@ async fn main() -> Result<()> {
         .layer(tonic_web::GrpcWebLayer::new())
         .add_service(reflection_service)
         .add_service(CentyDaemonServer::new(service))
+        .add_service(ConfigServiceServer::new(config_service))
         .serve_with_shutdown(addr, async move {
             // Wait for shutdown signal
             loop {
