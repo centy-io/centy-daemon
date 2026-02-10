@@ -25,14 +25,6 @@ pub mod proto {
     tonic::include_proto!("centy.v1");
 }
 
-// v2 proto types (under construction)
-pub mod proto_v2 {
-    #![allow(clippy::pedantic)]
-    #![allow(clippy::all)]
-    #![allow(unused)]
-    tonic::include_proto!("centy.v2");
-}
-
 /// Signal type for daemon shutdown/restart
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ShutdownSignal {
