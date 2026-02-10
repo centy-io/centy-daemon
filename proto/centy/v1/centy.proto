@@ -685,7 +685,7 @@ message Config {
   string version = 6;                  // Project version (semver, empty = daemon default)
   map<string, string> state_colors = 7;     // State name → hex color (e.g., "open" → "#10b981")
   map<string, string> priority_colors = 8;  // Priority level → hex color (e.g., "1" → "#ef4444")
-  LlmConfig llm = 9;                        // LLM-related settings
+  reserved 9;  // Previously: LlmConfig llm (removed)
   repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
   string default_editor = 11;                // Default editor ID for this project (e.g., "vscode", "terminal", "zed")
   repeated HookDefinition hooks = 12;                  // Lifecycle hooks
@@ -697,13 +697,6 @@ message CustomFieldDefinition {
   bool required = 3;
   string default_value = 4;
   repeated string enum_values = 5;  // For enum type
-}
-
-message LlmConfig {
-  bool auto_close_on_complete = 1;    // Auto-close issues when marked complete by LLM
-  optional bool update_status_on_start = 2;    // Update status to in-progress when LLM starts work (null = prompt user)
-  bool allow_direct_edits = 3;        // Allow LLM to directly edit issue files
-  WorkspaceMode default_workspace_mode = 4;  // Default workspace mode for agent operations
 }
 
 // Lifecycle hook definition (bash scripts to run before/after operations)

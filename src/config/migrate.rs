@@ -2,12 +2,12 @@
 //!
 //! The old format uses nested objects:
 //! ```json
-//! { "llm": { "autoCloseOnComplete": false } }
+//! { "section": { "key": false } }
 //! ```
 //!
 //! The new format uses flat dot-separated keys (VS Code style):
 //! ```json
-//! { "llm.autoCloseOnComplete": false }
+//! { "section.key": false }
 //! ```
 //!
 //! This module can be removed once all projects have migrated to the flat format.
@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 /// Config section keys whose nested objects should be flattened to dot-separated keys.
 /// Add new section keys here as they are introduced.
-const SECTION_KEYS: &[&str] = &["llm"];
+const SECTION_KEYS: &[&str] = &[];
 
 /// Check if the raw JSON config uses the deprecated nested format for any section key.
 /// Returns `true` if any section key has an object value (indicating nested format).
@@ -99,29 +99,7 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn test_needs_migration_with_nested_llm() {
-        let raw = json!({
-            "version": "0.0.1",
-            "llm": {
-                "autoCloseOnComplete": false,
-                "allowDirectEdits": false
-            }
-        });
-        assert!(needs_migration(&raw));
-    }
-
-    #[test]
-    fn test_needs_migration_with_flat_keys() {
-        let raw = json!({
-            "version": "0.0.1",
-            "llm.autoCloseOnComplete": false,
-            "llm.allowDirectEdits": false
-        });
-        assert!(!needs_migration(&raw));
-    }
-
-    #[test]
-    fn test_needs_migration_with_no_llm() {
+    fn test_needs_migration_no_sections() {
         let raw = json!({
             "version": "0.0.1",
             "priorityLevels": 3
@@ -132,45 +110,6 @@ mod tests {
     #[test]
     fn test_needs_migration_non_object() {
         assert!(!needs_migration(&json!("not an object")));
-    }
-
-    #[test]
-    fn test_flatten_nested_llm() {
-        let input = json!({
-            "version": "0.0.1",
-            "priorityLevels": 3,
-            "llm": {
-                "autoCloseOnComplete": false,
-                "updateStatusOnStart": false,
-                "allowDirectEdits": false
-            },
-            "hooks": []
-        });
-
-        let result = flatten_config(input);
-        let obj = result.as_object().unwrap();
-
-        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
-        assert_eq!(obj.get("priorityLevels"), Some(&json!(3)));
-        assert_eq!(obj.get("llm.autoCloseOnComplete"), Some(&json!(false)));
-        assert_eq!(obj.get("llm.updateStatusOnStart"), Some(&json!(false)));
-        assert_eq!(obj.get("llm.allowDirectEdits"), Some(&json!(false)));
-        assert!(obj.get("llm").is_none(), "nested llm key should be removed");
-        assert_eq!(obj.get("hooks"), Some(&json!([])));
-    }
-
-    #[test]
-    fn test_flatten_empty_section() {
-        let input = json!({
-            "version": "0.0.1",
-            "llm": {}
-        });
-
-        let result = flatten_config(input);
-        let obj = result.as_object().unwrap();
-
-        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
-        assert!(obj.get("llm").is_none());
     }
 
     #[test]
@@ -192,31 +131,11 @@ mod tests {
     fn test_flatten_already_flat() {
         let input = json!({
             "version": "0.0.1",
-            "llm.autoCloseOnComplete": false
+            "priorityLevels": 3
         });
 
         let result = flatten_config(input.clone());
         assert_eq!(result, input);
-    }
-
-    #[test]
-    fn test_unflatten_flat_keys() {
-        let input = json!({
-            "version": "0.0.1",
-            "llm.autoCloseOnComplete": false,
-            "llm.allowDirectEdits": true,
-            "hooks": []
-        });
-
-        let result = unflatten_config(input);
-        let obj = result.as_object().unwrap();
-
-        assert_eq!(obj.get("version"), Some(&json!("0.0.1")));
-        assert_eq!(obj.get("hooks"), Some(&json!([])));
-
-        let llm = obj.get("llm").unwrap().as_object().unwrap();
-        assert_eq!(llm.get("autoCloseOnComplete"), Some(&json!(false)));
-        assert_eq!(llm.get("allowDirectEdits"), Some(&json!(true)));
     }
 
     #[test]
@@ -228,45 +147,6 @@ mod tests {
 
         let result = unflatten_config(input.clone());
         assert_eq!(result, input);
-    }
-
-    #[test]
-    fn test_unflatten_already_nested() {
-        // If already nested (no dot keys), unflatten should pass through
-        let input = json!({
-            "version": "0.0.1",
-            "llm": { "autoCloseOnComplete": false }
-        });
-
-        let result = unflatten_config(input.clone());
-        // "llm" is not a dot-separated key, so it passes through as-is
-        assert_eq!(result, input);
-    }
-
-    #[test]
-    fn test_roundtrip_flatten_unflatten() {
-        let nested = json!({
-            "version": "0.0.1",
-            "priorityLevels": 3,
-            "customFields": [],
-            "defaults": {},
-            "allowedStates": ["open", "closed"],
-            "defaultState": "open",
-            "stateColors": {},
-            "priorityColors": {},
-            "llm": {
-                "autoCloseOnComplete": false,
-                "updateStatusOnStart": false,
-                "allowDirectEdits": false,
-                "defaultWorkspaceMode": 0
-            },
-            "hooks": []
-        });
-
-        let flat = flatten_config(nested.clone());
-        let restored = unflatten_config(flat);
-
-        assert_eq!(restored, nested);
     }
 
     #[test]

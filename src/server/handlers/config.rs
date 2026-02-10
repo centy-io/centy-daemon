@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::config_to_proto::config_to_proto;
-use crate::server::proto::{Config, GetConfigRequest, GetConfigResponse, LlmConfig};
+use crate::server::proto::{Config, GetConfigRequest, GetConfigResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
@@ -33,12 +33,6 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                 version: crate::utils::CENTY_VERSION.to_string(),
                 state_colors: std::collections::HashMap::new(),
                 priority_colors: std::collections::HashMap::new(),
-                llm: Some(LlmConfig {
-                    auto_close_on_complete: false,
-                    update_status_on_start: None,
-                    allow_direct_edits: false,
-                    default_workspace_mode: 0,
-                }),
                 custom_link_types: vec![],
                 default_editor: String::new(),
                 hooks: vec![],

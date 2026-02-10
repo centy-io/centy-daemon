@@ -3,7 +3,7 @@
 
 mod common;
 
-use centy_daemon::config::{CentyConfig, CustomFieldDefinition, LlmConfig as InternalLlmConfig};
+use centy_daemon::config::{CentyConfig, CustomFieldDefinition};
 use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
@@ -386,79 +386,6 @@ fn test_config_hex_color_format() {
 }
 
 #[test]
-fn test_llm_config_defaults() {
-    let llm_config = InternalLlmConfig::default();
-
-    // Default values - bools default to false, Option<bool> defaults to None
-    assert!(!llm_config.auto_close_on_complete);
-    assert!(llm_config.update_status_on_start.is_none()); // Defaults to None so user must be prompted
-    assert!(!llm_config.allow_direct_edits);
-}
-
-#[test]
-fn test_requires_status_config_when_none() {
-    // When update_status_on_start is None, the server should return requires_status_config = true
-    // This tests the logic used in open_in_temp_workspace handler
-    let config = CentyConfig::default();
-
-    // The check used in the server: cfg.llm.update_status_on_start.is_none()
-    let requires_status_config = config.llm.update_status_on_start.is_none();
-
-    assert!(
-        requires_status_config,
-        "Should require status config when update_status_on_start is None"
-    );
-}
-
-#[test]
-fn test_requires_status_config_when_set_true() {
-    // When update_status_on_start is Some(true), requires_status_config should be false
-    let mut config = CentyConfig::default();
-    config.llm.update_status_on_start = Some(true);
-
-    let requires_status_config = config.llm.update_status_on_start.is_none();
-
-    assert!(
-        !requires_status_config,
-        "Should not require status config when update_status_on_start is Some(true)"
-    );
-}
-
-#[test]
-fn test_requires_status_config_when_set_false() {
-    // When update_status_on_start is Some(false), requires_status_config should be false
-    let mut config = CentyConfig::default();
-    config.llm.update_status_on_start = Some(false);
-
-    let requires_status_config = config.llm.update_status_on_start.is_none();
-
-    assert!(
-        !requires_status_config,
-        "Should not require status config when update_status_on_start is Some(false)"
-    );
-}
-
-#[test]
-fn test_status_config_error_message_not_empty() {
-    // Verify the error message returned when requires_status_config is true is not empty
-    // This is the fix for the empty error dialog bug
-    let error_message = "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.";
-
-    assert!(
-        !error_message.is_empty(),
-        "Error message should not be empty"
-    );
-    assert!(
-        error_message.contains("update-status-on-start"),
-        "Error message should mention the config option"
-    );
-    assert!(
-        error_message.contains("centy config"),
-        "Error message should provide the command to fix"
-    );
-}
-
-#[test]
 fn test_custom_link_type_definition() {
     let link_type = CustomLinkTypeDefinition {
         name: "depends-on".to_string(),
@@ -721,72 +648,5 @@ async fn test_pr_custom_fields_roundtrip() {
     assert_eq!(
         pr.metadata.custom_fields.get("jira_ticket"),
         Some(&"PROJ-123".to_string())
-    );
-}
-
-// Test config reading for update_status_on_start (integration test)
-
-#[tokio::test]
-async fn test_config_update_status_on_start_default_is_none() {
-    use centy_daemon::config::read_config;
-
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    // Read the config from a fresh project
-    let config = read_config(project_path).await.expect("Should read config");
-
-    // By default, update_status_on_start should be None (not configured)
-    // This is what triggers the "requires_status_config" response in open_in_temp_workspace
-    if let Some(cfg) = config {
-        assert!(
-            cfg.llm.update_status_on_start.is_none(),
-            "Default config should have update_status_on_start = None"
-        );
-    }
-}
-
-#[tokio::test]
-async fn test_config_update_status_on_start_persists_when_set() {
-    use centy_daemon::config::{read_config, write_config};
-
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    // Read the current config
-    let mut config = read_config(project_path)
-        .await
-        .expect("Should read config")
-        .unwrap_or_default();
-
-    // Set update_status_on_start to true
-    config.llm.update_status_on_start = Some(true);
-
-    // Write it back
-    write_config(project_path, &config)
-        .await
-        .expect("Should write config");
-
-    // Read it again and verify it persisted
-    let read_back = read_config(project_path)
-        .await
-        .expect("Should read config")
-        .expect("Config should exist");
-
-    assert_eq!(
-        read_back.llm.update_status_on_start,
-        Some(true),
-        "update_status_on_start should persist as Some(true)"
-    );
-
-    // Verify requires_status_config would be false now
-    let requires_status_config = read_back.llm.update_status_on_start.is_none();
-    assert!(
-        !requires_status_config,
-        "Should not require status config after setting update_status_on_start"
     );
 }

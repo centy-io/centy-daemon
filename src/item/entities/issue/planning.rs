@@ -1,7 +1,7 @@
 //! Planning state handling for issues.
 //!
 //! When an issue is in "planning" state, a special note is embedded in issue.md
-//! instructing LLMs to brainstorm with users without implementing code changes.
+//! instructing AI assistants to brainstorm with users without implementing code changes.
 
 /// The planning mode note that gets embedded in issue.md
 pub const PLANNING_NOTE: &str = r#"> **Planning Mode**: Do not implement code changes. Brainstorm with the user, create an action plan, and update this issue before transitioning to "in-progress".
