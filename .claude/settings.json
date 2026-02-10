@@ -139,7 +139,10 @@
       "Bash(cat:*)",
       "Bash(do wc -l \"$f\")",
       "Bash(done)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(npx centy issue list)",
+      "Bash(uuidgen:*)",
+      "Bash(centy config:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
