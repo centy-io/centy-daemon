@@ -97,6 +97,7 @@ async fn main() -> Result<()> {
     });
 
     let log_file = log_dir.join(LOG_FILENAME);
+    logging::set_log_file_path(log_file.to_string_lossy().to_string());
 
     let log_config = LogConfig {
         log_dir,

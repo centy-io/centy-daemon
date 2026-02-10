@@ -7,6 +7,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeletePrRequest, DeletePrResponse};
 use crate::server::resolve::resolve_pr_id;
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn delete_pr(req: DeletePrRequest) -> Result<Response<DeletePrResponse>, Status> {
@@ -31,7 +32,7 @@ pub async fn delete_pr(req: DeletePrRequest) -> Result<Response<DeletePrResponse
     {
         return Ok(Response::new(DeletePrResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -41,7 +42,7 @@ pub async fn delete_pr(req: DeletePrRequest) -> Result<Response<DeletePrResponse
         Err(e) => {
             return Ok(Response::new(DeletePrResponse {
                 success: false,
-                error: e,
+                error: to_error_json(&req.project_path, &e),
                 ..Default::default()
             }))
         }
@@ -80,7 +81,7 @@ pub async fn delete_pr(req: DeletePrRequest) -> Result<Response<DeletePrResponse
 
             Ok(Response::new(DeletePrResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 manifest: None,
             }))
         }

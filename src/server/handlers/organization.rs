@@ -3,6 +3,7 @@ use crate::server::proto::{
     CreateOrganizationRequest, CreateOrganizationResponse, GetOrganizationRequest,
     GetOrganizationResponse, ListOrganizationsRequest, ListOrganizationsResponse,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn create_organization(
@@ -27,7 +28,7 @@ pub async fn create_organization(
         })),
         Err(e) => Ok(Response::new(CreateOrganizationResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             organization: None,
         })),
     }
@@ -48,7 +49,7 @@ pub async fn list_organizations(
         }
         Err(e) => Ok(Response::new(ListOrganizationsResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             organizations: vec![],
             total_count: 0,
         })),
@@ -73,7 +74,7 @@ pub async fn get_organization(
         })),
         Err(e) => Ok(Response::new(GetOrganizationResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             found: false,
             organization: None,
         })),

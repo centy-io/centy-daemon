@@ -6,6 +6,7 @@ use crate::server::proto::{
     GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse,
     ListSharedAssetsRequest,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsResponse>, Status> {
@@ -26,7 +27,7 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
         }
         Err(e) => Ok(Response::new(ListAssetsResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             assets: vec![],
             total_count: 0,
         })),
@@ -59,7 +60,7 @@ pub async fn get_asset(req: GetAssetRequest) -> Result<Response<GetAssetResponse
         })),
         Err(e) => Ok(Response::new(GetAssetResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             data: vec![],
             asset: None,
         })),
@@ -84,7 +85,7 @@ pub async fn list_shared_assets(
         }
         Err(e) => Ok(Response::new(ListAssetsResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             assets: vec![],
             total_count: 0,
         })),

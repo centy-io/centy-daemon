@@ -5,6 +5,7 @@ use crate::item::entities::issue::Issue;
 use crate::server::proto::{
     OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode,
 };
+use crate::server::structured_error::to_error_json;
 use crate::workspace::{
     create_temp_workspace, terminal::open_terminal_with_agent, CreateWorkspaceOptions, EditorType,
 };
@@ -47,7 +48,7 @@ pub async fn open_workspace_and_terminal(
             Ok(r) => (r.workspace_path, Some(r.entry.expires_at)),
             Err(e) => {
                 return Ok(super::workspace_agent::agent_err_response(
-                    format!("Failed to create workspace: {e}"),
+                    to_error_json(&project_path.to_string_lossy(), &e),
                     String::new(),
                     0,
                     false,

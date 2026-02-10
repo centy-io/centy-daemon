@@ -10,7 +10,7 @@ pub use inference::{
 };
 pub use organizations::{
     create_organization, delete_organization, get_organization, list_organizations,
-    set_project_organization, update_organization,
+    set_project_organization, update_organization, OrganizationError,
 };
 #[allow(unused_imports)]
 pub use tracking::{

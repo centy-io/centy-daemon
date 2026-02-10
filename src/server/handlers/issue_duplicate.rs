@@ -9,6 +9,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DuplicateIssueRequest, DuplicateIssueResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn duplicate_issue(
@@ -35,7 +36,7 @@ pub async fn duplicate_issue(
     {
         return Ok(Response::new(DuplicateIssueResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.source_project_path, &e),
             ..Default::default()
         }));
     }
@@ -86,7 +87,7 @@ pub async fn duplicate_issue(
             .await;
             Ok(Response::new(DuplicateIssueResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.source_project_path, &e),
                 issue: None,
                 original_issue_id: String::new(),
                 manifest: None,

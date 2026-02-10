@@ -1,10 +1,10 @@
 use std::path::Path;
 
 use crate::hooks::{
-    run_post_hooks, run_pre_hooks, HookContext, HookItemType, HookOperation, Phase,
+    run_post_hooks, run_pre_hooks, HookContext, HookError, HookItemType, HookOperation, Phase,
 };
 
-/// Build pre-hook context and run pre-hooks. Returns `Err(String)` if blocked.
+/// Build pre-hook context and run pre-hooks. Returns `Err(HookError)` if blocked.
 pub async fn maybe_run_pre_hooks(
     project_path: &Path,
     item_type: HookItemType,
@@ -12,7 +12,7 @@ pub async fn maybe_run_pre_hooks(
     project_path_str: &str,
     item_id: Option<&str>,
     request_data: Option<serde_json::Value>,
-) -> Result<(), String> {
+) -> Result<(), HookError> {
     let context = HookContext::new(
         Phase::Pre,
         item_type,
@@ -22,9 +22,7 @@ pub async fn maybe_run_pre_hooks(
         request_data,
         None,
     );
-    run_pre_hooks(project_path, item_type, operation, &context)
-        .await
-        .map_err(|e| format!("Hook blocked operation: {e}"))
+    run_pre_hooks(project_path, item_type, operation, &context).await
 }
 
 /// Build post-hook context and run post-hooks (sync ones block, async ones are spawned).

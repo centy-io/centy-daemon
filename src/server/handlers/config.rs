@@ -4,6 +4,7 @@ use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::config_to_proto::config_to_proto;
 use crate::server::proto::{Config, GetConfigRequest, GetConfigResponse, LlmConfig};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigResponse>, Status> {
@@ -45,7 +46,7 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
         })),
         Err(e) => Ok(Response::new(GetConfigResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             config: None,
         })),
     }

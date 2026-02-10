@@ -4,6 +4,7 @@ use crate::config::set_project_title as set_project_title_config;
 use crate::registry::get_project_info;
 use crate::server::convert_infra::project_info_to_proto;
 use crate::server::proto::{SetProjectTitleRequest, SetProjectTitleResponse};
+use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
 pub async fn set_project_title(
@@ -28,19 +29,24 @@ pub async fn set_project_title(
                 })),
                 Ok(None) => Ok(Response::new(SetProjectTitleResponse {
                     success: false,
-                    error: "Project not found in registry".to_string(),
+                    error: StructuredError::new(
+                        &req.project_path,
+                        "PROJECT_NOT_FOUND",
+                        "Project not found in registry".to_string(),
+                    )
+                    .to_json(),
                     project: None,
                 })),
                 Err(e) => Ok(Response::new(SetProjectTitleResponse {
                     success: false,
-                    error: e.to_string(),
+                    error: to_error_json(&req.project_path, &e),
                     project: None,
                 })),
             }
         }
         Err(e) => Ok(Response::new(SetProjectTitleResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
         })),
     }

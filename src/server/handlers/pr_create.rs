@@ -7,6 +7,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreatePrRequest, CreatePrResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn create_pr(req: CreatePrRequest) -> Result<Response<CreatePrResponse>, Status> {
@@ -33,7 +34,7 @@ pub async fn create_pr(req: CreatePrRequest) -> Result<Response<CreatePrResponse
     {
         return Ok(Response::new(CreatePrResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -87,7 +88,7 @@ pub async fn create_pr(req: CreatePrRequest) -> Result<Response<CreatePrResponse
 
             Ok(Response::new(CreatePrResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 id: String::new(),
                 display_number: 0,
                 created_files: vec![],

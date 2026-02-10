@@ -7,6 +7,7 @@ use crate::server::action_builders::build_issue_actions;
 use crate::server::action_builders_extra::{build_doc_actions, build_pr_actions};
 use crate::server::proto::{EntityType, GetEntityActionsRequest, GetEntityActionsResponse};
 use crate::server::resolve::resolve_issue;
+use crate::server::structured_error::StructuredError;
 use crate::workspace::terminal::is_terminal_available;
 use crate::workspace::vscode::is_vscode_available;
 use tonic::{Response, Status};
@@ -72,7 +73,12 @@ pub async fn get_entity_actions(
             return Ok(Response::new(GetEntityActionsResponse {
                 actions: vec![],
                 success: false,
-                error: "Unknown entity type".to_string(),
+                error: StructuredError::new(
+                    &req.project_path,
+                    "UNKNOWN_ENTITY_TYPE",
+                    "Unknown entity type".to_string(),
+                )
+                .to_json(),
             }))
         }
     };

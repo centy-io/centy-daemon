@@ -4,6 +4,7 @@ use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::issue_to_proto;
 use crate::server::proto::{ListIssuesRequest, ListIssuesResponse};
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_issues(req: ListIssuesRequest) -> Result<Response<ListIssuesResponse>, Status> {
@@ -51,7 +52,7 @@ pub async fn list_issues(req: ListIssuesRequest) -> Result<Response<ListIssuesRe
         }
         Err(e) => Ok(Response::new(ListIssuesResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             issues: vec![],
             total_count: 0,
         })),

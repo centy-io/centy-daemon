@@ -4,6 +4,7 @@ use crate::server::proto::{
     SetProjectFavoriteResponse, SetProjectOrganizationRequest, SetProjectOrganizationResponse,
     SetProjectUserTitleRequest, SetProjectUserTitleResponse,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn set_project_favorite(
@@ -17,7 +18,7 @@ pub async fn set_project_favorite(
         })),
         Err(e) => Ok(Response::new(SetProjectFavoriteResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
         })),
     }
@@ -34,7 +35,7 @@ pub async fn set_project_archived(
         })),
         Err(e) => Ok(Response::new(SetProjectArchivedResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
         })),
     }
@@ -57,7 +58,7 @@ pub async fn set_project_organization(
         })),
         Err(e) => Ok(Response::new(SetProjectOrganizationResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
         })),
     }
@@ -80,7 +81,7 @@ pub async fn set_project_user_title(
         })),
         Err(e) => Ok(Response::new(SetProjectUserTitleResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             project: None,
         })),
     }

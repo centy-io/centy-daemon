@@ -5,12 +5,14 @@ mod config_to_proto;
 mod convert_entity;
 mod convert_infra;
 mod convert_link;
+pub mod error_mapping;
 mod handlers;
 mod helpers;
 mod hooks_helper;
 mod proto_to_config;
 mod resolve;
 mod startup;
+pub mod structured_error;
 mod trait_impl;
 mod validate_config;
 

@@ -8,6 +8,7 @@ use crate::server::proto::{
     GetNextIssueNumberResponse,
 };
 use crate::server::resolve::resolve_issue;
+use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
 
@@ -27,7 +28,7 @@ pub async fn get_issue(req: GetIssueRequest) -> Result<Response<GetIssueResponse
         })),
         Err(e) => Ok(Response::new(GetIssueResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             issue: None,
         })),
     }
@@ -56,7 +57,7 @@ pub async fn get_issue_by_display_number(
         })),
         Err(e) => Ok(Response::new(GetIssueResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             issue: None,
         })),
     }
@@ -78,7 +79,7 @@ pub async fn get_next_issue_number(
         })),
         Err(e) => Ok(Response::new(GetNextIssueNumberResponse {
             success: false,
-            error: e.to_string(),
+            error: StructuredError::new(&req.project_path, "IO_ERROR", e.to_string()).to_json(),
             issue_number: String::new(),
         })),
     }

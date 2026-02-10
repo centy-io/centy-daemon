@@ -10,6 +10,7 @@ use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UpdatePrRequest, UpdatePrResponse};
 use crate::server::resolve::resolve_pr_id;
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn update_pr(req: UpdatePrRequest) -> Result<Response<UpdatePrResponse>, Status> {
@@ -37,7 +38,7 @@ pub async fn update_pr(req: UpdatePrRequest) -> Result<Response<UpdatePrResponse
     {
         return Ok(Response::new(UpdatePrResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -66,7 +67,7 @@ pub async fn update_pr(req: UpdatePrRequest) -> Result<Response<UpdatePrResponse
         Err(e) => {
             return Ok(Response::new(UpdatePrResponse {
                 success: false,
-                error: e,
+                error: to_error_json(&req.project_path, &e),
                 ..Default::default()
             }))
         }
@@ -104,7 +105,7 @@ pub async fn update_pr(req: UpdatePrRequest) -> Result<Response<UpdatePrResponse
             .await;
             Ok(Response::new(UpdatePrResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 pr: None,
                 manifest: None,
             }))

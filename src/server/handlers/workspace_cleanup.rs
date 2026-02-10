@@ -1,4 +1,5 @@
 use crate::server::proto::{CleanupExpiredWorkspacesRequest, CleanupExpiredWorkspacesResponse};
+use crate::server::structured_error::to_error_json;
 use crate::workspace::cleanup_expired_workspaces as internal_cleanup_expired;
 use tonic::{Response, Status};
 
@@ -29,7 +30,7 @@ pub async fn cleanup_expired_workspaces(
         }
         Err(e) => Ok(Response::new(CleanupExpiredWorkspacesResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             cleaned_count: 0,
             cleaned_paths: vec![],
             failed_paths: vec![],

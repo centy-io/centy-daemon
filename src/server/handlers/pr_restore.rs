@@ -9,6 +9,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{RestorePrRequest, RestorePrResponse};
 use crate::server::resolve::resolve_pr_id;
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn restore_pr(req: RestorePrRequest) -> Result<Response<RestorePrResponse>, Status> {
@@ -33,7 +34,7 @@ pub async fn restore_pr(req: RestorePrRequest) -> Result<Response<RestorePrRespo
     {
         return Ok(Response::new(RestorePrResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -47,7 +48,7 @@ pub async fn restore_pr(req: RestorePrRequest) -> Result<Response<RestorePrRespo
         Err(e) => {
             return Ok(Response::new(RestorePrResponse {
                 success: false,
-                error: e,
+                error: to_error_json(&req.project_path, &e),
                 ..Default::default()
             }))
         }
@@ -87,7 +88,7 @@ pub async fn restore_pr(req: RestorePrRequest) -> Result<Response<RestorePrRespo
 
             Ok(Response::new(RestorePrResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 pr: None,
                 manifest: None,
             }))

@@ -10,6 +10,7 @@ use crate::server::helpers::{nonempty, nonzero_u32, sync_results_to_proto};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UpdateIssueRequest, UpdateIssueResponse};
 use crate::server::resolve::resolve_issue_id;
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn update_issue(
@@ -36,7 +37,7 @@ pub async fn update_issue(
     {
         return Ok(Response::new(UpdateIssueResponse {
             success: false,
-            error: e,
+            error: to_error_json(&req.project_path, &e),
             ..Default::default()
         }));
     }
@@ -58,7 +59,7 @@ pub async fn update_issue(
         Err(e) => {
             return Ok(Response::new(UpdateIssueResponse {
                 success: false,
-                error: e,
+                error: to_error_json(&req.project_path, &e),
                 ..Default::default()
             }))
         }
@@ -97,7 +98,7 @@ pub async fn update_issue(
             .await;
             Ok(Response::new(UpdateIssueResponse {
                 success: false,
-                error: e.to_string(),
+                error: to_error_json(&req.project_path, &e),
                 issue: None,
                 manifest: None,
                 sync_results: vec![],

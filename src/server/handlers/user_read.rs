@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::user_to_proto;
 use crate::server::proto::{GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse};
+use crate::server::structured_error::to_error_json;
 use crate::user::{get_user as internal_get_user, list_users as internal_list_users};
 use tonic::{Response, Status};
 
@@ -18,7 +19,7 @@ pub async fn get_user(req: GetUserRequest) -> Result<Response<GetUserResponse>, 
         })),
         Err(e) => Ok(Response::new(GetUserResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             user: None,
         })),
     }
@@ -46,7 +47,7 @@ pub async fn list_users(req: ListUsersRequest) -> Result<Response<ListUsersRespo
         }
         Err(e) => Ok(Response::new(ListUsersResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             users: vec![],
             total_count: 0,
         })),

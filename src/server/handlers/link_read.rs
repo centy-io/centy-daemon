@@ -7,6 +7,7 @@ use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
 };
+use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksResponse>, Status> {
@@ -29,7 +30,7 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
         })),
         Err(e) => Ok(Response::new(ListLinksResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json(&req.project_path, &e),
             links: vec![],
             total_count: 0,
         })),

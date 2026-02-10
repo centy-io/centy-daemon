@@ -3,6 +3,7 @@ use crate::server::proto::{
     EditorType as ProtoEditorType, GetSupportedEditorsRequest, GetSupportedEditorsResponse,
     ListTempWorkspacesRequest, ListTempWorkspacesResponse, TempWorkspace as ProtoTempWorkspace,
 };
+use crate::server::structured_error::to_error_json;
 use crate::workspace::{
     cleanup_workspace as internal_cleanup_workspace, get_all_editors, is_editor_available,
     list_workspaces as internal_list_workspaces,
@@ -80,7 +81,7 @@ pub async fn list_temp_workspaces(
         }
         Err(e) => Ok(Response::new(ListTempWorkspacesResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             workspaces: vec![],
             total_count: 0,
             expired_count: 0,
@@ -100,7 +101,7 @@ pub async fn close_temp_workspace(
         })),
         Err(e) => Ok(Response::new(CloseTempWorkspaceResponse {
             success: false,
-            error: e.to_string(),
+            error: to_error_json("", &e),
             worktree_removed: false,
             directory_removed: false,
         })),
