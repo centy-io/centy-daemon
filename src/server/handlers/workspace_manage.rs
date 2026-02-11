@@ -57,8 +57,8 @@ pub async fn list_temp_workspaces(
                     issue_title: entry.issue_title,
                     agent_name: entry.agent_name,
                     action: match entry.action.as_str() {
-                        "plan" => 1,       // LLM_ACTION_PLAN
-                        "implement" => 2,  // LLM_ACTION_IMPLEMENT
+                        "plan" => 1,
+                        "implement" => 2,
                         "standalone" => 0, // No specific action for standalone
                         _ => 0,
                     },

@@ -1,22 +1,11 @@
 use crate::config::{
-    CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, LlmConfig as InternalLlmConfig,
+    CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, WorkspaceConfig,
 };
 use crate::hooks::HookDefinition as InternalHookDefinition;
 
 use super::proto::Config;
 
 pub fn proto_to_config(proto: &Config) -> CentyConfig {
-    let llm_config = proto
-        .llm
-        .as_ref()
-        .map(|l| InternalLlmConfig {
-            auto_close_on_complete: l.auto_close_on_complete,
-            update_status_on_start: l.update_status_on_start,
-            allow_direct_edits: l.allow_direct_edits,
-            default_workspace_mode: l.default_workspace_mode,
-        })
-        .unwrap_or_default();
-
     CentyConfig {
         version: if proto.version.is_empty() {
             None
@@ -44,7 +33,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
         default_state: proto.default_state.clone(),
         state_colors: proto.state_colors.clone(),
         priority_colors: proto.priority_colors.clone(),
-        llm: llm_config,
         custom_link_types: proto
             .custom_link_types
             .iter()
@@ -74,5 +62,12 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
                 enabled: h.enabled,
             })
             .collect(),
+        workspace: proto
+            .workspace
+            .as_ref()
+            .map(|w| WorkspaceConfig {
+                update_status_on_open: w.update_status_on_open,
+            })
+            .unwrap_or_default(),
     }
 }

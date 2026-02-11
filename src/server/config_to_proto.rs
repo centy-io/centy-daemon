@@ -2,7 +2,7 @@ use crate::config::CentyConfig;
 
 use super::proto::{
     Config, CustomFieldDefinition, HookDefinition as ProtoHookDefinition, LinkTypeDefinition,
-    LlmConfig,
+    WorkspaceConfig as ProtoWorkspaceConfig,
 };
 
 pub fn config_to_proto(config: &CentyConfig) -> Config {
@@ -25,12 +25,6 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
         version: config.effective_version(),
         state_colors: config.state_colors.clone(),
         priority_colors: config.priority_colors.clone(),
-        llm: Some(LlmConfig {
-            auto_close_on_complete: config.llm.auto_close_on_complete,
-            update_status_on_start: config.llm.update_status_on_start,
-            allow_direct_edits: config.llm.allow_direct_edits,
-            default_workspace_mode: config.llm.default_workspace_mode,
-        }),
         custom_link_types: config
             .custom_link_types
             .iter()
@@ -52,5 +46,8 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
                 enabled: h.enabled,
             })
             .collect(),
+        workspace: Some(ProtoWorkspaceConfig {
+            update_status_on_open: config.workspace.update_status_on_open,
+        }),
     }
 }

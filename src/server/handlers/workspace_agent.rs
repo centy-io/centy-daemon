@@ -27,9 +27,10 @@ pub async fn open_agent_in_terminal(
     };
 
     let config = read_config(project_path).await.ok().flatten();
+
     let requires_status_config = config
         .as_ref()
-        .is_none_or(|c| c.llm.update_status_on_start.is_none());
+        .is_none_or(|c| c.workspace.update_status_on_open.is_none());
     if requires_status_config {
         return Ok(agent_err_response(
             String::new(),
@@ -40,7 +41,7 @@ pub async fn open_agent_in_terminal(
     }
 
     if let Some(ref cfg) = config {
-        if cfg.llm.update_status_on_start == Some(true)
+        if cfg.workspace.update_status_on_open == Some(true)
             && issue.metadata.status != "in-progress"
             && issue.metadata.status != "closed"
         {
@@ -65,7 +66,6 @@ pub async fn open_agent_in_terminal(
     super::workspace_agent_open::open_workspace_and_terminal(
         project_path,
         &req,
-        config.as_ref(),
         &issue,
         &agent_name,
     )

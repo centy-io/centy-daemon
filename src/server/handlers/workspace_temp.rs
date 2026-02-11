@@ -11,25 +11,32 @@ use crate::workspace::{
 };
 use tonic::{Response, Status};
 
+fn err_response(
+    error: String,
+    issue_id: String,
+    dn: u32,
+    req_cfg: bool,
+) -> Response<OpenInTempWorkspaceResponse> {
+    Response::new(OpenInTempWorkspaceResponse {
+        success: false,
+        error,
+        workspace_path: String::new(),
+        issue_id,
+        display_number: dn,
+        expires_at: String::new(),
+        editor_opened: false,
+        requires_status_config: req_cfg,
+        workspace_reused: false,
+        original_created_at: String::new(),
+    })
+}
+
 pub async fn open_in_temp_workspace(
     req: OpenInTempWorkspaceWithEditorRequest,
 ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let err_response = |error: String, issue_id: String, dn: u32, req_cfg: bool| {
-        Ok(Response::new(OpenInTempWorkspaceResponse {
-            success: false,
-            error,
-            workspace_path: String::new(),
-            issue_id,
-            display_number: dn,
-            expires_at: String::new(),
-            editor_opened: false,
-            requires_status_config: req_cfg,
-            workspace_reused: false,
-            original_created_at: String::new(),
-        }))
-    };
+
     let action_str = match req.action {
         1 => "plan",
         2 => "implement",
@@ -38,28 +45,37 @@ pub async fn open_in_temp_workspace(
     let issue = match resolve_issue(project_path, &req.issue_id).await {
         Ok(i) => i,
         Err(e) => {
-            return err_response(
+            return Ok(err_response(
                 to_error_json(&req.project_path, &e),
                 String::new(),
                 0,
                 false,
-            )
+            ))
         }
     };
+
     let config = read_config(project_path).await.ok().flatten();
+
     let requires_status_config = config
         .as_ref()
-        .map(|c| c.llm.update_status_on_start.is_none())
+        .map(|c| c.workspace.update_status_on_open.is_none())
         .unwrap_or(true);
     if requires_status_config {
-        return err_response(
-            StructuredError::new(&req.project_path, "STATUS_CONFIG_REQUIRED", "Status update preference not configured. Run 'centy config --update-status-on-start true' to enable automatic status updates.".to_string()).to_json(),
-            issue.id.clone(), issue.metadata.display_number, true,
-        );
+        return Ok(err_response(
+            StructuredError::new(
+                &req.project_path,
+                "STATUS_CONFIG_REQUIRED",
+                "Status update preference not configured. Set workspace.updateStatusOnOpen in your project config.".to_string(),
+            )
+            .to_json(),
+            issue.id.clone(),
+            issue.metadata.display_number,
+            true,
+        ));
     }
 
     if let Some(ref cfg) = config {
-        if cfg.llm.update_status_on_start == Some(true)
+        if cfg.workspace.update_status_on_open == Some(true)
             && issue.metadata.status != "in-progress"
             && issue.metadata.status != "closed"
         {
@@ -107,11 +123,11 @@ pub async fn open_in_temp_workspace(
             workspace_reused: result.workspace_reused,
             original_created_at: result.original_created_at.unwrap_or_default(),
         })),
-        Err(e) => err_response(
+        Err(e) => Ok(err_response(
             to_error_json(&req.project_path, &e),
             String::new(),
             0,
             false,
-        ),
+        )),
     }
 }

@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use crate::config::CentyConfig;
 use crate::item::entities::issue::Issue;
 use crate::server::proto::{
     OpenAgentInTerminalRequest, OpenAgentInTerminalResponse, WorkspaceMode,
@@ -14,7 +13,6 @@ use tonic::{Response, Status};
 pub async fn open_workspace_and_terminal(
     project_path: &Path,
     req: &OpenAgentInTerminalRequest,
-    config: Option<&CentyConfig>,
     issue: &Issue,
     agent_name: &str,
 ) -> Result<Response<OpenAgentInTerminalResponse>, Status> {
@@ -23,15 +21,7 @@ pub async fn open_workspace_and_terminal(
     let workspace_mode = match req.workspace_mode {
         x if x == WorkspaceMode::Temp as i32 => WorkspaceMode::Temp,
         x if x == WorkspaceMode::Current as i32 => WorkspaceMode::Current,
-        _ => config
-            .map(|c| {
-                if c.llm.default_workspace_mode == WorkspaceMode::Temp as i32 {
-                    WorkspaceMode::Temp
-                } else {
-                    WorkspaceMode::Current
-                }
-            })
-            .unwrap_or(WorkspaceMode::Current),
+        _ => WorkspaceMode::Current,
     };
 
     let (working_dir, expires_at) = match workspace_mode {
