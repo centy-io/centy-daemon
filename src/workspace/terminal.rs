@@ -145,7 +145,7 @@ pub fn open_platform_terminal(working_dir: &Path, command: &str) -> Result<bool,
         let escaped_path = escape_path_for_shell(&working_dir.to_string_lossy());
         let result = Command::new("xterm")
             .arg("-e")
-            .arg(format!("cd {} && {}; exec bash", escaped_path, command))
+            .arg(format!("cd {escaped_path} && {command}; exec bash"))
             .spawn();
 
         if result.is_ok() {

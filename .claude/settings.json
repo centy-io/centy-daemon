@@ -144,7 +144,11 @@
       "Bash(uuidgen:*)",
       "Bash(centy config:*)",
       "Bash(npx centy --help:*)",
-      "Bash(pnpm centy --help:*)"
+      "Bash(pnpm centy --help:*)",
+      "Bash(npm view:*)",
+      "Bash(centy status:*)",
+      "Bash(centy project list:*)",
+      "Bash(centy workspace list:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
