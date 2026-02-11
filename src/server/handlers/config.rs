@@ -36,6 +36,7 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                 custom_link_types: vec![],
                 default_editor: String::new(),
                 hooks: vec![],
+                workspace: None,
             }),
         })),
         Err(e) => Ok(Response::new(GetConfigResponse {

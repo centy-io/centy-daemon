@@ -1,4 +1,6 @@
-use crate::config::{CentyConfig, CustomFieldDefinition as InternalCustomFieldDef};
+use crate::config::{
+    CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, WorkspaceConfig,
+};
 use crate::hooks::HookDefinition as InternalHookDefinition;
 
 use super::proto::Config;
@@ -60,5 +62,12 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
                 enabled: h.enabled,
             })
             .collect(),
+        workspace: proto
+            .workspace
+            .as_ref()
+            .map(|w| WorkspaceConfig {
+                update_status_on_open: w.update_status_on_open,
+            })
+            .unwrap_or_default(),
     }
 }

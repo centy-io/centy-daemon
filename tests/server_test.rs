@@ -3,7 +3,7 @@
 
 mod common;
 
-use centy_daemon::config::{CentyConfig, CustomFieldDefinition};
+use centy_daemon::config::{CentyConfig, CustomFieldDefinition, WorkspaceConfig};
 use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
@@ -649,4 +649,59 @@ async fn test_pr_custom_fields_roundtrip() {
         pr.metadata.custom_fields.get("jira_ticket"),
         Some(&"PROJ-123".to_string())
     );
+}
+
+// ============ WorkspaceConfig Tests ============
+
+#[test]
+fn test_workspace_config_default_has_none() {
+    let config = CentyConfig::default();
+    assert!(
+        config.workspace.update_status_on_open.is_none(),
+        "Default WorkspaceConfig should have update_status_on_open = None"
+    );
+}
+
+#[test]
+fn test_workspace_config_requires_status_config_when_none() {
+    let config = CentyConfig::default();
+    // When update_status_on_open is None, requires_status_config should be true
+    let requires = config.workspace.update_status_on_open.is_none();
+    assert!(requires);
+}
+
+#[test]
+fn test_workspace_config_does_not_require_status_config_when_true() {
+    let mut config = CentyConfig::default();
+    config.workspace.update_status_on_open = Some(true);
+    let requires = config.workspace.update_status_on_open.is_none();
+    assert!(!requires);
+}
+
+#[test]
+fn test_workspace_config_does_not_require_status_config_when_false() {
+    let mut config = CentyConfig::default();
+    config.workspace.update_status_on_open = Some(false);
+    let requires = config.workspace.update_status_on_open.is_none();
+    assert!(!requires);
+}
+
+#[test]
+fn test_workspace_config_serialization_roundtrip() {
+    let ws = WorkspaceConfig {
+        update_status_on_open: Some(true),
+    };
+    let json = serde_json::to_string(&ws).unwrap();
+    let deserialized: WorkspaceConfig = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.update_status_on_open, Some(true));
+}
+
+#[test]
+fn test_workspace_config_in_centy_config_roundtrip() {
+    let mut config = CentyConfig::default();
+    config.workspace.update_status_on_open = Some(false);
+
+    let json = serde_json::to_string(&config).unwrap();
+    let deserialized: CentyConfig = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.workspace.update_status_on_open, Some(false));
 }

@@ -54,6 +54,16 @@ fn default_state() -> String {
     "open".to_string()
 }
 
+/// Workspace configuration section
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceConfig {
+    /// Whether opening a temp workspace automatically updates the issue status to "in-progress".
+    /// `None` means the user hasn't configured it yet (server returns `requires_status_config`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_status_on_open: Option<bool>,
+}
+
 /// Centy configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -94,6 +104,9 @@ pub struct CentyConfig {
     /// Lifecycle hooks (bash scripts to run before/after operations)
     #[serde(default)]
     pub hooks: Vec<HookDefinition>,
+    /// Workspace settings (e.g. auto-update issue status on open)
+    #[serde(default)]
+    pub workspace: WorkspaceConfig,
 }
 
 impl CentyConfig {
@@ -120,6 +133,7 @@ impl Default for CentyConfig {
             custom_link_types: Vec::new(),
             default_editor: None,
             hooks: Vec::new(),
+            workspace: WorkspaceConfig::default(),
         }
     }
 }
@@ -271,6 +285,7 @@ mod tests {
         assert!(config.priority_colors.is_empty());
         assert!(config.custom_link_types.is_empty());
         assert!(config.hooks.is_empty());
+        assert!(config.workspace.update_status_on_open.is_none());
     }
 
     #[test]
@@ -627,5 +642,40 @@ mod tests {
             json.contains("\"hooks\""),
             "hooks key should be present in serialized JSON even when empty"
         );
+    }
+
+    #[test]
+    fn test_workspace_config_default() {
+        let ws = WorkspaceConfig::default();
+        assert!(ws.update_status_on_open.is_none());
+    }
+
+    #[test]
+    fn test_workspace_config_serialization_skips_none() {
+        let ws = WorkspaceConfig::default();
+        let json = serde_json::to_string(&ws).expect("Should serialize");
+        assert_eq!(json, "{}");
+    }
+
+    #[test]
+    fn test_workspace_config_serialization_with_value() {
+        let ws = WorkspaceConfig {
+            update_status_on_open: Some(true),
+        };
+        let json = serde_json::to_string(&ws).expect("Should serialize");
+        assert!(json.contains("updateStatusOnOpen"));
+        let deserialized: WorkspaceConfig =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.update_status_on_open, Some(true));
+    }
+
+    #[test]
+    fn test_centy_config_workspace_roundtrip() {
+        let mut config = CentyConfig::default();
+        config.workspace.update_status_on_open = Some(false);
+
+        let json = serde_json::to_string(&config).expect("Should serialize");
+        let deserialized: CentyConfig = serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.workspace.update_status_on_open, Some(false));
     }
 }

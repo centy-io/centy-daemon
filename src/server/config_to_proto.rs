@@ -2,6 +2,7 @@ use crate::config::CentyConfig;
 
 use super::proto::{
     Config, CustomFieldDefinition, HookDefinition as ProtoHookDefinition, LinkTypeDefinition,
+    WorkspaceConfig as ProtoWorkspaceConfig,
 };
 
 pub fn config_to_proto(config: &CentyConfig) -> Config {
@@ -45,5 +46,8 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
                 enabled: h.enabled,
             })
             .collect(),
+        workspace: Some(ProtoWorkspaceConfig {
+            update_status_on_open: config.workspace.update_status_on_open,
+        }),
     }
 }

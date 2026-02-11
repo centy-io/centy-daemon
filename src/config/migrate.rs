@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 /// Config section keys whose nested objects should be flattened to dot-separated keys.
 /// Add new section keys here as they are introduced.
-const SECTION_KEYS: &[&str] = &[];
+const SECTION_KEYS: &[&str] = &["workspace"];
 
 /// Check if the raw JSON config uses the deprecated nested format for any section key.
 /// Returns `true` if any section key has an object value (indicating nested format).
@@ -159,5 +159,40 @@ mod tests {
     fn test_unflatten_non_object_passthrough() {
         let input = json!(42);
         assert_eq!(unflatten_config(input.clone()), input);
+    }
+
+    #[test]
+    fn test_needs_migration_workspace_nested() {
+        let raw = json!({
+            "workspace": { "updateStatusOnOpen": true }
+        });
+        assert!(needs_migration(&raw));
+    }
+
+    #[test]
+    fn test_flatten_workspace_nested_to_dot() {
+        let input = json!({
+            "version": "0.0.1",
+            "workspace": { "updateStatusOnOpen": true }
+        });
+        let result = flatten_config(input);
+        let obj = result.as_object().unwrap();
+        assert_eq!(obj.get("workspace.updateStatusOnOpen"), Some(&json!(true)));
+        assert!(!obj.contains_key("workspace"));
+    }
+
+    #[test]
+    fn test_unflatten_workspace_dot_to_nested() {
+        let input = json!({
+            "version": "0.0.1",
+            "workspace.updateStatusOnOpen": false
+        });
+        let result = unflatten_config(input);
+        let obj = result.as_object().unwrap();
+        assert_eq!(
+            obj.get("workspace"),
+            Some(&json!({ "updateStatusOnOpen": false }))
+        );
+        assert!(!obj.contains_key("workspace.updateStatusOnOpen"));
     }
 }

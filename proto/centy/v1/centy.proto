@@ -689,6 +689,12 @@ message Config {
   repeated LinkTypeDefinition custom_link_types = 10;  // Custom link types (in addition to built-in)
   string default_editor = 11;                // Default editor ID for this project (e.g., "vscode", "terminal", "zed")
   repeated HookDefinition hooks = 12;                  // Lifecycle hooks
+  WorkspaceConfig workspace = 13;            // Workspace settings
+}
+
+// Workspace configuration section
+message WorkspaceConfig {
+  optional bool update_status_on_open = 1;   // Auto-update issue status to "in-progress" when opening a temp workspace
 }
 
 message CustomFieldDefinition {

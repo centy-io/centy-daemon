@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use crate::config::read_config;
+use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
 use crate::server::proto::{OpenAgentInTerminalRequest, OpenAgentInTerminalResponse};
 use crate::server::resolve::resolve_issue;
@@ -23,6 +25,37 @@ pub async fn open_agent_in_terminal(
             ))
         }
     };
+
+    let config = read_config(project_path).await.ok().flatten();
+
+    let requires_status_config = config
+        .as_ref()
+        .is_none_or(|c| c.workspace.update_status_on_open.is_none());
+    if requires_status_config {
+        return Ok(agent_err_response(
+            String::new(),
+            issue.id.clone(),
+            issue.metadata.display_number,
+            true,
+        ));
+    }
+
+    if let Some(ref cfg) = config {
+        if cfg.workspace.update_status_on_open == Some(true)
+            && issue.metadata.status != "in-progress"
+            && issue.metadata.status != "closed"
+        {
+            let _ = update_issue(
+                project_path,
+                &issue.id,
+                UpdateIssueOptions {
+                    status: Some("in-progress".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await;
+        }
+    }
 
     let agent_name = if req.agent_name.is_empty() {
         "claude".to_string()
