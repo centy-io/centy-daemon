@@ -1,8 +1,10 @@
 use super::{CentyConfig, ConfigError, CustomFieldDefinition};
 use crate::utils::get_centy_path;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,7 +83,7 @@ pub fn default_doc_config() -> ItemTypeConfig {
 }
 
 /// Read an item-type config from `.centy/<folder>/config.yaml`.
-#[allow(dead_code)] // Public API for future use
+#[allow(dead_code)] // Re-exported from lib.rs
 pub async fn read_item_type_config(
     project_path: &Path,
     folder: &str,
@@ -117,8 +119,8 @@ pub async fn write_item_type_config(
 /// Discover all item types by scanning `.centy/*/config.yaml`.
 ///
 /// Returns a list of `ItemTypeConfig` for each subdirectory that contains
-/// a valid `config.yaml`.
-#[allow(dead_code)] // Public API for future use
+/// a valid `config.yaml`. Malformed configs are logged and skipped.
+#[allow(dead_code)] // Re-exported from lib.rs
 pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConfig>, ConfigError> {
     let centy_path = get_centy_path(project_path);
     if !centy_path.exists() {
@@ -138,17 +140,151 @@ pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConf
             continue;
         }
 
+        let folder_name = entry.file_name().to_string_lossy().to_string();
+
         let content = match fs::read_to_string(&config_path).await {
             Ok(c) => c,
-            Err(_) => continue,
+            Err(e) => {
+                error!(folder = %folder_name, error = %e, "Failed to read config.yaml, skipping type");
+                continue;
+            }
         };
 
-        if let Ok(config) = serde_yaml::from_str::<ItemTypeConfig>(&content) {
-            configs.push(config);
+        match serde_yaml::from_str::<ItemTypeConfig>(&content) {
+            Ok(config) => configs.push(config),
+            Err(e) => {
+                error!(folder = %folder_name, error = %e, "Malformed config.yaml, skipping type");
+            }
         }
     }
 
     Ok(configs)
+}
+
+/// In-memory registry of item types built by scanning `.centy/*/config.yaml`.
+///
+/// Keyed by folder name (e.g. `"issues"`, `"docs"`).
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // Re-exported from lib.rs
+pub struct ItemTypeRegistry {
+    types: HashMap<String, ItemTypeConfig>,
+}
+
+#[allow(dead_code)] // Re-exported from lib.rs
+impl ItemTypeRegistry {
+    /// Build the registry by scanning `.centy/*/config.yaml` files.
+    ///
+    /// * Scans `.centy/` direct subdirectories for `config.yaml` files
+    /// * Parses each into an `ItemTypeConfig`
+    /// * Validates no duplicate type names across folders
+    /// * Skips directories without `config.yaml`
+    /// * Logs errors for malformed configs and skips them (does not crash)
+    /// * Logs discovered types at the end
+    pub async fn build(project_path: &Path) -> Result<Self, ConfigError> {
+        let centy_path = get_centy_path(project_path);
+        let mut types = HashMap::new();
+
+        if !centy_path.exists() {
+            info!("No .centy directory found, item type registry is empty");
+            return Ok(Self { types });
+        }
+
+        let mut entries = fs::read_dir(&centy_path).await?;
+        // Track type names to detect duplicates: name -> folder that first registered it
+        let mut seen_names: HashMap<String, String> = HashMap::new();
+
+        while let Some(entry) = entries.next_entry().await? {
+            if !entry.file_type().await?.is_dir() {
+                continue;
+            }
+
+            let config_path = entry.path().join("config.yaml");
+            if !config_path.exists() {
+                continue;
+            }
+
+            let folder_name = entry.file_name().to_string_lossy().to_string();
+
+            let content = match fs::read_to_string(&config_path).await {
+                Ok(c) => c,
+                Err(e) => {
+                    error!(
+                        folder = %folder_name,
+                        error = %e,
+                        "Failed to read config.yaml, skipping type"
+                    );
+                    continue;
+                }
+            };
+
+            let config = match serde_yaml::from_str::<ItemTypeConfig>(&content) {
+                Ok(c) => c,
+                Err(e) => {
+                    error!(
+                        folder = %folder_name,
+                        error = %e,
+                        "Malformed config.yaml, skipping type"
+                    );
+                    continue;
+                }
+            };
+
+            // Check for duplicate type names
+            if let Some(existing_folder) = seen_names.get(&config.name) {
+                warn!(
+                    name = %config.name,
+                    folder = %folder_name,
+                    existing_folder = %existing_folder,
+                    "Duplicate type name detected, skipping"
+                );
+                continue;
+            }
+
+            seen_names.insert(config.name.clone(), folder_name.clone());
+            types.insert(folder_name, config);
+        }
+
+        let type_names: Vec<&str> = types.values().map(|c| c.name.as_str()).collect();
+        info!(count = types.len(), types = ?type_names, "Item type registry built");
+
+        Ok(Self { types })
+    }
+
+    /// Get a config by folder name (e.g. `"issues"`, `"docs"`).
+    #[must_use]
+    pub fn get(&self, folder: &str) -> Option<&ItemTypeConfig> {
+        self.types.get(folder)
+    }
+
+    /// Get a config by type name (e.g. `"Issue"`, `"Doc"`).
+    #[must_use]
+    pub fn get_by_name(&self, name: &str) -> Option<(&String, &ItemTypeConfig)> {
+        self.types.iter().find(|(_, c)| c.name == name)
+    }
+
+    /// Get all registered item types.
+    #[must_use]
+    pub fn all(&self) -> &HashMap<String, ItemTypeConfig> {
+        &self.types
+    }
+
+    /// Get the number of registered types.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.types.len()
+    }
+
+    /// Check if the registry is empty.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.types.is_empty()
+    }
+
+    /// Get folder names of all registered types.
+    #[must_use]
+    pub fn folders(&self) -> Vec<&String> {
+        self.types.keys().collect()
+    }
 }
 
 /// Create `config.yaml` for issues and docs if they don't already exist.
@@ -332,6 +468,234 @@ mod tests {
         // Files should exist on disk
         assert!(centy_dir.join("issues").join("config.yaml").exists());
         assert!(centy_dir.join("docs").join("config.yaml").exists());
+    }
+
+    // ─── ItemTypeRegistry tests ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_registry_build_with_valid_configs() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        // Create issues config
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        // Create docs config
+        let docs_dir = centy_dir.join("docs");
+        fs::create_dir_all(&docs_dir).await.unwrap();
+        let doc_config = default_doc_config();
+        let yaml = serde_yaml::to_string(&doc_config).unwrap();
+        fs::write(docs_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        assert_eq!(registry.len(), 2);
+        assert!(!registry.is_empty());
+
+        let issues = registry.get("issues").expect("Should have issues");
+        assert_eq!(issues.name, "Issue");
+
+        let docs = registry.get("docs").expect("Should have docs");
+        assert_eq!(docs.name, "Doc");
+    }
+
+    #[tokio::test]
+    async fn test_registry_build_skips_dirs_without_config() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        // Create one valid config
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        // Create directories without config.yaml (should be skipped)
+        fs::create_dir_all(centy_dir.join("assets")).await.unwrap();
+        fs::create_dir_all(centy_dir.join("templates"))
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        assert_eq!(registry.len(), 1);
+        assert!(registry.get("assets").is_none());
+        assert!(registry.get("templates").is_none());
+    }
+
+    #[tokio::test]
+    async fn test_registry_build_skips_malformed_yaml() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        // Create a valid config
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        // Create a malformed config.yaml
+        let bad_dir = centy_dir.join("broken");
+        fs::create_dir_all(&bad_dir).await.unwrap();
+        fs::write(bad_dir.join("config.yaml"), "this is: [not: valid: yaml: {{")
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        // Should have only the valid config, not crash
+        assert_eq!(registry.len(), 1);
+        assert!(registry.get("issues").is_some());
+        assert!(registry.get("broken").is_none());
+    }
+
+    #[tokio::test]
+    async fn test_registry_build_detects_duplicate_type_names() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        // Create two folders with the same type name
+        let dir_a = centy_dir.join("aaa-issues");
+        fs::create_dir_all(&dir_a).await.unwrap();
+        let config_a = ItemTypeConfig {
+            name: "Issue".to_string(),
+            plural: "issues".to_string(),
+            identifier: "uuid".to_string(),
+            features: ItemTypeFeatures::default(),
+            statuses: Vec::new(),
+            default_status: None,
+            priority_levels: None,
+            custom_fields: Vec::new(),
+        };
+        let yaml = serde_yaml::to_string(&config_a).unwrap();
+        fs::write(dir_a.join("config.yaml"), &yaml).await.unwrap();
+
+        let dir_b = centy_dir.join("zzz-issues");
+        fs::create_dir_all(&dir_b).await.unwrap();
+        let config_b = ItemTypeConfig {
+            name: "Issue".to_string(),
+            plural: "alt-issues".to_string(),
+            identifier: "uuid".to_string(),
+            features: ItemTypeFeatures::default(),
+            statuses: Vec::new(),
+            default_status: None,
+            priority_levels: None,
+            custom_fields: Vec::new(),
+        };
+        let yaml = serde_yaml::to_string(&config_b).unwrap();
+        fs::write(dir_b.join("config.yaml"), &yaml).await.unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        // Only one of the two should be registered (first wins)
+        assert_eq!(registry.len(), 1);
+
+        // The one that was registered should have name "Issue"
+        let (_, config) = registry.get_by_name("Issue").expect("Should have Issue");
+        assert_eq!(config.name, "Issue");
+    }
+
+    #[tokio::test]
+    async fn test_registry_build_empty_centy_dir() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+        fs::create_dir_all(&centy_dir).await.unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        assert!(registry.is_empty());
+        assert_eq!(registry.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_registry_build_no_centy_dir() {
+        let temp = tempdir().expect("Should create temp dir");
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        assert!(registry.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_registry_get_by_name() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        let (folder, config) = registry.get_by_name("Issue").expect("Should find Issue");
+        assert_eq!(folder, "issues");
+        assert_eq!(config.name, "Issue");
+
+        assert!(registry.get_by_name("NonExistent").is_none());
+    }
+
+    #[tokio::test]
+    async fn test_registry_folders() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let docs_dir = centy_dir.join("docs");
+        fs::create_dir_all(&docs_dir).await.unwrap();
+        let doc_config = default_doc_config();
+        let yaml = serde_yaml::to_string(&doc_config).unwrap();
+        fs::write(docs_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        let mut folders: Vec<&String> = registry.folders();
+        folders.sort();
+
+        assert_eq!(folders.len(), 2);
+        assert_eq!(folders[0], "docs");
+        assert_eq!(folders[1], "issues");
+    }
+
+    #[tokio::test]
+    async fn test_registry_all() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        let all = registry.all();
+        assert_eq!(all.len(), 1);
+        assert!(all.contains_key("issues"));
     }
 
     #[tokio::test]
