@@ -562,6 +562,7 @@ message UpdateIssueResponse {
 message DeleteIssueRequest {
   string project_path = 1;
   string issue_id = 2;            // UUID or legacy issue number
+  bool force = 3;                 // If true, hard-delete immediately; else soft-delete first
 }
 
 message DeleteIssueResponse {
@@ -851,6 +852,7 @@ message UpdateDocResponse {
 message DeleteDocRequest {
   string project_path = 1;
   string slug = 2;
+  bool force = 3;                 // If true, hard-delete immediately; else soft-delete first
 }
 
 message DeleteDocResponse {

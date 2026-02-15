@@ -1,10 +1,13 @@
 use std::path::Path;
 
-use crate::hooks::HookOperation;
-use crate::item::entities::doc::soft_delete_doc;
+use crate::hooks::{HookItemType, HookOperation};
+use crate::item::entities::doc::get_doc;
+use crate::item::generic::storage::generic_soft_delete;
+use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::doc_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
+use crate::server::handlers::item_type_resolve::resolve_item_type_config;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{SoftDeleteDocRequest, SoftDeleteDocResponse};
 use crate::server::structured_error::to_error_json;
@@ -24,7 +27,7 @@ pub async fn soft_delete_doc_handler(
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        "doc",
+        HookItemType::Doc,
         HookOperation::SoftDelete,
         &hook_project_path,
         Some(&hook_item_id),
@@ -39,11 +42,22 @@ pub async fn soft_delete_doc_handler(
         }));
     }
 
-    match soft_delete_doc(project_path, &req.slug).await {
-        Ok(result) => {
+    let config = match resolve_item_type_config(project_path, "docs").await {
+        Ok(c) => c,
+        Err(e) => {
+            return Ok(Response::new(SoftDeleteDocResponse {
+                success: false,
+                error: to_error_json(&req.project_path, &e),
+                ..Default::default()
+            }))
+        }
+    };
+
+    match generic_soft_delete(project_path, &config, &req.slug).await {
+        Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
-                "doc",
+                HookItemType::Doc,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -52,17 +66,21 @@ pub async fn soft_delete_doc_handler(
             )
             .await;
 
+            // Read the doc back for the type-specific response
+            let doc = get_doc(project_path, &req.slug).await.ok();
+            let manifest = read_manifest(project_path).await.ok().flatten();
+
             Ok(Response::new(SoftDeleteDocResponse {
                 success: true,
                 error: String::new(),
-                doc: Some(doc_to_proto(&result.doc)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
+                doc: doc.map(|d| doc_to_proto(&d)),
+                manifest: manifest.map(|m| manifest_to_proto(&m)),
             }))
         }
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                "doc",
+                HookItemType::Doc,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),

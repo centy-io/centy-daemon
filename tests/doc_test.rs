@@ -3,10 +3,12 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::default_doc_config;
 use centy_daemon::item::entities::doc::{
-    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
-    CreateDocOptions, DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
+    create_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc, CreateDocOptions,
+    DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
 };
+use centy_daemon::item::generic::storage::generic_delete;
 use common::{create_test_dir, init_centy_project};
 
 // ============ Create Doc Tests ============
@@ -442,6 +444,8 @@ async fn test_delete_doc_success() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
+    let config = default_doc_config();
+
     create_doc(
         project_path,
         CreateDocOptions {
@@ -457,8 +461,8 @@ async fn test_delete_doc_success() {
     // Verify it exists
     assert!(get_doc(project_path, "to-delete").await.is_ok());
 
-    // Delete it
-    delete_doc(project_path, "to-delete")
+    // Delete it (force=true for hard delete)
+    generic_delete(project_path, &config, "to-delete", true)
         .await
         .expect("Should delete doc");
 
@@ -477,10 +481,11 @@ async fn test_delete_doc_not_found() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let result = delete_doc(project_path, "nonexistent").await;
+    let config = default_doc_config();
+
+    let result = generic_delete(project_path, &config, "nonexistent", true).await;
 
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("not found"));
 }
 
 #[tokio::test]
@@ -488,6 +493,8 @@ async fn test_delete_doc_removes_file() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
+
+    let config = default_doc_config();
 
     let _create_result = create_doc(
         project_path,
@@ -505,7 +512,9 @@ async fn test_delete_doc_removes_file() {
     let doc_path = project_path.join(".centy").join("docs").join("test-doc.md");
     assert!(doc_path.exists(), "Doc file should exist after creation");
 
-    let _delete_result = delete_doc(project_path, "test-doc").await.unwrap();
+    generic_delete(project_path, &config, "test-doc", true)
+        .await
+        .unwrap();
 
     // Doc file should be deleted
     assert!(

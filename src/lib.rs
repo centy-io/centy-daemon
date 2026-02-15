@@ -38,13 +38,12 @@ pub use config::item_type_config::{
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use hooks::{HookContext, HookDefinition, HookError};
 pub use item::entities::doc::{
-    create_doc, delete_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult,
-    DeleteDocResult, Doc, DocError, DocMetadata, UpdateDocOptions, UpdateDocResult,
+    create_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult, Doc, DocError,
+    DocMetadata, UpdateDocOptions, UpdateDocResult,
 };
 pub use item::entities::issue::{
-    create_issue, delete_issue, get_issue, list_issues, update_issue, CreateIssueOptions,
-    CreateIssueResult, DeleteIssueResult, Issue, IssueMetadataFlat, UpdateIssueOptions,
-    UpdateIssueResult,
+    create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, CreateIssueResult,
+    Issue, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
 };
 pub use item::generic::{
     generic_create, generic_delete, generic_get, generic_list, generic_restore,
