@@ -23,6 +23,24 @@ pub enum ItemError {
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
 
+    #[error("YAML error: {0}")]
+    YamlError(String),
+
+    #[error("Frontmatter error: {0}")]
+    FrontmatterError(String),
+
+    #[error("Item type not found: {0}")]
+    ItemTypeNotFound(String),
+
+    #[error("Feature not enabled: {0}")]
+    FeatureNotEnabled(String),
+
+    #[error("Item already deleted: {0}")]
+    AlreadyDeleted(String),
+
+    #[error("Item is not deleted: {0}")]
+    NotDeleted(String),
+
     #[error("Invalid status '{status}'. Allowed: {allowed:?}")]
     InvalidStatus {
         status: String,
