@@ -152,7 +152,8 @@
       "Bash(centy register list:*)",
       "Bash(npx tsc:*)",
       "Bash(node_modules/.bin/tsc:*)",
-      "Bash(centy show:*)"
+      "Bash(centy show:*)",
+      "Bash(gh search issues:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
