@@ -1,9 +1,9 @@
 ---
 displayNumber: 184
-status: open
+status: in-progress
 priority: 2
 createdAt: 2026-02-15T16:29:23.313813+00:00
-updatedAt: 2026-02-15T16:29:23.313813+00:00
+updatedAt: 2026-02-15T16:31:52.423552+00:00
 ---
 
 # Remove PR from init and data references

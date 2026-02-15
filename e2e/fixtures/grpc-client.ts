@@ -1046,7 +1046,6 @@ export enum LinkTargetType {
   UNSPECIFIED = 0,
   ISSUE = 1,
   DOC = 2,
-  PR = 3,
 }
 
 export interface Link {
