@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package centy.v1;
+
+// ============ Generic Item Messages ============
+
+// A generic item that can represent any item type (issues, docs, custom types)
+message GenericItem {
+  string id = 1;                        // Item identifier (UUID or slug)
+  string item_type = 2;                 // Plural type name (e.g., "issues", "docs")
+  string title = 3;                     // Item title
+  string body = 4;                      // Item body (markdown content)
+  GenericItemMetadata metadata = 5;
+}
+
+message GenericItemMetadata {
+  uint32 display_number = 1;            // Human-readable display number (0 if not applicable)
+  string status = 2;                    // Item status (empty if not applicable)
+  uint32 priority = 3;                  // Priority level (0 if not applicable)
+  string created_at = 4;                // ISO timestamp
+  string updated_at = 5;                // ISO timestamp
+  string deleted_at = 6;                // ISO timestamp when soft-deleted (empty if not deleted)
+  map<string, string> custom_fields = 7; // Custom fields (values are JSON strings)
+}
+
+message CreateItemRequest {
+  string project_path = 1;
+  string item_type = 2;                 // e.g., "issues", "docs", or custom type
+  string title = 3;
+  string body = 4;
+  string status = 5;                    // Initial status (empty = use default)
+  int32 priority = 6;                   // 0 = use default
+  map<string, string> custom_fields = 7; // Custom fields (values are JSON strings)
+}
+
+message CreateItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;
+}
+
+message GetItemRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string item_id = 3;                   // Item identifier (UUID or slug)
+}
+
+message GetItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;
+}
+
+message ListItemsRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string status = 3;                    // Filter by status (empty = all)
+  int32 priority = 4;                   // Filter by priority (0 = all)
+  bool include_deleted = 5;             // Include soft-deleted items (default: false)
+  uint32 limit = 6;                     // Limit results (0 = no limit)
+  uint32 offset = 7;                    // Offset for pagination (0 = no offset)
+}
+
+message ListItemsResponse {
+  bool success = 1;
+  string error = 2;
+  repeated GenericItem items = 3;
+  int32 total_count = 4;
+}
+
+message UpdateItemRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string item_id = 3;
+  string title = 4;                     // Empty = don't update
+  string body = 5;                      // Empty = don't update
+  string status = 6;                    // Empty = don't update
+  int32 priority = 7;                   // 0 = don't update
+  map<string, string> custom_fields = 8; // Custom fields to merge (values are JSON strings)
+}
+
+message UpdateItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;
+}
+
+message DeleteItemRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string item_id = 3;
+  bool force = 4;                       // If true, hard delete immediately
+}
+
+message DeleteItemResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message SoftDeleteItemRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string item_id = 3;
+}
+
+message SoftDeleteItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;                 // The soft-deleted item (with deleted_at set)
+}
+
+message RestoreItemRequest {
+  string project_path = 1;
+  string item_type = 2;
+  string item_id = 3;
+}
+
+message RestoreItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;                 // The restored item (with deleted_at cleared)
+}
