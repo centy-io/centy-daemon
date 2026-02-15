@@ -83,6 +83,74 @@ pub fn parse_frontmatter<T: DeserializeOwned>(
     Ok((metadata, title, body))
 }
 
+/// Parse markdown content with YAML frontmatter into a raw `serde_yaml::Value`.
+///
+/// Same splitting logic as `parse_frontmatter<T>` but deserializes YAML into
+/// `serde_yaml::Value` so that unknown/type-specific fields are preserved.
+pub fn parse_frontmatter_raw(
+    content: &str,
+) -> Result<(serde_yaml::Value, String, String), FrontmatterError> {
+    let lines: Vec<&str> = content.lines().collect();
+
+    if lines.first() != Some(&"---") {
+        return Err(FrontmatterError::InvalidFormat(
+            "Content must start with '---'".to_string(),
+        ));
+    }
+
+    let end_idx = lines
+        .iter()
+        .skip(1)
+        .position(|&line| line == "---")
+        .ok_or_else(|| {
+            FrontmatterError::InvalidFormat("Missing closing '---' for frontmatter".to_string())
+        })?;
+
+    let frontmatter_yaml = lines.get(1..=end_idx).unwrap_or(&[]).join("\n");
+    let value: serde_yaml::Value = serde_yaml::from_str(&frontmatter_yaml)?;
+
+    let body_start = end_idx.saturating_add(2);
+    let body_lines: Vec<&str> = lines
+        .get(body_start..)
+        .unwrap_or(&[])
+        .iter()
+        .skip_while(|line| line.is_empty())
+        .copied()
+        .collect();
+
+    let (title, body) = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
+        let first_line = body_lines.first().unwrap_or(&"");
+        let title = first_line.strip_prefix("# ").unwrap_or("").to_string();
+        let body = body_lines
+            .get(1..)
+            .unwrap_or(&[])
+            .iter()
+            .skip_while(|line| line.is_empty())
+            .copied()
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim_end()
+            .to_string();
+        (title, body)
+    } else {
+        (String::new(), body_lines.join("\n").trim_end().to_string())
+    };
+
+    Ok((value, title, body))
+}
+
+/// Generate markdown content from a raw `serde_yaml::Value`.
+pub fn generate_frontmatter_raw(value: &serde_yaml::Value, title: &str, body: &str) -> String {
+    let yaml = serde_yaml::to_string(value).unwrap_or_default();
+    let yaml = yaml.trim_end();
+
+    if body.is_empty() {
+        format!("---\n{yaml}\n---\n\n# {title}\n")
+    } else {
+        format!("---\n{yaml}\n---\n\n# {title}\n\n{body}\n")
+    }
+}
+
 /// Generate markdown content with YAML frontmatter.
 ///
 /// # Arguments

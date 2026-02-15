@@ -1,8 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::config::read_config;
 use crate::hooks::HookOperation;
-use crate::item::entities::issue::MoveIssueOptions;
+use crate::item::entities::issue::get_issue;
+use crate::item::generic::storage::generic_move;
+use crate::manifest;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::issue_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
@@ -11,9 +13,14 @@ use crate::server::proto::{MoveIssueRequest, MoveIssueResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
+use super::item_type_resolve::resolve_item_type_config;
+
 pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueResponse>, Status> {
     track_project_async(req.source_project_path.clone());
     track_project_async(req.target_project_path.clone());
+
+    let source_path = Path::new(&req.source_project_path);
+    let target_path = Path::new(&req.target_project_path);
 
     // Pre-hook
     let hook_project_path = req.source_project_path.clone();
@@ -40,21 +47,51 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
         }));
     }
 
-    // Read target config for priority_levels
-    let target_config = read_config(Path::new(&req.target_project_path))
-        .await
-        .ok()
-        .flatten();
-    let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
-
-    let options = MoveIssueOptions {
-        source_project_path: PathBuf::from(&req.source_project_path),
-        target_project_path: PathBuf::from(&req.target_project_path),
-        issue_id: req.issue_id,
+    // Resolve configs for issues
+    let source_config = match resolve_item_type_config(source_path, "issues").await {
+        Ok((_type, config)) => config,
+        Err(e) => {
+            return Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: to_error_json(&req.source_project_path, &e),
+                ..Default::default()
+            }));
+        }
+    };
+    let target_config = match resolve_item_type_config(target_path, "issues").await {
+        Ok((_type, config)) => config,
+        Err(e) => {
+            return Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: to_error_json(&req.target_project_path, &e),
+                ..Default::default()
+            }));
+        }
     };
 
-    match crate::item::entities::issue::move_issue(options).await {
-        Ok(result) => {
+    // Read source display_number before move for response
+    let old_display_number = match get_issue(source_path, &req.issue_id).await {
+        Ok(issue) => issue.metadata.display_number,
+        Err(e) => {
+            return Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: to_error_json(&req.source_project_path, &e),
+                ..Default::default()
+            }));
+        }
+    };
+
+    match generic_move(
+        source_path,
+        target_path,
+        &source_config,
+        &target_config,
+        &req.issue_id,
+        None,
+    )
+    .await
+    {
+        Ok(_result) => {
             maybe_run_post_hooks(
                 Path::new(&hook_project_path),
                 "issue",
@@ -66,13 +103,34 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
             )
             .await;
 
+            // Read the moved issue via entity-specific reader for proto conversion
+            let target_config_for_priority = read_config(target_path).await.ok().flatten();
+            let priority_levels = target_config_for_priority
+                .as_ref()
+                .map_or(3, |c| c.priority_levels);
+
+            let moved_issue = match get_issue(target_path, &req.issue_id).await {
+                Ok(issue) => issue,
+                Err(e) => {
+                    return Ok(Response::new(MoveIssueResponse {
+                        success: false,
+                        error: to_error_json(&req.target_project_path, &e),
+                        ..Default::default()
+                    }));
+                }
+            };
+
+            // Read manifests
+            let source_manifest = manifest::read_manifest(source_path).await.ok().flatten();
+            let target_manifest = manifest::read_manifest(target_path).await.ok().flatten();
+
             Ok(Response::new(MoveIssueResponse {
                 success: true,
                 error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                old_display_number: result.old_display_number,
-                source_manifest: Some(manifest_to_proto(&result.source_manifest)),
-                target_manifest: Some(manifest_to_proto(&result.target_manifest)),
+                issue: Some(issue_to_proto(&moved_issue, priority_levels)),
+                old_display_number,
+                source_manifest: source_manifest.map(|m| manifest_to_proto(&m)),
+                target_manifest: target_manifest.map(|m| manifest_to_proto(&m)),
             }))
         }
         Err(e) => {

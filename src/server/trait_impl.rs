@@ -718,4 +718,17 @@ impl CentyDaemon for CentyDaemonService {
         let _timer = OperationTimer::new("restore_item");
         handlers::item_restore::restore_item(request.into_inner()).await
     }
+
+    #[instrument(
+        name = "grpc.move_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn move_item(
+        &self,
+        request: Request<MoveItemRequest>,
+    ) -> Result<Response<MoveItemResponse>, Status> {
+        let _timer = OperationTimer::new("move_item");
+        handlers::item_move::move_item(request.into_inner()).await
+    }
 }
