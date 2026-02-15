@@ -718,4 +718,17 @@ impl CentyDaemon for CentyDaemonService {
         let _timer = OperationTimer::new("restore_item");
         handlers::item_restore::restore_item(request.into_inner()).await
     }
+
+    #[instrument(
+        name = "grpc.duplicate_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn duplicate_item(
+        &self,
+        request: Request<DuplicateItemRequest>,
+    ) -> Result<Response<DuplicateItemResponse>, Status> {
+        let _timer = OperationTimer::new("duplicate_item");
+        handlers::item_duplicate::duplicate_item(request.into_inner()).await
+    }
 }
