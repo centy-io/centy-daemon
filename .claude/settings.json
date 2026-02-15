@@ -148,7 +148,8 @@
       "Bash(npm view:*)",
       "Bash(centy status:*)",
       "Bash(centy project list:*)",
-      "Bash(centy workspace list:*)"
+      "Bash(centy workspace list:*)",
+      "Bash(centy register list:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
