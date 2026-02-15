@@ -6,7 +6,7 @@ mod convert_entity;
 mod convert_infra;
 mod convert_link;
 pub mod error_mapping;
-mod handlers;
+pub mod handlers;
 mod helpers;
 mod hooks_helper;
 mod proto_to_config;
