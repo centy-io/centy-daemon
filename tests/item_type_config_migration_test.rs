@@ -4,8 +4,8 @@
 mod common;
 
 use centy_daemon::config::item_type_config::{read_item_type_config, write_item_type_config};
-use centy_daemon::CentyConfig;
 use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
+use centy_daemon::CentyConfig;
 use common::create_test_dir;
 use tokio::fs;
 
@@ -150,9 +150,7 @@ async fn test_migration_idempotent() {
 
     // config.yaml should NOT appear in created on second run
     assert!(
-        !result2
-            .created
-            .contains(&"issues/config.yaml".to_string()),
+        !result2.created.contains(&"issues/config.yaml".to_string()),
         "issues/config.yaml should not be re-created"
     );
     assert!(
@@ -190,9 +188,7 @@ async fn test_preserves_existing_config_yaml() {
 
     // issues/config.yaml should NOT be in created (it already existed)
     assert!(
-        !result
-            .created
-            .contains(&"issues/config.yaml".to_string()),
+        !result.created.contains(&"issues/config.yaml".to_string()),
         "Should not overwrite existing issues/config.yaml"
     );
 
@@ -203,7 +199,10 @@ async fn test_preserves_existing_config_yaml() {
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("read");
-    assert_eq!(content, custom_yaml, "Custom config.yaml should be preserved");
+    assert_eq!(
+        content, custom_yaml,
+        "Custom config.yaml should be preserved"
+    );
 }
 
 /// Pre-existing project: simulate a real project (issues/, docs/, config.json
@@ -300,10 +299,12 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
         .await
         .expect("create dir");
 
-    let mut config = CentyConfig::default();
-    config.priority_levels = 7;
-    config.allowed_states = vec!["open".to_string(), "done".to_string()];
-    config.default_state = "open".to_string();
+    let config = CentyConfig {
+        priority_levels: 7,
+        allowed_states: vec!["open".to_string(), "done".to_string()],
+        default_state: "open".to_string(),
+        ..Default::default()
+    };
 
     let issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
     write_item_type_config(project_path, "issues", &issue_config)
