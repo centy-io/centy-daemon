@@ -175,7 +175,7 @@ async fn test_preserves_existing_config_yaml() {
         .expect("create docs/");
 
     // Pre-create a custom issues/config.yaml
-    let custom_yaml = "name: CustomIssue\nplural: custom-issues\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  status: true\n  priority: true\n  softDelete: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\n";
+    let custom_yaml = "name: CustomIssue\nplural: custom-issues\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  status: true\n  priority: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\n";
     fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
         .await
         .expect("write custom config.yaml");

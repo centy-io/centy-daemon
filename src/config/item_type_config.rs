@@ -10,7 +10,6 @@ pub struct ItemTypeFeatures {
     pub display_number: bool,
     pub status: bool,
     pub priority: bool,
-    pub soft_delete: bool,
     pub assets: bool,
     pub org_sync: bool,
     #[serde(rename = "move")]
@@ -46,7 +45,6 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
             display_number: true,
             status: true,
             priority: true,
-            soft_delete: true,
             assets: true,
             org_sync: true,
             move_item: true,
@@ -70,7 +68,6 @@ pub fn default_doc_config() -> ItemTypeConfig {
             display_number: false,
             status: false,
             priority: false,
-            soft_delete: true,
             assets: false,
             org_sync: true,
             move_item: true,
@@ -215,7 +212,6 @@ mod tests {
         assert!(issue.features.display_number);
         assert!(issue.features.status);
         assert!(issue.features.priority);
-        assert!(issue.features.soft_delete);
         assert!(issue.features.assets);
         assert!(issue.features.org_sync);
         assert!(issue.features.move_item);
@@ -236,7 +232,6 @@ mod tests {
         assert!(!doc.features.display_number);
         assert!(!doc.features.status);
         assert!(!doc.features.priority);
-        assert!(doc.features.soft_delete);
         assert!(!doc.features.assets);
         assert!(doc.features.org_sync);
         assert!(doc.features.move_item);

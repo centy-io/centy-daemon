@@ -24,7 +24,7 @@ pub struct GenericFrontmatter {
     pub created_at: String,
     /// ISO timestamp when the item was last updated (always present)
     pub updated_at: String,
-    /// ISO timestamp when soft-deleted (only if features.softDelete)
+    /// ISO timestamp when soft-deleted (empty if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
     /// Custom fields for extensibility

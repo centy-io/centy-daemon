@@ -355,8 +355,9 @@ pub async fn generic_update(
 
 /// Delete an item (hard delete).
 ///
-/// If `features.soft_delete` is enabled and the item is already soft-deleted,
-/// this performs a hard delete. Otherwise, it directly removes the file.
+/// If the item is not yet soft-deleted and `force` is false, this performs a
+/// soft delete instead. If the item is already soft-deleted (or `force` is
+/// true), this removes the file permanently.
 pub async fn generic_delete(
     project_path: &Path,
     config: &ItemTypeConfig,
@@ -369,8 +370,8 @@ pub async fn generic_delete(
         return Err(ItemError::NotFound(id.to_string()));
     }
 
-    // If soft-delete is enabled and not forcing, soft-delete instead
-    if config.features.soft_delete && !force {
+    // If not forcing, soft-delete instead
+    if !force {
         // Check if already soft-deleted; if so, hard delete
         let content = fs::read_to_string(&file_path).await?;
         let (frontmatter, _, _) = parse_frontmatter::<GenericFrontmatter>(&content)
@@ -408,13 +409,6 @@ pub async fn generic_soft_delete(
     config: &ItemTypeConfig,
     id: &str,
 ) -> Result<(), ItemError> {
-    if !config.features.soft_delete {
-        return Err(ItemError::Custom(format!(
-            "Soft delete is not enabled for type '{}'",
-            config.name
-        )));
-    }
-
     let file_path = item_file_path(project_path, config, id);
 
     if !file_path.exists() {
@@ -446,13 +440,6 @@ pub async fn generic_restore(
     config: &ItemTypeConfig,
     id: &str,
 ) -> Result<(), ItemError> {
-    if !config.features.soft_delete {
-        return Err(ItemError::Custom(format!(
-            "Soft delete is not enabled for type '{}'",
-            config.name
-        )));
-    }
-
     let file_path = item_file_path(project_path, config, id);
 
     if !file_path.exists() {
@@ -805,27 +792,6 @@ mod tests {
 
         // Should not exist at all
         let result = generic_get(temp.path(), &config, &created.id).await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_soft_delete_not_enabled() {
-        let temp = tempfile::tempdir().unwrap();
-        setup_project(temp.path()).await;
-
-        let config = minimal_config(); // soft_delete = false
-        let options = CreateGenericItemOptions {
-            title: "Note".to_string(),
-            body: String::new(),
-            id: None,
-            status: None,
-            priority: None,
-            custom_fields: HashMap::new(),
-        };
-
-        let created = generic_create(temp.path(), &config, options).await.unwrap();
-
-        let result = generic_soft_delete(temp.path(), &config, &created.id).await;
         assert!(result.is_err());
     }
 
