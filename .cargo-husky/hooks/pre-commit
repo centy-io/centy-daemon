@@ -20,6 +20,9 @@ if grep -r --include="*.rs" '#\[allow(clippy::too_many_lines)\]' src/; then
     exit 1
 fi
 
+echo "Checking file size limit..."
+bash scripts/check-file-size.sh
+
 echo "Running Clippy with pedantic lints..."
 # Allow too_many_lines (false positive on tonic impl blocks), deny all other warnings
 cargo clippy --all-targets -- -D warnings -A clippy::too_many_lines

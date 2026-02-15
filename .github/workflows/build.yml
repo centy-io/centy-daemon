@@ -47,6 +47,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check file size limit
+        run: bash scripts/check-file-size.sh
+
       - name: Run Clippy
         # Allow too_many_lines (false positive on tonic impl blocks), deny all other warnings
         run: cargo clippy --all-targets -- -D warnings -A clippy::too_many_lines
