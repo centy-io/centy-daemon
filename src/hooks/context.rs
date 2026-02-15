@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-use super::config::{HookItemType, HookOperation, Phase};
+use super::config::{HookOperation, Phase};
 
 /// Context passed to hook scripts via env vars and stdin JSON
 #[derive(Debug, Clone, Serialize)]
@@ -21,7 +21,7 @@ pub struct HookContext {
 impl HookContext {
     pub fn new(
         phase: Phase,
-        item_type: HookItemType,
+        item_type: &str,
         operation: HookOperation,
         project_path: &str,
         item_id: Option<&str>,
@@ -30,7 +30,7 @@ impl HookContext {
     ) -> Self {
         Self {
             phase: phase.as_str().to_string(),
-            item_type: item_type.as_str().to_string(),
+            item_type: item_type.to_string(),
             operation: operation.as_str().to_string(),
             project_path: project_path.to_string(),
             item_id: item_id.map(String::from),
@@ -66,7 +66,7 @@ mod tests {
     fn test_context_env_vars() {
         let ctx = HookContext::new(
             Phase::Pre,
-            HookItemType::Issue,
+            "issue",
             HookOperation::Create,
             "/tmp/project",
             Some("issue-123"),
@@ -86,7 +86,7 @@ mod tests {
     fn test_context_env_vars_no_item_id() {
         let ctx = HookContext::new(
             Phase::Pre,
-            HookItemType::Doc,
+            "doc",
             HookOperation::Create,
             "/tmp/project",
             None,
@@ -102,7 +102,7 @@ mod tests {
     fn test_context_to_json() {
         let ctx = HookContext::new(
             Phase::Post,
-            HookItemType::Issue,
+            "issue",
             HookOperation::Create,
             "/tmp/project",
             Some("issue-123"),

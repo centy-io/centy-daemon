@@ -8,15 +8,13 @@ use crate::server::proto::{ListItemsRequest, ListItemsResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{normalize_item_type, resolve_item_type_config};
+use super::item_type_resolve::resolve_item_type_config;
 
 pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let item_type = normalize_item_type(&req.item_type);
-
-    let config = match resolve_item_type_config(project_path, &item_type).await {
-        Ok(c) => c,
+    let (_item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+        Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(ListItemsResponse {
                 success: false,

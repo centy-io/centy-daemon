@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::hooks::{HookItemType, HookOperation};
+use crate::hooks::HookOperation;
 use crate::item::entities::doc::{update_doc, UpdateDocOptions};
 use crate::registry::track_project_async;
 use crate::server::convert_entity::doc_to_proto;
@@ -27,7 +27,7 @@ pub async fn update_doc_handler(
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        HookItemType::Doc,
+        "doc",
         HookOperation::Update,
         &hook_project_path,
         Some(&hook_item_id),
@@ -52,7 +52,7 @@ pub async fn update_doc_handler(
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Doc,
+                "doc",
                 HookOperation::Update,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -74,7 +74,7 @@ pub async fn update_doc_handler(
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Doc,
+                "doc",
                 HookOperation::Update,
                 &hook_project_path,
                 Some(&hook_item_id),

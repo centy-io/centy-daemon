@@ -1,7 +1,7 @@
 use std::path::Path;
 use tracing::{debug, warn};
 
-use super::config::{HookDefinition, HookItemType, HookOperation, ParsedPattern, Phase};
+use super::config::{HookDefinition, HookOperation, ParsedPattern, Phase};
 use super::context::HookContext;
 use super::error::HookError;
 use super::executor::execute_hook;
@@ -17,12 +17,12 @@ pub async fn load_hooks_config(project_path: &Path) -> Vec<HookDefinition> {
 
 /// Find matching hooks for the given phase, item_type, and operation.
 /// Returns enabled hooks sorted by specificity descending (most-specific-first).
-pub fn find_matching_hooks(
-    hooks: &[HookDefinition],
+pub fn find_matching_hooks<'a>(
+    hooks: &'a [HookDefinition],
     phase: Phase,
-    item_type: HookItemType,
+    item_type: &str,
     operation: HookOperation,
-) -> Vec<&HookDefinition> {
+) -> Vec<&'a HookDefinition> {
     let mut matching: Vec<(&HookDefinition, u8)> = hooks
         .iter()
         .filter(|h| h.enabled)
@@ -43,7 +43,7 @@ pub fn find_matching_hooks(
 /// Pre-hooks run synchronously; the first non-zero exit code aborts with an error.
 pub async fn run_pre_hooks(
     project_path: &Path,
-    item_type: HookItemType,
+    item_type: &str,
     operation: HookOperation,
     context: &HookContext,
 ) -> Result<(), HookError> {
@@ -57,7 +57,7 @@ pub async fn run_pre_hooks(
     debug!(
         "Running {} pre-hooks for {}:{}",
         matching.len(),
-        item_type.as_str(),
+        item_type,
         operation.as_str()
     );
 
@@ -88,7 +88,7 @@ pub async fn run_pre_hooks(
 /// Async post-hooks are spawned in background (failures logged as debug).
 pub async fn run_post_hooks(
     project_path: &Path,
-    item_type: HookItemType,
+    item_type: &str,
     operation: HookOperation,
     context: &HookContext,
 ) {
@@ -102,7 +102,7 @@ pub async fn run_post_hooks(
     debug!(
         "Running {} post-hooks for {}:{}",
         matching.len(),
-        item_type.as_str(),
+        item_type,
         operation.as_str()
     );
 
@@ -161,12 +161,7 @@ mod tests {
     #[test]
     fn test_find_matching_hooks_empty() {
         let hooks: Vec<HookDefinition> = vec![];
-        let result = find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Create,
-        );
+        let result = find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create);
         assert!(result.is_empty());
     }
 
@@ -179,12 +174,7 @@ mod tests {
             timeout: 30,
             enabled: true,
         }];
-        let result = find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Create,
-        );
+        let result = find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create);
         assert_eq!(result.len(), 1);
     }
 
@@ -197,8 +187,7 @@ mod tests {
             timeout: 30,
             enabled: true,
         }];
-        let result =
-            find_matching_hooks(&hooks, Phase::Pre, HookItemType::Doc, HookOperation::Create);
+        let result = find_matching_hooks(&hooks, Phase::Pre, "doc", HookOperation::Create);
         assert!(result.is_empty());
     }
 
@@ -211,12 +200,7 @@ mod tests {
             timeout: 30,
             enabled: false,
         }];
-        let result = find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Create,
-        );
+        let result = find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create);
         assert!(result.is_empty());
     }
 
@@ -245,12 +229,7 @@ mod tests {
                 enabled: true,
             },
         ];
-        let result = find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Create,
-        );
+        let result = find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create);
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].command, "echo specific"); // specificity 3
         assert_eq!(result[1].command, "echo mid"); // specificity 2
@@ -268,33 +247,15 @@ mod tests {
         }];
         // Should match for any item type with delete operation
         assert_eq!(
-            find_matching_hooks(
-                &hooks,
-                Phase::Pre,
-                HookItemType::Issue,
-                HookOperation::Delete
-            )
-            .len(),
+            find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Delete).len(),
             1
         );
         assert_eq!(
-            find_matching_hooks(
-                &hooks,
-                Phase::Post,
-                HookItemType::Doc,
-                HookOperation::Delete
-            )
-            .len(),
+            find_matching_hooks(&hooks, Phase::Post, "doc", HookOperation::Delete).len(),
             1
         );
         assert_eq!(
-            find_matching_hooks(
-                &hooks,
-                Phase::Pre,
-                HookItemType::Issue,
-                HookOperation::Create
-            )
-            .len(),
+            find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create).len(),
             0
         );
     }

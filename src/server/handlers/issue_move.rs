@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::config::read_config;
-use crate::hooks::{HookItemType, HookOperation};
+use crate::hooks::HookOperation;
 use crate::item::entities::issue::MoveIssueOptions;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::issue_to_proto;
@@ -25,7 +25,7 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
     });
     if let Err(e) = maybe_run_pre_hooks(
         Path::new(&hook_project_path),
-        HookItemType::Issue,
+        "issue",
         HookOperation::Move,
         &hook_project_path,
         Some(&hook_item_id),
@@ -57,7 +57,7 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
         Ok(result) => {
             maybe_run_post_hooks(
                 Path::new(&hook_project_path),
-                HookItemType::Issue,
+                "issue",
                 HookOperation::Move,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -78,7 +78,7 @@ pub async fn move_issue(req: MoveIssueRequest) -> Result<Response<MoveIssueRespo
         Err(e) => {
             maybe_run_post_hooks(
                 Path::new(&hook_project_path),
-                HookItemType::Issue,
+                "issue",
                 HookOperation::Move,
                 &hook_project_path,
                 Some(&hook_item_id),

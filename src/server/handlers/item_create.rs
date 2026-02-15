@@ -12,18 +12,14 @@ use crate::server::proto::{CreateItemRequest, CreateItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{
-    normalize_item_type, resolve_hook_item_type, resolve_item_type_config,
-};
+use super::item_type_resolve::resolve_item_type_config;
 
 pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let item_type = normalize_item_type(&req.item_type);
-
     // Resolve config
-    let config = match resolve_item_type_config(project_path, &item_type).await {
-        Ok(c) => c,
+    let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+        Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(CreateItemResponse {
                 success: false,
@@ -32,9 +28,9 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
             }));
         }
     };
+    let hook_type = config.name.to_lowercase();
 
     // Pre-hook
-    let hook_item_type = resolve_hook_item_type(&item_type);
     let hook_project_path = req.project_path.clone();
     let hook_request_data = serde_json::json!({
         "item_type": &item_type,
@@ -45,7 +41,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        hook_item_type,
+        &hook_type,
         HookOperation::Create,
         &hook_project_path,
         None,
@@ -83,7 +79,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
         Ok(item) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::Create,
                 &hook_project_path,
                 Some(&item.id),
@@ -100,7 +96,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::Create,
                 &hook_project_path,
                 None,

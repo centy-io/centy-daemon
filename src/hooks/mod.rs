@@ -4,7 +4,7 @@ pub mod error;
 pub mod executor;
 pub mod runner;
 
-pub use config::{HookDefinition, HookItemType, HookOperation, Phase};
+pub use config::{HookDefinition, HookOperation, Phase};
 pub use context::HookContext;
 #[allow(unused_imports)]
 pub use error::HookError;

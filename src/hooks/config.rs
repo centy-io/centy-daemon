@@ -47,28 +47,6 @@ impl Phase {
     }
 }
 
-/// Item types that hooks can target
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HookItemType {
-    Issue,
-    Doc,
-    User,
-    Link,
-    Asset,
-}
-
-impl HookItemType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            HookItemType::Issue => "issue",
-            HookItemType::Doc => "doc",
-            HookItemType::User => "user",
-            HookItemType::Link => "link",
-            HookItemType::Asset => "asset",
-        }
-    }
-}
-
 /// Operations that hooks can target
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HookOperation {
@@ -131,8 +109,7 @@ impl ParsedPattern {
         })?;
 
         let phase = Self::parse_segment(phase_str, &["pre", "post"])?;
-        let item_type =
-            Self::parse_segment(item_type_str, &["issue", "doc", "user", "link", "asset"])?;
+        let item_type = Self::parse_item_type_segment(item_type_str)?;
         let operation = Self::parse_segment(
             operation_str,
             &[
@@ -166,10 +143,23 @@ impl ParsedPattern {
         )))
     }
 
+    /// Parse item_type segment: accepts `*` or any non-empty string.
+    fn parse_item_type_segment(value: &str) -> Result<PatternSegment, HookError> {
+        if value == "*" {
+            return Ok(PatternSegment::Wildcard);
+        }
+        if value.is_empty() {
+            return Err(HookError::InvalidPattern(
+                "Item type segment must not be empty".to_string(),
+            ));
+        }
+        Ok(PatternSegment::Exact(value.to_string()))
+    }
+
     /// Check if this pattern matches a given phase, item_type, and operation
-    pub fn matches(&self, phase: Phase, item_type: HookItemType, operation: HookOperation) -> bool {
+    pub fn matches(&self, phase: Phase, item_type: &str, operation: HookOperation) -> bool {
         Self::segment_matches(&self.phase, phase.as_str())
-            && Self::segment_matches(&self.item_type, item_type.as_str())
+            && Self::segment_matches(&self.item_type, item_type)
             && Self::segment_matches(&self.operation, operation.as_str())
     }
 
@@ -237,9 +227,10 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_invalid_item_type() {
-        let err = ParsedPattern::parse("pre:widget:create").unwrap_err();
-        assert!(matches!(err, HookError::InvalidPattern(_)));
+    fn test_parse_custom_item_type() {
+        // Custom item types should now be accepted
+        let p = ParsedPattern::parse("pre:widget:create").unwrap();
+        assert_eq!(p.item_type, PatternSegment::Exact("widget".to_string()));
     }
 
     #[test]
@@ -251,33 +242,33 @@ mod tests {
     #[test]
     fn test_matches_exact() {
         let p = ParsedPattern::parse("pre:issue:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Create));
-        assert!(!p.matches(Phase::Post, HookItemType::Issue, HookOperation::Create));
-        assert!(!p.matches(Phase::Pre, HookItemType::Doc, HookOperation::Create));
-        assert!(!p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Delete));
+        assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
+        assert!(!p.matches(Phase::Post, "issue", HookOperation::Create));
+        assert!(!p.matches(Phase::Pre, "doc", HookOperation::Create));
+        assert!(!p.matches(Phase::Pre, "issue", HookOperation::Delete));
     }
 
     #[test]
     fn test_matches_wildcard_phase() {
         let p = ParsedPattern::parse("*:issue:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Create));
-        assert!(p.matches(Phase::Post, HookItemType::Issue, HookOperation::Create));
-        assert!(!p.matches(Phase::Pre, HookItemType::Doc, HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
+        assert!(p.matches(Phase::Post, "issue", HookOperation::Create));
+        assert!(!p.matches(Phase::Pre, "doc", HookOperation::Create));
     }
 
     #[test]
     fn test_matches_wildcard_item_type() {
         let p = ParsedPattern::parse("pre:*:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Create));
-        assert!(p.matches(Phase::Pre, HookItemType::Doc, HookOperation::Create));
-        assert!(!p.matches(Phase::Post, HookItemType::Issue, HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "doc", HookOperation::Create));
+        assert!(!p.matches(Phase::Post, "issue", HookOperation::Create));
     }
 
     #[test]
     fn test_matches_all_wildcards() {
         let p = ParsedPattern::parse("*:*:*").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Create));
-        assert!(p.matches(Phase::Post, HookItemType::Doc, HookOperation::Delete));
+        assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
+        assert!(p.matches(Phase::Post, "doc", HookOperation::Delete));
     }
 
     #[test]
@@ -306,22 +297,24 @@ mod tests {
     #[test]
     fn test_soft_delete_pattern() {
         let p = ParsedPattern::parse("post:issue:soft-delete").unwrap();
-        assert!(p.matches(Phase::Post, HookItemType::Issue, HookOperation::SoftDelete));
-        assert!(!p.matches(Phase::Post, HookItemType::Issue, HookOperation::Delete));
+        assert!(p.matches(Phase::Post, "issue", HookOperation::SoftDelete));
+        assert!(!p.matches(Phase::Post, "issue", HookOperation::Delete));
     }
 
     #[test]
     fn test_all_item_types() {
         let p = ParsedPattern::parse("pre:asset:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Asset, HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "asset", HookOperation::Create));
 
         let p = ParsedPattern::parse("pre:link:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Link, HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "link", HookOperation::Create));
 
         let p = ParsedPattern::parse("pre:user:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::User, HookOperation::Create));
+        assert!(p.matches(Phase::Pre, "user", HookOperation::Create));
 
-        assert!(ParsedPattern::parse("pre:pr:create").is_err());
+        // Custom types are now valid
+        let p = ParsedPattern::parse("pre:pr:create").unwrap();
+        assert!(p.matches(Phase::Pre, "pr", HookOperation::Create));
     }
 
     // --- Phase tests ---
@@ -337,17 +330,6 @@ mod tests {
         assert_eq!(Phase::Pre, Phase::Pre);
         assert_eq!(Phase::Post, Phase::Post);
         assert_ne!(Phase::Pre, Phase::Post);
-    }
-
-    // --- HookItemType tests ---
-
-    #[test]
-    fn test_hook_item_type_as_str() {
-        assert_eq!(HookItemType::Issue.as_str(), "issue");
-        assert_eq!(HookItemType::Doc.as_str(), "doc");
-        assert_eq!(HookItemType::User.as_str(), "user");
-        assert_eq!(HookItemType::Link.as_str(), "link");
-        assert_eq!(HookItemType::Asset.as_str(), "asset");
     }
 
     // --- HookOperation tests ---
@@ -442,7 +424,7 @@ mod tests {
             let p = ParsedPattern::parse(&pattern)
                 .unwrap_or_else(|_| panic!("Should parse pattern: {pattern}"));
             assert!(
-                p.matches(Phase::Pre, HookItemType::Issue, *op),
+                p.matches(Phase::Pre, "issue", *op),
                 "Pattern '{pattern}' should match"
             );
         }

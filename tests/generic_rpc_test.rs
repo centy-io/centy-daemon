@@ -16,7 +16,6 @@ use centy_daemon::server::handlers::item_list::list_items;
 use centy_daemon::server::handlers::item_read::get_item;
 use centy_daemon::server::handlers::item_restore::restore_item;
 use centy_daemon::server::handlers::item_soft_delete::soft_delete_item;
-use centy_daemon::server::handlers::item_type_resolve::normalize_item_type;
 use centy_daemon::server::handlers::item_update::update_item;
 use common::create_test_dir;
 use std::collections::HashMap;
@@ -469,20 +468,7 @@ async fn test_invalid_item_type() {
     assert!(resp.error.contains("ITEM_TYPE_NOT_FOUND"));
 }
 
-// ─── Item type normalization ─────────────────────────────────────────────────
-
-#[test]
-fn test_item_type_normalization() {
-    assert_eq!(normalize_item_type("issue"), "issues");
-    assert_eq!(normalize_item_type("issues"), "issues");
-    assert_eq!(normalize_item_type("Issue"), "issues");
-    assert_eq!(normalize_item_type("ISSUES"), "issues");
-    assert_eq!(normalize_item_type("doc"), "docs");
-    assert_eq!(normalize_item_type("docs"), "docs");
-    assert_eq!(normalize_item_type("Doc"), "docs");
-    assert_eq!(normalize_item_type("epics"), "epics");
-    assert_eq!(normalize_item_type("custom"), "custom");
-}
+// ─── Item type resolution ────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn test_singular_item_type_works() {
