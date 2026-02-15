@@ -11,6 +11,7 @@ pub fn create_test_dir() -> TempDir {
 }
 
 /// Initialize a centy project in the given directory by calling `execute_reconciliation`
+#[allow(dead_code)] // Used across integration test files
 pub async fn init_centy_project(project_path: &Path) {
     use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 

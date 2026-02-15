@@ -1,6 +1,7 @@
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
-use crate::config::{write_config, CentyConfig};
+use crate::config::item_type_config::migrate_to_item_type_configs;
+use crate::config::{read_config, write_config, CentyConfig};
 use crate::manifest::{
     create_manifest, read_manifest, update_manifest, write_manifest, CentyManifest, ManagedFileType,
 };
@@ -100,6 +101,16 @@ pub async fn execute_reconciliation(
         let default_config = CentyConfig::default();
         write_config(project_path, &default_config).await?;
         result.created.push("config.json".to_string());
+    }
+
+    // Migration: Insert config.yaml into item type folders (schema_version 1 -> 2)
+    if manifest.schema_version < 2 {
+        let config = read_config(project_path).await?.unwrap_or_default();
+        let migrated = migrate_to_item_type_configs(project_path, &config).await?;
+        for path in migrated {
+            result.created.push(path);
+        }
+        manifest.schema_version = 2;
     }
 
     // Update manifest timestamp and version
@@ -297,7 +308,7 @@ mod tests {
         assert!(manifest_path.exists());
 
         // Result should have manifest populated
-        assert_eq!(result.manifest.schema_version, 1);
+        assert_eq!(result.manifest.schema_version, 2);
         assert!(!result.manifest.centy_version.is_empty());
     }
 

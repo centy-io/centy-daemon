@@ -36,7 +36,7 @@ async fn test_init_creates_manifest_and_structure() {
         .expect("Should read manifest")
         .expect("Manifest should exist");
 
-    assert_eq!(manifest.schema_version, 1);
+    assert_eq!(manifest.schema_version, 2);
     assert_eq!(manifest.centy_version, centy_daemon::utils::CENTY_VERSION);
 
     // Verify files and directories exist on disk
