@@ -30,7 +30,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             .collect(),
         defaults: proto.defaults.clone(),
         allowed_states: proto.allowed_states.clone(),
-        default_state: proto.default_state.clone(),
         state_colors: proto.state_colors.clone(),
         priority_colors: proto.priority_colors.clone(),
         custom_link_types: proto

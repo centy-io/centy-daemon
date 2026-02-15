@@ -53,7 +53,7 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
             duplicate: true,
         },
         statuses: config.allowed_states.clone(),
-        default_status: Some(config.default_state.clone()),
+        default_status: config.allowed_states.first().cloned(),
         priority_levels: Some(config.priority_levels),
         custom_fields: config.custom_fields.clone(),
     }
@@ -330,7 +330,6 @@ mod tests {
             "in-progress".to_string(),
             "closed".to_string(),
         ];
-        config.default_state = "open".to_string();
         config.priority_levels = 5;
 
         let issue = default_issue_config(&config);
@@ -546,9 +545,12 @@ mod tests {
         // Create a malformed config.yaml
         let bad_dir = centy_dir.join("broken");
         fs::create_dir_all(&bad_dir).await.unwrap();
-        fs::write(bad_dir.join("config.yaml"), "this is: [not: valid: yaml: {{")
-            .await
-            .unwrap();
+        fs::write(
+            bad_dir.join("config.yaml"),
+            "this is: [not: valid: yaml: {{",
+        )
+        .await
+        .unwrap();
 
         let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 

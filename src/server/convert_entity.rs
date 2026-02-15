@@ -1,6 +1,10 @@
 use crate::item::entities::issue::priority_label;
+use crate::item::generic::types::GenericItem;
 
-use super::proto::{Doc, DocMetadata, Issue, IssueMetadata, User as ProtoUser};
+use super::proto::{
+    Doc, DocMetadata, GenericItem as ProtoGenericItem, GenericItemMetadata, Issue, IssueMetadata,
+    User as ProtoUser,
+};
 
 #[allow(deprecated)]
 pub fn issue_to_proto(issue: &crate::item::entities::issue::Issue, priority_levels: u32) -> Issue {
@@ -38,6 +42,29 @@ pub fn doc_to_proto(doc: &crate::item::entities::doc::Doc) -> Doc {
             deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
             is_org_doc: doc.metadata.is_org_doc,
             org_slug: doc.metadata.org_slug.clone().unwrap_or_default(),
+        }),
+    }
+}
+
+pub fn generic_item_to_proto(item: &GenericItem) -> ProtoGenericItem {
+    ProtoGenericItem {
+        id: item.id.clone(),
+        item_type: item.item_type.clone(),
+        title: item.title.clone(),
+        body: item.body.clone(),
+        metadata: Some(GenericItemMetadata {
+            display_number: item.frontmatter.display_number.unwrap_or(0),
+            status: item.frontmatter.status.clone().unwrap_or_default(),
+            priority: item.frontmatter.priority.unwrap_or(0),
+            created_at: item.frontmatter.created_at.clone(),
+            updated_at: item.frontmatter.updated_at.clone(),
+            deleted_at: item.frontmatter.deleted_at.clone().unwrap_or_default(),
+            custom_fields: item
+                .frontmatter
+                .custom_fields
+                .iter()
+                .map(|(k, v)| (k.clone(), v.to_string()))
+                .collect(),
         }),
     }
 }

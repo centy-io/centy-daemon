@@ -18,13 +18,6 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
         return Err("allowed_states must not be empty".to_string());
     }
 
-    if !config.allowed_states.contains(&config.default_state) {
-        return Err(format!(
-            "default_state '{}' must be in allowed_states",
-            config.default_state
-        ));
-    }
-
     if config.priority_levels < 1 || config.priority_levels > 10 {
         return Err("priority_levels must be between 1 and 10".to_string());
     }

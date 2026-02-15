@@ -302,7 +302,6 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
     let config = CentyConfig {
         priority_levels: 7,
         allowed_states: vec!["open".to_string(), "done".to_string()],
-        default_state: "open".to_string(),
         ..Default::default()
     };
 
