@@ -8,7 +8,9 @@ use crate::server::proto::{DeleteItemRequest, DeleteItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{normalize_item_type, resolve_hook_item_type, resolve_item_type_config};
+use super::item_type_resolve::{
+    normalize_item_type, resolve_hook_item_type, resolve_item_type_config,
+};
 
 pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());

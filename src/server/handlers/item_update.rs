@@ -12,7 +12,9 @@ use crate::server::proto::{UpdateItemRequest, UpdateItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{normalize_item_type, resolve_hook_item_type, resolve_item_type_config};
+use super::item_type_resolve::{
+    normalize_item_type, resolve_hook_item_type, resolve_item_type_config,
+};
 
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());

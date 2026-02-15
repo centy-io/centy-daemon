@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::config::item_type_config::{default_doc_config, default_issue_config, read_item_type_config, ItemTypeConfig};
+use crate::config::item_type_config::{
+    default_doc_config, default_issue_config, read_item_type_config, ItemTypeConfig,
+};
 use crate::config::read_config;
 use crate::hooks::HookItemType;
 use crate::item::core::error::ItemError;
