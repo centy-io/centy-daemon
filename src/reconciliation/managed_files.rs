@@ -1,11 +1,20 @@
 use crate::manifest::ManagedFileType;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+
+/// Strategy for how a managed file should be updated when it already exists
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MergeStrategy {
+    /// Merge JSON arrays (words, ignorePaths) as unions; use template's version/language;
+    /// preserve user-added top-level keys
+    JsonArrayMerge,
+}
 
 /// Template for a managed file
 #[derive(Debug, Clone)]
 pub struct ManagedFileTemplate {
     pub file_type: ManagedFileType,
     pub content: Option<String>,
+    pub merge_strategy: Option<MergeStrategy>,
 }
 
 /// Default README content
@@ -196,6 +205,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -204,6 +214,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(ISSUES_README_CONTENT.to_string()),
+            merge_strategy: None,
         },
     );
 
@@ -212,6 +223,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -220,6 +232,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -228,6 +241,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(README_CONTENT.to_string()),
+            merge_strategy: None,
         },
     );
 
@@ -236,6 +250,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -244,6 +259,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -252,6 +268,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         },
     );
 
@@ -260,6 +277,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(TEMPLATES_README_CONTENT.to_string()),
+            merge_strategy: None,
         },
     );
 
@@ -268,10 +286,77 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some(CSPELL_JSON_CONTENT.to_string()),
+            merge_strategy: Some(MergeStrategy::JsonArrayMerge),
         },
     );
 
     files
+}
+
+/// Merge existing JSON content with template content using the `JsonArrayMerge` strategy.
+///
+/// - `words` and `ignorePaths` arrays are merged as unions, deduplicated, and sorted.
+/// - `version` and `language` are taken from the template.
+/// - Any additional top-level keys in the existing file are preserved.
+pub fn merge_json_content(
+    existing_content: &str,
+    template_content: &str,
+) -> Result<String, serde_json::Error> {
+    let mut existing: serde_json::Value = serde_json::from_str(existing_content)?;
+    let template: serde_json::Value = serde_json::from_str(template_content)?;
+
+    let Some(existing_obj) = existing.as_object_mut() else {
+        return serde_json::to_string_pretty(&template).map(|mut s| {
+            s.push('\n');
+            s
+        });
+    };
+    let Some(template_obj) = template.as_object() else {
+        return serde_json::to_string_pretty(&existing).map(|mut s| {
+            s.push('\n');
+            s
+        });
+    };
+
+    // Use template's version and language (these are managed by centy)
+    for key in &["version", "language"] {
+        if let Some(value) = template_obj.get(*key) {
+            existing_obj.insert((*key).to_string(), value.clone());
+        }
+    }
+
+    // Merge array fields as unions (deduplicated, sorted)
+    for key in &["words", "ignorePaths"] {
+        let mut merged: BTreeSet<String> = BTreeSet::new();
+
+        // Collect from existing
+        if let Some(serde_json::Value::Array(arr)) = existing_obj.get(*key) {
+            for item in arr {
+                if let Some(s) = item.as_str() {
+                    merged.insert(s.to_string());
+                }
+            }
+        }
+
+        // Collect from template
+        if let Some(serde_json::Value::Array(arr)) = template_obj.get(*key) {
+            for item in arr {
+                if let Some(s) = item.as_str() {
+                    merged.insert(s.to_string());
+                }
+            }
+        }
+
+        if !merged.is_empty() {
+            let sorted_array: Vec<serde_json::Value> =
+                merged.into_iter().map(serde_json::Value::String).collect();
+            existing_obj.insert((*key).to_string(), serde_json::Value::Array(sorted_array));
+        }
+    }
+
+    let mut output = serde_json::to_string_pretty(&existing)?;
+    output.push('\n');
+    Ok(output)
 }
 
 #[cfg(test)]
@@ -423,10 +508,12 @@ mod tests {
         let template = ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some("test content".to_string()),
+            merge_strategy: None,
         };
 
         assert_eq!(template.file_type, ManagedFileType::File);
         assert_eq!(template.content, Some("test content".to_string()));
+        assert!(template.merge_strategy.is_none());
     }
 
     #[test]
@@ -434,6 +521,7 @@ mod tests {
         let template = ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
             content: None,
+            merge_strategy: None,
         };
 
         let cloned = template.clone();
@@ -446,11 +534,164 @@ mod tests {
         let template = ManagedFileTemplate {
             file_type: ManagedFileType::File,
             content: Some("test".to_string()),
+            merge_strategy: None,
         };
 
         let debug_str = format!("{template:?}");
         assert!(debug_str.contains("ManagedFileTemplate"));
         assert!(debug_str.contains("File"));
         assert!(debug_str.contains("test"));
+    }
+
+    #[test]
+    fn test_cspell_has_merge_strategy() {
+        let files = get_managed_files();
+        let cspell = files.get("cspell.json").expect("Should have cspell.json");
+        assert_eq!(
+            cspell.merge_strategy,
+            Some(MergeStrategy::JsonArrayMerge),
+            "cspell.json should have JsonArrayMerge strategy"
+        );
+    }
+
+    #[test]
+    fn test_non_cspell_files_have_no_merge_strategy() {
+        let files = get_managed_files();
+        for (path, template) in &files {
+            if path != "cspell.json" {
+                assert!(
+                    template.merge_strategy.is_none(),
+                    "{path} should not have a merge strategy"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_merge_json_content_unions_words() {
+        let existing = r#"{
+  "version": "0.1",
+  "language": "en",
+  "words": ["alpha", "centy", "custom"],
+  "ignorePaths": [".centy-manifest.json"]
+}"#;
+        let template = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": ["centy", "displayNumber", "createdAt"],
+  "ignorePaths": [".centy-manifest.json"]
+}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        let words: Vec<&str> = parsed["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(
+            words,
+            vec!["alpha", "centy", "createdAt", "custom", "displayNumber"]
+        );
+    }
+
+    #[test]
+    fn test_merge_json_content_uses_template_version() {
+        let existing = r#"{"version": "0.1", "language": "fr", "words": ["custom"]}"#;
+        let template = r#"{"version": "0.2", "language": "en", "words": ["centy"]}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["version"], "0.2");
+        assert_eq!(parsed["language"], "en");
+    }
+
+    #[test]
+    fn test_merge_json_content_preserves_user_keys() {
+        let existing =
+            r#"{"version": "0.1", "language": "en", "words": [], "flagWords": ["forbidden"]}"#;
+        let template = r#"{"version": "0.2", "language": "en", "words": ["centy"]}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["flagWords"][0], "forbidden");
+    }
+
+    #[test]
+    fn test_merge_json_content_unions_ignore_paths() {
+        let existing = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": [],
+  "ignorePaths": [".centy-manifest.json", "custom-path/"]
+}"#;
+        let template = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": [],
+  "ignorePaths": [".centy-manifest.json", "node_modules/"]
+}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        let paths: Vec<&str> = parsed["ignorePaths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(
+            paths,
+            vec![".centy-manifest.json", "custom-path/", "node_modules/"]
+        );
+    }
+
+    #[test]
+    fn test_merge_json_content_sorted_output() {
+        let existing = r#"{"version": "0.2", "language": "en", "words": ["zebra", "apple"]}"#;
+        let template = r#"{"version": "0.2", "language": "en", "words": ["mango", "centy"]}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        let words: Vec<&str> = parsed["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(words, vec!["apple", "centy", "mango", "zebra"]);
+    }
+
+    #[test]
+    fn test_merge_json_content_deduplicates() {
+        let existing =
+            r#"{"version": "0.2", "language": "en", "words": ["centy", "centy", "alpha"]}"#;
+        let template = r#"{"version": "0.2", "language": "en", "words": ["centy", "alpha"]}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        let words: Vec<&str> = parsed["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(words, vec!["alpha", "centy"]);
+    }
+
+    #[test]
+    fn test_merge_json_content_trailing_newline() {
+        let existing = r#"{"version": "0.1", "language": "en", "words": []}"#;
+        let template = r#"{"version": "0.2", "language": "en", "words": []}"#;
+
+        let result = merge_json_content(existing, template).unwrap();
+        assert!(result.ends_with('\n'));
     }
 }

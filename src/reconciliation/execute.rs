@@ -1,4 +1,4 @@
-use super::managed_files::get_managed_files;
+use super::managed_files::{get_managed_files, merge_json_content, MergeStrategy};
 use super::plan::build_reconciliation_plan;
 use crate::config::item_type_config::migrate_to_item_type_configs;
 use crate::config::{read_config, write_config, CentyConfig};
@@ -87,7 +87,16 @@ pub async fn execute_reconciliation(
 
     // Process files to reset
     for file_info in &plan.to_reset {
-        if decisions.reset.contains(&file_info.path) {
+        let template = managed_templates.get(&file_info.path);
+        let has_merge = template
+            .map(|t| t.merge_strategy.is_some())
+            .unwrap_or(false);
+
+        if has_merge {
+            // Mergeable files are automatically merged without requiring user decision
+            merge_file(&centy_path, &file_info.path, &managed_templates).await?;
+            result.reset.push(file_info.path.clone());
+        } else if decisions.reset.contains(&file_info.path) {
             create_file(&centy_path, &file_info.path, &managed_templates).await?;
             result.reset.push(file_info.path.clone());
         } else {
@@ -144,6 +153,35 @@ async fn create_file(
 
             let content = template.content.as_deref().unwrap_or("");
             fs::write(&full_path, content).await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Merge a file on disk with its template content using the template's merge strategy
+async fn merge_file(
+    centy_path: &Path,
+    relative_path: &str,
+    templates: &std::collections::HashMap<String, super::managed_files::ManagedFileTemplate>,
+) -> Result<(), ExecuteError> {
+    let template = templates
+        .get(relative_path)
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Template not found"))?;
+
+    let full_path = centy_path.join(relative_path.trim_end_matches('/'));
+    let template_content = template.content.as_deref().unwrap_or("");
+
+    match &template.merge_strategy {
+        Some(MergeStrategy::JsonArrayMerge) => {
+            let existing_content = fs::read_to_string(&full_path).await?;
+            let merged = merge_json_content(&existing_content, template_content)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+            fs::write(&full_path, merged).await?;
+        }
+        None => {
+            // No merge strategy — fall back to overwrite
+            fs::write(&full_path, template_content).await?;
         }
     }
 
