@@ -33,7 +33,7 @@ pub mod workspace;
 pub use common::CommonMetadata;
 pub use config::item_type_config::{
     default_doc_config, default_issue_config, discover_item_types, read_item_type_config,
-    write_item_type_config, ItemTypeConfig, ItemTypeFeatures,
+    write_item_type_config, ItemTypeConfig, ItemTypeFeatures, ItemTypeRegistry,
 };
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use hooks::{HookContext, HookDefinition, HookError};
