@@ -16,8 +16,6 @@ pub enum ValidationMode {
     /// Reject invalid statuses with error (used by Issue)
     #[default]
     Strict,
-    /// Log warning but accept invalid statuses (used by PR)
-    Lenient,
     /// No validation - accept anything (used by Doc)
     None,
 }
@@ -26,7 +24,6 @@ pub enum ValidationMode {
 ///
 /// Different item types can have different validation strategies:
 /// - Issue: Strict validation (rejects invalid statuses)
-/// - PR: Lenient validation (warns but accepts)
 /// - Doc: No status concept
 pub trait StatusValidator {
     /// The validation mode for this item type
@@ -39,15 +36,10 @@ pub trait StatusValidator {
     ///
     /// The behavior depends on the validation mode:
     /// - Strict: Returns Err if status is not in allowed list
-    /// - Lenient: Logs warning and returns Ok even if invalid
     /// - None: Always returns Ok
     fn validate_status(status: &str, allowed: &[String]) -> Result<(), StatusError> {
         match Self::VALIDATION_MODE {
             ValidationMode::Strict => validate_strict(status, allowed),
-            ValidationMode::Lenient => {
-                validate_lenient(status, allowed);
-                Ok(())
-            }
             ValidationMode::None => Ok(()),
         }
     }
@@ -62,17 +54,6 @@ pub fn validate_strict(status: &str, allowed: &[String]) -> Result<(), StatusErr
             status: status.to_string(),
             allowed: allowed.to_vec(),
         })
-    }
-}
-
-/// Lenient validation - logs warning but accepts any status
-pub fn validate_lenient(status: &str, allowed: &[String]) {
-    if !allowed.iter().any(|s| s.eq_ignore_ascii_case(status)) {
-        tracing::warn!(
-            status = %status,
-            allowed = ?allowed,
-            "Status not in allowed list, accepting anyway"
-        );
     }
 }
 
@@ -95,12 +76,5 @@ mod tests {
         let err = result.unwrap_err();
         assert_eq!(err.status, "invalid");
         assert_eq!(err.allowed, allowed);
-    }
-
-    #[test]
-    fn test_lenient_validation() {
-        let allowed = vec!["open".to_string(), "closed".to_string()];
-        // Should not panic even with invalid status
-        validate_lenient("invalid", &allowed);
     }
 }

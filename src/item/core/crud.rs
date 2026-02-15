@@ -65,14 +65,14 @@ impl ItemFilters {
     }
 }
 
-/// Core Item trait that all entities (Issue, PR, Doc) must implement.
+/// Core Item trait that all entities (Issue, Doc) must implement.
 ///
 /// This trait defines the fundamental properties that every item in the system shares.
 pub trait Item: Identifiable + Send + Sync + Sized {
     /// The metadata type associated with this item
     type Metadata: ItemMetadata;
 
-    /// The storage folder name (e.g., "issues", "prs", "docs")
+    /// The storage folder name (e.g., "issues", "docs")
     const STORAGE_FOLDER: &'static str;
 
     /// Get the item's title

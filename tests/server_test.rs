@@ -154,8 +154,6 @@ async fn test_doc_create_get_roundtrip() {
     assert!(doc.content.contains("Content here"));
 }
 
-// Test PR operations
-
 // Test config validation logic
 
 #[test]

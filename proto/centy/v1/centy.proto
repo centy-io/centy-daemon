@@ -1616,7 +1616,7 @@ message EntityAction {
 // Request to get available actions for an entity
 message GetEntityActionsRequest {
   string project_path = 1;              // Project path for config/state lookup
-  EntityType entity_type = 2;           // Type of entity (issue, PR, doc)
+  EntityType entity_type = 2;           // Type of entity (issue, doc)
   string entity_id = 3;                 // Optional: entity ID for contextual actions (empty = general actions like "create")
 }
 
@@ -1632,7 +1632,7 @@ message GetEntityActionsResponse {
 // Sync conflict information
 message SyncConflict {
   string id = 1;                        // Unique conflict ID
-  string item_type = 2;                 // Type of item (issue, doc, pr)
+  string item_type = 2;                 // Type of item (issue, doc)
   string item_id = 3;                   // ID of the item with conflict
   string file_path = 4;                 // Relative file path within .centy
   string created_at = 5;                // When the conflict was detected

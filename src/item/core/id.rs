@@ -4,11 +4,11 @@ use std::fmt;
 
 /// Unified item identifier supporting both UUID and slug-based IDs.
 ///
-/// - Issues and PRs use UUID-based identifiers for conflict-free distributed creation
+/// - Issues use UUID-based identifiers for conflict-free distributed creation
 /// - Docs use slug-based identifiers for human-readable URLs
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ItemId {
-    /// UUID-based identifier (used by Issue, PR)
+    /// UUID-based identifier (used by Issue)
     Uuid(uuid::Uuid),
     /// Slug-based identifier (used by Doc)
     Slug(String),
