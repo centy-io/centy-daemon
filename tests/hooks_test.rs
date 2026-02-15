@@ -4,9 +4,7 @@
 mod common;
 
 use centy_daemon::config::{write_config, CentyConfig};
-use centy_daemon::hooks::config::{
-    HookDefinition, HookItemType, HookOperation, ParsedPattern, Phase,
-};
+use centy_daemon::hooks::config::{HookDefinition, HookOperation, ParsedPattern, Phase};
 use centy_daemon::hooks::context::HookContext;
 use centy_daemon::hooks::executor::execute_hook;
 use centy_daemon::hooks::runner::{find_matching_hooks, run_post_hooks, run_pre_hooks};
@@ -30,7 +28,7 @@ async fn test_pre_hook_blocks_on_exit_1() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -38,13 +36,7 @@ async fn test_pre_hook_blocks_on_exit_1() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -71,7 +63,7 @@ async fn test_pre_hook_passes_on_exit_0() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -79,13 +71,7 @@ async fn test_pre_hook_passes_on_exit_0() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_ok());
 }
@@ -113,7 +99,7 @@ async fn test_hook_receives_env_vars() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Update,
         &temp_dir.path().to_string_lossy(),
         Some("issue-abc"),
@@ -121,13 +107,7 @@ async fn test_hook_receives_env_vars() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Update,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Update, &context).await;
 
     assert!(result.is_ok());
 
@@ -156,7 +136,7 @@ async fn test_hook_receives_stdin_json() {
     let request_data = serde_json::json!({"title": "Test Issue"});
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -164,13 +144,7 @@ async fn test_hook_receives_stdin_json() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_ok());
 
@@ -189,7 +163,7 @@ async fn test_hook_timeout() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -226,44 +200,20 @@ async fn test_wildcard_matching_across_item_types() {
 
     // Should match any item type with delete operation
     assert_eq!(
-        find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Delete
-        )
-        .len(),
+        find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Delete).len(),
         1
     );
     assert_eq!(
-        find_matching_hooks(
-            &hooks,
-            Phase::Post,
-            HookItemType::Doc,
-            HookOperation::Delete
-        )
-        .len(),
+        find_matching_hooks(&hooks, Phase::Post, "doc", HookOperation::Delete).len(),
         1
     );
     assert_eq!(
-        find_matching_hooks(
-            &hooks,
-            Phase::Post,
-            HookItemType::User,
-            HookOperation::Delete
-        )
-        .len(),
+        find_matching_hooks(&hooks, Phase::Post, "user", HookOperation::Delete).len(),
         1
     );
     // Should NOT match create
     assert_eq!(
-        find_matching_hooks(
-            &hooks,
-            Phase::Pre,
-            HookItemType::Issue,
-            HookOperation::Create
-        )
-        .len(),
+        find_matching_hooks(&hooks, Phase::Pre, "issue", HookOperation::Create).len(),
         0
     );
 }
@@ -303,7 +253,7 @@ async fn test_specificity_ordering_verified_by_file() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -311,13 +261,7 @@ async fn test_specificity_ordering_verified_by_file() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_ok());
 
@@ -348,7 +292,7 @@ async fn test_disabled_hooks_are_skipped() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -356,13 +300,7 @@ async fn test_disabled_hooks_are_skipped() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_ok());
     assert!(!marker.exists(), "Disabled hook should not have run");
@@ -379,7 +317,7 @@ async fn test_no_hooks_configured_is_noop() {
 
     let context = HookContext::new(
         Phase::Pre,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         None,
@@ -387,13 +325,7 @@ async fn test_no_hooks_configured_is_noop() {
         None,
     );
 
-    let result = run_pre_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    let result = run_pre_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     assert!(result.is_ok());
 }
@@ -417,7 +349,7 @@ async fn test_post_hooks_run_after_success() {
 
     let context = HookContext::new(
         Phase::Post,
-        HookItemType::Issue,
+        "issue",
         HookOperation::Create,
         &temp_dir.path().to_string_lossy(),
         Some("issue-123"),
@@ -425,13 +357,7 @@ async fn test_post_hooks_run_after_success() {
         Some(true),
     );
 
-    run_post_hooks(
-        temp_dir.path(),
-        HookItemType::Issue,
-        HookOperation::Create,
-        &context,
-    )
-    .await;
+    run_post_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
     let content = tokio::fs::read_to_string(&marker).await.unwrap();
     assert_eq!(content.trim(), "post_ran");
@@ -460,12 +386,23 @@ fn test_pattern_parse_all_operations() {
 
 #[test]
 fn test_pattern_parse_all_item_types() {
+    // Built-in types
     let types = ["issue", "doc", "user", "link", "asset"];
     for item_type in types {
         let pattern = format!("pre:{item_type}:create");
         assert!(
             ParsedPattern::parse(&pattern).is_ok(),
             "Failed to parse pattern: {pattern}"
+        );
+    }
+
+    // Custom types should also work
+    let custom_types = ["epic", "pr", "widget", "ticket"];
+    for item_type in custom_types {
+        let pattern = format!("pre:{item_type}:create");
+        assert!(
+            ParsedPattern::parse(&pattern).is_ok(),
+            "Custom type should parse: {pattern}"
         );
     }
 }

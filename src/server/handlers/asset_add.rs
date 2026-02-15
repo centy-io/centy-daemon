@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::hooks::{HookItemType, HookOperation};
+use crate::hooks::HookOperation;
 use crate::item::entities::issue::AssetScope;
 use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
@@ -24,7 +24,7 @@ pub async fn add_asset(req: AddAssetRequest) -> Result<Response<AddAssetResponse
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        HookItemType::Asset,
+        "asset",
         HookOperation::Create,
         &hook_project_path,
         Some(&hook_item_id),
@@ -63,7 +63,7 @@ pub async fn add_asset(req: AddAssetRequest) -> Result<Response<AddAssetResponse
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Asset,
+                "asset",
                 HookOperation::Create,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -85,7 +85,7 @@ pub async fn add_asset(req: AddAssetRequest) -> Result<Response<AddAssetResponse
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Asset,
+                "asset",
                 HookOperation::Create,
                 &hook_project_path,
                 Some(&hook_item_id),

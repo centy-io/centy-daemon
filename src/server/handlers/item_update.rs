@@ -12,15 +12,14 @@ use crate::server::proto::{UpdateItemRequest, UpdateItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{normalize_item_type, resolve_hook_item_type, resolve_item_type_config};
+use super::item_type_resolve::resolve_item_type_config;
 
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let item_type = normalize_item_type(&req.item_type);
-
-    let config = match resolve_item_type_config(project_path, &item_type).await {
-        Ok(c) => c,
+    // Resolve config
+    let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+        Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(UpdateItemResponse {
                 success: false,
@@ -29,9 +28,9 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
             }));
         }
     };
+    let hook_type = config.name.to_lowercase();
 
     // Pre-hook
-    let hook_item_type = resolve_hook_item_type(&item_type);
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.item_id.clone();
     let hook_data = serde_json::json!({
@@ -44,7 +43,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        hook_item_type,
+        &hook_type,
         HookOperation::Update,
         &hook_project_path,
         Some(&hook_item_id),
@@ -81,7 +80,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         Ok(item) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::Update,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -98,7 +97,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::Update,
                 &hook_project_path,
                 Some(&hook_item_id),

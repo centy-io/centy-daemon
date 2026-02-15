@@ -9,17 +9,16 @@ use crate::server::proto::{SoftDeleteItemRequest, SoftDeleteItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::{normalize_item_type, resolve_hook_item_type, resolve_item_type_config};
+use super::item_type_resolve::resolve_item_type_config;
 
 pub async fn soft_delete_item(
     req: SoftDeleteItemRequest,
 ) -> Result<Response<SoftDeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let item_type = normalize_item_type(&req.item_type);
-
-    let config = match resolve_item_type_config(project_path, &item_type).await {
-        Ok(c) => c,
+    // Resolve config
+    let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+        Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(SoftDeleteItemResponse {
                 success: false,
@@ -28,9 +27,9 @@ pub async fn soft_delete_item(
             }));
         }
     };
+    let hook_type = config.name.to_lowercase();
 
     // Pre-hook
-    let hook_item_type = resolve_hook_item_type(&item_type);
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.item_id.clone();
     let hook_request_data = serde_json::json!({
@@ -39,7 +38,7 @@ pub async fn soft_delete_item(
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        hook_item_type,
+        &hook_type,
         HookOperation::SoftDelete,
         &hook_project_path,
         Some(&hook_item_id),
@@ -58,7 +57,7 @@ pub async fn soft_delete_item(
         Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -82,7 +81,7 @@ pub async fn soft_delete_item(
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                hook_item_type,
+                &hook_type,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),

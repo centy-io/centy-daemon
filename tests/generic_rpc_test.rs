@@ -16,7 +16,6 @@ use centy_daemon::server::handlers::item_list::list_items;
 use centy_daemon::server::handlers::item_read::get_item;
 use centy_daemon::server::handlers::item_restore::restore_item;
 use centy_daemon::server::handlers::item_soft_delete::soft_delete_item;
-use centy_daemon::server::handlers::item_type_resolve::normalize_item_type;
 use centy_daemon::server::handlers::item_update::update_item;
 use common::create_test_dir;
 use std::collections::HashMap;
@@ -63,10 +62,18 @@ async fn test_create_and_get_issue_type() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "issues", "Test Issue", "Body text", "open", 2, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "issues",
+        "Test Issue",
+        "Body text",
+        "open",
+        2,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
 
     assert!(resp.success, "create failed: {}", resp.error);
     let item = resp.item.unwrap();
@@ -105,10 +112,18 @@ async fn test_create_and_get_doc_type() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "docs", "Getting Started", "Welcome!", "", 0, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "docs",
+        "Getting Started",
+        "Welcome!",
+        "",
+        0,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
 
     assert!(resp.success, "create failed: {}", resp.error);
     let item = resp.item.unwrap();
@@ -149,10 +164,18 @@ async fn test_list_with_filters() {
         ("Open P2", "open", 2),
         ("Closed P1", "closed", 1),
     ] {
-        let resp = create_item(create_req(pp, "issues", title, "", status, priority, HashMap::new()))
-            .await
-            .unwrap()
-            .into_inner();
+        let resp = create_item(create_req(
+            pp,
+            "issues",
+            title,
+            "",
+            status,
+            priority,
+            HashMap::new(),
+        ))
+        .await
+        .unwrap()
+        .into_inner();
         assert!(resp.success, "create failed: {}", resp.error);
     }
 
@@ -227,10 +250,18 @@ async fn test_update_item() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "issues", "Original", "Original body", "open", 2, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "issues",
+        "Original",
+        "Original body",
+        "open",
+        2,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
     assert!(resp.success);
     let item_id = resp.item.unwrap().id;
 
@@ -266,10 +297,18 @@ async fn test_hard_delete() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "issues", "To Delete", "", "open", 2, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "issues",
+        "To Delete",
+        "",
+        "open",
+        2,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
     assert!(resp.success);
     let item_id = resp.item.unwrap().id;
 
@@ -306,10 +345,18 @@ async fn test_soft_delete_and_restore() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "issues", "Soft Delete Me", "", "open", 2, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "issues",
+        "Soft Delete Me",
+        "",
+        "open",
+        2,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
     assert!(resp.success);
     let item_id = resp.item.unwrap().id;
 
@@ -394,10 +441,18 @@ async fn test_invalid_item_type() {
     init_project(path).await;
     let pp = path.to_str().unwrap();
 
-    let resp = create_item(create_req(pp, "nonexistent", "Test", "", "", 0, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "nonexistent",
+        "Test",
+        "",
+        "",
+        0,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
     assert!(!resp.success);
     assert!(resp.error.contains("ITEM_TYPE_NOT_FOUND"));
 
@@ -413,20 +468,7 @@ async fn test_invalid_item_type() {
     assert!(resp.error.contains("ITEM_TYPE_NOT_FOUND"));
 }
 
-// ─── Item type normalization ─────────────────────────────────────────────────
-
-#[test]
-fn test_item_type_normalization() {
-    assert_eq!(normalize_item_type("issue"), "issues");
-    assert_eq!(normalize_item_type("issues"), "issues");
-    assert_eq!(normalize_item_type("Issue"), "issues");
-    assert_eq!(normalize_item_type("ISSUES"), "issues");
-    assert_eq!(normalize_item_type("doc"), "docs");
-    assert_eq!(normalize_item_type("docs"), "docs");
-    assert_eq!(normalize_item_type("Doc"), "docs");
-    assert_eq!(normalize_item_type("epics"), "epics");
-    assert_eq!(normalize_item_type("custom"), "custom");
-}
+// ─── Item type resolution ────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn test_singular_item_type_works() {
@@ -436,10 +478,18 @@ async fn test_singular_item_type_works() {
     let pp = path.to_str().unwrap();
 
     // "issue" (singular) should work the same as "issues"
-    let resp = create_item(create_req(pp, "issue", "Singular Test", "", "open", 2, HashMap::new()))
-        .await
-        .unwrap()
-        .into_inner();
+    let resp = create_item(create_req(
+        pp,
+        "issue",
+        "Singular Test",
+        "",
+        "open",
+        2,
+        HashMap::new(),
+    ))
+    .await
+    .unwrap()
+    .into_inner();
     assert!(resp.success, "create with 'issue' failed: {}", resp.error);
     assert_eq!(resp.item.unwrap().item_type, "issues");
 }
@@ -459,7 +509,13 @@ async fn test_custom_fields_roundtrip() {
     custom_fields.insert("tags".to_string(), "[\"bug\",\"urgent\"]".to_string());
 
     let resp = create_item(create_req(
-        pp, "issues", "Custom Fields", "", "open", 2, custom_fields,
+        pp,
+        "issues",
+        "Custom Fields",
+        "",
+        "open",
+        2,
+        custom_fields,
     ))
     .await
     .unwrap()
@@ -487,6 +543,9 @@ async fn test_custom_fields_roundtrip() {
     .into_inner();
     assert!(get_resp.success);
     let fetched_meta = get_resp.item.unwrap().metadata.unwrap();
-    assert_eq!(fetched_meta.custom_fields.get("env").unwrap(), "\"production\"");
+    assert_eq!(
+        fetched_meta.custom_fields.get("env").unwrap(),
+        "\"production\""
+    );
     assert_eq!(fetched_meta.custom_fields.get("count").unwrap(), "42");
 }

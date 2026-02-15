@@ -281,6 +281,36 @@ impl ItemTypeRegistry {
     pub fn folders(&self) -> Vec<&String> {
         self.types.keys().collect()
     }
+
+    /// Resolve an input string to a `(folder_name, config)` pair.
+    ///
+    /// Tries (in order):
+    /// 1. Exact folder lookup (e.g. `"issues"`)
+    /// 2. Case-insensitive name match (e.g. `"issue"` matches config with `name: "Issue"`)
+    /// 3. Case-insensitive plural match (e.g. `"Issue"` matches config with `plural: "issues"`)
+    #[must_use]
+    pub fn resolve(&self, input: &str) -> Option<(&String, &ItemTypeConfig)> {
+        // 1. Exact folder lookup
+        if let Some((key, config)) = self.types.get_key_value(input) {
+            return Some((key, config));
+        }
+
+        let input_lower = input.to_lowercase();
+
+        // 2. Case-insensitive name match
+        if let Some(pair) = self
+            .types
+            .iter()
+            .find(|(_, c)| c.name.to_lowercase() == input_lower)
+        {
+            return Some(pair);
+        }
+
+        // 3. Case-insensitive plural match
+        self.types
+            .iter()
+            .find(|(_, c)| c.plural.to_lowercase() == input_lower)
+    }
 }
 
 /// Create `config.yaml` for issues and docs if they don't already exist.
@@ -694,6 +724,98 @@ mod tests {
         let all = registry.all();
         assert_eq!(all.len(), 1);
         assert!(all.contains_key("issues"));
+    }
+
+    #[tokio::test]
+    async fn test_registry_resolve_by_folder() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        // Exact folder name
+        let (folder, config) = registry.resolve("issues").expect("Should resolve 'issues'");
+        assert_eq!(folder, "issues");
+        assert_eq!(config.name, "Issue");
+    }
+
+    #[tokio::test]
+    async fn test_registry_resolve_by_name() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        let issues_dir = centy_dir.join("issues");
+        fs::create_dir_all(&issues_dir).await.unwrap();
+        let issue_config = default_issue_config(&CentyConfig::default());
+        let yaml = serde_yaml::to_string(&issue_config).unwrap();
+        fs::write(issues_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        // Case-insensitive name match
+        let (folder, _) = registry.resolve("issue").expect("Should resolve 'issue'");
+        assert_eq!(folder, "issues");
+
+        let (folder, _) = registry.resolve("Issue").expect("Should resolve 'Issue'");
+        assert_eq!(folder, "issues");
+
+        let (folder, _) = registry.resolve("ISSUE").expect("Should resolve 'ISSUE'");
+        assert_eq!(folder, "issues");
+    }
+
+    #[tokio::test]
+    async fn test_registry_resolve_by_plural() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+
+        // Create a custom type where folder != plural
+        let epics_dir = centy_dir.join("my-epics");
+        fs::create_dir_all(&epics_dir).await.unwrap();
+        let epic_config = ItemTypeConfig {
+            name: "Epic".to_string(),
+            plural: "epics".to_string(),
+            identifier: "uuid".to_string(),
+            features: ItemTypeFeatures::default(),
+            statuses: Vec::new(),
+            default_status: None,
+            priority_levels: None,
+            custom_fields: Vec::new(),
+        };
+        let yaml = serde_yaml::to_string(&epic_config).unwrap();
+        fs::write(epics_dir.join("config.yaml"), &yaml)
+            .await
+            .unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+
+        // Should resolve via plural
+        let (folder, config) = registry.resolve("epics").expect("Should resolve 'epics'");
+        assert_eq!(folder, "my-epics");
+        assert_eq!(config.name, "Epic");
+
+        // Should resolve via name
+        let (folder, _) = registry.resolve("epic").expect("Should resolve 'epic'");
+        assert_eq!(folder, "my-epics");
+    }
+
+    #[tokio::test]
+    async fn test_registry_resolve_not_found() {
+        let temp = tempdir().expect("Should create temp dir");
+        let centy_dir = temp.path().join(".centy");
+        fs::create_dir_all(&centy_dir).await.unwrap();
+
+        let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
+        assert!(registry.resolve("nonexistent").is_none());
     }
 
     #[tokio::test]

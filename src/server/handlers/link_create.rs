@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::config::read_config;
-use crate::hooks::{HookItemType, HookOperation};
+use crate::hooks::HookOperation;
 use crate::link::CreateLinkOptions;
 use crate::registry::track_project_async;
 use crate::server::convert_link::{internal_link_to_proto, proto_link_target_to_internal};
@@ -22,7 +22,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        HookItemType::Link,
+        "link",
         HookOperation::Create,
         &hook_project_path,
         Some(&hook_item_id),
@@ -56,7 +56,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Link,
+                "link",
                 HookOperation::Create,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -74,7 +74,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Link,
+                "link",
                 HookOperation::Create,
                 &hook_project_path,
                 Some(&hook_item_id),

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::hooks::{HookItemType, HookOperation};
+use crate::hooks::HookOperation;
 use crate::item::entities::issue::delete_asset as delete_asset_fn;
 use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
@@ -26,7 +26,7 @@ pub async fn delete_asset(
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        HookItemType::Asset,
+        "asset",
         HookOperation::Delete,
         &hook_project_path,
         Some(&hook_item_id),
@@ -51,7 +51,7 @@ pub async fn delete_asset(
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Asset,
+                "asset",
                 HookOperation::Delete,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -73,7 +73,7 @@ pub async fn delete_asset(
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                HookItemType::Asset,
+                "asset",
                 HookOperation::Delete,
                 &hook_project_path,
                 Some(&hook_item_id),
