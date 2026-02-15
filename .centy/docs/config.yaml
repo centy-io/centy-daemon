@@ -5,7 +5,6 @@ features:
   displayNumber: false
   status: false
   priority: false
-  softDelete: true
   assets: false
   orgSync: true
   move: true
