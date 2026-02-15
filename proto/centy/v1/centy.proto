@@ -274,6 +274,11 @@ service CentyDaemon {
   // Manually trigger a sync push
   rpc SyncPush(SyncPushRequest) returns (SyncPushResponse);
 
+  // ============ Item Type RPCs ============
+
+  // Create a new item type dynamically
+  rpc CreateItemType(CreateItemTypeRequest) returns (CreateItemTypeResponse);
+
   // ============ Generic Item RPCs ============
 
   // Create a new item of any type
@@ -1762,5 +1767,50 @@ message SyncPushResponse {
   bool success = 1;
   string error = 2;
   bool had_changes = 3;                 // Whether any changes were pushed
+}
+
+// ============ Item Type Messages ============
+
+// Toggle-able features for an item type
+message ItemTypeFeatures {
+  bool display_number = 1;              // Enable display numbers (1, 2, 3...)
+  bool status = 2;                      // Enable status tracking
+  bool priority = 3;                    // Enable priority levels
+  bool assets = 4;                      // Enable file attachments
+  bool org_sync = 5;                    // Enable organization sync
+  bool move = 6;                        // Enable moving between projects
+  bool duplicate = 7;                   // Enable duplication
+}
+
+// Request to create a new item type
+message CreateItemTypeRequest {
+  string project_path = 1;
+  string name = 2;                      // Singular display name (e.g., "Bug", "Task", "Epic")
+  string plural = 3;                    // Folder/type key (e.g., "bugs", "tasks", "epics")
+  string identifier = 4;               // "uuid" or "slug"
+  ItemTypeFeatures features = 5;        // Toggle-able features
+  repeated string statuses = 6;         // Allowed statuses (e.g., ["open", "in-progress", "closed"])
+  string default_status = 7;            // Default status for new items (must be in statuses list)
+  uint32 priority_levels = 8;           // Number of priority levels (0 = none)
+  repeated CustomFieldDefinition custom_fields = 9; // Custom field definitions
+}
+
+// Response after creating an item type
+message CreateItemTypeResponse {
+  bool success = 1;
+  string error = 2;
+  ItemTypeConfigProto config = 3;       // The created item type config
+}
+
+// Proto representation of an ItemTypeConfig
+message ItemTypeConfigProto {
+  string name = 1;
+  string plural = 2;
+  string identifier = 3;
+  ItemTypeFeatures features = 4;
+  repeated string statuses = 5;
+  string default_status = 6;
+  uint32 priority_levels = 7;
+  repeated CustomFieldDefinition custom_fields = 8;
 }
 
