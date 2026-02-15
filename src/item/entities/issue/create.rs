@@ -215,7 +215,10 @@ pub async fn create_issue(
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
     let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
 
-    let item_type_config = read_item_type_config(project_path, "issues").await.ok().flatten();
+    let item_type_config = read_item_type_config(project_path, "issues")
+        .await
+        .ok()
+        .flatten();
     let status = options.status.clone().unwrap_or_else(|| {
         item_type_config
             .as_ref()
