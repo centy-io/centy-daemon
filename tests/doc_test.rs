@@ -3,10 +3,13 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::default_doc_config;
+use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::doc::{
-    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
-    CreateDocOptions, DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, update_doc, CreateDocOptions,
+    DuplicateDocOptions, UpdateDocOptions,
 };
+use centy_daemon::item::generic::storage::generic_move;
 use common::{create_test_dir, init_centy_project};
 
 // ============ Create Doc Tests ============
@@ -624,6 +627,8 @@ async fn test_move_doc_success() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
+    let config = default_doc_config();
+
     // Create doc in source
     create_doc(
         source_path,
@@ -637,17 +642,19 @@ async fn test_move_doc_success() {
     .await
     .unwrap();
 
-    let result = move_doc(MoveDocOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        slug: "api-guide".to_string(),
-        new_slug: None,
-    })
+    let result = generic_move(
+        source_path,
+        target_path,
+        &config,
+        &config,
+        "api-guide",
+        None,
+    )
     .await
     .expect("Should move doc");
 
-    assert_eq!(result.doc.slug, "api-guide");
-    assert_eq!(result.doc.title, "API Guide");
+    assert_eq!(result.item.id, "api-guide");
+    assert_eq!(result.item.title, "API Guide");
 
     // No longer in source
     let source_result = get_doc(source_path, "api-guide").await;
@@ -667,6 +674,8 @@ async fn test_move_doc_with_slug_conflict() {
 
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
+
+    let config = default_doc_config();
 
     // Create doc with same slug in both projects
     create_doc(
@@ -693,27 +702,23 @@ async fn test_move_doc_with_slug_conflict() {
     .await
     .unwrap();
 
-    // Move without new_slug should fail
-    let result = move_doc(MoveDocOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        slug: "guide".to_string(),
-        new_slug: None,
-    })
-    .await;
+    // Move without new_id should fail
+    let result = generic_move(source_path, target_path, &config, &config, "guide", None).await;
     assert!(result.is_err());
 
-    // Move with new_slug should succeed
-    let result = move_doc(MoveDocOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        slug: "guide".to_string(),
-        new_slug: Some("guide-v2".to_string()),
-    })
+    // Move with new_id should succeed
+    let result = generic_move(
+        source_path,
+        target_path,
+        &config,
+        &config,
+        "guide",
+        Some("guide-v2"),
+    )
     .await
     .unwrap();
 
-    assert_eq!(result.doc.slug, "guide-v2");
+    assert_eq!(result.item.id, "guide-v2");
 }
 
 #[tokio::test]
@@ -722,6 +727,8 @@ async fn test_move_doc_same_project_fails() {
     let project_path = dir.path();
 
     init_centy_project(project_path).await;
+
+    let config = default_doc_config();
 
     create_doc(
         project_path,
@@ -735,16 +742,10 @@ async fn test_move_doc_same_project_fails() {
     .await
     .unwrap();
 
-    let result = move_doc(MoveDocOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        slug: "test".to_string(),
-        new_slug: None,
-    })
-    .await;
+    let result = generic_move(project_path, project_path, &config, &config, "test", None).await;
 
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), DocError::SameProjectMove));
+    assert!(matches!(result.unwrap_err(), ItemError::SameProject));
 }
 
 // ============ Duplicate Doc Tests ============

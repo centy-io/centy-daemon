@@ -3,11 +3,14 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::default_issue_config;
+use centy_daemon::config::CentyConfig;
+use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::issue::{
-    create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues, move_issue,
-    update_issue, CreateIssueOptions, DuplicateIssueOptions, IssueCrudError, IssueError,
-    MoveIssueOptions, UpdateIssueOptions,
+    create_issue, delete_issue, duplicate_issue, get_issue, is_uuid, list_issues, update_issue,
+    CreateIssueOptions, DuplicateIssueOptions, IssueCrudError, IssueError, UpdateIssueOptions,
 };
+use centy_daemon::item::generic::storage::generic_move;
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -698,6 +701,8 @@ async fn test_move_issue_success() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
+    let config = default_issue_config(&CentyConfig::default());
+
     // Create issue in source
     let created = create_issue(
         source_path,
@@ -712,18 +717,21 @@ async fn test_move_issue_success() {
     .unwrap();
 
     // Move to target
-    let result = move_issue(MoveIssueOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        issue_id: created.id.clone(),
-    })
+    let result = generic_move(
+        source_path,
+        target_path,
+        &config,
+        &config,
+        &created.id,
+        None,
+    )
     .await
     .expect("Should move issue");
 
     // Verify issue exists in target with same UUID
-    assert_eq!(result.issue.id, created.id);
-    assert_eq!(result.issue.metadata.display_number, 1);
-    assert_eq!(result.issue.title, "Issue to Move");
+    assert_eq!(result.item.id, created.id);
+    assert_eq!(result.item.frontmatter.display_number, Some(1));
+    assert_eq!(result.item.title, "Issue to Move");
 
     // Verify issue no longer exists in source
     let source_result = get_issue(source_path, &created.id).await;
@@ -744,6 +752,8 @@ async fn test_move_issue_preserves_uuid() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
+    let config = default_issue_config(&CentyConfig::default());
+
     let created = create_issue(
         source_path,
         CreateIssueOptions {
@@ -755,16 +765,19 @@ async fn test_move_issue_preserves_uuid() {
     .unwrap();
     let original_uuid = created.id.clone();
 
-    let result = move_issue(MoveIssueOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        issue_id: created.id,
-    })
+    let result = generic_move(
+        source_path,
+        target_path,
+        &config,
+        &config,
+        &created.id,
+        None,
+    )
     .await
     .unwrap();
 
     // UUID must be preserved
-    assert_eq!(result.issue.id, original_uuid);
+    assert_eq!(result.item.id, original_uuid);
 }
 
 #[tokio::test]
@@ -776,6 +789,8 @@ async fn test_move_issue_assigns_new_display_number() {
 
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
+
+    let config = default_issue_config(&CentyConfig::default());
 
     // Create existing issues in target
     create_issue(
@@ -809,16 +824,19 @@ async fn test_move_issue_assigns_new_display_number() {
     .unwrap();
     assert_eq!(created.display_number, 1); // First in source
 
-    let result = move_issue(MoveIssueOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        issue_id: created.id,
-    })
+    let result = generic_move(
+        source_path,
+        target_path,
+        &config,
+        &config,
+        &created.id,
+        None,
+    )
     .await
     .unwrap();
 
     // Should be 3 in target (after 1 and 2)
-    assert_eq!(result.issue.metadata.display_number, 3);
+    assert_eq!(result.item.frontmatter.display_number, Some(3));
 }
 
 #[tokio::test]
@@ -827,6 +845,8 @@ async fn test_move_issue_same_project_fails() {
     let project_path = dir.path();
 
     init_centy_project(project_path).await;
+
+    let config = default_issue_config(&CentyConfig::default());
 
     let created = create_issue(
         project_path,
@@ -838,15 +858,18 @@ async fn test_move_issue_same_project_fails() {
     .await
     .unwrap();
 
-    let result = move_issue(MoveIssueOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        issue_id: created.id,
-    })
+    let result = generic_move(
+        project_path,
+        project_path,
+        &config,
+        &config,
+        &created.id,
+        None,
+    )
     .await;
 
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), IssueCrudError::SameProject));
+    assert!(matches!(result.unwrap_err(), ItemError::SameProject));
 }
 
 // ============ Duplicate Issue Tests ============

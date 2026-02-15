@@ -29,6 +29,11 @@ impl ToStructuredError for crate::item::core::error::ItemError {
             ItemError::AlreadyDeleted(_) => ("ALREADY_DELETED", None),
             ItemError::NotDeleted(_) => ("NOT_DELETED", None),
             ItemError::Custom(_) => ("CUSTOM_ERROR", None),
+            ItemError::SameProject => ("SAME_PROJECT", None),
+            ItemError::TargetNotInitialized => (
+                "TARGET_NOT_INITIALIZED",
+                Some("Run 'centy init' in the target project first"),
+            ),
         }
     }
 }

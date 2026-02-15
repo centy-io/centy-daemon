@@ -21,7 +21,7 @@ use centy_daemon::item::generic::reconcile::{
     get_next_display_number_generic, reconcile_display_numbers_generic,
 };
 use centy_daemon::item::generic::storage::{
-    generic_create, generic_delete, generic_get, generic_list, generic_restore,
+    generic_create, generic_delete, generic_get, generic_list, generic_move, generic_restore,
     generic_soft_delete, generic_update,
 };
 use centy_daemon::item::generic::types::{
@@ -1065,4 +1065,332 @@ async fn test_slug_from_empty_title_fails() {
     )
     .await;
     assert!(matches!(result, Err(ItemError::ValidationError(_))));
+}
+
+// ─── Move tests ──────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_generic_move_uuid_item() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_issue_config(&CentyConfig::default());
+
+    let item = generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Movable Issue".to_string(),
+            body: "Body text.".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        &item.id,
+        None,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result.item.id, item.id);
+    assert_eq!(result.item.title, "Movable Issue");
+    assert_eq!(result.item.frontmatter.display_number, Some(1));
+    assert_eq!(result.old_id, item.id);
+
+    // Source should not have it
+    let source_get = generic_get(source.path(), &config, &item.id).await;
+    assert!(matches!(source_get, Err(ItemError::NotFound(_))));
+
+    // Target should have it
+    let target_get = generic_get(target.path(), &config, &item.id).await;
+    assert!(target_get.is_ok());
+}
+
+#[tokio::test]
+async fn test_generic_move_slug_item() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_doc_config();
+
+    let item = generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "My Document".to_string(),
+            body: "Doc body.".to_string(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(item.id, "my-document");
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        "my-document",
+        None,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result.item.id, "my-document");
+    assert_eq!(result.item.title, "My Document");
+    assert_eq!(result.old_id, "my-document");
+}
+
+#[tokio::test]
+async fn test_generic_move_slug_rename() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_doc_config();
+
+    generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Old Name".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        "old-name",
+        Some("new-name"),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result.item.id, "new-name");
+    assert_eq!(result.old_id, "old-name");
+
+    // Old slug should be gone from source
+    let source_get = generic_get(source.path(), &config, "old-name").await;
+    assert!(source_get.is_err());
+
+    // New slug in target
+    let target_get = generic_get(target.path(), &config, "new-name").await;
+    assert!(target_get.is_ok());
+}
+
+#[tokio::test]
+async fn test_generic_move_same_project_fails() {
+    let dir = create_test_dir();
+    init_generic_project(dir.path()).await;
+
+    let config = default_issue_config(&CentyConfig::default());
+
+    let item = generic_create(
+        dir.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Stay Put".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(2),
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(dir.path(), dir.path(), &config, &config, &item.id, None).await;
+
+    assert!(matches!(result, Err(ItemError::SameProject)));
+}
+
+#[tokio::test]
+async fn test_generic_move_not_found_fails() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_issue_config(&CentyConfig::default());
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        "nonexistent-id",
+        None,
+    )
+    .await;
+
+    assert!(matches!(result, Err(ItemError::NotFound(_))));
+}
+
+#[tokio::test]
+async fn test_generic_move_feature_disabled() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let mut config = minimal_config();
+    config.features.move_item = false;
+
+    let item = generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "No Move".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        &item.id,
+        None,
+    )
+    .await;
+
+    assert!(matches!(result, Err(ItemError::FeatureNotEnabled(_))));
+}
+
+#[tokio::test]
+async fn test_generic_move_slug_conflict_fails() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_doc_config();
+
+    // Create same slug in both projects
+    generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Conflict".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    generic_create(
+        target.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Conflict".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        "conflict",
+        None,
+    )
+    .await;
+
+    assert!(matches!(result, Err(ItemError::AlreadyExists(_))));
+}
+
+#[tokio::test]
+async fn test_generic_move_preserves_custom_fields() {
+    let source = create_test_dir();
+    let target = create_test_dir();
+    init_generic_project(source.path()).await;
+    init_generic_project(target.path()).await;
+
+    let config = default_issue_config(&CentyConfig::default());
+
+    let item = generic_create(
+        source.path(),
+        &config,
+        CreateGenericItemOptions {
+            title: "Custom Fields Item".to_string(),
+            body: "With custom data.".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::from([
+                ("env".to_string(), serde_json::json!("production")),
+                ("team".to_string(), serde_json::json!("backend")),
+            ]),
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = generic_move(
+        source.path(),
+        target.path(),
+        &config,
+        &config,
+        &item.id,
+        None,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        result.item.frontmatter.custom_fields.get("env"),
+        Some(&serde_json::json!("production"))
+    );
+    assert_eq!(
+        result.item.frontmatter.custom_fields.get("team"),
+        Some(&serde_json::json!("backend"))
+    );
+    assert_eq!(result.item.body, "With custom data.");
 }

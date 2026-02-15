@@ -59,6 +59,12 @@ pub enum ItemError {
     #[error("Organization sync error: {0}")]
     OrgSyncError(String),
 
+    #[error("Cannot move item to same project")]
+    SameProject,
+
+    #[error("Target project not initialized")]
+    TargetNotInitialized,
+
     #[error("{0}")]
     Custom(String),
 }
