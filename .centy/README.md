@@ -2,9 +2,9 @@
 
 This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
 
-## Important: LLM Instructions
+## Important: AI Assistant Instructions
 
-**If you are an AI/LLM assistant working with this project:**
+**If you are an AI assistant working with this project:**
 
 - **DO NOT** directly edit or create files in the `.centy/` folder
 - **DO NOT** manually modify issue files, metadata, or documentation
