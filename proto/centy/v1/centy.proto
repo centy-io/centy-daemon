@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package centy.v1;
 
+import "centy/v1/generic_item.proto";
+
 // CentyDaemon service - manages .centy folder operations
 service CentyDaemon {
   // Initialize a .centy folder in the specified directory
@@ -13,10 +15,10 @@ service CentyDaemon {
   // Execute reconciliation with user decisions
   rpc ExecuteReconciliation(ExecuteReconciliationRequest) returns (InitResponse);
 
-  // Create a new issue
+  // Deprecated: Use CreateItem with item_type="issues" instead.
   rpc CreateIssue(CreateIssueRequest) returns (CreateIssueResponse);
 
-  // Get a single issue by ID (UUID or legacy number)
+  // Deprecated: Use GetItem with item_type="issues" instead.
   rpc GetIssue(GetIssueRequest) returns (GetIssueResponse);
 
   // Get a single issue by display number (human-readable number like 1, 2, 3)
@@ -25,22 +27,22 @@ service CentyDaemon {
   // Get issues by UUID across all tracked projects (global search)
   rpc GetIssuesByUuid(GetIssuesByUuidRequest) returns (GetIssuesByUuidResponse);
 
-  // List all issues with optional filtering
+  // Deprecated: Use ListItems with item_type="issues" instead.
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
 
   // Advanced issue search with query language
   rpc AdvancedSearch(AdvancedSearchRequest) returns (AdvancedSearchResponse);
 
-  // Update an existing issue
+  // Deprecated: Use UpdateItem with item_type="issues" instead.
   rpc UpdateIssue(UpdateIssueRequest) returns (UpdateIssueResponse);
 
-  // Delete an issue (hard delete - permanent removal)
+  // Deprecated: Use DeleteItem with item_type="issues" instead.
   rpc DeleteIssue(DeleteIssueRequest) returns (DeleteIssueResponse);
 
-  // Soft-delete an issue (set deleted_at timestamp - recoverable)
+  // Deprecated: Use SoftDeleteItem with item_type="issues" instead.
   rpc SoftDeleteIssue(SoftDeleteIssueRequest) returns (SoftDeleteIssueResponse);
 
-  // Restore a soft-deleted issue (clear deleted_at timestamp)
+  // Deprecated: Use RestoreItem with item_type="issues" instead.
   rpc RestoreIssue(RestoreIssueRequest) returns (RestoreIssueResponse);
 
   // Move an issue to another project
@@ -66,28 +68,28 @@ service CentyDaemon {
 
   // ============ Doc RPCs ============
 
-  // Create a new documentation file
+  // Deprecated: Use CreateItem with item_type="docs" instead.
   rpc CreateDoc(CreateDocRequest) returns (CreateDocResponse);
 
-  // Get a single doc by slug
+  // Deprecated: Use GetItem with item_type="docs" instead.
   rpc GetDoc(GetDocRequest) returns (GetDocResponse);
 
   // Get docs by slug across all tracked projects (global search)
   rpc GetDocsBySlug(GetDocsBySlugRequest) returns (GetDocsBySlugResponse);
 
-  // List all docs
+  // Deprecated: Use ListItems with item_type="docs" instead.
   rpc ListDocs(ListDocsRequest) returns (ListDocsResponse);
 
-  // Update an existing doc
+  // Deprecated: Use UpdateItem with item_type="docs" instead.
   rpc UpdateDoc(UpdateDocRequest) returns (UpdateDocResponse);
 
-  // Delete a doc (hard delete - permanent removal)
+  // Deprecated: Use DeleteItem with item_type="docs" instead.
   rpc DeleteDoc(DeleteDocRequest) returns (DeleteDocResponse);
 
-  // Soft-delete a doc (set deleted_at timestamp - recoverable)
+  // Deprecated: Use SoftDeleteItem with item_type="docs" instead.
   rpc SoftDeleteDoc(SoftDeleteDocRequest) returns (SoftDeleteDocResponse);
 
-  // Restore a soft-deleted doc (clear deleted_at timestamp)
+  // Deprecated: Use RestoreItem with item_type="docs" instead.
   rpc RestoreDoc(RestoreDocRequest) returns (RestoreDocResponse);
 
   // Move a doc to another project
@@ -271,6 +273,29 @@ service CentyDaemon {
 
   // Manually trigger a sync push
   rpc SyncPush(SyncPushRequest) returns (SyncPushResponse);
+
+  // ============ Generic Item RPCs ============
+
+  // Create a new item of any type
+  rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
+
+  // Get a single item by ID
+  rpc GetItem(GetItemRequest) returns (GetItemResponse);
+
+  // List items with optional filtering
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
+
+  // Update an existing item
+  rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
+
+  // Delete an item (hard delete if force=true, else soft-delete first)
+  rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse);
+
+  // Soft-delete an item (set deleted_at timestamp - recoverable)
+  rpc SoftDeleteItem(SoftDeleteItemRequest) returns (SoftDeleteItemResponse);
+
+  // Restore a soft-deleted item (clear deleted_at timestamp)
+  rpc RestoreItem(RestoreItemRequest) returns (RestoreItemResponse);
 }
 
 // ============ Init Messages ============
@@ -1738,3 +1763,4 @@ message SyncPushResponse {
   string error = 2;
   bool had_changes = 3;                 // Whether any changes were pushed
 }
+
