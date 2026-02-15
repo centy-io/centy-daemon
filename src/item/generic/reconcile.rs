@@ -194,6 +194,7 @@ mod tests {
             updated_at: created_at.to_string(),
             deleted_at: None,
             custom_fields: HashMap::new(),
+            extra: HashMap::new(),
         };
 
         let content = generate_frontmatter(&frontmatter, &format!("Item {id}"), "");

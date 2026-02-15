@@ -1,10 +1,14 @@
 use std::path::Path;
 
 use crate::config::read_config;
-use crate::hooks::HookOperation;
+use crate::hooks::{HookItemType, HookOperation};
+use crate::item::entities::issue::get_issue;
+use crate::item::generic::storage::generic_soft_delete;
+use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::issue_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
+use crate::server::handlers::item_type_resolve::resolve_item_type_config;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{SoftDeleteIssueRequest, SoftDeleteIssueResponse};
 use crate::server::resolve::resolve_issue_id;
@@ -25,7 +29,7 @@ pub async fn soft_delete_issue(
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
-        "issue",
+        HookItemType::Issue,
         HookOperation::SoftDelete,
         &hook_project_path,
         Some(&hook_item_id),
@@ -55,11 +59,22 @@ pub async fn soft_delete_issue(
         }
     };
 
-    match crate::item::entities::issue::soft_delete_issue(project_path, &issue_id).await {
-        Ok(result) => {
+    let item_config = match resolve_item_type_config(project_path, "issues").await {
+        Ok(c) => c,
+        Err(e) => {
+            return Ok(Response::new(SoftDeleteIssueResponse {
+                success: false,
+                error: to_error_json(&req.project_path, &e),
+                ..Default::default()
+            }))
+        }
+    };
+
+    match generic_soft_delete(project_path, &item_config, &issue_id).await {
+        Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
-                "issue",
+                HookItemType::Issue,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),
@@ -68,17 +83,21 @@ pub async fn soft_delete_issue(
             )
             .await;
 
+            // Read the issue back for the type-specific response
+            let issue = get_issue(project_path, &issue_id).await.ok();
+            let manifest = read_manifest(project_path).await.ok().flatten();
+
             Ok(Response::new(SoftDeleteIssueResponse {
                 success: true,
                 error: String::new(),
-                issue: Some(issue_to_proto(&result.issue, priority_levels)),
-                manifest: Some(manifest_to_proto(&result.manifest)),
+                issue: issue.map(|i| issue_to_proto(&i, priority_levels)),
+                manifest: manifest.map(|m| manifest_to_proto(&m)),
             }))
         }
         Err(e) => {
             maybe_run_post_hooks(
                 project_path,
-                "issue",
+                HookItemType::Issue,
                 HookOperation::SoftDelete,
                 &hook_project_path,
                 Some(&hook_item_id),

@@ -146,6 +146,7 @@ pub async fn generic_create(
         updated_at: now,
         deleted_at: None,
         custom_fields: options.custom_fields,
+        extra: HashMap::new(),
     };
 
     // Write the item file
@@ -386,15 +387,21 @@ pub async fn generic_delete(
     // Hard delete: remove the file
     fs::remove_file(&file_path).await?;
 
-    // Remove assets directory if it exists
+    // Remove assets directory if it exists (.centy/{plural}/assets/{id}/)
     if config.features.assets {
         let assets_path = get_centy_path(project_path)
-            .join("assets")
             .join(&config.plural)
+            .join("assets")
             .join(id);
         if assets_path.exists() {
             fs::remove_dir_all(&assets_path).await?;
         }
+    }
+
+    // Remove legacy item folder if it exists (.centy/{plural}/{id}/)
+    let legacy_folder = get_centy_path(project_path).join(&config.plural).join(id);
+    if legacy_folder.is_dir() {
+        fs::remove_dir_all(&legacy_folder).await?;
     }
 
     // Update manifest

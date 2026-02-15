@@ -797,6 +797,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         updated_at: "2024-01-01T10:00:00Z".to_string(),
         deleted_at: None,
         custom_fields: HashMap::new(),
+        extra: HashMap::new(),
     };
     let content1 = centy_daemon::common::generate_frontmatter(&fm1, "Item A", "");
     fs::write(storage_path.join("item-a.md"), &content1)
@@ -812,6 +813,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         updated_at: "2024-01-01T11:00:00Z".to_string(),
         deleted_at: None,
         custom_fields: HashMap::new(),
+        extra: HashMap::new(),
     };
     let content2 = centy_daemon::common::generate_frontmatter(&fm2, "Item B", "");
     fs::write(storage_path.join("item-b.md"), &content2)
@@ -826,6 +828,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         updated_at: "2024-01-01T12:00:00Z".to_string(),
         deleted_at: None,
         custom_fields: HashMap::new(),
+        extra: HashMap::new(),
     };
     let content3 = centy_daemon::common::generate_frontmatter(&fm3, "Item C", "");
     fs::write(storage_path.join("item-c.md"), &content3)

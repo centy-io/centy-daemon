@@ -30,6 +30,10 @@ pub struct GenericFrontmatter {
     /// Custom fields for extensibility
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// Extra fields not known to the generic layer (e.g. `draft`, `isOrgIssue`).
+    /// Captured via `serde(flatten)` so they survive parse→rewrite round-trips.
+    #[serde(flatten, default, skip_serializing_if = "HashMap::is_empty")]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// A generic item parsed from a `.centy/<type>/<id>.md` file.
@@ -93,6 +97,7 @@ mod tests {
             updated_at: "2024-01-01T00:00:00Z".to_string(),
             deleted_at: None,
             custom_fields: HashMap::new(),
+            extra: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
         // Should NOT contain optional fields that are None
@@ -116,6 +121,7 @@ mod tests {
             updated_at: "2024-01-02T00:00:00Z".to_string(),
             deleted_at: Some("2024-01-03T00:00:00Z".to_string()),
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
+            extra: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
         assert!(yaml.contains("displayNumber: 42"));
@@ -135,6 +141,7 @@ mod tests {
             updated_at: "2024-06-15T13:00:00Z".to_string(),
             deleted_at: None,
             custom_fields: HashMap::new(),
+            extra: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
         let parsed: GenericFrontmatter = serde_yaml::from_str(&yaml).unwrap();
