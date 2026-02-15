@@ -149,7 +149,9 @@
       "Bash(centy status:*)",
       "Bash(centy project list:*)",
       "Bash(centy workspace list:*)",
-      "Bash(centy register list:*)"
+      "Bash(centy register list:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
