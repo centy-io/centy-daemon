@@ -443,38 +443,6 @@ async fn test_soft_delete_restore_hard_delete() {
     assert!(matches!(result, Err(ItemError::NotFound(_))));
 }
 
-#[tokio::test]
-async fn test_soft_delete_not_enabled() {
-    let temp = create_test_dir();
-    let path = temp.path();
-    init_generic_project(path).await;
-
-    let config = minimal_config(); // soft_delete = false
-
-    let item = generic_create(
-        path,
-        &config,
-        CreateGenericItemOptions {
-            title: "Note".to_string(),
-            body: String::new(),
-            id: None,
-            status: None,
-            priority: None,
-            custom_fields: HashMap::new(),
-        },
-    )
-    .await
-    .unwrap();
-
-    // Soft delete should fail
-    let result = generic_soft_delete(path, &config, &item.id).await;
-    assert!(result.is_err());
-
-    // Restore should also fail
-    let result = generic_restore(path, &config, &item.id).await;
-    assert!(result.is_err());
-}
-
 // ─── List with filters ──────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -748,7 +716,6 @@ async fn test_read_config() {
             display_number: true,
             status: true,
             priority: false,
-            soft_delete: true,
             assets: false,
             org_sync: false,
             move_item: false,
@@ -957,7 +924,6 @@ async fn test_custom_epic_type() {
             display_number: true,
             status: true,
             priority: false, // No priority for epics
-            soft_delete: true,
             assets: false,
             org_sync: false,
             move_item: false,
@@ -1039,48 +1005,15 @@ async fn test_list_ordered_by_display_number() {
     assert_eq!(items[2].frontmatter.display_number, Some(3));
 }
 
-// ─── Delete without soft-delete feature triggers hard delete ─────────────────
+// ─── Delete without force always soft-deletes first ──────────────────────────
 
 #[tokio::test]
-async fn test_delete_without_soft_delete_does_hard_delete() {
+async fn test_delete_without_force_soft_deletes_first() {
     let temp = create_test_dir();
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = minimal_config(); // soft_delete = false
-
-    let item = generic_create(
-        path,
-        &config,
-        CreateGenericItemOptions {
-            title: "Will be hard deleted".to_string(),
-            body: String::new(),
-            id: None,
-            status: None,
-            priority: None,
-            custom_fields: HashMap::new(),
-        },
-    )
-    .await
-    .unwrap();
-
-    // Even without force=true, should hard delete since soft_delete is disabled
-    generic_delete(path, &config, &item.id, false)
-        .await
-        .unwrap();
-    let result = generic_get(path, &config, &item.id).await;
-    assert!(matches!(result, Err(ItemError::NotFound(_))));
-}
-
-// ─── Delete with soft-delete feature does soft delete first ──────────────────
-
-#[tokio::test]
-async fn test_delete_with_soft_delete_enabled_soft_deletes_first() {
-    let temp = create_test_dir();
-    let path = temp.path();
-    init_generic_project(path).await;
-
-    let config = default_issue_config(&CentyConfig::default()); // soft_delete = true
+    let config = minimal_config();
 
     let item = generic_create(
         path,
@@ -1089,8 +1022,8 @@ async fn test_delete_with_soft_delete_enabled_soft_deletes_first() {
             title: "Soft first".to_string(),
             body: String::new(),
             id: None,
-            status: Some("open".to_string()),
-            priority: Some(2),
+            status: None,
+            priority: None,
             custom_fields: HashMap::new(),
         },
     )
