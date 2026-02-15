@@ -246,10 +246,6 @@ async fn test_wildcard_matching_across_item_types() {
         1
     );
     assert_eq!(
-        find_matching_hooks(&hooks, Phase::Pre, HookItemType::Pr, HookOperation::Delete).len(),
-        1
-    );
-    assert_eq!(
         find_matching_hooks(
             &hooks,
             Phase::Post,
@@ -464,7 +460,7 @@ fn test_pattern_parse_all_operations() {
 
 #[test]
 fn test_pattern_parse_all_item_types() {
-    let types = ["issue", "doc", "pr", "user", "link", "asset"];
+    let types = ["issue", "doc", "user", "link", "asset"];
     for item_type in types {
         let pattern = format!("pre:{item_type}:create");
         assert!(
