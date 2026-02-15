@@ -5,8 +5,8 @@
 //! assignment when initializing or registering a project.
 
 use super::organizations::{create_organization, get_organization, slugify};
-use crate::item::entities::pr::git::{get_remote_origin_url, is_git_repository};
-use crate::item::entities::pr::remote::parse_remote_url;
+use crate::common::git::{get_remote_origin_url, is_git_repository};
+use crate::common::remote::parse_remote_url;
 use std::path::Path;
 
 /// Result of organization inference from git remote

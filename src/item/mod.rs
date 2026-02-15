@@ -1,6 +1,6 @@
 //! Unified Item domain following Domain-Driven Design principles.
 //!
-//! This module consolidates Issues, PRs, and Docs into a unified "item" concept
+//! This module consolidates Issues and Docs into a unified "item" concept
 //! with shared traits for common operations while preserving entity-specific behavior.
 
 // Allow unused code in this module - these are infrastructure traits/types
@@ -29,8 +29,6 @@ pub use organization::org_sync::{
 #[serde(rename_all = "lowercase")]
 pub enum ItemType {
     Issue,
-    #[serde(rename = "pr")]
-    PullRequest,
     Doc,
 }
 
@@ -38,7 +36,6 @@ impl std::fmt::Display for ItemType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ItemType::Issue => write!(f, "issue"),
-            ItemType::PullRequest => write!(f, "pr"),
             ItemType::Doc => write!(f, "doc"),
         }
     }
@@ -50,7 +47,6 @@ impl std::str::FromStr for ItemType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "issue" => Ok(ItemType::Issue),
-            "pr" | "pullrequest" | "pull_request" => Ok(ItemType::PullRequest),
             "doc" | "docs" => Ok(ItemType::Doc),
             _ => Err(format!("Unknown item type: {s}")),
         }

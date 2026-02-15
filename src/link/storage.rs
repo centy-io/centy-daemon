@@ -296,7 +296,7 @@ mod tests {
         ));
         file.add_link(Link::new(
             "uuid-3".to_string(),
-            TargetType::Pr,
+            TargetType::Issue,
             "parent-of".to_string(),
         ));
 

@@ -1381,12 +1381,12 @@ enum LinkTargetType {
   LINK_TARGET_TYPE_UNSPECIFIED = 0;
   LINK_TARGET_TYPE_ISSUE = 1;
   LINK_TARGET_TYPE_DOC = 2;
-  LINK_TARGET_TYPE_PR = 3;
+  reserved 3;                         // Removed: LINK_TARGET_TYPE_PR
 }
 
 // A link between two entities
 message Link {
-  string target_id = 1;               // Target entity ID (UUID for issues/PRs, slug for docs)
+  string target_id = 1;               // Target entity ID (UUID for issues, slug for docs)
   LinkTargetType target_type = 2;     // Type of the target entity
   string link_type = 3;               // Relationship type (e.g., "blocks", "parent-of")
   string created_at = 4;              // ISO timestamp when link was created
@@ -1589,7 +1589,7 @@ message SyncUsersResponse {
 enum EntityType {
   ENTITY_TYPE_UNSPECIFIED = 0;
   ENTITY_TYPE_ISSUE = 1;
-  ENTITY_TYPE_PR = 2;
+  reserved 2;                         // Removed: ENTITY_TYPE_PR
   ENTITY_TYPE_DOC = 3;
 }
 

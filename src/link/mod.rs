@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 pub enum TargetType {
     Issue,
     Doc,
-    Pr,
 }
 
 impl TargetType {
@@ -30,7 +29,6 @@ impl TargetType {
         match self {
             Self::Issue => "issue",
             Self::Doc => "doc",
-            Self::Pr => "pr",
         }
     }
 
@@ -40,7 +38,6 @@ impl TargetType {
         match self {
             Self::Issue => "issues",
             Self::Doc => "docs",
-            Self::Pr => "prs",
         }
     }
 }
@@ -52,7 +49,6 @@ impl std::str::FromStr for TargetType {
         match s.to_lowercase().as_str() {
             "issue" => Ok(Self::Issue),
             "doc" => Ok(Self::Doc),
-            "pr" => Ok(Self::Pr),
             _ => Err(format!("Invalid target type: {s}")),
         }
     }
@@ -68,7 +64,7 @@ impl std::fmt::Display for TargetType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
-    /// The ID of the target entity (UUID for issues/PRs, slug for docs)
+    /// The ID of the target entity (UUID for issues, slug for docs)
     pub target_id: String,
     /// The type of the target entity
     pub target_type: TargetType,
@@ -172,8 +168,8 @@ mod tests {
     fn test_target_type_from_str() {
         assert_eq!(TargetType::from_str("issue").ok(), Some(TargetType::Issue));
         assert_eq!(TargetType::from_str("doc").ok(), Some(TargetType::Doc));
-        assert_eq!(TargetType::from_str("pr").ok(), Some(TargetType::Pr));
         assert_eq!(TargetType::from_str("ISSUE").ok(), Some(TargetType::Issue));
+        assert!(TargetType::from_str("pr").is_err());
         assert!(TargetType::from_str("unknown").is_err());
     }
 
@@ -181,7 +177,6 @@ mod tests {
     fn test_target_type_folder_name() {
         assert_eq!(TargetType::Issue.folder_name(), "issues");
         assert_eq!(TargetType::Doc.folder_name(), "docs");
-        assert_eq!(TargetType::Pr.folder_name(), "prs");
     }
 
     #[test]
@@ -254,14 +249,12 @@ mod tests {
     fn test_target_type_as_str() {
         assert_eq!(TargetType::Issue.as_str(), "issue");
         assert_eq!(TargetType::Doc.as_str(), "doc");
-        assert_eq!(TargetType::Pr.as_str(), "pr");
     }
 
     #[test]
     fn test_target_type_display() {
         assert_eq!(format!("{}", TargetType::Issue), "issue");
         assert_eq!(format!("{}", TargetType::Doc), "doc");
-        assert_eq!(format!("{}", TargetType::Pr), "pr");
     }
 
     #[test]
@@ -271,9 +264,6 @@ mod tests {
 
         let json = serde_json::to_string(&TargetType::Doc).unwrap();
         assert_eq!(json, "\"doc\"");
-
-        let json = serde_json::to_string(&TargetType::Pr).unwrap();
-        assert_eq!(json, "\"pr\"");
     }
 
     #[test]
@@ -283,16 +273,12 @@ mod tests {
 
         let tt: TargetType = serde_json::from_str("\"doc\"").unwrap();
         assert_eq!(tt, TargetType::Doc);
-
-        let tt: TargetType = serde_json::from_str("\"pr\"").unwrap();
-        assert_eq!(tt, TargetType::Pr);
     }
 
     #[test]
     fn test_target_type_eq() {
         assert_eq!(TargetType::Issue, TargetType::Issue);
         assert_ne!(TargetType::Issue, TargetType::Doc);
-        assert_ne!(TargetType::Doc, TargetType::Pr);
     }
 
     #[test]

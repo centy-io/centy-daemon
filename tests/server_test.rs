@@ -8,9 +8,6 @@ use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
 };
-use centy_daemon::item::entities::pr::{
-    create_pr, get_pr, list_prs, update_pr, CreatePrOptions, UpdatePrOptions,
-};
 use centy_daemon::link::CustomLinkTypeDefinition;
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
@@ -158,111 +155,6 @@ async fn test_doc_create_get_roundtrip() {
 }
 
 // Test PR operations
-
-#[tokio::test]
-async fn test_pr_create_get_roundtrip() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let options = CreatePrOptions {
-        title: "Add feature".to_string(),
-        description: "This PR adds feature X".to_string(),
-        source_branch: Some("feature/x".to_string()),
-        target_branch: Some("main".to_string()),
-        priority: Some(1),
-        status: Some("open".to_string()),
-        reviewers: vec!["alice".to_string()],
-        ..Default::default()
-    };
-
-    let result = create_pr(project_path, options)
-        .await
-        .expect("Should create");
-    let pr = get_pr(project_path, &result.id).await.expect("Should get");
-
-    assert_eq!(pr.title, "Add feature");
-    assert_eq!(pr.description, "This PR adds feature X");
-    assert_eq!(pr.metadata.source_branch, "feature/x");
-    assert_eq!(pr.metadata.target_branch, "main");
-}
-
-#[tokio::test]
-async fn test_pr_list_with_filters() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    create_pr(
-        project_path,
-        CreatePrOptions {
-            title: "Draft PR".to_string(),
-            source_branch: Some("feature/draft".to_string()),
-            status: Some("draft".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    create_pr(
-        project_path,
-        CreatePrOptions {
-            title: "Open PR".to_string(),
-            source_branch: Some("feature/open".to_string()),
-            status: Some("open".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let all_prs = list_prs(project_path, None, None, None, None, false)
-        .await
-        .expect("Should list");
-    assert_eq!(all_prs.len(), 2);
-
-    let draft_prs = list_prs(project_path, Some("draft"), None, None, None, false)
-        .await
-        .expect("Should list");
-    assert_eq!(draft_prs.len(), 1);
-    assert_eq!(draft_prs[0].metadata.status, "draft");
-}
-
-#[tokio::test]
-async fn test_pr_update_status() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let result = create_pr(
-        project_path,
-        CreatePrOptions {
-            title: "Feature PR".to_string(),
-            source_branch: Some("feature/test".to_string()),
-            status: Some("draft".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let updated = update_pr(
-        project_path,
-        &result.id,
-        UpdatePrOptions {
-            status: Some("open".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .expect("Should update");
-
-    assert_eq!(updated.pr.metadata.status, "open");
-}
 
 // Test config validation logic
 
@@ -467,32 +359,6 @@ async fn test_issue_display_numbers_sequential() {
     assert_eq!(display_numbers, vec![1, 2, 3, 4, 5]);
 }
 
-#[tokio::test]
-async fn test_pr_display_numbers_sequential() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let mut display_numbers = vec![];
-
-    for i in 1..=5 {
-        let result = create_pr(
-            project_path,
-            CreatePrOptions {
-                title: format!("PR {i}"),
-                source_branch: Some(format!("feature/{i}")),
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap();
-        display_numbers.push(result.display_number);
-    }
-
-    assert_eq!(display_numbers, vec![1, 2, 3, 4, 5]);
-}
-
 // Test sequential operations (replaces concurrent test due to file locking)
 
 #[tokio::test]
@@ -615,39 +481,6 @@ async fn test_issue_custom_fields_roundtrip() {
     assert_eq!(
         issue.metadata.custom_fields.get("sprint"),
         Some(&"sprint-42".to_string())
-    );
-}
-
-#[tokio::test]
-async fn test_pr_custom_fields_roundtrip() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let custom_fields = HashMap::from([
-        ("jira_ticket".to_string(), "PROJ-123".to_string()),
-        ("ci_status".to_string(), "passed".to_string()),
-    ]);
-
-    let result = create_pr(
-        project_path,
-        CreatePrOptions {
-            title: "PR Custom Fields".to_string(),
-            source_branch: Some("feature/test".to_string()),
-            custom_fields,
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let pr = get_pr(project_path, &result.id).await.unwrap();
-
-    assert_eq!(pr.metadata.custom_fields.len(), 2);
-    assert_eq!(
-        pr.metadata.custom_fields.get("jira_ticket"),
-        Some(&"PROJ-123".to_string())
     );
 }
 

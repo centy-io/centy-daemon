@@ -701,11 +701,9 @@ async fn test_all_builtin_link_types() {
 async fn test_target_type_variants() {
     assert_eq!(TargetType::Issue.as_str(), "issue");
     assert_eq!(TargetType::Doc.as_str(), "doc");
-    assert_eq!(TargetType::Pr.as_str(), "pr");
 
     assert_eq!(TargetType::Issue.folder_name(), "issues");
     assert_eq!(TargetType::Doc.folder_name(), "docs");
-    assert_eq!(TargetType::Pr.folder_name(), "prs");
 }
 
 #[tokio::test]
@@ -714,7 +712,7 @@ async fn test_target_type_from_str() {
 
     assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::Issue);
     assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::Doc);
-    assert_eq!(TargetType::from_str("pr").unwrap(), TargetType::Pr);
     assert_eq!(TargetType::from_str("ISSUE").unwrap(), TargetType::Issue);
+    assert!(TargetType::from_str("pr").is_err());
     assert!(TargetType::from_str("invalid").is_err());
 }

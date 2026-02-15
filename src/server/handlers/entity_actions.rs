@@ -1,10 +1,9 @@
 use std::path::Path;
 
 use crate::config::read_config;
-use crate::item::entities::pr::{get_pr, get_pr_by_display_number};
 use crate::registry::track_project_async;
 use crate::server::action_builders::build_issue_actions;
-use crate::server::action_builders_extra::{build_doc_actions, build_pr_actions};
+use crate::server::action_builders_extra::build_doc_actions;
 use crate::server::proto::{EntityType, GetEntityActionsRequest, GetEntityActionsResponse};
 use crate::server::resolve::resolve_issue;
 use crate::server::structured_error::StructuredError;
@@ -49,24 +48,6 @@ pub async fn get_entity_actions(
                 is_terminal_available(),
                 has_entity_id,
             )
-        }
-        t if t == EntityType::Pr as i32 => {
-            let entity_status = if has_entity_id {
-                if let Ok(n) = req.entity_id.parse::<u32>() {
-                    get_pr_by_display_number(project_path, n)
-                        .await
-                        .ok()
-                        .map(|p| p.metadata.status)
-                } else {
-                    get_pr(project_path, &req.entity_id)
-                        .await
-                        .ok()
-                        .map(|p| p.metadata.status)
-                }
-            } else {
-                None
-            };
-            build_pr_actions(entity_status.as_ref(), has_entity_id)
         }
         t if t == EntityType::Doc as i32 => build_doc_actions(has_entity_id),
         _ => {

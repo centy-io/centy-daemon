@@ -42,10 +42,6 @@ pub use item::entities::issue::{
     CreateIssueResult, DeleteIssueResult, Issue, IssueMetadataFlat, UpdateIssueOptions,
     UpdateIssueResult,
 };
-pub use item::entities::pr::{
-    create_pr, delete_pr, get_pr, get_pr_by_display_number, list_prs, update_pr, CreatePrOptions,
-    CreatePrResult, DeletePrResult, PrMetadataFlat, PullRequest, UpdatePrOptions, UpdatePrResult,
-};
 pub use link::{
     create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
     CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,

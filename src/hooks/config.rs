@@ -320,6 +320,8 @@ mod tests {
 
         let p = ParsedPattern::parse("pre:user:create").unwrap();
         assert!(p.matches(Phase::Pre, HookItemType::User, HookOperation::Create));
+
+        assert!(ParsedPattern::parse("pre:pr:create").is_err());
     }
 
     // --- Phase tests ---

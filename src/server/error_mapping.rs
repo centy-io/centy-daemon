@@ -82,60 +82,6 @@ impl ToStructuredError for crate::item::entities::issue::IssueCrudError {
     }
 }
 
-// ── PrError (create) ───────────────────────────────────────────────────────────
-impl ToStructuredError for crate::item::entities::pr::create::PrError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::item::entities::pr::create::PrError;
-        match self {
-            PrError::IoError(_) => ("IO_ERROR", None),
-            PrError::ManifestError(_) => ("MANIFEST_ERROR", None),
-            PrError::JsonError(_) => ("JSON_ERROR", None),
-            PrError::NotInitialized => (
-                "NOT_INITIALIZED",
-                Some("Run 'centy init' to initialize the project"),
-            ),
-            PrError::TitleRequired => ("TITLE_REQUIRED", Some("Provide a non-empty title")),
-            PrError::SourceBranchRequired => (
-                "SOURCE_BRANCH_REQUIRED",
-                Some("Specify the source branch for the pull request"),
-            ),
-            PrError::InvalidPriority(_) => ("INVALID_PRIORITY", None),
-            PrError::GitError(_) => ("GIT_ERROR", None),
-            PrError::ReconcileError(_) => ("RECONCILE_ERROR", None),
-            PrError::NotGitRepository => (
-                "NOT_GIT_REPOSITORY",
-                Some("This command must be run inside a git repository"),
-            ),
-            PrError::SourceBranchNotFound(_) => ("SOURCE_BRANCH_NOT_FOUND", None),
-            PrError::TargetBranchNotFound(_) => ("TARGET_BRANCH_NOT_FOUND", None),
-        }
-    }
-}
-
-// ── PrCrudError ────────────────────────────────────────────────────────────────
-impl ToStructuredError for crate::item::entities::pr::PrCrudError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::item::entities::pr::PrCrudError;
-        match self {
-            PrCrudError::IoError(_) => ("IO_ERROR", None),
-            PrCrudError::ManifestError(_) => ("MANIFEST_ERROR", None),
-            PrCrudError::JsonError(_) => ("JSON_ERROR", None),
-            PrCrudError::NotInitialized => (
-                "NOT_INITIALIZED",
-                Some("Run 'centy init' to initialize the project"),
-            ),
-            PrCrudError::PrNotFound(_) => ("PR_NOT_FOUND", None),
-            PrCrudError::PrDisplayNumberNotFound(_) => ("PR_NOT_FOUND", None),
-            PrCrudError::PrNotDeleted(_) => ("PR_NOT_DELETED", None),
-            PrCrudError::PrAlreadyDeleted(_) => ("PR_ALREADY_DELETED", None),
-            PrCrudError::InvalidPrFormat(_) => ("INVALID_PR_FORMAT", None),
-            PrCrudError::InvalidPriority(_) => ("INVALID_PRIORITY", None),
-            PrCrudError::ReconcileError(_) => ("RECONCILE_ERROR", None),
-            PrCrudError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
-        }
-    }
-}
-
 // ── DocError ───────────────────────────────────────────────────────────────────
 impl ToStructuredError for crate::item::entities::doc::DocError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
@@ -353,18 +299,6 @@ impl ToStructuredError for crate::reconciliation::ExecuteError {
             ExecuteError::ManifestError(_) => ("MANIFEST_ERROR", None),
             ExecuteError::PlanError(_) => ("RECONCILE_PLAN_ERROR", None),
             ExecuteError::ConfigError(_) => ("CONFIG_ERROR", None),
-        }
-    }
-}
-
-// ── PR ReconcileError ──────────────────────────────────────────────────────────
-impl ToStructuredError for crate::item::entities::pr::reconcile::ReconcileError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::item::entities::pr::reconcile::ReconcileError;
-        match self {
-            ReconcileError::IoError(_) => ("IO_ERROR", None),
-            ReconcileError::JsonError(_) => ("JSON_ERROR", None),
-            ReconcileError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
         }
     }
 }
