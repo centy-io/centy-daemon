@@ -546,9 +546,12 @@ mod tests {
         // Create a malformed config.yaml
         let bad_dir = centy_dir.join("broken");
         fs::create_dir_all(&bad_dir).await.unwrap();
-        fs::write(bad_dir.join("config.yaml"), "this is: [not: valid: yaml: {{")
-            .await
-            .unwrap();
+        fs::write(
+            bad_dir.join("config.yaml"),
+            "this is: [not: valid: yaml: {{",
+        )
+        .await
+        .unwrap();
 
         let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 
