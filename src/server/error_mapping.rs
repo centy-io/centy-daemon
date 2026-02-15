@@ -181,6 +181,7 @@ impl ToStructuredError for crate::config::ConfigError {
         match self {
             ConfigError::IoError(_) => ("IO_ERROR", None),
             ConfigError::JsonError(_) => ("JSON_ERROR", None),
+            ConfigError::YamlError(_) => ("YAML_ERROR", None),
         }
     }
 }

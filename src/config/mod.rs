@@ -1,3 +1,4 @@
+pub mod item_type_config;
 pub mod migrate;
 
 use crate::hooks::HookDefinition;
@@ -17,6 +18,9 @@ pub enum ConfigError {
 
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
+
+    #[error("YAML error: {0}")]
+    YamlError(#[from] serde_yaml::Error),
 }
 
 /// Custom field definition

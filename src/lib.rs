@@ -31,6 +31,7 @@ pub mod workspace;
 
 // Re-export commonly used types
 pub use common::CommonMetadata;
+pub use config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use hooks::{HookContext, HookDefinition, HookError};
 pub use item::entities::doc::{
