@@ -154,7 +154,8 @@
       "Bash(node_modules/.bin/tsc:*)",
       "Bash(centy show:*)",
       "Bash(gh search issues:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(centy-cli:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
