@@ -1,0 +1,21 @@
+name: Issue
+plural: issues
+identifier: uuid
+features:
+  displayNumber: true
+  status: true
+  priority: true
+  softDelete: true
+  assets: true
+  orgSync: true
+  move: true
+  duplicate: true
+statuses:
+- open
+- in-progress
+- closed
+- testing
+- to-check-if-needed
+- For QA
+defaultStatus: open
+priorityLevels: 3
