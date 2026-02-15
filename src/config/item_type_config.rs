@@ -83,7 +83,6 @@ pub fn default_doc_config() -> ItemTypeConfig {
 }
 
 /// Read an item-type config from `.centy/<folder>/config.yaml`.
-#[allow(dead_code)] // Re-exported from lib.rs
 pub async fn read_item_type_config(
     project_path: &Path,
     folder: &str,
@@ -120,7 +119,6 @@ pub async fn write_item_type_config(
 ///
 /// Returns a list of `ItemTypeConfig` for each subdirectory that contains
 /// a valid `config.yaml`. Malformed configs are logged and skipped.
-#[allow(dead_code)] // Re-exported from lib.rs
 pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConfig>, ConfigError> {
     let centy_path = get_centy_path(project_path);
     if !centy_path.exists() {
@@ -165,12 +163,10 @@ pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConf
 ///
 /// Keyed by folder name (e.g. `"issues"`, `"docs"`).
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // Re-exported from lib.rs
 pub struct ItemTypeRegistry {
     types: HashMap<String, ItemTypeConfig>,
 }
 
-#[allow(dead_code)] // Re-exported from lib.rs
 impl ItemTypeRegistry {
     /// Build the registry by scanning `.centy/*/config.yaml` files.
     ///
