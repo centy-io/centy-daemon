@@ -322,3 +322,235 @@ async fn test_init_does_not_overwrite_existing_config_json() {
         "Existing config.json should not be overwritten"
     );
 }
+
+#[tokio::test]
+async fn test_init_merges_cspell_json_preserving_custom_words() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    init_centy_project(project_path).await;
+
+    // Modify cspell.json with custom words
+    let cspell_path = project_path.join(".centy").join("cspell.json");
+    let custom_cspell = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "centy",
+    "customWord",
+    "myProject"
+  ],
+  "ignorePaths": [
+    ".centy-manifest.json",
+    "dist/"
+  ]
+}"#;
+    fs::write(&cspell_path, custom_cspell)
+        .await
+        .expect("Should write custom cspell.json");
+
+    // Run init again (without explicit reset decision)
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // cspell.json should be merged (in reset list), not skipped
+    assert!(
+        result.reset.contains(&"cspell.json".to_string()),
+        "cspell.json should be merged (reported as reset)"
+    );
+
+    // Read the merged content
+    let content = fs::read_to_string(&cspell_path)
+        .await
+        .expect("Should read cspell.json");
+    let parsed: Value = serde_json::from_str(&content).expect("Should parse cspell.json");
+
+    // Custom words should be preserved
+    let words: Vec<&str> = parsed["words"]
+        .as_array()
+        .expect("words should be an array")
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(
+        words.contains(&"customWord"),
+        "Custom word should be preserved"
+    );
+    assert!(
+        words.contains(&"myProject"),
+        "Custom word should be preserved"
+    );
+
+    // Template words should also be present
+    assert!(words.contains(&"centy"), "Template word should be present");
+    assert!(
+        words.contains(&"displayNumber"),
+        "Template word should be present"
+    );
+
+    // Custom ignorePaths should be preserved
+    let paths: Vec<&str> = parsed["ignorePaths"]
+        .as_array()
+        .expect("ignorePaths should be an array")
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(
+        paths.contains(&"dist/"),
+        "Custom ignorePath should be preserved"
+    );
+    assert!(
+        paths.contains(&".centy-manifest.json"),
+        "Template ignorePath should be present"
+    );
+}
+
+#[tokio::test]
+async fn test_init_merges_cspell_json_preserves_user_keys() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    init_centy_project(project_path).await;
+
+    // Modify cspell.json with extra top-level keys
+    let cspell_path = project_path.join(".centy").join("cspell.json");
+    let custom_cspell = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": ["centy"],
+  "ignorePaths": [".centy-manifest.json"],
+  "flagWords": ["forbidden"],
+  "dictionaries": ["custom-dict"]
+}"#;
+    fs::write(&cspell_path, custom_cspell)
+        .await
+        .expect("Should write custom cspell.json");
+
+    // Run init again
+    let decisions = ReconciliationDecisions::default();
+    execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // Read the merged content
+    let content = fs::read_to_string(&cspell_path)
+        .await
+        .expect("Should read cspell.json");
+    let parsed: Value = serde_json::from_str(&content).expect("Should parse cspell.json");
+
+    // User-added keys should be preserved
+    assert_eq!(parsed["flagWords"][0], "forbidden");
+    assert_eq!(parsed["dictionaries"][0], "custom-dict");
+}
+
+#[tokio::test]
+async fn test_init_merges_cspell_json_updates_version() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    init_centy_project(project_path).await;
+
+    // Modify cspell.json with an old version
+    let cspell_path = project_path.join(".centy").join("cspell.json");
+    let custom_cspell = r#"{
+  "version": "0.1",
+  "language": "fr",
+  "words": ["centy", "custom"]
+}"#;
+    fs::write(&cspell_path, custom_cspell)
+        .await
+        .expect("Should write custom cspell.json");
+
+    // Run init again
+    let decisions = ReconciliationDecisions::default();
+    execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // Read the merged content
+    let content = fs::read_to_string(&cspell_path)
+        .await
+        .expect("Should read cspell.json");
+    let parsed: Value = serde_json::from_str(&content).expect("Should parse cspell.json");
+
+    // version and language should be from the template
+    assert_eq!(parsed["version"], "0.2");
+    assert_eq!(parsed["language"], "en");
+
+    // Custom word should still be there
+    let words: Vec<&str> = parsed["words"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(words.contains(&"custom"));
+}
+
+#[tokio::test]
+async fn test_init_creates_cspell_json_from_template_when_missing() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize fresh project (cspell.json doesn't exist yet)
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // cspell.json should be created from template
+    assert!(
+        result.created.contains(&"cspell.json".to_string()),
+        "cspell.json should be created"
+    );
+
+    let cspell_path = project_path.join(".centy").join("cspell.json");
+    assert!(cspell_path.exists(), "cspell.json should exist");
+}
+
+#[tokio::test]
+async fn test_init_cspell_words_are_sorted_after_merge() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    init_centy_project(project_path).await;
+
+    // Add unsorted custom words
+    let cspell_path = project_path.join(".centy").join("cspell.json");
+    let custom_cspell = r#"{
+  "version": "0.2",
+  "language": "en",
+  "words": ["zebra", "apple", "centy"],
+  "ignorePaths": [".centy-manifest.json"]
+}"#;
+    fs::write(&cspell_path, custom_cspell)
+        .await
+        .expect("Should write");
+
+    // Run init again
+    let decisions = ReconciliationDecisions::default();
+    execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute");
+
+    // Verify words are sorted
+    let content = fs::read_to_string(&cspell_path).await.expect("Should read");
+    let parsed: Value = serde_json::from_str(&content).expect("Should parse");
+
+    let words: Vec<&str> = parsed["words"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+
+    let mut sorted_words = words.clone();
+    sorted_words.sort_unstable();
+    assert_eq!(words, sorted_words, "Words should be sorted after merge");
+}
