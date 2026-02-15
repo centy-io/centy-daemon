@@ -1,8 +1,6 @@
 use crate::item::entities::issue::priority_label;
 
-use super::proto::{
-    Doc, DocMetadata, Issue, IssueMetadata, PrMetadata, PullRequest, User as ProtoUser,
-};
+use super::proto::{Doc, DocMetadata, Issue, IssueMetadata, User as ProtoUser};
 
 #[allow(deprecated)]
 pub fn issue_to_proto(issue: &crate::item::entities::issue::Issue, priority_levels: u32) -> Issue {
@@ -40,33 +38,6 @@ pub fn doc_to_proto(doc: &crate::item::entities::doc::Doc) -> Doc {
             deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
             is_org_doc: doc.metadata.is_org_doc,
             org_slug: doc.metadata.org_slug.clone().unwrap_or_default(),
-        }),
-    }
-}
-
-pub fn pr_to_proto(
-    pr: &crate::item::entities::pr::PullRequest,
-    priority_levels: u32,
-) -> PullRequest {
-    PullRequest {
-        id: pr.id.clone(),
-        display_number: pr.metadata.display_number,
-        title: pr.title.clone(),
-        description: pr.description.clone(),
-        metadata: Some(PrMetadata {
-            display_number: pr.metadata.display_number,
-            status: pr.metadata.status.clone(),
-            source_branch: pr.metadata.source_branch.clone(),
-            target_branch: pr.metadata.target_branch.clone(),
-            reviewers: pr.metadata.reviewers.clone(),
-            priority: pr.metadata.priority as i32,
-            priority_label: priority_label(pr.metadata.priority, priority_levels),
-            created_at: pr.metadata.created_at.clone(),
-            updated_at: pr.metadata.updated_at.clone(),
-            merged_at: pr.metadata.merged_at.clone(),
-            closed_at: pr.metadata.closed_at.clone(),
-            custom_fields: pr.metadata.custom_fields.clone(),
-            deleted_at: pr.metadata.deleted_at.clone().unwrap_or_default(),
         }),
     }
 }

@@ -1,4 +1,4 @@
-//! Git integration utilities for PR functionality.
+//! Git integration utilities.
 //!
 //! This module provides utilities for interacting with git:
 //! - Detecting the current branch
@@ -11,6 +11,8 @@
 //! are kept for backwards compatibility. For new code, prefer using
 //! `crate::workspace::gwq_client::GwqClient` which provides a more complete
 //! worktree management API via the gwq CLI tool.
+
+#![allow(dead_code)]
 
 use std::path::Path;
 use std::process::Command;

@@ -1,6 +1,8 @@
 pub mod frontmatter;
+pub mod git;
 pub mod metadata;
 pub mod org_sync;
+pub mod remote;
 
 pub use frontmatter::{generate_frontmatter, parse_frontmatter, FrontmatterError};
 pub use metadata::CommonMetadata;
