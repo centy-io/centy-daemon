@@ -22,6 +22,12 @@ impl ToStructuredError for crate::item::core::error::ItemError {
             ItemError::AlreadyExists(_) => ("ALREADY_EXISTS", None),
             ItemError::IsDeleted(_) => ("IS_DELETED", None),
             ItemError::OrgSyncError(_) => ("ORG_SYNC_ERROR", None),
+            ItemError::YamlError(_) => ("YAML_ERROR", None),
+            ItemError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
+            ItemError::ItemTypeNotFound(_) => ("ITEM_TYPE_NOT_FOUND", None),
+            ItemError::FeatureNotEnabled(_) => ("FEATURE_NOT_ENABLED", None),
+            ItemError::AlreadyDeleted(_) => ("ALREADY_DELETED", None),
+            ItemError::NotDeleted(_) => ("NOT_DELETED", None),
             ItemError::Custom(_) => ("CUSTOM_ERROR", None),
         }
     }

@@ -9,6 +9,7 @@
 
 pub mod core;
 pub mod entities;
+pub mod generic;
 pub mod lifecycle;
 pub mod operations;
 pub mod organization;

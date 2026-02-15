@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tokio::fs;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemTypeFeatures {
     pub display_number: bool,
@@ -115,6 +115,45 @@ pub async fn write_item_type_config(
     let content = serde_yaml::to_string(config)?;
     fs::write(&config_path, content).await?;
     Ok(())
+}
+
+/// Discover all item types by scanning `.centy/*/config.yaml`.
+///
+/// Returns a list of `ItemTypeConfig` for each subdirectory that contains
+/// a valid `config.yaml`.
+#[allow(dead_code)] // Public API for future use
+pub async fn discover_item_types(
+    project_path: &Path,
+) -> Result<Vec<ItemTypeConfig>, ConfigError> {
+    let centy_path = get_centy_path(project_path);
+    if !centy_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut configs = Vec::new();
+    let mut entries = fs::read_dir(&centy_path).await?;
+
+    while let Some(entry) = entries.next_entry().await? {
+        if !entry.file_type().await?.is_dir() {
+            continue;
+        }
+
+        let config_path = entry.path().join("config.yaml");
+        if !config_path.exists() {
+            continue;
+        }
+
+        let content = match fs::read_to_string(&config_path).await {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        if let Ok(config) = serde_yaml::from_str::<ItemTypeConfig>(&content) {
+            configs.push(config);
+        }
+    }
+
+    Ok(configs)
 }
 
 /// Create `config.yaml` for issues and docs if they don't already exist.

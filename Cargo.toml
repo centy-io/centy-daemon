@@ -86,6 +86,7 @@ which = "6"
 
 # Shell escaping for command construction
 shell-escape = "0.1"
+slug = "0.1.6"
 
 [build-dependencies]
 tonic-build = "0.12"

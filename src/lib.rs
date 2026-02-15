@@ -31,7 +31,10 @@ pub mod workspace;
 
 // Re-export commonly used types
 pub use common::CommonMetadata;
-pub use config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
+pub use config::item_type_config::{
+    default_doc_config, default_issue_config, discover_item_types, read_item_type_config,
+    write_item_type_config, ItemTypeConfig, ItemTypeFeatures,
+};
 pub use config::{CentyConfig, CustomFieldDefinition};
 pub use hooks::{HookContext, HookDefinition, HookError};
 pub use item::entities::doc::{
@@ -42,6 +45,12 @@ pub use item::entities::issue::{
     create_issue, delete_issue, get_issue, list_issues, update_issue, CreateIssueOptions,
     CreateIssueResult, DeleteIssueResult, Issue, IssueMetadataFlat, UpdateIssueOptions,
     UpdateIssueResult,
+};
+pub use item::generic::{
+    generic_create, generic_delete, generic_get, generic_list, generic_restore,
+    generic_soft_delete, generic_update, get_next_display_number_generic,
+    reconcile_display_numbers_generic, CreateGenericItemOptions, GenericFrontmatter, GenericItem,
+    UpdateGenericItemOptions,
 };
 pub use link::{
     create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
