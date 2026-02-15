@@ -192,17 +192,6 @@ export const testData = {
   },
 
   /**
-   * Generate a random PR title.
-   */
-  randomPrTitle(): string {
-    const prefixes = ['feat', 'fix', 'refactor', 'chore', 'docs'];
-    const subjects = ['authentication', 'api', 'database', 'ui', 'tests'];
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const subject = subjects[Math.floor(Math.random() * subjects.length)];
-    return `${prefix}: update ${subject} - ${randomUUID().slice(0, 8)}`;
-  },
-
-  /**
    * Generate a random org issue title.
    */
   randomOrgIssueTitle(): string {
@@ -240,7 +229,7 @@ const DEFAULT_GIT_OPTIONS: Required<TempGitProjectOptions> = {
 
 /**
  * Create a temporary project directory with git initialized.
- * Required for PR tests since PRs need git branch information.
+ * Required for tests that need git branch information.
  */
 export async function createTempGitProject(
   options: TempGitProjectOptions = {}
