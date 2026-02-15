@@ -301,6 +301,9 @@ service CentyDaemon {
 
   // Restore a soft-deleted item (clear deleted_at timestamp)
   rpc RestoreItem(RestoreItemRequest) returns (RestoreItemResponse);
+
+  // Duplicate an item to the same or different project
+  rpc DuplicateItem(DuplicateItemRequest) returns (DuplicateItemResponse);
 }
 
 // ============ Init Messages ============

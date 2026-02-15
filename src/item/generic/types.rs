@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Generic frontmatter that adapts to the item type's features.
 ///
@@ -62,6 +63,30 @@ pub struct CreateGenericItemOptions {
     pub priority: Option<u32>,
     /// Custom fields
     pub custom_fields: HashMap<String, serde_json::Value>,
+}
+
+/// Options for duplicating a generic item.
+#[derive(Debug, Clone)]
+pub struct DuplicateGenericItemOptions {
+    /// Path to the project containing the source item
+    pub source_project_path: PathBuf,
+    /// Path to the target project (can be same as source)
+    pub target_project_path: PathBuf,
+    /// ID of the item to duplicate
+    pub item_id: String,
+    /// Override for the new item's ID (for slug-identified types)
+    pub new_id: Option<String>,
+    /// Override for the new item's title (default: "Copy of {original}")
+    pub new_title: Option<String>,
+}
+
+/// Result of duplicating a generic item.
+#[derive(Debug, Clone)]
+pub struct DuplicateGenericItemResult {
+    /// The newly created duplicate item
+    pub item: GenericItem,
+    /// ID of the original item that was duplicated
+    pub original_id: String,
 }
 
 /// Options for updating an existing generic item.

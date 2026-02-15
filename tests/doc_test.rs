@@ -3,10 +3,12 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::default_doc_config;
 use centy_daemon::item::entities::doc::{
-    create_doc, delete_doc, duplicate_doc, get_doc, list_docs, move_doc, update_doc,
-    CreateDocOptions, DocError, DuplicateDocOptions, MoveDocOptions, UpdateDocOptions,
+    create_doc, delete_doc, get_doc, list_docs, move_doc, update_doc, CreateDocOptions, DocError,
+    MoveDocOptions, UpdateDocOptions,
 };
+use centy_daemon::item::generic::{generic_duplicate, DuplicateGenericItemOptions};
 use common::{create_test_dir, init_centy_project};
 
 // ============ Create Doc Tests ============
@@ -768,19 +770,24 @@ async fn test_duplicate_doc_same_project() {
     .await
     .unwrap();
 
-    let result = duplicate_doc(DuplicateDocOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        slug: "original".to_string(),
-        new_slug: None,
-        new_title: None,
-    })
+    let item_type_config = default_doc_config();
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: project_path.to_path_buf(),
+            target_project_path: project_path.to_path_buf(),
+            item_id: "original".to_string(),
+            new_id: None,
+            new_title: None,
+        },
+    )
     .await
     .expect("Should duplicate doc");
 
-    assert_eq!(result.doc.slug, "original-copy");
-    assert_eq!(result.doc.title, "Copy of Original Doc");
-    assert_eq!(result.doc.content, "Original content");
+    assert_eq!(result.item.id, "original-copy");
+    assert_eq!(result.item.title, "Copy of Original Doc");
+    assert_eq!(result.item.body, "Original content");
 
     // Original still exists
     let original = get_doc(project_path, "original").await.unwrap();
@@ -806,18 +813,23 @@ async fn test_duplicate_doc_custom_slug_and_title() {
     .await
     .unwrap();
 
-    let result = duplicate_doc(DuplicateDocOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        slug: "original".to_string(),
-        new_slug: Some("custom-slug".to_string()),
-        new_title: Some("Custom Title".to_string()),
-    })
+    let item_type_config = default_doc_config();
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: project_path.to_path_buf(),
+            target_project_path: project_path.to_path_buf(),
+            item_id: "original".to_string(),
+            new_id: Some("custom-slug".to_string()),
+            new_title: Some("Custom Title".to_string()),
+        },
+    )
     .await
     .unwrap();
 
-    assert_eq!(result.doc.slug, "custom-slug");
-    assert_eq!(result.doc.title, "Custom Title");
+    assert_eq!(result.item.id, "custom-slug");
+    assert_eq!(result.item.title, "Custom Title");
 }
 
 #[tokio::test]
@@ -842,13 +854,18 @@ async fn test_duplicate_doc_to_different_project() {
     .await
     .unwrap();
 
-    let result = duplicate_doc(DuplicateDocOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        slug: "original".to_string(),
-        new_slug: None,
-        new_title: None,
-    })
+    let item_type_config = default_doc_config();
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: source_path.to_path_buf(),
+            target_project_path: target_path.to_path_buf(),
+            item_id: "original".to_string(),
+            new_id: None,
+            new_title: None,
+        },
+    )
     .await
     .unwrap();
 
@@ -859,5 +876,5 @@ async fn test_duplicate_doc_to_different_project() {
     // Duplicate exists in target
     let duplicate = get_doc(target_path, "original-copy").await;
     assert!(duplicate.is_ok());
-    assert_eq!(result.doc.title, "Copy of Original");
+    assert_eq!(result.item.title, "Copy of Original");
 }

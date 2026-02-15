@@ -212,24 +212,6 @@ pub struct MoveDocResult {
     pub target_manifest: CentyManifest,
 }
 
-/// Options for duplicating a doc
-#[derive(Debug, Clone)]
-pub struct DuplicateDocOptions {
-    pub source_project_path: PathBuf,
-    pub target_project_path: PathBuf,
-    pub slug: String,
-    pub new_slug: Option<String>,
-    pub new_title: Option<String>,
-}
-
-/// Result of duplicating a doc
-#[derive(Debug, Clone)]
-pub struct DuplicateDocResult {
-    pub doc: Doc,
-    pub original_slug: String,
-    pub manifest: CentyManifest,
-}
-
 /// Create a new doc
 pub async fn create_doc(
     project_path: &Path,
@@ -979,87 +961,6 @@ pub async fn move_doc(options: MoveDocOptions) -> Result<MoveDocResult, DocError
         old_slug: options.slug,
         source_manifest,
         target_manifest,
-    })
-}
-
-/// Duplicate a doc to the same or different project
-///
-/// Creates a copy of the doc with a new slug.
-///
-/// # Arguments
-/// * `options` - Duplicate options specifying source, target, slug, optional new slug, and optional new title
-///
-/// # Returns
-/// The new duplicate doc with the original slug for reference
-pub async fn duplicate_doc(options: DuplicateDocOptions) -> Result<DuplicateDocResult, DocError> {
-    // Validate source project is initialized
-    read_manifest(&options.source_project_path)
-        .await?
-        .ok_or(DocError::NotInitialized)?;
-
-    // Validate target project is initialized
-    let mut target_manifest = read_manifest(&options.target_project_path)
-        .await?
-        .ok_or(DocError::TargetNotInitialized)?;
-
-    // Read source doc
-    let source_centy = get_centy_path(&options.source_project_path);
-    let source_doc_path = source_centy
-        .join("docs")
-        .join(format!("{}.md", options.slug));
-
-    if !source_doc_path.exists() {
-        return Err(DocError::DocNotFound(options.slug.clone()));
-    }
-
-    let source_doc = read_doc_from_disk(&source_doc_path, &options.slug).await?;
-
-    // Determine new slug
-    let new_slug = match options.new_slug {
-        Some(ref s) if !s.trim().is_empty() => {
-            let slug = slugify(s);
-            validate_slug(&slug)?;
-            slug
-        }
-        _ => format!("{}-copy", options.slug),
-    };
-
-    // Validate new slug
-    validate_slug(&new_slug)?;
-
-    // Check for conflict in target project
-    let target_centy = get_centy_path(&options.target_project_path);
-    let target_docs_path = target_centy.join("docs");
-    fs::create_dir_all(&target_docs_path).await?;
-    let target_doc_path = target_docs_path.join(format!("{new_slug}.md"));
-
-    if target_doc_path.exists() {
-        return Err(DocError::SlugAlreadyExists(new_slug));
-    }
-
-    // Prepare new title
-    let new_title = options
-        .new_title
-        .unwrap_or_else(|| format!("Copy of {}", source_doc.title));
-
-    // Create new metadata with fresh timestamps
-    let new_metadata = DocMetadata::new();
-
-    // Generate new doc content
-    let doc_content = generate_doc_content(&new_title, &source_doc.content, &new_metadata);
-    fs::write(&target_doc_path, &doc_content).await?;
-
-    // Update target manifest
-    update_manifest(&mut target_manifest);
-    write_manifest(&options.target_project_path, &target_manifest).await?;
-
-    // Read the new doc
-    let new_doc = read_doc_from_disk(&target_doc_path, &new_slug).await?;
-
-    Ok(DuplicateDocResult {
-        doc: new_doc,
-        original_slug: options.slug,
-        manifest: target_manifest,
     })
 }
 

@@ -15,7 +15,8 @@ use tokio::fs;
 
 use super::reconcile::get_next_display_number_generic;
 use super::types::{
-    CreateGenericItemOptions, GenericFrontmatter, GenericItem, UpdateGenericItemOptions,
+    CreateGenericItemOptions, DuplicateGenericItemOptions, DuplicateGenericItemResult,
+    GenericFrontmatter, GenericItem, UpdateGenericItemOptions,
 };
 
 /// Get the storage directory for a given item type.
@@ -462,6 +463,124 @@ pub async fn generic_restore(
 
     update_project_manifest(project_path).await?;
 
+    Ok(())
+}
+
+/// Duplicate an item to the same or different project.
+///
+/// Creates a copy of the item with a new ID and fresh timestamps.
+/// For UUID-identified types, a new UUID is generated.
+/// For slug-identified types, the default new ID is `"{id}-copy"`.
+/// Assets are copied if `config.features.assets` is enabled.
+pub async fn generic_duplicate(
+    config: &ItemTypeConfig,
+    options: DuplicateGenericItemOptions,
+) -> Result<DuplicateGenericItemResult, ItemError> {
+    // Read source item
+    let source_item = generic_get(&options.source_project_path, config, &options.item_id).await?;
+
+    // Generate new ID
+    let new_id = match options.new_id {
+        Some(ref id) if !id.is_empty() => {
+            if config.identifier == "slug" {
+                slug::slugify(id)
+            } else {
+                id.clone()
+            }
+        }
+        _ => {
+            if config.identifier == "slug" {
+                format!("{}-copy", options.item_id)
+            } else {
+                uuid::Uuid::new_v4().to_string()
+            }
+        }
+    };
+
+    // Check for existing item in target
+    let target_storage = type_storage_path(&options.target_project_path, config);
+    fs::create_dir_all(&target_storage).await?;
+    let target_file = target_storage.join(format!("{new_id}.md"));
+    if target_file.exists() {
+        return Err(ItemError::AlreadyExists(new_id));
+    }
+
+    // Validate status/priority against config (covers cross-project validation)
+    if let Some(ref status) = source_item.frontmatter.status {
+        validate_status(config, status)?;
+    }
+    if let Some(priority) = source_item.frontmatter.priority {
+        validate_priority(config, priority)?;
+    }
+
+    // Assign display number if enabled
+    let display_number = if config.features.display_number {
+        Some(get_next_display_number_generic(&target_storage).await?)
+    } else {
+        None
+    };
+
+    // Prepare title
+    let new_title = options
+        .new_title
+        .unwrap_or_else(|| format!("Copy of {}", source_item.title));
+
+    // Create new frontmatter with fresh timestamps
+    let now = now_iso();
+    let frontmatter = GenericFrontmatter {
+        display_number,
+        status: source_item.frontmatter.status.clone(),
+        priority: source_item.frontmatter.priority,
+        created_at: now.clone(),
+        updated_at: now,
+        deleted_at: None,
+        custom_fields: source_item.frontmatter.custom_fields.clone(),
+    };
+
+    // Write new item file
+    let content = generate_frontmatter(&frontmatter, &new_title, &source_item.body);
+    fs::write(&target_file, &content).await?;
+
+    // Copy assets if enabled
+    if config.features.assets {
+        let source_assets = type_storage_path(&options.source_project_path, config)
+            .join("assets")
+            .join(&options.item_id);
+        let target_assets = target_storage.join("assets").join(&new_id);
+        if source_assets.exists() {
+            fs::create_dir_all(&target_assets).await?;
+            copy_directory(&source_assets, &target_assets).await?;
+        }
+    }
+
+    // Update target manifest
+    update_project_manifest(&options.target_project_path).await?;
+
+    Ok(DuplicateGenericItemResult {
+        item: GenericItem {
+            id: new_id,
+            item_type: config.plural.clone(),
+            title: new_title,
+            body: source_item.body,
+            frontmatter,
+        },
+        original_id: options.item_id,
+    })
+}
+
+/// Copy all files from one directory to another.
+async fn copy_directory(source: &Path, target: &Path) -> Result<(), ItemError> {
+    let mut entries = fs::read_dir(source).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        let file_type = entry.file_type().await?;
+        let target_path = target.join(entry.file_name());
+        if file_type.is_file() {
+            fs::copy(entry.path(), &target_path).await?;
+        } else if file_type.is_dir() {
+            fs::create_dir_all(&target_path).await?;
+            Box::pin(copy_directory(&entry.path(), &target_path)).await?;
+        }
+    }
     Ok(())
 }
 

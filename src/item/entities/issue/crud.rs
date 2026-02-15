@@ -1,5 +1,5 @@
 use super::assets::copy_assets_folder;
-use super::id::{generate_issue_id, is_uuid, is_valid_issue_file, is_valid_issue_folder};
+use super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
 use super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::planning::{
     add_planning_note, has_planning_note, is_planning_status, remove_planning_note,
@@ -181,23 +181,6 @@ pub struct MoveIssueResult {
     pub old_display_number: u32,
     pub source_manifest: CentyManifest,
     pub target_manifest: CentyManifest,
-}
-
-/// Options for duplicating an issue
-#[derive(Debug, Clone)]
-pub struct DuplicateIssueOptions {
-    pub source_project_path: PathBuf,
-    pub target_project_path: PathBuf,
-    pub issue_id: String,
-    pub new_title: Option<String>,
-}
-
-/// Result of duplicating an issue
-#[derive(Debug, Clone)]
-pub struct DuplicateIssueResult {
-    pub issue: Issue,
-    pub original_issue_id: String,
-    pub manifest: CentyManifest,
 }
 
 /// Get a single issue by its number
@@ -1051,140 +1034,6 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         old_display_number,
         source_manifest,
         target_manifest,
-    })
-}
-
-/// Duplicate an issue to the same or different project
-///
-/// Creates a copy of the issue with a new UUID and display number.
-/// Assets are copied to the new issue folder.
-///
-/// # Arguments
-/// * `options` - Duplicate options specifying source, target, issue ID, and optional new title
-///
-/// # Returns
-/// The new duplicate issue with the original issue ID for reference
-pub async fn duplicate_issue(
-    options: DuplicateIssueOptions,
-) -> Result<DuplicateIssueResult, IssueCrudError> {
-    // Validate source project is initialized
-    read_manifest(&options.source_project_path)
-        .await?
-        .ok_or(IssueCrudError::NotInitialized)?;
-
-    // Validate target project is initialized
-    let mut target_manifest = read_manifest(&options.target_project_path)
-        .await?
-        .ok_or(IssueCrudError::TargetNotInitialized)?;
-
-    // Read source issue (supports both formats)
-    let source_centy = get_centy_path(&options.source_project_path);
-    let source_issues_path = source_centy.join("issues");
-    let source_file_path = source_issues_path.join(format!("{}.md", &options.issue_id));
-    let source_folder_path = source_issues_path.join(&options.issue_id);
-
-    let (source_is_new_format, source_issue) = if source_file_path.exists() {
-        (
-            true,
-            read_issue_from_frontmatter(&source_file_path, &options.issue_id).await?,
-        )
-    } else if source_folder_path.exists() {
-        (
-            false,
-            read_issue_from_legacy_folder(&source_folder_path, &options.issue_id).await?,
-        )
-    } else {
-        return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
-    };
-
-    // Read target config for priority validation (if different project)
-    if options.source_project_path != options.target_project_path {
-        let target_config = read_config(&options.target_project_path)
-            .await
-            .ok()
-            .flatten();
-        let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
-
-        // Validate priority is within target's range
-        if source_issue.metadata.priority > target_priority_levels {
-            return Err(IssueCrudError::InvalidPriorityInTarget(
-                source_issue.metadata.priority,
-            ));
-        }
-
-        // Status validation: reject if status is not valid in target project
-        if let Some(ref config) = target_config {
-            validate_status(&source_issue.metadata.status, &config.allowed_states)?;
-        }
-    }
-
-    // Generate new UUID for the duplicate
-    let new_id = generate_issue_id();
-
-    // Get next display number in target project
-    let target_centy = get_centy_path(&options.target_project_path);
-    let target_issues_path = target_centy.join("issues");
-    fs::create_dir_all(&target_issues_path).await?;
-    let new_display_number = get_next_display_number(&target_issues_path).await?;
-
-    // Prepare new title
-    let new_title = options
-        .new_title
-        .unwrap_or_else(|| format!("Copy of {}", source_issue.title));
-
-    // Create new frontmatter
-    // Note: Duplicating an org issue creates a local copy, not an org issue
-    let now = now_iso();
-    let frontmatter = IssueFrontmatter {
-        display_number: new_display_number,
-        status: source_issue.metadata.status.clone(),
-        priority: source_issue.metadata.priority,
-        created_at: now.clone(),
-        updated_at: now,
-        draft: source_issue.metadata.draft,
-        deleted_at: None,    // New duplicate is not deleted
-        is_org_issue: false, // Duplicate is always a local copy
-        org_slug: None,
-        org_display_number: None,
-        custom_fields: source_issue.metadata.custom_fields.clone(),
-    };
-
-    // Write new issue in frontmatter format
-    // If source issue is in planning status, add planning note
-    let body = if is_planning_status(&source_issue.metadata.status) {
-        add_planning_note(&source_issue.description)
-    } else {
-        source_issue.description.clone()
-    };
-    let target_issue_file = target_issues_path.join(format!("{new_id}.md"));
-    let issue_content = generate_frontmatter(&frontmatter, &new_title, &body);
-    fs::write(&target_issue_file, &issue_content).await?;
-
-    // Copy assets to new location
-    let source_assets_path = if source_is_new_format {
-        source_issues_path.join("assets").join(&options.issue_id)
-    } else {
-        source_folder_path.join("assets")
-    };
-    let target_assets_path = target_issues_path.join("assets").join(&new_id);
-    if source_assets_path.exists() {
-        fs::create_dir_all(&target_assets_path).await?;
-        copy_assets_folder(&source_assets_path, &target_assets_path)
-            .await
-            .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
-    }
-
-    // Update target manifest
-    update_manifest(&mut target_manifest);
-    write_manifest(&options.target_project_path, &target_manifest).await?;
-
-    // Read the new issue
-    let new_issue = read_issue_from_frontmatter(&target_issue_file, &new_id).await?;
-
-    Ok(DuplicateIssueResult {
-        issue: new_issue,
-        original_issue_id: options.issue_id,
-        manifest: target_manifest,
     })
 }
 
