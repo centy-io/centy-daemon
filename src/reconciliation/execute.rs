@@ -103,14 +103,11 @@ pub async fn execute_reconciliation(
         result.created.push("config.json".to_string());
     }
 
-    // Migration: Insert config.yaml into item type folders (schema_version 1 -> 2)
-    if manifest.schema_version < 2 {
-        let config = read_config(project_path).await?.unwrap_or_default();
-        let migrated = migrate_to_item_type_configs(project_path, &config).await?;
-        for path in migrated {
-            result.created.push(path);
-        }
-        manifest.schema_version = 2;
+    // Create config.yaml for item type folders if they don't exist
+    let config = read_config(project_path).await?.unwrap_or_default();
+    let migrated = migrate_to_item_type_configs(project_path, &config).await?;
+    for path in migrated {
+        result.created.push(path);
     }
 
     // Update manifest timestamp and version
@@ -308,7 +305,7 @@ mod tests {
         assert!(manifest_path.exists());
 
         // Result should have manifest populated
-        assert_eq!(result.manifest.schema_version, 2);
+        assert_eq!(result.manifest.schema_version, 1);
         assert!(!result.manifest.centy_version.is_empty());
     }
 

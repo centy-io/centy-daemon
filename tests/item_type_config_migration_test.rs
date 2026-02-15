@@ -4,13 +4,12 @@
 mod common;
 
 use centy_daemon::config::item_type_config::{read_item_type_config, write_item_type_config};
-use centy_daemon::manifest::read_manifest;
-use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use centy_daemon::CentyConfig;
+use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use common::create_test_dir;
 use tokio::fs;
 
-/// Fresh project: reconciliation creates both config.yaml files with defaults, schema_version = 2
+/// Fresh project: reconciliation creates both config.yaml files with defaults
 #[tokio::test]
 async fn test_fresh_project_creates_both_config_yaml() {
     let temp_dir = create_test_dir();
@@ -35,13 +34,6 @@ async fn test_fresh_project_creates_both_config_yaml() {
     let centy_path = project_path.join(".centy");
     assert!(centy_path.join("issues").join("config.yaml").exists());
     assert!(centy_path.join("docs").join("config.yaml").exists());
-
-    // Manifest should be schema_version 2
-    let manifest = read_manifest(project_path)
-        .await
-        .expect("Should read manifest")
-        .expect("Manifest should exist");
-    assert_eq!(manifest.schema_version, 2);
 
     // Verify issues config content
     let issue_config = read_item_type_config(project_path, "issues")
@@ -80,8 +72,7 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         .await
         .expect("Should init");
 
-    // Remove the generated config.yaml files and revert manifest to v1
-    // to simulate a pre-migration project with custom config.json
+    // Remove the generated config.yaml files to simulate a pre-existing project
     fs::remove_file(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("remove issues/config.yaml");
@@ -104,16 +95,7 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         .await
         .expect("write config");
 
-    // Revert manifest schema_version to 1
-    let manifest_content = fs::read_to_string(centy_path.join(".centy-manifest.json"))
-        .await
-        .expect("read manifest");
-    let updated_manifest = manifest_content.replace("\"schemaVersion\": 2", "\"schemaVersion\": 1");
-    fs::write(centy_path.join(".centy-manifest.json"), updated_manifest)
-        .await
-        .expect("write manifest");
-
-    // Run reconciliation again
+    // Run reconciliation again — should recreate missing config.yaml files
     let decisions = ReconciliationDecisions::default();
     let result = execute_reconciliation(project_path, decisions, false)
         .await
@@ -168,23 +150,18 @@ async fn test_migration_idempotent() {
 
     // config.yaml should NOT appear in created on second run
     assert!(
-        !result2.created.contains(&"issues/config.yaml".to_string()),
+        !result2
+            .created
+            .contains(&"issues/config.yaml".to_string()),
         "issues/config.yaml should not be re-created"
     );
     assert!(
         !result2.created.contains(&"docs/config.yaml".to_string()),
         "docs/config.yaml should not be re-created"
     );
-
-    // Manifest should still be v2
-    let manifest = read_manifest(project_path)
-        .await
-        .expect("read manifest")
-        .expect("manifest exists");
-    assert_eq!(manifest.schema_version, 2);
 }
 
-/// Preserves existing config.yaml: pre-create a custom config.yaml, run migration, verify untouched
+/// Preserves existing config.yaml: pre-create a custom config.yaml, run reconciliation, verify untouched
 #[tokio::test]
 async fn test_preserves_existing_config_yaml() {
     let temp_dir = create_test_dir();
@@ -213,7 +190,9 @@ async fn test_preserves_existing_config_yaml() {
 
     // issues/config.yaml should NOT be in created (it already existed)
     assert!(
-        !result.created.contains(&"issues/config.yaml".to_string()),
+        !result
+            .created
+            .contains(&"issues/config.yaml".to_string()),
         "Should not overwrite existing issues/config.yaml"
     );
 
@@ -224,28 +203,24 @@ async fn test_preserves_existing_config_yaml() {
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("read");
-    assert_eq!(
-        content, custom_yaml,
-        "Custom config.yaml should be preserved"
-    );
+    assert_eq!(content, custom_yaml, "Custom config.yaml should be preserved");
 }
 
-/// Pre-migration project: simulate a real project (manifest v1, issues/, docs/, config.json
+/// Pre-existing project: simulate a real project (issues/, docs/, config.json
 /// with custom states, some .md files), run reconciliation, verify config.yaml created
 /// and existing files untouched
 #[tokio::test]
-async fn test_pre_migration_project() {
+async fn test_pre_existing_project() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
     let centy_path = project_path.join(".centy");
 
-    // Simulate a v1 project by initializing then downgrading schema_version
+    // Initialize then remove config.yaml files to simulate pre-existing project
     let decisions = ReconciliationDecisions::default();
     execute_reconciliation(project_path, decisions, false)
         .await
         .expect("initial setup");
 
-    // Remove generated config.yaml files
     fs::remove_file(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("remove issues/config.yaml");
@@ -282,15 +257,6 @@ async fn test_pre_migration_project() {
         .await
         .expect("write config");
 
-    // Downgrade manifest to schema_version 1
-    let manifest_content = fs::read_to_string(centy_path.join(".centy-manifest.json"))
-        .await
-        .expect("read manifest");
-    let updated = manifest_content.replace("\"schemaVersion\": 2", "\"schemaVersion\": 1");
-    fs::write(centy_path.join(".centy-manifest.json"), updated)
-        .await
-        .expect("write manifest");
-
     // Run reconciliation
     let decisions = ReconciliationDecisions::default();
     let result = execute_reconciliation(project_path, decisions, false)
@@ -322,13 +288,6 @@ async fn test_pre_migration_project() {
         vec!["open", "in-progress", "review", "closed"]
     );
     assert_eq!(issue_config.priority_levels, Some(4));
-
-    // Schema version should be 2
-    let manifest = read_manifest(project_path)
-        .await
-        .expect("read manifest")
-        .expect("manifest exists");
-    assert_eq!(manifest.schema_version, 2);
 }
 
 /// Verify that write_item_type_config + read_item_type_config roundtrips correctly
@@ -341,12 +300,10 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
         .await
         .expect("create dir");
 
-    let config = CentyConfig {
-        priority_levels: 7,
-        allowed_states: vec!["open".to_string(), "done".to_string()],
-        default_state: "open".to_string(),
-        ..Default::default()
-    };
+    let mut config = CentyConfig::default();
+    config.priority_levels = 7;
+    config.allowed_states = vec!["open".to_string(), "done".to_string()];
+    config.default_state = "open".to_string();
 
     let issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
     write_item_type_config(project_path, "issues", &issue_config)
