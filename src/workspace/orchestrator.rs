@@ -24,8 +24,8 @@ use super::path::{
 };
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::WorkspaceError;
-use crate::item::entities::issue::Issue;
 use crate::common::git::is_git_repository;
+use crate::item::entities::issue::Issue;
 use crate::utils::now_iso;
 use std::path::{Path, PathBuf};
 use tracing::{info, warn};

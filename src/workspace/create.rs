@@ -29,8 +29,8 @@ use super::storage::{
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::vscode::setup_vscode_config;
 use super::WorkspaceError;
-use crate::item::entities::issue::Issue;
 use crate::common::git::{create_worktree, is_git_repository, prune_worktrees};
+use crate::item::entities::issue::Issue;
 use crate::utils::now_iso;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;

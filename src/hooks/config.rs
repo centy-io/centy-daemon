@@ -131,10 +131,8 @@ impl ParsedPattern {
         })?;
 
         let phase = Self::parse_segment(phase_str, &["pre", "post"])?;
-        let item_type = Self::parse_segment(
-            item_type_str,
-            &["issue", "doc", "user", "link", "asset"],
-        )?;
+        let item_type =
+            Self::parse_segment(item_type_str, &["issue", "doc", "user", "link", "asset"])?;
         let operation = Self::parse_segment(
             operation_str,
             &[
