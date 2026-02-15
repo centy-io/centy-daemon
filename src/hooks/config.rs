@@ -52,7 +52,6 @@ impl Phase {
 pub enum HookItemType {
     Issue,
     Doc,
-    Pr,
     User,
     Link,
     Asset,
@@ -63,7 +62,6 @@ impl HookItemType {
         match self {
             HookItemType::Issue => "issue",
             HookItemType::Doc => "doc",
-            HookItemType::Pr => "pr",
             HookItemType::User => "user",
             HookItemType::Link => "link",
             HookItemType::Asset => "asset",
@@ -133,10 +131,8 @@ impl ParsedPattern {
         })?;
 
         let phase = Self::parse_segment(phase_str, &["pre", "post"])?;
-        let item_type = Self::parse_segment(
-            item_type_str,
-            &["issue", "doc", "pr", "user", "link", "asset"],
-        )?;
+        let item_type =
+            Self::parse_segment(item_type_str, &["issue", "doc", "user", "link", "asset"])?;
         let operation = Self::parse_segment(
             operation_str,
             &[
@@ -274,7 +270,6 @@ mod tests {
         let p = ParsedPattern::parse("pre:*:create").unwrap();
         assert!(p.matches(Phase::Pre, HookItemType::Issue, HookOperation::Create));
         assert!(p.matches(Phase::Pre, HookItemType::Doc, HookOperation::Create));
-        assert!(p.matches(Phase::Pre, HookItemType::Pr, HookOperation::Create));
         assert!(!p.matches(Phase::Post, HookItemType::Issue, HookOperation::Create));
     }
 
@@ -325,9 +320,6 @@ mod tests {
 
         let p = ParsedPattern::parse("pre:user:create").unwrap();
         assert!(p.matches(Phase::Pre, HookItemType::User, HookOperation::Create));
-
-        let p = ParsedPattern::parse("pre:pr:create").unwrap();
-        assert!(p.matches(Phase::Pre, HookItemType::Pr, HookOperation::Create));
     }
 
     // --- Phase tests ---
@@ -351,7 +343,6 @@ mod tests {
     fn test_hook_item_type_as_str() {
         assert_eq!(HookItemType::Issue.as_str(), "issue");
         assert_eq!(HookItemType::Doc.as_str(), "doc");
-        assert_eq!(HookItemType::Pr.as_str(), "pr");
         assert_eq!(HookItemType::User.as_str(), "user");
         assert_eq!(HookItemType::Link.as_str(), "link");
         assert_eq!(HookItemType::Asset.as_str(), "asset");
