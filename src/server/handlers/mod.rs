@@ -31,6 +31,7 @@ pub mod item_list;
 pub mod item_read;
 pub mod item_restore;
 pub mod item_soft_delete;
+pub mod item_type_create;
 pub mod item_type_resolve;
 pub mod item_update;
 pub mod link_create;
