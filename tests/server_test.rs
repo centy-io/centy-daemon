@@ -160,34 +160,11 @@ async fn test_doc_create_get_roundtrip() {
 fn test_config_allowed_states_not_empty() {
     let config = CentyConfig {
         allowed_states: vec![],
-        default_state: "open".to_string(),
         ..Default::default()
     };
 
     // This would fail validation - allowed_states is empty
     assert!(config.allowed_states.is_empty());
-}
-
-#[test]
-fn test_config_default_state_in_allowed() {
-    let config = CentyConfig {
-        allowed_states: vec!["open".to_string(), "closed".to_string()],
-        default_state: "open".to_string(),
-        ..Default::default()
-    };
-
-    assert!(config.allowed_states.contains(&config.default_state));
-}
-
-#[test]
-fn test_config_default_state_not_in_allowed() {
-    let config = CentyConfig {
-        allowed_states: vec!["open".to_string(), "closed".to_string()],
-        default_state: "pending".to_string(),
-        ..Default::default()
-    };
-
-    assert!(!config.allowed_states.contains(&config.default_state));
 }
 
 #[test]

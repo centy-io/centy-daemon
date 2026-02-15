@@ -54,11 +54,6 @@ fn default_allowed_states() -> Vec<String> {
     ]
 }
 
-/// Default state for new issues
-fn default_state() -> String {
-    "open".to_string()
-}
-
 /// Workspace configuration section
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,9 +85,6 @@ pub struct CentyConfig {
     /// Allowed status values for issues (default: `["open", "planning", "in-progress", "closed"]`)
     #[serde(default = "default_allowed_states")]
     pub allowed_states: Vec<String>,
-    /// Default state for new issues (default: "open")
-    #[serde(default = "default_state")]
-    pub default_state: String,
     /// State colors: state name → hex color (e.g., "open" → "#10b981")
     #[serde(default)]
     pub state_colors: HashMap<String, String>,
@@ -132,7 +124,6 @@ impl Default for CentyConfig {
             custom_fields: Vec::new(),
             defaults: HashMap::new(),
             allowed_states: default_allowed_states(),
-            default_state: default_state(),
             state_colors: HashMap::new(),
             priority_colors: HashMap::new(),
             custom_link_types: Vec::new(),
@@ -171,6 +162,13 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
     // Check if normalization is needed (e.g. missing "hooks" key)
     if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
         needs_write = true;
+    }
+
+    // Remove deprecated defaultState (now lives in per-item-type config.yaml)
+    if let Some(obj) = raw.as_object_mut() {
+        if obj.remove("defaultState").is_some() {
+            needs_write = true;
+        }
     }
 
     // Unflatten for serde deserialization (serde expects nested objects)
@@ -272,11 +270,6 @@ mod tests {
     }
 
     #[test]
-    fn test_default_state() {
-        assert_eq!(default_state(), "open");
-    }
-
-    #[test]
     fn test_centy_config_default() {
         let config = CentyConfig::default();
 
@@ -285,7 +278,6 @@ mod tests {
         assert!(config.custom_fields.is_empty());
         assert!(config.defaults.is_empty());
         assert_eq!(config.allowed_states.len(), 4);
-        assert_eq!(config.default_state, "open");
         assert!(config.state_colors.is_empty());
         assert!(config.priority_colors.is_empty());
         assert!(config.custom_link_types.is_empty());
@@ -314,14 +306,12 @@ mod tests {
         let mut config = CentyConfig::default();
         config.version = Some("1.2.3".to_string());
         config.priority_levels = 5;
-        config.default_state = "in-progress".to_string();
 
         let json = serde_json::to_string(&config).expect("Should serialize");
         let deserialized: CentyConfig = serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(deserialized.version, Some("1.2.3".to_string()));
         assert_eq!(deserialized.priority_levels, 5);
-        assert_eq!(deserialized.default_state, "in-progress");
     }
 
     #[test]
@@ -333,7 +323,6 @@ mod tests {
         assert!(json.contains("priorityLevels"));
         assert!(json.contains("customFields"));
         assert!(json.contains("allowedStates"));
-        assert!(json.contains("defaultState"));
         assert!(json.contains("stateColors"));
         assert!(json.contains("priorityColors"));
 
@@ -573,16 +562,20 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json in flat format WITH the hooks key
+        // Write a config.json in flat format WITH the hooks key (no deprecated fields)
         let config_with_hooks = r#"{
-  "priorityLevels": 3,
+  "allowedStates": [
+    "open",
+    "planning",
+    "in-progress",
+    "closed"
+  ],
   "customFields": [],
   "defaults": {},
-  "allowedStates": ["open", "planning", "in-progress", "closed"],
-  "defaultState": "open",
-  "stateColors": {},
+  "hooks": [],
   "priorityColors": {},
-  "hooks": []
+  "priorityLevels": 3,
+  "stateColors": {}
 }"#;
         let config_path = centy_dir.join("config.json");
         fs::write(&config_path, config_with_hooks)

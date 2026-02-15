@@ -38,13 +38,12 @@ describe('gRPC: Config Operations', () => {
       expect(config.allowedStates).toContain('closed');
     });
 
-    it('should have default state', async () => {
+    it('should have allowed states', async () => {
       const config = await project.client.getConfig({
         projectPath: project.path,
       });
 
-      expect(config.defaultState).toBeDefined();
-      expect(config.allowedStates).toContain(config.defaultState);
+      expect(config.allowedStates.length).toBeGreaterThan(0);
     });
   });
 
@@ -52,7 +51,6 @@ describe('gRPC: Config Operations', () => {
     // Base config required by the daemon (allowedStates must not be empty)
     const baseConfig = {
       allowedStates: ['open', 'in-progress', 'closed'],
-      defaultState: 'open',
       priorityLevels: 3,
     };
 
@@ -77,7 +75,6 @@ describe('gRPC: Config Operations', () => {
         config: {
           ...baseConfig,
           allowedStates: newStates,
-          defaultState: 'todo',
         },
       });
 

@@ -795,7 +795,6 @@ export interface Config {
   defaults: Record<string, string>;
   priorityLevels: number;
   allowedStates: string[];
-  defaultState: string;
   version: string;
   stateColors: Record<string, string>;
   priorityColors: Record<string, string>;
@@ -1021,7 +1020,6 @@ export interface DeleteOrgIssueResponse {
 export interface OrgConfig {
   priorityLevels: number;
   allowedStates: string[];
-  defaultState: string;
   customFields: CustomFieldDefinition[];
 }
 

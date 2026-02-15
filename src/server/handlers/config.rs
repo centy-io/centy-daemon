@@ -29,7 +29,6 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                     "in-progress".to_string(),
                     "closed".to_string(),
                 ],
-                default_state: "open".to_string(),
                 version: crate::utils::CENTY_VERSION.to_string(),
                 state_colors: std::collections::HashMap::new(),
                 priority_colors: std::collections::HashMap::new(),

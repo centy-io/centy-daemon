@@ -649,7 +649,7 @@ message Config {
   map<string, string> defaults = 2;
   int32 priority_levels = 3;      // Number of priority levels (default: 3)
   repeated string allowed_states = 4;  // Allowed status values (default: ["open", "in-progress", "closed"])
-  string default_state = 5;            // Default state for new issues (default: "open")
+  reserved 5;  // Previously: string default_state (moved to per-item-type config.yaml)
   string version = 6;                  // Project version (semver, empty = daemon default)
   map<string, string> state_colors = 7;     // State name → hex color (e.g., "open" → "#10b981")
   map<string, string> priority_colors = 8;  // Priority level → hex color (e.g., "1" → "#ef4444")
