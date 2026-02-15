@@ -122,9 +122,7 @@ pub async fn write_item_type_config(
 /// Returns a list of `ItemTypeConfig` for each subdirectory that contains
 /// a valid `config.yaml`.
 #[allow(dead_code)] // Public API for future use
-pub async fn discover_item_types(
-    project_path: &Path,
-) -> Result<Vec<ItemTypeConfig>, ConfigError> {
+pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConfig>, ConfigError> {
     let centy_path = get_centy_path(project_path);
     if !centy_path.exists() {
         return Ok(Vec::new());

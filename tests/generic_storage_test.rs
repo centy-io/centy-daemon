@@ -10,23 +10,23 @@
 
 mod common;
 
-use centy_daemon::item::core::crud::ItemFilters;
-use centy_daemon::item::core::error::ItemError;
-use centy_daemon::item::generic::storage::{
-    generic_create, generic_delete, generic_get, generic_list, generic_restore,
-    generic_soft_delete, generic_update,
-};
-use centy_daemon::item::generic::reconcile::{
-    get_next_display_number_generic, reconcile_display_numbers_generic,
-};
-use centy_daemon::item::generic::types::{
-    CreateGenericItemOptions, GenericFrontmatter, UpdateGenericItemOptions,
-};
 use centy_daemon::config::item_type_config::{
     default_doc_config, default_issue_config, discover_item_types, read_item_type_config,
     ItemTypeConfig, ItemTypeFeatures,
 };
 use centy_daemon::config::CentyConfig;
+use centy_daemon::item::core::crud::ItemFilters;
+use centy_daemon::item::core::error::ItemError;
+use centy_daemon::item::generic::reconcile::{
+    get_next_display_number_generic, reconcile_display_numbers_generic,
+};
+use centy_daemon::item::generic::storage::{
+    generic_create, generic_delete, generic_get, generic_list, generic_restore,
+    generic_soft_delete, generic_update,
+};
+use centy_daemon::item::generic::types::{
+    CreateGenericItemOptions, GenericFrontmatter, UpdateGenericItemOptions,
+};
 use common::create_test_dir;
 use std::collections::HashMap;
 use tokio::fs;
@@ -512,22 +512,14 @@ async fn test_list_filters() {
     }
 
     // Filter by status
-    let open = generic_list(
-        path,
-        &config,
-        ItemFilters::new().with_status("open"),
-    )
-    .await
-    .unwrap();
+    let open = generic_list(path, &config, ItemFilters::new().with_status("open"))
+        .await
+        .unwrap();
     assert_eq!(open.len(), 3);
 
-    let closed = generic_list(
-        path,
-        &config,
-        ItemFilters::new().with_status("closed"),
-    )
-    .await
-    .unwrap();
+    let closed = generic_list(path, &config, ItemFilters::new().with_status("closed"))
+        .await
+        .unwrap();
     assert_eq!(closed.len(), 2);
 
     // Filter by priority
@@ -773,10 +765,7 @@ async fn test_read_config() {
         .await
         .unwrap();
 
-    let loaded = read_item_type_config(path, "epics")
-        .await
-        .unwrap()
-        .unwrap();
+    let loaded = read_item_type_config(path, "epics").await.unwrap().unwrap();
     assert_eq!(loaded.name, "Epic");
     assert!(loaded.features.display_number);
     assert!(!loaded.features.priority);
@@ -885,16 +874,16 @@ async fn test_reconcile_display_numbers_with_conflicts() {
     let content = fs::read_to_string(storage_path.join("item-a.md"))
         .await
         .unwrap();
-    let (fm, _, _) = centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content)
-        .unwrap();
+    let (fm, _, _) =
+        centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content).unwrap();
     assert_eq!(fm.display_number, Some(1));
 
     // Item B (newer) should get display_number 3 (max was 2, next is 3)
     let content = fs::read_to_string(storage_path.join("item-b.md"))
         .await
         .unwrap();
-    let (fm, _, _) = centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content)
-        .unwrap();
+    let (fm, _, _) =
+        centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content).unwrap();
     assert_eq!(fm.display_number, Some(3));
 }
 
@@ -1076,7 +1065,9 @@ async fn test_delete_without_soft_delete_does_hard_delete() {
     .unwrap();
 
     // Even without force=true, should hard delete since soft_delete is disabled
-    generic_delete(path, &config, &item.id, false).await.unwrap();
+    generic_delete(path, &config, &item.id, false)
+        .await
+        .unwrap();
     let result = generic_get(path, &config, &item.id).await;
     assert!(matches!(result, Err(ItemError::NotFound(_))));
 }

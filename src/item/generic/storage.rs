@@ -4,9 +4,9 @@
 //! generically across any item type.
 
 use crate::common::frontmatter::{generate_frontmatter, parse_frontmatter};
+use crate::config::item_type_config::ItemTypeConfig;
 use crate::item::core::crud::ItemFilters;
 use crate::item::core::error::ItemError;
-use crate::config::item_type_config::ItemTypeConfig;
 use crate::manifest;
 use crate::utils::{get_centy_path, now_iso};
 use std::collections::HashMap;
@@ -24,11 +24,7 @@ fn type_storage_path(project_path: &Path, config: &ItemTypeConfig) -> std::path:
 }
 
 /// Get the file path for a specific item.
-fn item_file_path(
-    project_path: &Path,
-    config: &ItemTypeConfig,
-    id: &str,
-) -> std::path::PathBuf {
+fn item_file_path(project_path: &Path, config: &ItemTypeConfig, id: &str) -> std::path::PathBuf {
     type_storage_path(project_path, config).join(format!("{id}.md"))
 }
 
@@ -227,11 +223,10 @@ pub async fn generic_list(
             Err(_) => continue,
         };
 
-        let (frontmatter, title, body) =
-            match parse_frontmatter::<GenericFrontmatter>(&content) {
-                Ok(result) => result,
-                Err(_) => continue, // Skip malformed files
-            };
+        let (frontmatter, title, body) = match parse_frontmatter::<GenericFrontmatter>(&content) {
+            Ok(result) => result,
+            Err(_) => continue, // Skip malformed files
+        };
 
         items.push(GenericItem {
             id,
@@ -271,14 +266,14 @@ fn apply_filters(mut items: Vec<GenericItem>, filters: &ItemFilters) -> Vec<Gene
     }
 
     // Sort by display_number (if present), then by created_at
-    items.sort_by(|a, b| {
-        match (a.frontmatter.display_number, b.frontmatter.display_number) {
+    items.sort_by(
+        |a, b| match (a.frontmatter.display_number, b.frontmatter.display_number) {
             (Some(an), Some(bn)) => an.cmp(&bn),
             (Some(_), None) => std::cmp::Ordering::Less,
             (None, Some(_)) => std::cmp::Ordering::Greater,
             (None, None) => a.frontmatter.created_at.cmp(&b.frontmatter.created_at),
-        }
-    });
+        },
+    );
 
     // Apply offset
     if let Some(offset) = filters.offset {
@@ -334,9 +329,7 @@ pub async fn generic_update(
 
     // Merge custom fields
     for (key, value) in &options.custom_fields {
-        frontmatter
-            .custom_fields
-            .insert(key.clone(), value.clone());
+        frontmatter.custom_fields.insert(key.clone(), value.clone());
     }
 
     frontmatter.updated_at = now_iso();
@@ -643,7 +636,11 @@ mod tests {
         let config = default_issue_config(&CentyConfig::default());
 
         // Create multiple items
-        for (title, status) in [("Open 1", "open"), ("Open 2", "open"), ("Closed 1", "closed")] {
+        for (title, status) in [
+            ("Open 1", "open"),
+            ("Open 2", "open"),
+            ("Closed 1", "closed"),
+        ] {
             let options = CreateGenericItemOptions {
                 title: title.to_string(),
                 body: String::new(),
@@ -662,13 +659,9 @@ mod tests {
         assert_eq!(all.len(), 3);
 
         // List open only
-        let open = generic_list(
-            temp.path(),
-            &config,
-            ItemFilters::new().with_status("open"),
-        )
-        .await
-        .unwrap();
+        let open = generic_list(temp.path(), &config, ItemFilters::new().with_status("open"))
+            .await
+            .unwrap();
         assert_eq!(open.len(), 2);
 
         // List with limit

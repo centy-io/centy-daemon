@@ -32,9 +32,7 @@ fn is_item_file(name: &str) -> bool {
 /// Get the next available display number for a generic item type.
 ///
 /// Scans all `*.md` files in the type storage directory and returns max + 1.
-pub async fn get_next_display_number_generic(
-    type_storage_path: &Path,
-) -> Result<u32, ItemError> {
+pub async fn get_next_display_number_generic(type_storage_path: &Path) -> Result<u32, ItemError> {
     if !type_storage_path.exists() {
         return Ok(1);
     }
@@ -75,9 +73,7 @@ pub async fn get_next_display_number_generic(
 /// keeps its original number.
 ///
 /// Returns the number of items that were reassigned.
-pub async fn reconcile_display_numbers_generic(
-    type_storage_path: &Path,
-) -> Result<u32, ItemError> {
+pub async fn reconcile_display_numbers_generic(type_storage_path: &Path) -> Result<u32, ItemError> {
     if !type_storage_path.exists() {
         return Ok(0);
     }
