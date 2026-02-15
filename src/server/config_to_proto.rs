@@ -21,7 +21,6 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
         defaults: config.defaults.clone(),
         priority_levels: config.priority_levels as i32,
         allowed_states: config.allowed_states.clone(),
-        default_state: config.default_state.clone(),
         version: config.effective_version(),
         state_colors: config.state_colors.clone(),
         priority_colors: config.priority_colors.clone(),

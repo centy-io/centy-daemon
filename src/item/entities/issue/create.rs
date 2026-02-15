@@ -7,6 +7,7 @@ use super::priority::{default_priority, priority_label, validate_priority, Prior
 use super::reconcile::{get_next_display_number, ReconcileError};
 use super::status::{validate_status, StatusError};
 use crate::common::{generate_frontmatter, sync_to_org_projects, OrgSyncResult};
+use crate::config::item_type_config::read_item_type_config;
 use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::get_project_info;
@@ -214,10 +215,12 @@ pub async fn create_issue(
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
     let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
 
+    let item_type_config = read_item_type_config(project_path, "issues").await.ok().flatten();
     let status = options.status.clone().unwrap_or_else(|| {
-        config
+        item_type_config
             .as_ref()
-            .map_or_else(|| "open".to_string(), |c| c.default_state.clone())
+            .and_then(|c| c.default_status.clone())
+            .unwrap_or_else(|| "open".to_string())
     });
     if let Some(ref config) = config {
         validate_status(&status, &config.allowed_states)?;
