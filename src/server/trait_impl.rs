@@ -159,13 +159,6 @@ impl CentyDaemon for CentyDaemonService {
         }))
     }
 
-    async fn duplicate_issue(
-        &self,
-        request: Request<DuplicateIssueRequest>,
-    ) -> Result<Response<DuplicateIssueResponse>, Status> {
-        handlers::issue_duplicate::duplicate_issue(request.into_inner()).await
-    }
-
     async fn get_next_issue_number(
         &self,
         request: Request<GetNextIssueNumberRequest>,
@@ -303,13 +296,6 @@ impl CentyDaemon for CentyDaemonService {
             source_manifest: resp.source_manifest,
             target_manifest: resp.target_manifest,
         }))
-    }
-
-    async fn duplicate_doc(
-        &self,
-        request: Request<DuplicateDocRequest>,
-    ) -> Result<Response<DuplicateDocResponse>, Status> {
-        handlers::doc_duplicate::duplicate_doc_handler(request.into_inner()).await
     }
 
     async fn add_asset(
@@ -796,6 +782,19 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<RestoreItemResponse>, Status> {
         let _timer = OperationTimer::new("restore_item");
         handlers::item_restore::restore_item(request.into_inner()).await
+    }
+
+    #[instrument(
+        name = "grpc.duplicate_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn duplicate_item(
+        &self,
+        request: Request<DuplicateItemRequest>,
+    ) -> Result<Response<DuplicateItemResponse>, Status> {
+        let _timer = OperationTimer::new("duplicate_item");
+        handlers::item_duplicate::duplicate_item(request.into_inner()).await
     }
 
     #[instrument(
