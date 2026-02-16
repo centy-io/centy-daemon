@@ -7,10 +7,11 @@ use centy_daemon::config::item_type_config::default_issue_config;
 use centy_daemon::config::CentyConfig;
 use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::issue::{
-    create_issue, duplicate_issue, get_issue, is_uuid, list_issues, update_issue,
-    CreateIssueOptions, DuplicateIssueOptions, IssueCrudError, IssueError, UpdateIssueOptions,
+    create_issue, get_issue, is_uuid, list_issues, update_issue, CreateIssueOptions,
+    IssueCrudError, IssueError, UpdateIssueOptions,
 };
 use centy_daemon::item::generic::storage::{generic_delete, generic_move};
+use centy_daemon::item::generic::{generic_duplicate, DuplicateGenericItemOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 
@@ -894,25 +895,32 @@ async fn test_duplicate_issue_same_project() {
     .await
     .unwrap();
 
-    let result = duplicate_issue(DuplicateIssueOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        issue_id: original.id.clone(),
-        new_title: None,
-    })
+    let config = CentyConfig::default();
+    let item_type_config = default_issue_config(&config);
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: project_path.to_path_buf(),
+            target_project_path: project_path.to_path_buf(),
+            item_id: original.id.clone(),
+            new_id: None,
+            new_title: None,
+        },
+    )
     .await
     .expect("Should duplicate issue");
 
     // New UUID
-    assert_ne!(result.issue.id, original.id);
+    assert_ne!(result.item.id, original.id);
     // New display number
-    assert_eq!(result.issue.metadata.display_number, 2);
+    assert_eq!(result.item.frontmatter.display_number, Some(2));
     // Default title
-    assert_eq!(result.issue.title, "Copy of Original Issue");
+    assert_eq!(result.item.title, "Copy of Original Issue");
     // Same description
-    assert_eq!(result.issue.description, "Original description");
+    assert_eq!(result.item.body, "Original description");
     // Same priority
-    assert_eq!(result.issue.metadata.priority, 1);
+    assert_eq!(result.item.frontmatter.priority, Some(1));
 }
 
 #[tokio::test]
@@ -932,16 +940,23 @@ async fn test_duplicate_issue_with_custom_title() {
     .await
     .unwrap();
 
-    let result = duplicate_issue(DuplicateIssueOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        issue_id: original.id,
-        new_title: Some("Custom Title".to_string()),
-    })
+    let config = CentyConfig::default();
+    let item_type_config = default_issue_config(&config);
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: project_path.to_path_buf(),
+            target_project_path: project_path.to_path_buf(),
+            item_id: original.id,
+            new_id: None,
+            new_title: Some("Custom Title".to_string()),
+        },
+    )
     .await
     .unwrap();
 
-    assert_eq!(result.issue.title, "Custom Title");
+    assert_eq!(result.item.title, "Custom Title");
 }
 
 #[tokio::test]
@@ -964,12 +979,19 @@ async fn test_duplicate_issue_to_different_project() {
     .await
     .unwrap();
 
-    let result = duplicate_issue(DuplicateIssueOptions {
-        source_project_path: source_path.to_path_buf(),
-        target_project_path: target_path.to_path_buf(),
-        issue_id: original.id.clone(),
-        new_title: None,
-    })
+    let config = CentyConfig::default();
+    let item_type_config = default_issue_config(&config);
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: source_path.to_path_buf(),
+            target_project_path: target_path.to_path_buf(),
+            item_id: original.id.clone(),
+            new_id: None,
+            new_title: None,
+        },
+    )
     .await
     .unwrap();
 
@@ -978,11 +1000,11 @@ async fn test_duplicate_issue_to_different_project() {
     assert!(original_still_exists.is_ok());
 
     // Duplicate exists in target
-    let duplicate_exists = get_issue(target_path, &result.issue.id).await;
+    let duplicate_exists = get_issue(target_path, &result.item.id).await;
     assert!(duplicate_exists.is_ok());
 
     // Different UUIDs
-    assert_ne!(result.issue.id, original.id);
+    assert_ne!(result.item.id, original.id);
 }
 
 // ============ Planning State Tests ============
@@ -1217,26 +1239,33 @@ async fn test_duplicate_issue_preserves_planning_note() {
     .unwrap();
 
     // Duplicate it
-    let result = duplicate_issue(DuplicateIssueOptions {
-        source_project_path: project_path.to_path_buf(),
-        target_project_path: project_path.to_path_buf(),
-        issue_id: original.id.clone(),
-        new_title: None,
-    })
+    let config = CentyConfig::default();
+    let item_type_config = default_issue_config(&config);
+
+    let result = generic_duplicate(
+        &item_type_config,
+        DuplicateGenericItemOptions {
+            source_project_path: project_path.to_path_buf(),
+            target_project_path: project_path.to_path_buf(),
+            item_id: original.id.clone(),
+            new_id: None,
+            new_title: None,
+        },
+    )
     .await
     .expect("Should duplicate issue");
 
     // Verify duplicate has planning note (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &result.issue.id));
+        .join(format!("{}.md", &result.item.id));
     let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
         content.contains("> **Planning Mode**"),
         "Duplicate should have planning note"
     );
-    assert_eq!(result.issue.metadata.status, "planning");
+    assert_eq!(result.item.frontmatter.status.as_deref(), Some("planning"));
 }
 
 #[tokio::test]

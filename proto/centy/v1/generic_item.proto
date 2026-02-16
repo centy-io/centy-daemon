@@ -2,6 +2,14 @@ syntax = "proto3";
 
 package centy.v1;
 
+// Manifest is defined here so it can be shared by both generic_item.proto and centy.proto
+message Manifest {
+  int32 schema_version = 1;
+  string centy_version = 2;
+  string created_at = 3;
+  string updated_at = 4;
+}
+
 // ============ Generic Item Messages ============
 
 // A generic item that can represent any item type (issues, docs, custom types)
@@ -121,3 +129,19 @@ message RestoreItemResponse {
   GenericItem item = 3;                 // The restored item (with deleted_at cleared)
 }
 
+message DuplicateItemRequest {
+  string source_project_path = 1;       // Project containing the original item
+  string item_type = 2;                 // e.g., "issues", "docs", or custom type
+  string item_id = 3;                   // ID of the item to duplicate (UUID or slug)
+  string target_project_path = 4;       // Target project (can be same as source)
+  string new_id = 5;                    // Optional: override ID for the copy (for slug-identified types)
+  string new_title = 6;                 // Optional: override title (default: "Copy of {original}")
+}
+
+message DuplicateItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;                 // The new duplicate item
+  string original_id = 4;              // ID of the original item
+  Manifest manifest = 5;               // Updated target project manifest
+}
