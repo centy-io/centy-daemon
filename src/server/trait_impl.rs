@@ -118,7 +118,45 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<MoveIssueRequest>,
     ) -> Result<Response<MoveIssueResponse>, Status> {
-        handlers::issue_move::move_issue(request.into_inner()).await
+        let req = request.into_inner();
+        let source_path = std::path::Path::new(&req.source_project_path);
+        let target_path = std::path::Path::new(&req.target_project_path);
+        // Read old display number before the move
+        let old_display_number =
+            crate::item::entities::issue::get_issue(source_path, &req.issue_id)
+                .await
+                .map(|i| i.metadata.display_number)
+                .unwrap_or(0);
+        let move_req = MoveItemRequest {
+            source_project_path: req.source_project_path.clone(),
+            target_project_path: req.target_project_path.clone(),
+            item_type: "issues".to_string(),
+            item_id: req.issue_id.clone(),
+            new_id: String::new(),
+        };
+        let resp = handlers::item_move::move_item(move_req).await?.into_inner();
+        if !resp.success {
+            return Ok(Response::new(MoveIssueResponse {
+                success: false,
+                error: resp.error,
+                ..Default::default()
+            }));
+        }
+        // Read moved issue for entity-specific proto conversion
+        let target_config = crate::config::read_config(target_path).await.ok().flatten();
+        let priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
+        let issue = crate::item::entities::issue::get_issue(target_path, &req.issue_id)
+            .await
+            .ok()
+            .map(|i| super::convert_entity::issue_to_proto(&i, priority_levels));
+        Ok(Response::new(MoveIssueResponse {
+            success: true,
+            error: String::new(),
+            issue,
+            old_display_number,
+            source_manifest: resp.source_manifest,
+            target_manifest: resp.target_manifest,
+        }))
     }
 
     async fn duplicate_issue(
@@ -223,7 +261,48 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<MoveDocRequest>,
     ) -> Result<Response<MoveDocResponse>, Status> {
-        handlers::doc_move::move_doc_handler(request.into_inner()).await
+        let req = request.into_inner();
+        let old_slug = req.slug.clone();
+        let new_id = if req.new_slug.is_empty() {
+            String::new()
+        } else {
+            req.new_slug.clone()
+        };
+        let move_req = MoveItemRequest {
+            source_project_path: req.source_project_path.clone(),
+            target_project_path: req.target_project_path.clone(),
+            item_type: "docs".to_string(),
+            item_id: req.slug.clone(),
+            new_id,
+        };
+        let resp = handlers::item_move::move_item(move_req).await?.into_inner();
+        if !resp.success {
+            return Ok(Response::new(MoveDocResponse {
+                success: false,
+                error: resp.error,
+                old_slug,
+                ..Default::default()
+            }));
+        }
+        // Read moved doc for entity-specific proto conversion
+        let target_path = std::path::Path::new(&req.target_project_path);
+        let target_slug = if req.new_slug.is_empty() {
+            &req.slug
+        } else {
+            &req.new_slug
+        };
+        let doc = crate::item::entities::doc::get_doc(target_path, target_slug)
+            .await
+            .ok()
+            .map(|d| super::convert_entity::doc_to_proto(&d));
+        Ok(Response::new(MoveDocResponse {
+            success: true,
+            error: String::new(),
+            doc,
+            old_slug,
+            source_manifest: resp.source_manifest,
+            target_manifest: resp.target_manifest,
+        }))
     }
 
     async fn duplicate_doc(
@@ -717,5 +796,18 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<RestoreItemResponse>, Status> {
         let _timer = OperationTimer::new("restore_item");
         handlers::item_restore::restore_item(request.into_inner()).await
+    }
+
+    #[instrument(
+        name = "grpc.move_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn move_item(
+        &self,
+        request: Request<MoveItemRequest>,
+    ) -> Result<Response<MoveItemResponse>, Status> {
+        let _timer = OperationTimer::new("move_item");
+        handlers::item_move::move_item(request.into_inner()).await
     }
 }

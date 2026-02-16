@@ -120,3 +120,4 @@ message RestoreItemResponse {
   string error = 2;
   GenericItem item = 3;                 // The restored item (with deleted_at cleared)
 }
+
