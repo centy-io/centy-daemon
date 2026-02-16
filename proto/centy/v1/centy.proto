@@ -30,9 +30,6 @@ service CentyDaemon {
   // Deprecated: Use ListItems with item_type="issues" instead.
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
 
-  // Advanced issue search with query language
-  rpc AdvancedSearch(AdvancedSearchRequest) returns (AdvancedSearchResponse);
-
   // Deprecated: Use UpdateItem with item_type="issues" instead.
   rpc UpdateIssue(UpdateIssueRequest) returns (UpdateIssueResponse);
 
@@ -510,32 +507,6 @@ message ListIssuesResponse {
   int32 total_count = 2;
   bool success = 3;
   string error = 4;
-}
-
-// Advanced search request
-message AdvancedSearchRequest {
-  string query = 1;              // Query string (e.g., "status:open AND priority:1")
-  string sort_by = 2;            // Field to sort by (e.g., "createdAt", "priority")
-  bool sort_descending = 3;      // Sort order (true = descending)
-  bool multi_project = 4;        // Search across all tracked projects
-  string project_path = 5;       // Project path (required if multi_project is false)
-}
-
-// Search result containing issue and project info
-message SearchResultIssue {
-  Issue issue = 1;
-  string project_path = 2;
-  string project_name = 3;
-  string display_path = 4;
-}
-
-// Advanced search response
-message AdvancedSearchResponse {
-  bool success = 1;
-  string error = 2;
-  repeated SearchResultIssue results = 3;
-  int32 total_count = 4;
-  string parsed_query = 5;       // Debug: the parsed query representation
 }
 
 message UpdateIssueRequest {

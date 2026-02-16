@@ -121,7 +121,6 @@ src/
 ├── config/              # config.json (database schema and defaults)
 ├── registry/            # Multi-project tracking (~/.centy/projects.json)
 ├── reconciliation/      # Database integrity checking and repair
-├── search/              # Query engine (PEG grammar, AST, evaluator)
 ├── link/                # Bidirectional entity relationships
 ├── user/                # User records with git history sync
 ├── workspace/           # Temporary workspace management

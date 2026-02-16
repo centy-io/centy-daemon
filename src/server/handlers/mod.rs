@@ -37,7 +37,6 @@ pub mod project_register;
 pub mod project_settings;
 pub mod project_title;
 pub mod reconciliation;
-pub mod search;
 pub mod sync;
 pub mod user_create;
 pub mod user_delete;

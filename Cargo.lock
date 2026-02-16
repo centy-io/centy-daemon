@@ -263,8 +263,6 @@ dependencies = [
  "hex",
  "http",
  "once_cell",
- "pest",
- "pest_derive",
  "prost",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
