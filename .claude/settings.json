@@ -158,7 +158,11 @@
       "Bash(centy-cli:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(target/release/centy-daemon:*)"
+      "Bash(target/release/centy-daemon:*)",
+      "Bash(brew list:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm dlx centy create issue --help:*)",
+      "Bash(pnpm dlx:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
