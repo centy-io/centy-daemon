@@ -12,14 +12,5 @@ else
     echo "Warning: cspell not found, skipping spell check"
 fi
 
-# Check for forbidden lint suppressions
-echo "Checking for forbidden lint suppressions..."
-if grep -r --include="*.rs" '#\[allow(clippy::too_many_lines)\]' src/; then
-    echo "Error: Found #[allow(clippy::too_many_lines)] directive(s) in source code."
-    echo "Please refactor long functions instead of suppressing the lint."
-    exit 1
-fi
-
 echo "Running Clippy with pedantic lints..."
-# Allow too_many_lines (false positive on tonic impl blocks), deny all other warnings
-cargo clippy --all-targets -- -D warnings -A clippy::too_many_lines
+cargo clippy --all-targets -- -D warnings

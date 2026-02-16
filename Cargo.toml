@@ -117,8 +117,7 @@ arithmetic_side_effects = "deny"
 indexing_slicing = "deny"
 
 # Warn on long functions - enforces refactoring into smaller functions
-# Note: Using "warn" because tonic::async_trait macro expansion can trigger false positives
-too_many_lines = "warn"
+too_many_lines = "deny"
 
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
