@@ -48,9 +48,6 @@ service CentyDaemon {
   // Move an issue to another project
   rpc MoveIssue(MoveIssueRequest) returns (MoveIssueResponse);
 
-  // Duplicate an issue (same project or different project)
-  rpc DuplicateIssue(DuplicateIssueRequest) returns (DuplicateIssueResponse);
-
   // Get the next issue number
   rpc GetNextIssueNumber(GetNextIssueNumberRequest) returns (GetNextIssueNumberResponse);
 
@@ -94,9 +91,6 @@ service CentyDaemon {
 
   // Move a doc to another project
   rpc MoveDoc(MoveDocRequest) returns (MoveDocResponse);
-
-  // Duplicate a doc (same project or different project)
-  rpc DuplicateDoc(DuplicateDocRequest) returns (DuplicateDocResponse);
 
   // ============ Asset RPCs ============
 
@@ -616,21 +610,6 @@ message MoveIssueResponse {
   Manifest target_manifest = 6;         // Updated target project manifest
 }
 
-message DuplicateIssueRequest {
-  string source_project_path = 1;       // Project containing the original issue
-  string issue_id = 2;                  // UUID of the issue to duplicate
-  string target_project_path = 3;       // Target project (can be same as source)
-  string new_title = 4;                 // Optional: override title (default: "Copy of {original}")
-}
-
-message DuplicateIssueResponse {
-  bool success = 1;
-  string error = 2;
-  Issue issue = 3;                      // The new duplicate issue (new UUID, new display_number)
-  string original_issue_id = 4;         // UUID of the original issue
-  Manifest manifest = 5;                // Updated target project manifest
-}
-
 // ============ Manifest Messages ============
 
 message GetManifestRequest {
@@ -644,12 +623,7 @@ message GetManifestResponse {
   Manifest manifest = 3;
 }
 
-message Manifest {
-  int32 schema_version = 1;
-  string centy_version = 2;
-  string created_at = 3;
-  string updated_at = 4;
-}
+// Manifest is defined in generic_item.proto (shared across both files)
 
 enum FileType {
   FILE_TYPE_UNSPECIFIED = 0;
@@ -904,22 +878,6 @@ message MoveDocResponse {
   string old_slug = 4;                  // Original slug for reference
   Manifest source_manifest = 5;         // Updated source project manifest
   Manifest target_manifest = 6;         // Updated target project manifest
-}
-
-message DuplicateDocRequest {
-  string source_project_path = 1;       // Project containing the original doc
-  string slug = 2;                      // Slug of the doc to duplicate
-  string target_project_path = 3;       // Target project (can be same as source)
-  string new_slug = 4;                  // Optional: override slug (default: "{slug}-copy")
-  string new_title = 5;                 // Optional: override title (default: "Copy of {original}")
-}
-
-message DuplicateDocResponse {
-  bool success = 1;
-  string error = 2;
-  Doc doc = 3;                          // The new duplicate doc
-  string original_slug = 4;             // Slug of the original doc
-  Manifest manifest = 5;                // Updated target project manifest
 }
 
 // ============ Asset Messages ============

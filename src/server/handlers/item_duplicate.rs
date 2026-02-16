@@ -3,8 +3,10 @@ use std::path::{Path, PathBuf};
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::generic_duplicate;
 use crate::item::generic::types::DuplicateGenericItemOptions;
+use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
+use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
@@ -93,11 +95,16 @@ pub async fn duplicate_item(
                 true,
             )
             .await;
+
+            // Read updated manifest from target project
+            let manifest = read_manifest(target_project_path).await.ok().flatten();
+
             Ok(Response::new(DuplicateItemResponse {
                 success: true,
                 error: String::new(),
                 item: Some(generic_item_to_proto(&result.item)),
                 original_id: result.original_id,
+                manifest: manifest.as_ref().map(manifest_to_proto),
             }))
         }
         Err(e) => {
@@ -116,6 +123,7 @@ pub async fn duplicate_item(
                 error: to_error_json(&req.source_project_path, &e),
                 item: None,
                 original_id: String::new(),
+                manifest: None,
             }))
         }
     }

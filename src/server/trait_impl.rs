@@ -121,13 +121,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::issue_move::move_issue(request.into_inner()).await
     }
 
-    async fn duplicate_issue(
-        &self,
-        request: Request<DuplicateIssueRequest>,
-    ) -> Result<Response<DuplicateIssueResponse>, Status> {
-        handlers::issue_duplicate::duplicate_issue(request.into_inner()).await
-    }
-
     async fn get_next_issue_number(
         &self,
         request: Request<GetNextIssueNumberRequest>,
@@ -224,13 +217,6 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<MoveDocRequest>,
     ) -> Result<Response<MoveDocResponse>, Status> {
         handlers::doc_move::move_doc_handler(request.into_inner()).await
-    }
-
-    async fn duplicate_doc(
-        &self,
-        request: Request<DuplicateDocRequest>,
-    ) -> Result<Response<DuplicateDocResponse>, Status> {
-        handlers::doc_duplicate::duplicate_doc_handler(request.into_inner()).await
     }
 
     async fn add_asset(
