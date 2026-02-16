@@ -313,8 +313,8 @@ mod tests {
         assert!(p.matches(Phase::Pre, "user", HookOperation::Create));
 
         // Custom types are now valid
-        let p = ParsedPattern::parse("pre:pr:create").unwrap();
-        assert!(p.matches(Phase::Pre, "pr", HookOperation::Create));
+        let p = ParsedPattern::parse("pre:task:create").unwrap();
+        assert!(p.matches(Phase::Pre, "task", HookOperation::Create));
     }
 
     // --- Phase tests ---

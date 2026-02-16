@@ -88,7 +88,7 @@ impl IssueFrontmatter {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueMetadata {
-    /// Common fields shared with PRs (flattened for backward-compatible JSON)
+    /// Common fields (flattened for backward-compatible JSON)
     #[serde(flatten)]
     pub common: CommonMetadata,
     /// Whether this issue is a draft

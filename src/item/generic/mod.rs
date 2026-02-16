@@ -2,7 +2,7 @@
 //!
 //! This module provides a type-agnostic CRUD layer that works with any item type
 //! defined by an `ItemTypeConfig`. It sits alongside the existing entity-specific
-//! code (Issue, Doc, PR) without breaking it.
+//! code (Issue, Doc) without breaking it.
 
 pub mod reconcile;
 pub mod storage;

@@ -6,7 +6,7 @@ use crate::item::entities::issue::priority::migrate_string_priority;
 /// Default priority levels for migration when config is not available
 const DEFAULT_PRIORITY_LEVELS: u32 = 3;
 
-/// Common metadata fields shared between Issues and PRs.
+/// Common metadata fields shared between item types.
 /// This struct is designed to be embedded via composition and flattened during serialization.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
