@@ -97,21 +97,143 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<DeleteIssueRequest>,
     ) -> Result<Response<DeleteIssueResponse>, Status> {
-        handlers::issue_delete::delete_issue(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let issue_id = match super::resolve::resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(DeleteIssueResponse {
+                    success: false,
+                    error: super::structured_error::to_error_json(&req.project_path, &e),
+                    ..Default::default()
+                }))
+            }
+        };
+        let generic_req = DeleteItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "issues".to_string(),
+            item_id: issue_id,
+            force: true,
+        };
+        let resp = handlers::item_delete::delete_item(generic_req)
+            .await?
+            .into_inner();
+        let manifest = if resp.success {
+            crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m))
+        } else {
+            None
+        };
+        Ok(Response::new(DeleteIssueResponse {
+            success: resp.success,
+            error: resp.error,
+            manifest,
+        }))
     }
 
     async fn soft_delete_issue(
         &self,
         request: Request<SoftDeleteIssueRequest>,
     ) -> Result<Response<SoftDeleteIssueResponse>, Status> {
-        handlers::issue_soft_delete::soft_delete_issue(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let issue_id = match super::resolve::resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(SoftDeleteIssueResponse {
+                    success: false,
+                    error: super::structured_error::to_error_json(&req.project_path, &e),
+                    ..Default::default()
+                }))
+            }
+        };
+        let generic_req = SoftDeleteItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "issues".to_string(),
+            item_id: issue_id.clone(),
+        };
+        let resp = handlers::item_soft_delete::soft_delete_item(generic_req)
+            .await?
+            .into_inner();
+        let (issue, manifest) = if resp.success {
+            let config = crate::config::read_config(project_path)
+                .await
+                .ok()
+                .flatten();
+            let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+            let issue = crate::item::entities::issue::get_issue(project_path, &issue_id)
+                .await
+                .ok()
+                .map(|i| super::convert_entity::issue_to_proto(&i, priority_levels));
+            let manifest = crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m));
+            (issue, manifest)
+        } else {
+            (None, None)
+        };
+        Ok(Response::new(SoftDeleteIssueResponse {
+            success: resp.success,
+            error: resp.error,
+            issue,
+            manifest,
+        }))
     }
 
     async fn restore_issue(
         &self,
         request: Request<RestoreIssueRequest>,
     ) -> Result<Response<RestoreIssueResponse>, Status> {
-        handlers::issue_restore::restore_issue(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let issue_id = match super::resolve::resolve_issue_id(project_path, &req.issue_id).await {
+            Ok(id) => id,
+            Err(e) => {
+                return Ok(Response::new(RestoreIssueResponse {
+                    success: false,
+                    error: super::structured_error::to_error_json(&req.project_path, &e),
+                    ..Default::default()
+                }))
+            }
+        };
+        let generic_req = RestoreItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "issues".to_string(),
+            item_id: issue_id.clone(),
+        };
+        let resp = handlers::item_restore::restore_item(generic_req)
+            .await?
+            .into_inner();
+        let (issue, manifest) = if resp.success {
+            let config = crate::config::read_config(project_path)
+                .await
+                .ok()
+                .flatten();
+            let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
+            let issue = crate::item::entities::issue::get_issue(project_path, &issue_id)
+                .await
+                .ok()
+                .map(|i| super::convert_entity::issue_to_proto(&i, priority_levels));
+            let manifest = crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m));
+            (issue, manifest)
+        } else {
+            (None, None)
+        };
+        Ok(Response::new(RestoreIssueResponse {
+            success: resp.success,
+            error: resp.error,
+            issue,
+            manifest,
+        }))
     }
 
     async fn move_issue(
@@ -240,21 +362,105 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<DeleteDocRequest>,
     ) -> Result<Response<DeleteDocResponse>, Status> {
-        handlers::doc_delete::delete_doc_handler(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let generic_req = DeleteItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "docs".to_string(),
+            item_id: req.slug,
+            force: true,
+        };
+        let resp = handlers::item_delete::delete_item(generic_req)
+            .await?
+            .into_inner();
+        let manifest = if resp.success {
+            crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m))
+        } else {
+            None
+        };
+        Ok(Response::new(DeleteDocResponse {
+            success: resp.success,
+            error: resp.error,
+            manifest,
+        }))
     }
 
     async fn soft_delete_doc(
         &self,
         request: Request<SoftDeleteDocRequest>,
     ) -> Result<Response<SoftDeleteDocResponse>, Status> {
-        handlers::doc_soft_delete::soft_delete_doc_handler(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let slug = req.slug.clone();
+        let generic_req = SoftDeleteItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "docs".to_string(),
+            item_id: req.slug,
+        };
+        let resp = handlers::item_soft_delete::soft_delete_item(generic_req)
+            .await?
+            .into_inner();
+        let (doc, manifest) = if resp.success {
+            let doc = crate::item::entities::doc::get_doc(project_path, &slug)
+                .await
+                .ok()
+                .map(|d| super::convert_entity::doc_to_proto(&d));
+            let manifest = crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m));
+            (doc, manifest)
+        } else {
+            (None, None)
+        };
+        Ok(Response::new(SoftDeleteDocResponse {
+            success: resp.success,
+            error: resp.error,
+            doc,
+            manifest,
+        }))
     }
 
     async fn restore_doc(
         &self,
         request: Request<RestoreDocRequest>,
     ) -> Result<Response<RestoreDocResponse>, Status> {
-        handlers::doc_restore::restore_doc_handler(request.into_inner()).await
+        let req = request.into_inner();
+        let project_path = std::path::Path::new(&req.project_path);
+        let slug = req.slug.clone();
+        let generic_req = RestoreItemRequest {
+            project_path: req.project_path.clone(),
+            item_type: "docs".to_string(),
+            item_id: req.slug,
+        };
+        let resp = handlers::item_restore::restore_item(generic_req)
+            .await?
+            .into_inner();
+        let (doc, manifest) = if resp.success {
+            let doc = crate::item::entities::doc::get_doc(project_path, &slug)
+                .await
+                .ok()
+                .map(|d| super::convert_entity::doc_to_proto(&d));
+            let manifest = crate::manifest::read_manifest(project_path)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| super::convert_infra::manifest_to_proto(&m));
+            (doc, manifest)
+        } else {
+            (None, None)
+        };
+        Ok(Response::new(RestoreDocResponse {
+            success: resp.success,
+            error: resp.error,
+            doc,
+            manifest,
+        }))
     }
 
     async fn move_doc(

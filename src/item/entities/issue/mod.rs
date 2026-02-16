@@ -23,11 +23,9 @@ pub use create::{create_issue, CreateIssueOptions, CreateIssueResult};
 pub use crud::IssueMetadataFlat;
 #[allow(unused_imports)]
 pub use crud::{
-    delete_issue, duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid,
-    list_issues, restore_issue, soft_delete_issue, update_issue, DeleteIssueResult,
-    DuplicateIssueOptions, DuplicateIssueResult, GetIssuesByUuidResult, Issue, IssueCrudError,
-    IssueWithProject, RestoreIssueResult, SoftDeleteIssueResult, UpdateIssueOptions,
-    UpdateIssueResult,
+    duplicate_issue, get_issue, get_issue_by_display_number, get_issues_by_uuid, list_issues,
+    update_issue, DuplicateIssueOptions, DuplicateIssueResult, GetIssuesByUuidResult, Issue,
+    IssueCrudError, IssueWithProject, UpdateIssueOptions, UpdateIssueResult,
 };
 #[allow(unused_imports)]
 pub use id::is_uuid;
