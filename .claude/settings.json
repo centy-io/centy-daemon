@@ -155,7 +155,8 @@
       "Bash(centy show:*)",
       "Bash(gh search issues:*)",
       "Bash(xxd:*)",
-      "Bash(centy-cli:*)"
+      "Bash(centy-cli:*)",
+      "Bash(curl:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
