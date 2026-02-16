@@ -1,3 +1,5 @@
+use gray_matter::engine::YAML;
+use gray_matter::Matter;
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 
@@ -7,6 +9,33 @@ pub enum FrontmatterError {
     InvalidFormat(String),
     #[error("YAML parse error: {0}")]
     YamlError(#[from] serde_yaml::Error),
+}
+
+/// Split content (after frontmatter) into (title, body).
+/// Title is extracted from the first `# Heading`, if present.
+fn split_title_body(content: &str) -> (String, String) {
+    let lines: Vec<&str> = content.lines().skip_while(|line| line.is_empty()).collect();
+
+    if lines.first().is_some_and(|l| l.starts_with("# ")) {
+        let title = lines
+            .first()
+            .and_then(|l| l.strip_prefix("# "))
+            .unwrap_or("")
+            .to_string();
+        let body = lines
+            .get(1..)
+            .unwrap_or(&[])
+            .iter()
+            .skip_while(|line| line.is_empty())
+            .copied()
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim_end()
+            .to_string();
+        (title, body)
+    } else {
+        (String::new(), lines.join("\n").trim_end().to_string())
+    }
 }
 
 /// Parse markdown content with YAML frontmatter.
@@ -28,57 +57,19 @@ pub enum FrontmatterError {
 pub fn parse_frontmatter<T: DeserializeOwned>(
     content: &str,
 ) -> Result<(T, String, String), FrontmatterError> {
-    let lines: Vec<&str> = content.lines().collect();
+    let matter = Matter::<YAML>::new();
+    let result: gray_matter::ParsedEntity<serde_yaml::Value> = matter
+        .parse(content)
+        .map_err(|e| FrontmatterError::InvalidFormat(e.to_string()))?;
 
-    // Check for frontmatter opening
-    if lines.first() != Some(&"---") {
+    if result.matter.is_empty() {
         return Err(FrontmatterError::InvalidFormat(
-            "Content must start with '---'".to_string(),
+            "No frontmatter found".to_string(),
         ));
     }
 
-    // Find closing ---
-    let end_idx = lines
-        .iter()
-        .skip(1)
-        .position(|&line| line == "---")
-        .ok_or_else(|| {
-            FrontmatterError::InvalidFormat("Missing closing '---' for frontmatter".to_string())
-        })?;
-
-    // Extract and parse frontmatter YAML
-    let frontmatter_yaml = lines.get(1..=end_idx).unwrap_or(&[]).join("\n");
-    let metadata: T = serde_yaml::from_str(&frontmatter_yaml)?;
-
-    // Extract content after frontmatter
-    let body_start = end_idx.saturating_add(2); // Skip the closing ---
-    let body_lines: Vec<&str> = lines
-        .get(body_start..)
-        .unwrap_or(&[])
-        .iter()
-        .skip_while(|line| line.is_empty())
-        .copied()
-        .collect();
-
-    // Extract title from H1 heading
-    let (title, body) = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
-        let first_line = body_lines.first().unwrap_or(&"");
-        let title = first_line.strip_prefix("# ").unwrap_or("").to_string();
-        let body = body_lines
-            .get(1..)
-            .unwrap_or(&[])
-            .iter()
-            .skip_while(|line| line.is_empty())
-            .copied()
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim_end()
-            .to_string();
-        (title, body)
-    } else {
-        // No H1 heading, use empty title and full body
-        (String::new(), body_lines.join("\n").trim_end().to_string())
-    };
+    let metadata: T = serde_yaml::from_str(&result.matter)?;
+    let (title, body) = split_title_body(&result.content);
 
     Ok((metadata, title, body))
 }
@@ -90,51 +81,19 @@ pub fn parse_frontmatter<T: DeserializeOwned>(
 pub fn parse_frontmatter_raw(
     content: &str,
 ) -> Result<(serde_yaml::Value, String, String), FrontmatterError> {
-    let lines: Vec<&str> = content.lines().collect();
+    let matter = Matter::<YAML>::new();
+    let result: gray_matter::ParsedEntity<serde_yaml::Value> = matter
+        .parse(content)
+        .map_err(|e| FrontmatterError::InvalidFormat(e.to_string()))?;
 
-    if lines.first() != Some(&"---") {
+    if result.matter.is_empty() {
         return Err(FrontmatterError::InvalidFormat(
-            "Content must start with '---'".to_string(),
+            "No frontmatter found".to_string(),
         ));
     }
 
-    let end_idx = lines
-        .iter()
-        .skip(1)
-        .position(|&line| line == "---")
-        .ok_or_else(|| {
-            FrontmatterError::InvalidFormat("Missing closing '---' for frontmatter".to_string())
-        })?;
-
-    let frontmatter_yaml = lines.get(1..=end_idx).unwrap_or(&[]).join("\n");
-    let value: serde_yaml::Value = serde_yaml::from_str(&frontmatter_yaml)?;
-
-    let body_start = end_idx.saturating_add(2);
-    let body_lines: Vec<&str> = lines
-        .get(body_start..)
-        .unwrap_or(&[])
-        .iter()
-        .skip_while(|line| line.is_empty())
-        .copied()
-        .collect();
-
-    let (title, body) = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
-        let first_line = body_lines.first().unwrap_or(&"");
-        let title = first_line.strip_prefix("# ").unwrap_or("").to_string();
-        let body = body_lines
-            .get(1..)
-            .unwrap_or(&[])
-            .iter()
-            .skip_while(|line| line.is_empty())
-            .copied()
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim_end()
-            .to_string();
-        (title, body)
-    } else {
-        (String::new(), body_lines.join("\n").trim_end().to_string())
-    };
+    let value: serde_yaml::Value = serde_yaml::from_str(&result.matter)?;
+    let (title, body) = split_title_body(&result.content);
 
     Ok((value, title, body))
 }
