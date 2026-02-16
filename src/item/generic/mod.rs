@@ -10,10 +10,11 @@ pub mod types;
 
 pub use reconcile::{get_next_display_number_generic, reconcile_display_numbers_generic};
 pub use storage::{
-    generic_create, generic_delete, generic_duplicate, generic_get, generic_list, generic_restore,
-    generic_soft_delete, generic_update,
+    generic_create, generic_delete, generic_duplicate, generic_get, generic_list, generic_move,
+    generic_restore, generic_soft_delete, generic_update,
 };
 pub use types::{
     CreateGenericItemOptions, DuplicateGenericItemOptions, DuplicateGenericItemResult,
-    GenericFrontmatter, GenericItem, UpdateGenericItemOptions,
+    GenericFrontmatter, GenericItem, MoveGenericItemOptions, MoveGenericItemResult,
+    UpdateGenericItemOptions,
 };

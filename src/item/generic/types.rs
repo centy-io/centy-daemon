@@ -104,6 +104,23 @@ pub struct UpdateGenericItemOptions {
     pub custom_fields: HashMap<String, serde_json::Value>,
 }
 
+/// Options for moving a generic item to another project.
+#[derive(Debug, Clone)]
+pub struct MoveGenericItemOptions {
+    pub source_project_path: std::path::PathBuf,
+    pub target_project_path: std::path::PathBuf,
+    pub item_id: String,
+    /// For slug-based items, optionally rename the item on move.
+    pub new_id: Option<String>,
+}
+
+/// Result of moving a generic item.
+#[derive(Debug, Clone)]
+pub struct MoveGenericItemResult {
+    pub item: GenericItem,
+    pub old_id: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

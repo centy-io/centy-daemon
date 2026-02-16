@@ -298,6 +298,9 @@ service CentyDaemon {
 
   // Duplicate an item to the same or different project
   rpc DuplicateItem(DuplicateItemRequest) returns (DuplicateItemResponse);
+
+  // Move an item to another project
+  rpc MoveItem(MoveItemRequest) returns (MoveItemResponse);
 }
 
 // ============ Init Messages ============
@@ -1773,5 +1776,24 @@ message ItemTypeConfigProto {
   string default_status = 6;
   uint32 priority_levels = 7;
   repeated CustomFieldDefinition custom_fields = 8;
+}
+
+// ============ Generic Item Move Messages ============
+
+message MoveItemRequest {
+  string source_project_path = 1;
+  string target_project_path = 2;
+  string item_type = 3;
+  string item_id = 4;
+  string new_id = 5;                    // Optional: for slug renames
+}
+
+message MoveItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;
+  string old_id = 4;
+  Manifest source_manifest = 5;
+  Manifest target_manifest = 6;
 }
 

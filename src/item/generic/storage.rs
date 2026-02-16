@@ -3,7 +3,9 @@
 //! All functions take an `&ItemTypeConfig` and `project_path`, working
 //! generically across any item type.
 
-use crate::common::frontmatter::{generate_frontmatter, parse_frontmatter};
+use crate::common::frontmatter::{
+    generate_frontmatter, generate_frontmatter_raw, parse_frontmatter, parse_frontmatter_raw,
+};
 use crate::config::item_type_config::ItemTypeConfig;
 use crate::item::core::crud::ItemFilters;
 use crate::item::core::error::ItemError;
@@ -16,7 +18,7 @@ use tokio::fs;
 use super::reconcile::get_next_display_number_generic;
 use super::types::{
     CreateGenericItemOptions, DuplicateGenericItemOptions, DuplicateGenericItemResult,
-    GenericFrontmatter, GenericItem, UpdateGenericItemOptions,
+    GenericFrontmatter, GenericItem, MoveGenericItemResult, UpdateGenericItemOptions,
 };
 
 /// Get the storage directory for a given item type.
@@ -549,7 +551,7 @@ pub async fn generic_duplicate(
         let target_assets = target_storage.join("assets").join(&new_id);
         if source_assets.exists() {
             fs::create_dir_all(&target_assets).await?;
-            copy_directory(&source_assets, &target_assets).await?;
+            copy_dir_contents(&source_assets, &target_assets).await?;
         }
     }
 
@@ -568,17 +570,186 @@ pub async fn generic_duplicate(
     })
 }
 
-/// Copy all files from one directory to another.
-async fn copy_directory(source: &Path, target: &Path) -> Result<(), ItemError> {
-    let mut entries = fs::read_dir(source).await?;
+/// Move an item from one project to another.
+///
+/// Uses raw YAML preservation so that type-specific fields (e.g., `draft`,
+/// `isOrgIssue`, `orgSlug`) are kept intact without the generic layer needing
+/// to know about them.
+pub async fn generic_move(
+    source_project_path: &Path,
+    target_project_path: &Path,
+    source_config: &ItemTypeConfig,
+    target_config: &ItemTypeConfig,
+    item_id: &str,
+    new_id: Option<&str>,
+) -> Result<MoveGenericItemResult, ItemError> {
+    // 1. Check move feature is enabled
+    if !source_config.features.move_item {
+        return Err(ItemError::FeatureNotEnabled(format!(
+            "move is not enabled for {}",
+            source_config.plural
+        )));
+    }
+
+    // 2. Same-project check
+    let source_canonical = std::fs::canonicalize(source_project_path)
+        .unwrap_or_else(|_| source_project_path.to_path_buf());
+    let target_canonical = std::fs::canonicalize(target_project_path)
+        .unwrap_or_else(|_| target_project_path.to_path_buf());
+    if source_canonical == target_canonical {
+        return Err(ItemError::SameProject);
+    }
+
+    // 3. Validate both projects initialized
+    manifest::read_manifest(source_project_path)
+        .await?
+        .ok_or(ItemError::NotInitialized)?;
+    manifest::read_manifest(target_project_path)
+        .await?
+        .ok_or(ItemError::TargetNotInitialized)?;
+
+    // 4. Read source file
+    let source_file = item_file_path(source_project_path, source_config, item_id);
+    if !source_file.exists() {
+        return Err(ItemError::NotFound(item_id.to_string()));
+    }
+    let content = fs::read_to_string(&source_file).await?;
+
+    // Parse as GenericFrontmatter for validation
+    let (frontmatter, _title, _body) = parse_frontmatter::<GenericFrontmatter>(&content)
+        .map_err(|e| ItemError::FrontmatterError(e.to_string()))?;
+
+    // 5. Validate status against target config
+    if target_config.features.status {
+        if let Some(ref status) = frontmatter.status {
+            validate_status(target_config, status)?;
+        }
+    }
+
+    // 6. Validate priority against target config
+    if target_config.features.priority {
+        if let Some(priority) = frontmatter.priority {
+            validate_priority(target_config, priority)?;
+        }
+    }
+
+    // 7. Determine target ID
+    let target_id = if source_config.identifier == "slug" {
+        new_id.unwrap_or(item_id).to_string()
+    } else {
+        // UUID-based: keep the same ID
+        item_id.to_string()
+    };
+
+    // 8. Check target doesn't already exist
+    let target_file = item_file_path(target_project_path, target_config, &target_id);
+    if target_file.exists() {
+        return Err(ItemError::AlreadyExists(target_id));
+    }
+
+    // 9. Parse raw YAML for field-preserving copy
+    let (mut yaml_value, title, body) =
+        parse_frontmatter_raw(&content).map_err(|e| ItemError::FrontmatterError(e.to_string()))?;
+
+    // 10. If display_number feature: get next display number and update YAML
+    if target_config.features.display_number {
+        let target_storage = type_storage_path(target_project_path, target_config);
+        fs::create_dir_all(&target_storage).await?;
+        let next_dn = get_next_display_number_generic(&target_storage).await?;
+        if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
+            map.insert(
+                serde_yaml::Value::String("displayNumber".to_string()),
+                serde_yaml::Value::Number(next_dn.into()),
+            );
+        }
+    }
+
+    // 11. Update updatedAt in YAML
+    if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
+        map.insert(
+            serde_yaml::Value::String("updatedAt".to_string()),
+            serde_yaml::Value::String(now_iso()),
+        );
+    }
+
+    // 12. Write to target
+    let target_storage = type_storage_path(target_project_path, target_config);
+    fs::create_dir_all(&target_storage).await?;
+    let new_content = generate_frontmatter_raw(&yaml_value, &title, &body);
+    fs::write(&target_file, &new_content).await?;
+
+    // 13. Copy assets if feature enabled
+    if source_config.features.assets {
+        // Check new-format asset path: .centy/assets/<plural>/<id>/
+        let source_assets_new = get_centy_path(source_project_path)
+            .join("assets")
+            .join(&source_config.plural)
+            .join(item_id);
+        // Also check legacy path: .centy/<plural>/assets/<id>/
+        let source_assets_legacy = type_storage_path(source_project_path, source_config)
+            .join("assets")
+            .join(item_id);
+
+        let source_assets = if source_assets_new.exists() {
+            Some(source_assets_new)
+        } else if source_assets_legacy.exists() {
+            Some(source_assets_legacy)
+        } else {
+            None
+        };
+
+        if let Some(ref src_assets) = source_assets {
+            let target_assets = get_centy_path(target_project_path)
+                .join("assets")
+                .join(&target_config.plural)
+                .join(&target_id);
+            fs::create_dir_all(&target_assets).await?;
+            copy_dir_contents(src_assets, &target_assets).await?;
+        }
+    }
+
+    // 14. Delete source file + assets
+    fs::remove_file(&source_file).await?;
+    if source_config.features.assets {
+        let source_assets_new = get_centy_path(source_project_path)
+            .join("assets")
+            .join(&source_config.plural)
+            .join(item_id);
+        let source_assets_legacy = type_storage_path(source_project_path, source_config)
+            .join("assets")
+            .join(item_id);
+        if source_assets_new.exists() {
+            fs::remove_dir_all(&source_assets_new).await?;
+        }
+        if source_assets_legacy.exists() {
+            fs::remove_dir_all(&source_assets_legacy).await?;
+        }
+    }
+
+    // 15. Update both manifests
+    update_project_manifest(source_project_path).await?;
+    update_project_manifest(target_project_path).await?;
+
+    // 16. Read and return the moved item
+    let moved_item = generic_get(target_project_path, target_config, &target_id).await?;
+
+    Ok(MoveGenericItemResult {
+        item: moved_item,
+        old_id: item_id.to_string(),
+    })
+}
+
+/// Recursively copy the contents of one directory to another.
+async fn copy_dir_contents(src: &Path, dst: &Path) -> Result<(), ItemError> {
+    let mut entries = fs::read_dir(src).await?;
     while let Some(entry) = entries.next_entry().await? {
-        let file_type = entry.file_type().await?;
-        let target_path = target.join(entry.file_name());
-        if file_type.is_file() {
-            fs::copy(entry.path(), &target_path).await?;
-        } else if file_type.is_dir() {
-            fs::create_dir_all(&target_path).await?;
-            Box::pin(copy_directory(&entry.path(), &target_path)).await?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if entry.file_type().await?.is_dir() {
+            fs::create_dir_all(&dst_path).await?;
+            Box::pin(copy_dir_contents(&src_path, &dst_path)).await?;
+        } else {
+            fs::copy(&src_path, &dst_path).await?;
         }
     }
     Ok(())
