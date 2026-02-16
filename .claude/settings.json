@@ -157,7 +157,8 @@
       "Bash(xxd:*)",
       "Bash(centy-cli:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(target/release/centy-daemon:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
