@@ -22,6 +22,7 @@ use super::metadata::{
 use super::path::{
     calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
 };
+use super::terminal::open_terminal_with_agent;
 use super::types::{TempWorkspaceEntry, DEFAULT_TTL_HOURS};
 use super::WorkspaceError;
 use crate::common::git::is_git_repository;
@@ -112,6 +113,23 @@ pub struct CreateStandaloneWorkspaceResult {
 /// Get the gwq client, falling back to direct git commands if gwq is not available.
 fn get_gwq_client() -> Result<GwqClient, GwqError> {
     GwqClient::new()
+}
+
+/// Open the workspace in the specified editor.
+/// For terminal editors, launches the agent command in the terminal.
+/// For other editors, delegates to the standard `open_editor`.
+fn open_editor_for_issue(
+    editor: EditorType,
+    workspace_path: &Path,
+    display_number: u32,
+    agent_name: &str,
+) -> bool {
+    if editor == EditorType::Terminal {
+        open_terminal_with_agent(workspace_path, display_number, agent_name, &[], None)
+            .unwrap_or(false)
+    } else {
+        open_editor(editor, workspace_path)
+    }
 }
 
 /// Set up a new issue-based workspace with data, config, and metadata.
@@ -327,7 +345,12 @@ pub async fn create_temp_workspace(
             return Ok(CreateWorkspaceResult {
                 workspace_path: workspace_path.clone(),
                 entry,
-                editor_opened: open_editor(options.editor, &workspace_path),
+                editor_opened: open_editor_for_issue(
+                    options.editor,
+                    &workspace_path,
+                    options.issue.metadata.display_number,
+                    &options.agent_name,
+                ),
                 workspace_reused: true,
                 original_created_at: Some(original_created_at),
             });
@@ -346,7 +369,12 @@ pub async fn create_temp_workspace(
         setup_new_workspace(&gwq, source_path, &workspace_path, &options, ttl_hours).await?;
 
     // Open editor
-    let editor_opened = open_editor(options.editor, &workspace_path);
+    let editor_opened = open_editor_for_issue(
+        options.editor,
+        &workspace_path,
+        options.issue.metadata.display_number,
+        &options.agent_name,
+    );
 
     Ok(CreateWorkspaceResult {
         workspace_path,
