@@ -45,8 +45,6 @@ pub mod user_restore;
 pub mod user_soft_delete;
 pub mod user_sync;
 pub mod user_update;
-pub mod workspace_agent;
-pub mod workspace_agent_open;
 pub mod workspace_cleanup;
 pub mod workspace_manage;
 pub mod workspace_standalone;
