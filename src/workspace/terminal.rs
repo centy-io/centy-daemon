@@ -1,6 +1,6 @@
-//! Terminal integration for launching agents in terminal windows.
+//! Terminal integration for opening terminal windows.
 //!
-//! Handles platform-specific terminal launching with agent commands.
+//! Handles platform-specific terminal launching.
 
 use super::WorkspaceError;
 use std::path::Path;
@@ -32,50 +32,6 @@ pub(crate) fn escape_path_for_shell(path: &str) -> String {
 /// or Err if terminal failed to open.
 pub fn open_terminal(workspace_path: &Path) -> Result<bool, WorkspaceError> {
     open_platform_terminal(workspace_path, "clear")
-}
-
-/// Open a terminal with the specified agent command at the given working directory.
-///
-/// The terminal will:
-/// 1. Change to the working directory
-/// 2. Display an instruction message about the issue
-/// 3. Execute the agent command
-///
-/// If `stdin_prompt` is provided, it will be piped to the agent via stdin using a heredoc.
-/// This is needed for agents like `claude --print` that expect input on stdin.
-///
-/// Returns Ok(true) if terminal was opened, Ok(false) if terminal is not available,
-/// or Err if terminal failed to open.
-pub fn open_terminal_with_agent(
-    working_dir: &Path,
-    display_number: u32,
-    agent_command: &str,
-    agent_args: &[String],
-    stdin_prompt: Option<&str>,
-) -> Result<bool, WorkspaceError> {
-    // Build the agent args string
-    let args_str = if agent_args.is_empty() {
-        String::new()
-    } else {
-        format!(" {}", agent_args.join(" "))
-    };
-
-    // Generate the shell script to run in terminal
-    let shell_script = if let Some(prompt) = stdin_prompt {
-        // Use heredoc for stdin-based agents (like claude --print)
-        format!(
-            r#"echo ""; echo "=== Centy Issue #{display_number} ==="; cat <<'CENTY_PROMPT_EOF' | {agent_command}{args_str}
-{prompt}
-CENTY_PROMPT_EOF"#
-        )
-    } else {
-        // Original behavior for argument-based agents
-        format!(
-            r#"echo ""; echo "=== Centy Issue #{display_number} ==="; echo "Tip: Run 'centy get issue {display_number}' to view issue details"; echo ""; {agent_command}{args_str}"#
-        )
-    };
-
-    open_platform_terminal(working_dir, &shell_script)
 }
 
 /// Open a terminal at the specified directory with a command to run.

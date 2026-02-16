@@ -775,13 +775,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::workspace_temp_terminal::open_in_temp_terminal(request.into_inner()).await
     }
 
-    async fn open_agent_in_terminal(
-        &self,
-        request: Request<OpenAgentInTerminalRequest>,
-    ) -> Result<Response<OpenAgentInTerminalResponse>, Status> {
-        handlers::workspace_agent::open_agent_in_terminal(request.into_inner()).await
-    }
-
     async fn list_temp_workspaces(
         &self,
         request: Request<ListTempWorkspacesRequest>,

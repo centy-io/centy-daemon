@@ -182,9 +182,6 @@ service CentyDaemon {
   // Open a project in a temporary terminal workspace (deprecated: use OpenInTempWorkspace)
   rpc OpenInTempTerminal(OpenInTempWorkspaceRequest) returns (OpenInTempWorkspaceResponse);
 
-  // Open an agent in a terminal for working on an issue
-  rpc OpenAgentInTerminal(OpenAgentInTerminalRequest) returns (OpenAgentInTerminalResponse);
-
   // Open a standalone workspace in VS Code (deprecated: use OpenStandaloneWorkspace)
   rpc OpenStandaloneWorkspaceVscode(OpenStandaloneWorkspaceRequest) returns (OpenStandaloneWorkspaceResponse);
 
@@ -1169,13 +1166,6 @@ enum LlmAction {
   LLM_ACTION_DEEPDIVE = 3;
 }
 
-// Workspace mode for agent operations
-enum WorkspaceMode {
-  WORKSPACE_MODE_UNSPECIFIED = 0;       // Use project default or prompt user
-  WORKSPACE_MODE_TEMP = 1;              // Create temporary worktree
-  WORKSPACE_MODE_CURRENT = 2;           // Use current project directory
-}
-
 // Editor type for opening workspaces
 enum EditorType {
   EDITOR_TYPE_UNSPECIFIED = 0;
@@ -1242,27 +1232,6 @@ message OpenInTempWorkspaceResponse {
   bool requires_status_config = 8;      // True if user must configure update_status_on_start setting
   bool workspace_reused = 9;            // True if an existing workspace was reopened instead of creating new
   string original_created_at = 10;      // Original creation timestamp (only set if workspace_reused is true)
-}
-
-// Request to open an agent in a terminal
-message OpenAgentInTerminalRequest {
-  string project_path = 1;              // Source project path
-  string issue_id = 2;                  // Issue UUID or display number
-  string agent_name = 3;                // Agent to use (empty = default)
-  WorkspaceMode workspace_mode = 4;     // Temp worktree or current project
-  uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = default, only for temp mode)
-}
-
-message OpenAgentInTerminalResponse {
-  bool success = 1;
-  string error = 2;
-  string working_directory = 3;         // Path where agent was launched
-  string issue_id = 4;                  // Resolved issue UUID
-  uint32 display_number = 5;            // Issue display number
-  string agent_command = 6;             // The agent command that was executed
-  bool terminal_opened = 7;             // Whether terminal was successfully opened
-  string expires_at = 8;                // ISO timestamp (only for temp mode)
-  bool requires_status_config = 9;      // True if user must configure update_status_on_start setting
 }
 
 // Request to open a standalone workspace (not tied to an issue)

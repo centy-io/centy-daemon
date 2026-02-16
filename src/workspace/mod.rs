@@ -76,7 +76,7 @@ pub use storage::{
     list_workspaces, read_registry, remove_workspace, update_workspace_expiration, write_registry,
 };
 #[allow(unused_imports)]
-pub use terminal::{is_terminal_available, open_terminal, open_terminal_with_agent};
+pub use terminal::{is_terminal_available, open_terminal};
 #[allow(unused_imports)]
 pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
 #[allow(unused_imports)]
