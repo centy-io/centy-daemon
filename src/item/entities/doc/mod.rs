@@ -2,8 +2,7 @@ mod crud;
 
 #[allow(unused_imports)]
 pub use crud::{
-    create_doc, delete_doc, get_doc, get_docs_by_slug, list_docs, move_doc, restore_doc,
-    soft_delete_doc, update_doc, CreateDocOptions, CreateDocResult, DeleteDocResult, Doc, DocError,
-    DocMetadata, DocWithProject, MoveDocOptions, MoveDocResult, OrgDocSyncResult, RestoreDocResult,
-    SoftDeleteDocResult, UpdateDocOptions, UpdateDocResult,
+    create_doc, get_doc, get_docs_by_slug, list_docs, move_doc, update_doc, CreateDocOptions,
+    CreateDocResult, Doc, DocError, DocMetadata, DocWithProject, MoveDocOptions, MoveDocResult,
+    OrgDocSyncResult, UpdateDocOptions, UpdateDocResult,
 };

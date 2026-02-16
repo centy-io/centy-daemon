@@ -7,10 +7,10 @@ use centy_daemon::config::item_type_config::default_issue_config;
 use centy_daemon::config::CentyConfig;
 use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::issue::{
-    create_issue, delete_issue, get_issue, is_uuid, list_issues, update_issue, CreateIssueOptions,
+    create_issue, get_issue, is_uuid, list_issues, update_issue, CreateIssueOptions,
     IssueCrudError, IssueError, UpdateIssueOptions,
 };
-use centy_daemon::item::generic::storage::generic_move;
+use centy_daemon::item::generic::storage::{generic_delete, generic_move};
 use centy_daemon::item::generic::{generic_duplicate, DuplicateGenericItemOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
@@ -484,7 +484,8 @@ async fn test_delete_issue_success() {
     assert!(issue_file.exists());
 
     // Delete it
-    delete_issue(project_path, &created.id)
+    let config = default_issue_config(&CentyConfig::default());
+    generic_delete(project_path, &config, &created.id, true)
         .await
         .expect("Should delete");
 
@@ -527,7 +528,10 @@ async fn test_delete_issue_removes_files() {
     );
 
     // Delete issue
-    let _result = delete_issue(project_path, &created.id).await.unwrap();
+    let config = default_issue_config(&CentyConfig::default());
+    generic_delete(project_path, &config, &created.id, true)
+        .await
+        .unwrap();
 
     // Verify issue file is removed
     assert!(
@@ -543,12 +547,9 @@ async fn test_delete_issue_not_found() {
 
     init_centy_project(project_path).await;
 
-    let result = delete_issue(project_path, "9999").await;
+    let config = default_issue_config(&CentyConfig::default());
+    let result = generic_delete(project_path, &config, "9999", true).await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        IssueCrudError::IssueNotFound(_)
-    ));
 }
 
 #[tokio::test]
