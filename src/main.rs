@@ -24,7 +24,6 @@ mod manifest;
 mod metrics;
 mod reconciliation;
 mod registry;
-mod search;
 mod server;
 mod template;
 mod user;

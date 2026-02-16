@@ -747,13 +747,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::user_sync::sync_users(request.into_inner()).await
     }
 
-    async fn advanced_search(
-        &self,
-        request: Request<AdvancedSearchRequest>,
-    ) -> Result<Response<AdvancedSearchResponse>, Status> {
-        handlers::search::advanced_search(request.into_inner()).await
-    }
-
     async fn get_supported_editors(
         &self,
         request: Request<GetSupportedEditorsRequest>,

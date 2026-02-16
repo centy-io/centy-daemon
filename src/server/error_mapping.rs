@@ -138,23 +138,6 @@ impl ToStructuredError for crate::hooks::HookError {
     }
 }
 
-// ── SearchError ────────────────────────────────────────────────────────────────
-impl ToStructuredError for crate::search::SearchError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::search::SearchError;
-        match self {
-            SearchError::ParseError(_) => ("SEARCH_PARSE_ERROR", None),
-            SearchError::InvalidOperator(_, _) => ("SEARCH_INVALID_OPERATOR", None),
-            SearchError::InvalidValue(_, _) => ("SEARCH_INVALID_VALUE", None),
-            SearchError::InvalidDateFormat(_) => ("SEARCH_INVALID_DATE_FORMAT", None),
-            SearchError::InvalidRegex(_, _) => ("SEARCH_INVALID_REGEX", None),
-            SearchError::IssueError(_) => ("ISSUE_ERROR", None),
-            SearchError::RegistryError(_) => ("REGISTRY_ERROR", None),
-            SearchError::IoError(_) => ("IO_ERROR", None),
-        }
-    }
-}
-
 // ── OrganizationError ──────────────────────────────────────────────────────────
 impl ToStructuredError for crate::registry::OrganizationError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {

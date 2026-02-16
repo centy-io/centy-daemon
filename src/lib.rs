@@ -22,7 +22,6 @@ pub mod manifest;
 pub mod metrics;
 pub mod reconciliation;
 pub mod registry;
-pub mod search;
 pub mod server;
 pub mod template;
 pub mod user;
@@ -64,10 +63,6 @@ pub use reconciliation::{
 pub use registry::{
     get_project_info, list_projects, track_project, untrack_project, ProjectInfo, ProjectRegistry,
     RegistryError, TrackedProject,
-};
-pub use search::{
-    advanced_search, format_query, parse_query, SearchError, SearchOptions, SearchResult,
-    SearchResultIssue, SortField, SortOptions,
 };
 pub use server::CentyDaemonService;
 pub use template::{
