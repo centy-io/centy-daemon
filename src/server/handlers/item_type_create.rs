@@ -3,7 +3,8 @@ use std::path::Path;
 use crate::config::item_type_config::{write_item_type_config, ItemTypeRegistry};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::registry::track_project_async;
-use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse, ItemTypeConfigProto};
+use crate::server::convert_entity::config_to_proto;
+use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse};
 use crate::server::structured_error::StructuredError;
 use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 use tonic::{Response, Status};
@@ -24,37 +25,6 @@ fn error_response(cwd: &str, code: &str, message: String) -> Response<CreateItem
         error: se.to_json(),
         config: None,
     })
-}
-
-fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto {
-    ItemTypeConfigProto {
-        name: config.name.clone(),
-        plural: folder.to_string(),
-        identifier: config.identifier.to_string(),
-        features: Some(crate::server::proto::ItemTypeFeatures {
-            display_number: config.features.display_number,
-            status: config.features.status,
-            priority: config.features.priority,
-            assets: config.features.assets,
-            org_sync: config.features.org_sync,
-            r#move: config.features.move_item,
-            duplicate: config.features.duplicate,
-        }),
-        statuses: config.statuses.clone(),
-        default_status: config.default_status.clone().unwrap_or_default(),
-        priority_levels: config.priority_levels.unwrap_or(0),
-        custom_fields: config
-            .custom_fields
-            .iter()
-            .map(|f| crate::server::proto::CustomFieldDefinition {
-                name: f.name.clone(),
-                field_type: f.field_type.clone(),
-                required: f.required,
-                default_value: f.default_value.clone().unwrap_or_default(),
-                enum_values: f.enum_values.clone(),
-            })
-            .collect(),
-    }
 }
 
 /// Validate the request fields. Returns an error message on failure, or Ok(()) on success.

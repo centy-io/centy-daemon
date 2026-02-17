@@ -1106,9 +1106,9 @@ checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 
 [[package]]
 name = "mdstore"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eac1d2e54d85c0aa472e54960de8ecf355b9085c2eece969421c5529b0fce5cd"
+checksum = "49636160ce4c32e66aed5516d456cfccf5a6f7e0e3f24c17f91fd5d7ccf72077"
 dependencies = [
  "async-trait",
  "chrono",
