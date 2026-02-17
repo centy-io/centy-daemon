@@ -267,6 +267,9 @@ service CentyDaemon {
   // Create a new item type dynamically
   rpc CreateItemType(CreateItemTypeRequest) returns (CreateItemTypeResponse);
 
+  // List all item types for a project
+  rpc ListItemTypes(ListItemTypesRequest) returns (ListItemTypesResponse);
+
   // ============ Generic Item RPCs ============
 
   // Create a new item of any type
@@ -1716,6 +1719,17 @@ message ItemTypeConfigProto {
   string default_status = 6;
   uint32 priority_levels = 7;
   repeated CustomFieldDefinition custom_fields = 8;
+}
+
+message ListItemTypesRequest {
+  string project_path = 1;
+}
+
+message ListItemTypesResponse {
+  bool success = 1;
+  string error = 2;
+  repeated ItemTypeConfigProto item_types = 3;
+  int32 total_count = 4;
 }
 
 // ============ Generic Item Move Messages ============
