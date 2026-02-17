@@ -432,9 +432,6 @@ describe.skip('Org Issues E2E Tests', () => {
       });
 
       expect(config.priorityLevels).toBeGreaterThan(0);
-      expect(config.allowedStates).toBeDefined();
-      expect(config.allowedStates.length).toBeGreaterThan(0);
-      expect(config.allowedStates.length).toBeGreaterThan(0);
     });
 
     it('should update org config priority levels', async () => {
@@ -447,34 +444,6 @@ describe.skip('Org Issues E2E Tests', () => {
 
       expect(result.success).toBe(true);
       expect(result.config?.priorityLevels).toBe(5);
-    });
-
-    it('should update org config allowed states', async () => {
-      const newStates = ['open', 'in-progress', 'review', 'closed'];
-
-      const result = await project.client.updateOrgConfig({
-        organizationSlug: orgSlug,
-        config: {
-          allowedStates: newStates,
-        },
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.config?.allowedStates).toEqual(newStates);
-    });
-
-    it('should update org config allowed states', async () => {
-      const newStates = ['backlog', 'open', 'in-progress', 'closed'];
-
-      const result = await project.client.updateOrgConfig({
-        organizationSlug: orgSlug,
-        config: {
-          allowedStates: newStates,
-        },
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.config?.allowedStates).toEqual(newStates);
     });
   });
 

@@ -68,7 +68,7 @@ You can freely read issue files in this folder to understand the project's issue
 
 1. **Modifying Issues**: Always use the `centy` CLI to modify issues. Do not directly edit issue files.
 
-2. **Status Values**: Valid status values are defined in `config.json` under `allowedStates`. Default: `["open", "planning", "in-progress", "closed"]`
+2. **Status Values**: Valid status values are defined in `config.yaml` under `statuses`. Default: `["open", "planning", "in-progress", "closed"]`
 
 3. **Closing Issues**: Run `centy update issue <id> --status closed` when:
    - All requested changes have been implemented

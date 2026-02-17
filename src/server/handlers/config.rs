@@ -24,11 +24,6 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                 custom_fields: vec![],
                 defaults: std::collections::HashMap::new(),
                 priority_levels: 3, // Default
-                allowed_states: vec![
-                    "open".to_string(),
-                    "in-progress".to_string(),
-                    "closed".to_string(),
-                ],
                 version: crate::utils::CENTY_VERSION.to_string(),
                 state_colors: std::collections::HashMap::new(),
                 priority_colors: std::collections::HashMap::new(),

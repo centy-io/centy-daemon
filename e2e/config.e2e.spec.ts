@@ -25,32 +25,11 @@ describe('gRPC: Config Operations', () => {
 
       expect(config).toBeDefined();
       expect(config.priorityLevels).toBeGreaterThan(0);
-      expect(config.allowedStates).toBeDefined();
-      expect(Array.isArray(config.allowedStates)).toBe(true);
-    });
-
-    it('should include default states', async () => {
-      const config = await project.client.getConfig({
-        projectPath: project.path,
-      });
-
-      expect(config.allowedStates).toContain('open');
-      expect(config.allowedStates).toContain('closed');
-    });
-
-    it('should have allowed states', async () => {
-      const config = await project.client.getConfig({
-        projectPath: project.path,
-      });
-
-      expect(config.allowedStates.length).toBeGreaterThan(0);
     });
   });
 
   describe('UpdateConfig', () => {
-    // Base config required by the daemon (allowedStates must not be empty)
     const baseConfig = {
-      allowedStates: ['open', 'in-progress', 'closed'],
       priorityLevels: 3,
     };
 
@@ -65,21 +44,6 @@ describe('gRPC: Config Operations', () => {
 
       expect(result.success).toBe(true);
       expect(result.config?.priorityLevels).toBe(5);
-    });
-
-    it('should update allowed states', async () => {
-      const newStates = ['todo', 'doing', 'done'];
-
-      const result = await project.client.updateConfig({
-        projectPath: project.path,
-        config: {
-          ...baseConfig,
-          allowedStates: newStates,
-        },
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.config?.allowedStates).toEqual(newStates);
     });
 
     it('should update state colors', async () => {

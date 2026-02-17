@@ -5,7 +5,7 @@ use super::org_registry::{get_next_org_display_number, OrgIssueRegistryError};
 use super::planning::{add_planning_note, is_planning_status};
 use super::priority::{default_priority, priority_label, validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, ReconcileError};
-use super::status::{validate_status, StatusError};
+use super::status::{validate_status_for_project, StatusError};
 use crate::common::{generate_frontmatter, sync_to_org_projects, OrgSyncResult};
 use crate::config::item_type_config::read_item_type_config;
 use crate::config::read_config;
@@ -225,9 +225,7 @@ pub async fn create_issue(
             .and_then(|c| c.default_status.clone())
             .unwrap_or_else(|| "open".to_string())
     });
-    if let Some(ref config) = config {
-        validate_status(&status, &config.allowed_states)?;
-    }
+    validate_status_for_project(project_path, "issues", &status).await?;
 
     let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
     let draft = options.draft.unwrap_or(false);

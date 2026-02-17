@@ -29,7 +29,7 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             })
             .collect(),
         defaults: proto.defaults.clone(),
-        allowed_states: proto.allowed_states.clone(),
+        allowed_states: Vec::new(),
         state_colors: proto.state_colors.clone(),
         priority_colors: proto.priority_colors.clone(),
         custom_link_types: proto
