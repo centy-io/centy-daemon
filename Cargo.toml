@@ -8,7 +8,7 @@ license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
 
 [dependencies]
 # Storage engine
-mdstore = "0.1.0"
+mdstore = "0.3.0"
 
 # gRPC
 tonic = "0.12"

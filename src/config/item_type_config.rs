@@ -3,7 +3,6 @@ use crate::utils::get_centy_path;
 use mdstore::{IdStrategy, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
 use std::path::Path;
-use tokio::fs;
 use tracing::{info, warn};
 
 /// Build the default issues config from the project's `CentyConfig`.
@@ -77,7 +76,7 @@ pub async fn discover_item_types(
     project_path: &Path,
 ) -> Result<Vec<TypeConfig>, mdstore::ConfigError> {
     let centy_path = get_centy_path(project_path);
-    mdstore::config::discover_types(&centy_path).await
+    mdstore::discover_types(&centy_path).await
 }
 
 /// In-memory registry of item types built by scanning `.centy/*/config.yaml`.
@@ -99,72 +98,29 @@ impl ItemTypeRegistry {
     /// * Logs discovered types at the end
     pub async fn build(project_path: &Path) -> Result<Self, mdstore::ConfigError> {
         let centy_path = get_centy_path(project_path);
-        let mut types = HashMap::new();
+        let types = mdstore::discover_types_map(&centy_path).await?;
 
-        if !centy_path.exists() {
-            info!("No .centy directory found, item type registry is empty");
-            return Ok(Self { types });
-        }
-
-        let mut entries = fs::read_dir(&centy_path).await?;
-        // Track type names to detect duplicates: name -> folder that first registered it
+        // Duplicate name detection (centy-specific logic)
         let mut seen_names: HashMap<String, String> = HashMap::new();
-
-        while let Some(entry) = entries.next_entry().await? {
-            if !entry.file_type().await?.is_dir() {
-                continue;
-            }
-
-            let config_path = entry.path().join("config.yaml");
-            if !config_path.exists() {
-                continue;
-            }
-
-            let folder_name = entry.file_name().to_string_lossy().to_string();
-
-            let content = match fs::read_to_string(&config_path).await {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::error!(
-                        folder = %folder_name,
-                        error = %e,
-                        "Failed to read config.yaml, skipping type"
-                    );
-                    continue;
-                }
-            };
-
-            let config = match serde_yaml::from_str::<TypeConfig>(&content) {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::error!(
-                        folder = %folder_name,
-                        error = %e,
-                        "Malformed config.yaml, skipping type"
-                    );
-                    continue;
-                }
-            };
-
-            // Check for duplicate type names
-            if let Some(existing_folder) = seen_names.get(&config.name) {
+        let mut deduped = HashMap::new();
+        for (folder, config) in types {
+            if let Some(existing) = seen_names.get(&config.name) {
                 warn!(
                     name = %config.name,
-                    folder = %folder_name,
-                    existing_folder = %existing_folder,
+                    folder = %folder,
+                    existing_folder = %existing,
                     "Duplicate type name detected, skipping"
                 );
                 continue;
             }
-
-            seen_names.insert(config.name.clone(), folder_name.clone());
-            types.insert(folder_name, config);
+            seen_names.insert(config.name.clone(), folder.clone());
+            deduped.insert(folder, config);
         }
 
-        let type_names: Vec<&str> = types.values().map(|c| c.name.as_str()).collect();
-        info!(count = types.len(), types = ?type_names, "Item type registry built");
+        let type_names: Vec<&str> = deduped.values().map(|c| c.name.as_str()).collect();
+        info!(count = deduped.len(), types = ?type_names, "Item type registry built");
 
-        Ok(Self { types })
+        Ok(Self { types: deduped })
     }
 
     /// Get a config by folder name (e.g. `"issues"`, `"docs"`).
@@ -273,6 +229,7 @@ mod tests {
     use super::*;
     use mdstore::CustomFieldDef;
     use tempfile::tempdir;
+    use tokio::fs;
 
     #[test]
     fn test_default_issue_config_maps_fields() {

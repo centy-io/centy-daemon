@@ -886,6 +886,19 @@ impl CentyDaemon for CentyDaemonService {
     }
 
     #[instrument(
+        name = "grpc.list_item_types",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn list_item_types(
+        &self,
+        request: Request<ListItemTypesRequest>,
+    ) -> Result<Response<ListItemTypesResponse>, Status> {
+        let _timer = OperationTimer::new("list_item_types");
+        handlers::item_type_list::list_item_types(request.into_inner()).await
+    }
+
+    #[instrument(
         name = "grpc.create_item",
         skip(self, request),
         fields(request_id = %generate_request_id())
