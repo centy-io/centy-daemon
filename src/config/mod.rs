@@ -44,7 +44,7 @@ fn default_priority_levels() -> u32 {
     3
 }
 
-/// Default allowed states for issues
+/// Default allowed states for issues (used only during migration to per-item-type config.yaml)
 fn default_allowed_states() -> Vec<String> {
     vec![
         "open".to_string(),
@@ -82,8 +82,10 @@ pub struct CentyConfig {
     pub custom_fields: Vec<CustomFieldDefinition>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
-    /// Allowed status values for issues (default: `["open", "planning", "in-progress", "closed"]`)
-    #[serde(default = "default_allowed_states")]
+    /// Legacy: allowed status values. Migrated to per-item-type `config.yaml`.
+    /// Kept only for backward-compatible deserialization of old `config.json` files.
+    /// New code should read statuses from `ItemTypeConfig::statuses` instead.
+    #[serde(default = "default_allowed_states", skip_serializing)]
     pub allowed_states: Vec<String>,
     /// State colors: state name → hex color (e.g., "open" → "#10b981")
     #[serde(default)]
@@ -164,11 +166,18 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
         needs_write = true;
     }
 
-    // Remove deprecated defaultState (now lives in per-item-type config.yaml)
+    // Remove deprecated fields (now live in per-item-type config.yaml)
     if let Some(obj) = raw.as_object_mut() {
         if obj.remove("defaultState").is_some() {
             needs_write = true;
         }
+    }
+    // Strip deprecated allowedStates on next write (skip_serializing handles omission)
+    if raw
+        .as_object()
+        .is_some_and(|o| o.contains_key("allowedStates"))
+    {
+        needs_write = true;
     }
 
     // Unflatten for serde deserialization (serde expects nested objects)
@@ -261,6 +270,7 @@ mod tests {
 
     #[test]
     fn test_default_allowed_states() {
+        // Legacy: still used during migration to per-item-type config.yaml
         let states = default_allowed_states();
         assert_eq!(states.len(), 4);
         assert!(states.contains(&"open".to_string()));
@@ -277,7 +287,7 @@ mod tests {
         assert_eq!(config.priority_levels, 3);
         assert!(config.custom_fields.is_empty());
         assert!(config.defaults.is_empty());
-        assert_eq!(config.allowed_states.len(), 4);
+        assert_eq!(config.allowed_states.len(), 4); // Legacy field with defaults for migration
         assert!(config.state_colors.is_empty());
         assert!(config.priority_colors.is_empty());
         assert!(config.custom_link_types.is_empty());
@@ -322,9 +332,11 @@ mod tests {
         // Check for camelCase keys
         assert!(json.contains("priorityLevels"));
         assert!(json.contains("customFields"));
-        assert!(json.contains("allowedStates"));
         assert!(json.contains("stateColors"));
         assert!(json.contains("priorityColors"));
+
+        // allowedStates should NOT be serialized (skip_serializing)
+        assert!(!json.contains("allowedStates"));
 
         // Should NOT contain snake_case
         assert!(!json.contains("priority_levels"));
@@ -515,6 +527,7 @@ mod tests {
             .expect("Should create .centy dir");
 
         // Write a config.json in flat format WITHOUT the hooks key
+        // (also has legacy allowedStates + defaultState that should be stripped)
         let config_without_hooks = r#"{
   "priorityLevels": 3,
   "customFields": [],
@@ -553,7 +566,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_config_does_not_rewrite_when_hooks_present_flat_format() {
+    async fn test_read_config_does_not_rewrite_when_hooks_present_and_no_deprecated_fields() {
         use tempfile::tempdir;
 
         let temp_dir = tempdir().expect("Should create temp dir");
@@ -562,14 +575,8 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json in flat format WITH the hooks key (no deprecated fields)
+        // Write a config.json in flat format WITH hooks key and NO deprecated fields
         let config_with_hooks = r#"{
-  "allowedStates": [
-    "open",
-    "planning",
-    "in-progress",
-    "closed"
-  ],
   "customFields": [],
   "defaults": {},
   "hooks": [],
@@ -597,6 +604,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_read_config_strips_legacy_allowed_states() {
+        use tempfile::tempdir;
+
+        let temp_dir = tempdir().expect("Should create temp dir");
+        let centy_dir = temp_dir.path().join(".centy");
+        fs::create_dir_all(&centy_dir)
+            .await
+            .expect("Should create .centy dir");
+
+        // Write a config.json WITH legacy allowedStates
+        let config_with_allowed_states = r#"{
+  "allowedStates": ["open", "planning", "in-progress", "closed"],
+  "customFields": [],
+  "defaults": {},
+  "hooks": [],
+  "priorityColors": {},
+  "priorityLevels": 3,
+  "stateColors": {}
+}"#;
+        let config_path = centy_dir.join("config.json");
+        fs::write(&config_path, config_with_allowed_states)
+            .await
+            .expect("Should write config");
+
+        // Read config - should still deserialize allowedStates for migration use
+        let config = read_config(temp_dir.path())
+            .await
+            .expect("Should read")
+            .expect("Config should exist");
+        assert_eq!(config.allowed_states.len(), 4);
+
+        // File should have been rewritten WITHOUT allowedStates (skip_serializing)
+        let raw = fs::read_to_string(&config_path)
+            .await
+            .expect("Should read file");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("Should parse");
+        assert!(
+            !value.as_object().unwrap().contains_key("allowedStates"),
+            "config.json should no longer contain allowedStates after rewrite"
+        );
+    }
+
+    #[tokio::test]
     async fn test_read_config_flat_format_works() {
         use tempfile::tempdir;
 
@@ -606,7 +656,7 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json already in flat format
+        // Write a config.json already in flat format (with legacy fields that trigger migration)
         let flat_config = r#"{
   "version": "0.0.1",
   "priorityLevels": 5,

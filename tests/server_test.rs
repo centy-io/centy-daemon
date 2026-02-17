@@ -157,17 +157,6 @@ async fn test_doc_create_get_roundtrip() {
 // Test config validation logic
 
 #[test]
-fn test_config_allowed_states_not_empty() {
-    let config = CentyConfig {
-        allowed_states: vec![],
-        ..Default::default()
-    };
-
-    // This would fail validation - allowed_states is empty
-    assert!(config.allowed_states.is_empty());
-}
-
-#[test]
 fn test_config_priority_levels_range() {
     // Valid range is 1-10
     let config = CentyConfig {

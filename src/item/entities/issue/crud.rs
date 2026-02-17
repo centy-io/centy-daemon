@@ -6,7 +6,7 @@ use super::planning::{
 };
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
-use super::status::{validate_status, StatusError};
+use super::status::{validate_status_for_project, StatusError};
 use crate::common::{
     generate_frontmatter, parse_frontmatter, FrontmatterError, OrgSyncError, OrgSyncable,
 };
@@ -585,10 +585,8 @@ pub async fn update_issue(
         .status
         .unwrap_or_else(|| current.metadata.status.clone());
 
-    // Validate status and priority
-    if let Some(ref config) = config {
-        validate_status(&new_status, &config.allowed_states)?;
-    }
+    // Validate status against item-type config
+    validate_status_for_project(project_path, "issues", &new_status).await?;
     // Apply priority update
     let new_priority = if let Some(p) = options.priority {
         validate_priority(p, priority_levels)?;
@@ -744,9 +742,12 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     }
 
     // Status validation: reject if status is not valid in target project
-    if let Some(ref config) = target_config {
-        validate_status(&source_issue.metadata.status, &config.allowed_states)?;
-    }
+    validate_status_for_project(
+        &options.target_project_path,
+        "issues",
+        &source_issue.metadata.status,
+    )
+    .await?;
 
     // Get next display number in target project
     let target_centy = get_centy_path(&options.target_project_path);

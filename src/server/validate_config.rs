@@ -14,10 +14,6 @@ pub static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
 
 /// Validate the config and return an error message if invalid.
 pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
-    if config.allowed_states.is_empty() {
-        return Err("allowed_states must not be empty".to_string());
-    }
-
     if config.priority_levels < 1 || config.priority_levels > 10 {
         return Err("priority_levels must be between 1 and 10".to_string());
     }

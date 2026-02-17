@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::config::read_config;
+use crate::config::item_type_config::read_item_type_config;
 use crate::registry::track_project_async;
 use crate::server::action_builders::build_issue_actions;
 use crate::server::action_builders_extra::build_doc_actions;
@@ -17,22 +17,26 @@ pub async fn get_entity_actions(
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
 
-    let config = read_config(project_path).await.ok().flatten();
-    let allowed_states = config
-        .as_ref()
-        .map(|c| c.allowed_states.clone())
-        .unwrap_or_else(|| {
-            vec![
-                "open".to_string(),
-                "in-progress".to_string(),
-                "closed".to_string(),
-            ]
-        });
-
     let has_entity_id = !req.entity_id.is_empty();
 
     let actions = match req.entity_type {
         t if t == EntityType::Issue as i32 => {
+            let item_type_config = read_item_type_config(project_path, "issues")
+                .await
+                .ok()
+                .flatten();
+            let allowed_states = item_type_config
+                .as_ref()
+                .map(|c| c.statuses.clone())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| {
+                    vec![
+                        "open".to_string(),
+                        "in-progress".to_string(),
+                        "closed".to_string(),
+                    ]
+                });
+
             let entity_status = if has_entity_id {
                 resolve_issue(project_path, &req.entity_id)
                     .await
