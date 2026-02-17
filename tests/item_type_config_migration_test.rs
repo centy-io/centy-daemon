@@ -7,6 +7,7 @@ use centy_daemon::config::item_type_config::{read_item_type_config, write_item_t
 use centy_daemon::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use centy_daemon::CentyConfig;
 use common::create_test_dir;
+use mdstore::IdStrategy;
 use tokio::fs;
 
 /// Fresh project: reconciliation creates both config.yaml files with defaults
@@ -41,8 +42,7 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should read")
         .expect("Should exist");
     assert_eq!(issue_config.name, "Issue");
-    assert_eq!(issue_config.plural, "issues");
-    assert_eq!(issue_config.identifier, "uuid");
+    assert_eq!(issue_config.identifier, IdStrategy::Uuid);
     assert!(issue_config.features.status);
     assert!(issue_config.features.priority);
 
@@ -52,8 +52,7 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should read")
         .expect("Should exist");
     assert_eq!(doc_config.name, "Doc");
-    assert_eq!(doc_config.plural, "docs");
-    assert_eq!(doc_config.identifier, "slug");
+    assert_eq!(doc_config.identifier, IdStrategy::Slug);
     assert!(!doc_config.features.status);
     assert!(!doc_config.features.priority);
 }

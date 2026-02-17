@@ -7,6 +7,9 @@ authors = ["Centy Team"]
 license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
 
 [dependencies]
+# Storage engine
+mdstore = "0.1.0"
+
 # gRPC
 tonic = "0.12"
 tonic-reflection = "0.12"
@@ -57,7 +60,11 @@ semver = { version = "1", features = ["serde"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "json",
+    "fmt",
+] }
 tracing-appender = "0.2"
 
 # Home directory detection
@@ -87,12 +94,17 @@ which = "6"
 shell-escape = "0.1"
 slug = "0.1.6"
 
+
 [build-dependencies]
 tonic-build = "0.12"
 
 [dev-dependencies]
 tempfile = "3"
-cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "prepush-hook", "user-hooks"] }
+cargo-husky = { version = "1", default-features = false, features = [
+    "precommit-hook",
+    "prepush-hook",
+    "user-hooks",
+] }
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -170,9 +182,21 @@ depends = "libc6"
 section = "utils"
 priority = "optional"
 assets = [
-    ["target/release/centy-daemon", "usr/bin/", "755"],
-    ["packaging/linux/systemd/centy-daemon.service", "lib/systemd/system/", "644"],
-    ["README.md", "usr/share/doc/centy-daemon/", "644"],
+    [
+        "target/release/centy-daemon",
+        "usr/bin/",
+        "755",
+    ],
+    [
+        "packaging/linux/systemd/centy-daemon.service",
+        "lib/systemd/system/",
+        "644",
+    ],
+    [
+        "README.md",
+        "usr/share/doc/centy-daemon/",
+        "644",
+    ],
 ]
 
 # RPM package metadata (used by cargo-generate-rpm)

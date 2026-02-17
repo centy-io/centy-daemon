@@ -12,7 +12,7 @@ use super::item_type_resolve::resolve_item_type_config;
 pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let (_item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+    let (item_type, _config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(GetItemResponse {
@@ -23,11 +23,11 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
         }
     };
 
-    match generic_get(project_path, &config, &req.item_id).await {
+    match generic_get(project_path, &item_type, &req.item_id).await {
         Ok(item) => Ok(Response::new(GetItemResponse {
             success: true,
             error: String::new(),
-            item: Some(generic_item_to_proto(&item)),
+            item: Some(generic_item_to_proto(&item, &item_type)),
         })),
         Err(e) => Ok(Response::new(GetItemResponse {
             success: false,

@@ -23,7 +23,7 @@ pub enum ExecuteError {
     PlanError(#[from] super::plan::PlanError),
 
     #[error("Config error: {0}")]
-    ConfigError(#[from] crate::config::ConfigError),
+    ConfigError(#[from] mdstore::ConfigError),
 }
 
 /// User decisions for reconciliation

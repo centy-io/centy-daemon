@@ -1,49 +1,18 @@
-use super::{CentyConfig, ConfigError, CustomFieldDefinition};
+use super::CentyConfig;
 use crate::utils::get_centy_path;
-use serde::{Deserialize, Serialize};
+use mdstore::{IdStrategy, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
-use tracing::{error, info, warn};
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ItemTypeFeatures {
-    pub display_number: bool,
-    pub status: bool,
-    pub priority: bool,
-    pub assets: bool,
-    pub org_sync: bool,
-    #[serde(rename = "move")]
-    pub move_item: bool,
-    pub duplicate: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ItemTypeConfig {
-    pub name: String,
-    pub plural: String,
-    pub identifier: String,
-    pub features: ItemTypeFeatures,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub statuses: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default_status: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub priority_levels: Option<u32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub custom_fields: Vec<CustomFieldDefinition>,
-}
+use tracing::{info, warn};
 
 /// Build the default issues config from the project's `CentyConfig`.
 #[must_use]
-pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
-    ItemTypeConfig {
+pub fn default_issue_config(config: &CentyConfig) -> TypeConfig {
+    TypeConfig {
         name: "Issue".to_string(),
-        plural: "issues".to_string(),
-        identifier: "uuid".to_string(),
-        features: ItemTypeFeatures {
+        identifier: IdStrategy::Uuid,
+        features: TypeFeatures {
             display_number: true,
             status: true,
             priority: true,
@@ -61,12 +30,11 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
 
 /// Build the default docs config with hardcoded defaults.
 #[must_use]
-pub fn default_doc_config() -> ItemTypeConfig {
-    ItemTypeConfig {
+pub fn default_doc_config() -> TypeConfig {
+    TypeConfig {
         name: "Doc".to_string(),
-        plural: "docs".to_string(),
-        identifier: "slug".to_string(),
-        features: ItemTypeFeatures {
+        identifier: IdStrategy::Slug,
+        features: TypeFeatures {
             display_number: false,
             status: false,
             priority: false,
@@ -86,77 +54,30 @@ pub fn default_doc_config() -> ItemTypeConfig {
 pub async fn read_item_type_config(
     project_path: &Path,
     folder: &str,
-) -> Result<Option<ItemTypeConfig>, ConfigError> {
-    let config_path = get_centy_path(project_path)
-        .join(folder)
-        .join("config.yaml");
-
-    if !config_path.exists() {
-        return Ok(None);
-    }
-
-    let content = fs::read_to_string(&config_path).await?;
-    let config: ItemTypeConfig = serde_yaml::from_str(&content)?;
-    Ok(Some(config))
+) -> Result<Option<TypeConfig>, mdstore::ConfigError> {
+    let type_dir = get_centy_path(project_path).join(folder);
+    mdstore::config::read_type_config(&type_dir).await
 }
 
 /// Write an item-type config to `.centy/<folder>/config.yaml`.
 pub async fn write_item_type_config(
     project_path: &Path,
     folder: &str,
-    config: &ItemTypeConfig,
-) -> Result<(), ConfigError> {
-    let dir_path = get_centy_path(project_path).join(folder);
-    fs::create_dir_all(&dir_path).await?;
-
-    let config_path = dir_path.join("config.yaml");
-    let content = serde_yaml::to_string(config)?;
-    fs::write(&config_path, content).await?;
-    Ok(())
+    config: &TypeConfig,
+) -> Result<(), mdstore::ConfigError> {
+    let type_dir = get_centy_path(project_path).join(folder);
+    mdstore::config::write_type_config(&type_dir, config).await
 }
 
 /// Discover all item types by scanning `.centy/*/config.yaml`.
 ///
-/// Returns a list of `ItemTypeConfig` for each subdirectory that contains
+/// Returns a list of `TypeConfig` for each subdirectory that contains
 /// a valid `config.yaml`. Malformed configs are logged and skipped.
-pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConfig>, ConfigError> {
+pub async fn discover_item_types(
+    project_path: &Path,
+) -> Result<Vec<TypeConfig>, mdstore::ConfigError> {
     let centy_path = get_centy_path(project_path);
-    if !centy_path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let mut configs = Vec::new();
-    let mut entries = fs::read_dir(&centy_path).await?;
-
-    while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_dir() {
-            continue;
-        }
-
-        let config_path = entry.path().join("config.yaml");
-        if !config_path.exists() {
-            continue;
-        }
-
-        let folder_name = entry.file_name().to_string_lossy().to_string();
-
-        let content = match fs::read_to_string(&config_path).await {
-            Ok(c) => c,
-            Err(e) => {
-                error!(folder = %folder_name, error = %e, "Failed to read config.yaml, skipping type");
-                continue;
-            }
-        };
-
-        match serde_yaml::from_str::<ItemTypeConfig>(&content) {
-            Ok(config) => configs.push(config),
-            Err(e) => {
-                error!(folder = %folder_name, error = %e, "Malformed config.yaml, skipping type");
-            }
-        }
-    }
-
-    Ok(configs)
+    mdstore::config::discover_types(&centy_path).await
 }
 
 /// In-memory registry of item types built by scanning `.centy/*/config.yaml`.
@@ -164,19 +85,19 @@ pub async fn discover_item_types(project_path: &Path) -> Result<Vec<ItemTypeConf
 /// Keyed by folder name (e.g. `"issues"`, `"docs"`).
 #[derive(Debug, Clone)]
 pub struct ItemTypeRegistry {
-    types: HashMap<String, ItemTypeConfig>,
+    types: HashMap<String, TypeConfig>,
 }
 
 impl ItemTypeRegistry {
     /// Build the registry by scanning `.centy/*/config.yaml` files.
     ///
     /// * Scans `.centy/` direct subdirectories for `config.yaml` files
-    /// * Parses each into an `ItemTypeConfig`
+    /// * Parses each into a `TypeConfig`
     /// * Validates no duplicate type names across folders
     /// * Skips directories without `config.yaml`
     /// * Logs errors for malformed configs and skips them (does not crash)
     /// * Logs discovered types at the end
-    pub async fn build(project_path: &Path) -> Result<Self, ConfigError> {
+    pub async fn build(project_path: &Path) -> Result<Self, mdstore::ConfigError> {
         let centy_path = get_centy_path(project_path);
         let mut types = HashMap::new();
 
@@ -204,7 +125,7 @@ impl ItemTypeRegistry {
             let content = match fs::read_to_string(&config_path).await {
                 Ok(c) => c,
                 Err(e) => {
-                    error!(
+                    tracing::error!(
                         folder = %folder_name,
                         error = %e,
                         "Failed to read config.yaml, skipping type"
@@ -213,10 +134,10 @@ impl ItemTypeRegistry {
                 }
             };
 
-            let config = match serde_yaml::from_str::<ItemTypeConfig>(&content) {
+            let config = match serde_yaml::from_str::<TypeConfig>(&content) {
                 Ok(c) => c,
                 Err(e) => {
-                    error!(
+                    tracing::error!(
                         folder = %folder_name,
                         error = %e,
                         "Malformed config.yaml, skipping type"
@@ -248,19 +169,19 @@ impl ItemTypeRegistry {
 
     /// Get a config by folder name (e.g. `"issues"`, `"docs"`).
     #[must_use]
-    pub fn get(&self, folder: &str) -> Option<&ItemTypeConfig> {
+    pub fn get(&self, folder: &str) -> Option<&TypeConfig> {
         self.types.get(folder)
     }
 
     /// Get a config by type name (e.g. `"Issue"`, `"Doc"`).
     #[must_use]
-    pub fn get_by_name(&self, name: &str) -> Option<(&String, &ItemTypeConfig)> {
+    pub fn get_by_name(&self, name: &str) -> Option<(&String, &TypeConfig)> {
         self.types.iter().find(|(_, c)| c.name == name)
     }
 
     /// Get all registered item types.
     #[must_use]
-    pub fn all(&self) -> &HashMap<String, ItemTypeConfig> {
+    pub fn all(&self) -> &HashMap<String, TypeConfig> {
         &self.types
     }
 
@@ -287,9 +208,9 @@ impl ItemTypeRegistry {
     /// Tries (in order):
     /// 1. Exact folder lookup (e.g. `"issues"`)
     /// 2. Case-insensitive name match (e.g. `"issue"` matches config with `name: "Issue"`)
-    /// 3. Case-insensitive plural match (e.g. `"Issue"` matches config with `plural: "issues"`)
+    /// 3. Case-insensitive folder match (e.g. `"Issues"` matches folder `"issues"`)
     #[must_use]
-    pub fn resolve(&self, input: &str) -> Option<(&String, &ItemTypeConfig)> {
+    pub fn resolve(&self, input: &str) -> Option<(&String, &TypeConfig)> {
         // 1. Exact folder lookup
         if let Some((key, config)) = self.types.get_key_value(input) {
             return Some((key, config));
@@ -306,10 +227,10 @@ impl ItemTypeRegistry {
             return Some(pair);
         }
 
-        // 3. Case-insensitive plural match
+        // 3. Case-insensitive folder match
         self.types
             .iter()
-            .find(|(_, c)| c.plural.to_lowercase() == input_lower)
+            .find(|(k, _)| k.to_lowercase() == input_lower)
     }
 }
 
@@ -318,7 +239,7 @@ impl ItemTypeRegistry {
 pub async fn migrate_to_item_type_configs(
     project_path: &Path,
     config: &CentyConfig,
-) -> Result<Vec<String>, ConfigError> {
+) -> Result<Vec<String>, mdstore::ConfigError> {
     let mut created = Vec::new();
 
     let centy_path = get_centy_path(project_path);
@@ -350,6 +271,7 @@ pub async fn migrate_to_item_type_configs(
 )]
 mod tests {
     use super::*;
+    use mdstore::CustomFieldDef;
     use tempfile::tempdir;
 
     #[test]
@@ -365,8 +287,7 @@ mod tests {
         let issue = default_issue_config(&config);
 
         assert_eq!(issue.name, "Issue");
-        assert_eq!(issue.plural, "issues");
-        assert_eq!(issue.identifier, "uuid");
+        assert_eq!(issue.identifier, IdStrategy::Uuid);
         assert_eq!(issue.statuses, config.allowed_states);
         assert_eq!(issue.default_status, Some("open".to_string()));
         assert_eq!(issue.priority_levels, Some(5));
@@ -384,8 +305,7 @@ mod tests {
         let doc = default_doc_config();
 
         assert_eq!(doc.name, "Doc");
-        assert_eq!(doc.plural, "docs");
-        assert_eq!(doc.identifier, "slug");
+        assert_eq!(doc.identifier, IdStrategy::Slug);
         assert!(doc.statuses.is_empty());
         assert!(doc.default_status.is_none());
         assert!(doc.priority_levels.is_none());
@@ -405,7 +325,6 @@ mod tests {
         let yaml = serde_yaml::to_string(&config).expect("Should serialize");
 
         assert!(yaml.contains("name: Issue"));
-        assert!(yaml.contains("plural: issues"));
         assert!(yaml.contains("identifier: uuid"));
         assert!(yaml.contains("displayNumber: true"));
         assert!(yaml.contains("move: true"));
@@ -418,7 +337,6 @@ mod tests {
         let yaml = serde_yaml::to_string(&config).expect("Should serialize");
 
         assert!(yaml.contains("name: Doc"));
-        assert!(yaml.contains("plural: docs"));
         assert!(yaml.contains("identifier: slug"));
         assert!(yaml.contains("displayNumber: false"));
         // Docs should NOT have statuses, defaultStatus, or priorityLevels
@@ -431,7 +349,7 @@ mod tests {
     fn test_item_type_config_yaml_roundtrip() {
         let config = default_issue_config(&CentyConfig::default());
         let yaml = serde_yaml::to_string(&config).expect("Should serialize");
-        let deserialized: ItemTypeConfig = serde_yaml::from_str(&yaml).expect("Should deserialize");
+        let deserialized: TypeConfig = serde_yaml::from_str(&yaml).expect("Should deserialize");
 
         assert_eq!(deserialized.name, "Issue");
         assert_eq!(deserialized.statuses.len(), config.statuses.len());
@@ -598,11 +516,10 @@ mod tests {
         // Create two folders with the same type name
         let dir_a = centy_dir.join("aaa-issues");
         fs::create_dir_all(&dir_a).await.unwrap();
-        let config_a = ItemTypeConfig {
+        let config_a = TypeConfig {
             name: "Issue".to_string(),
-            plural: "issues".to_string(),
-            identifier: "uuid".to_string(),
-            features: ItemTypeFeatures::default(),
+            identifier: IdStrategy::Uuid,
+            features: TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,
             priority_levels: None,
@@ -613,11 +530,10 @@ mod tests {
 
         let dir_b = centy_dir.join("zzz-issues");
         fs::create_dir_all(&dir_b).await.unwrap();
-        let config_b = ItemTypeConfig {
+        let config_b = TypeConfig {
             name: "Issue".to_string(),
-            plural: "alt-issues".to_string(),
-            identifier: "uuid".to_string(),
-            features: ItemTypeFeatures::default(),
+            identifier: IdStrategy::Uuid,
+            features: TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,
             priority_levels: None,
@@ -774,18 +690,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_registry_resolve_by_plural() {
+    async fn test_registry_resolve_by_folder_case_insensitive() {
         let temp = tempdir().expect("Should create temp dir");
         let centy_dir = temp.path().join(".centy");
 
-        // Create a custom type where folder != plural
+        // Create a custom type where name != folder
         let epics_dir = centy_dir.join("my-epics");
         fs::create_dir_all(&epics_dir).await.unwrap();
-        let epic_config = ItemTypeConfig {
+        let epic_config = TypeConfig {
             name: "Epic".to_string(),
-            plural: "epics".to_string(),
-            identifier: "uuid".to_string(),
-            features: ItemTypeFeatures::default(),
+            identifier: IdStrategy::Uuid,
+            features: TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,
             priority_levels: None,
@@ -797,11 +712,6 @@ mod tests {
             .unwrap();
 
         let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
-
-        // Should resolve via plural
-        let (folder, config) = registry.resolve("epics").expect("Should resolve 'epics'");
-        assert_eq!(folder, "my-epics");
-        assert_eq!(config.name, "Epic");
 
         // Should resolve via name
         let (folder, _) = registry.resolve("epic").expect("Should resolve 'epic'");
@@ -856,7 +766,7 @@ mod tests {
     #[test]
     fn test_issue_config_custom_fields_mapped() {
         let mut config = CentyConfig::default();
-        config.custom_fields = vec![CustomFieldDefinition {
+        config.custom_fields = vec![CustomFieldDef {
             name: "environment".to_string(),
             field_type: "enum".to_string(),
             required: true,

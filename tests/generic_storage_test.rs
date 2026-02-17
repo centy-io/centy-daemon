@@ -12,22 +12,17 @@ mod common;
 
 use centy_daemon::config::item_type_config::{
     default_doc_config, default_issue_config, discover_item_types, read_item_type_config,
-    ItemTypeConfig, ItemTypeFeatures,
 };
 use centy_daemon::config::CentyConfig;
-use centy_daemon::item::core::crud::ItemFilters;
 use centy_daemon::item::core::error::ItemError;
-use centy_daemon::item::generic::reconcile::{
-    get_next_display_number_generic, reconcile_display_numbers_generic,
-};
 use centy_daemon::item::generic::storage::{
     generic_create, generic_delete, generic_get, generic_list, generic_move, generic_restore,
     generic_soft_delete, generic_update,
 };
-use centy_daemon::item::generic::types::{
-    CreateGenericItemOptions, GenericFrontmatter, UpdateGenericItemOptions,
-};
 use common::create_test_dir;
+use mdstore::{
+    CreateOptions, Filters, Frontmatter, IdStrategy, TypeConfig, TypeFeatures, UpdateOptions,
+};
 use std::collections::HashMap;
 use tokio::fs;
 
@@ -44,12 +39,11 @@ async fn init_generic_project(project_path: &std::path::Path) {
 }
 
 /// Helper to create a minimal config with no features enabled.
-fn minimal_config() -> ItemTypeConfig {
-    ItemTypeConfig {
+fn minimal_config() -> TypeConfig {
+    TypeConfig {
         name: "Note".to_string(),
-        plural: "notes".to_string(),
-        identifier: "uuid".to_string(),
-        features: ItemTypeFeatures::default(),
+        identifier: IdStrategy::Uuid,
+        features: TypeFeatures::default(),
         statuses: Vec::new(),
         default_status: None,
         priority_levels: None,
@@ -70,8 +64,9 @@ async fn test_full_crud_roundtrip() {
     // Create
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Full CRUD Test".to_string(),
             body: "Testing all features.".to_string(),
             id: None,
@@ -95,16 +90,17 @@ async fn test_full_crud_roundtrip() {
     assert!(item.frontmatter.deleted_at.is_none());
 
     // Read
-    let fetched = generic_get(path, &config, &item.id).await.unwrap();
+    let fetched = generic_get(path, "issues", &item.id).await.unwrap();
     assert_eq!(fetched.title, "Full CRUD Test");
     assert_eq!(fetched.frontmatter.display_number, Some(1));
 
     // Update
     let updated = generic_update(
         path,
+        "issues",
         &config,
         &item.id,
-        UpdateGenericItemOptions {
+        UpdateOptions {
             title: Some("Updated Title".to_string()),
             body: Some("Updated body.".to_string()),
             status: Some("closed".to_string()),
@@ -131,14 +127,16 @@ async fn test_full_crud_roundtrip() {
     );
 
     // List
-    let items = generic_list(path, &config, ItemFilters::default())
+    let items = generic_list(path, "issues", Filters::default())
         .await
         .unwrap();
     assert_eq!(items.len(), 1);
 
     // Hard delete
-    generic_delete(path, &config, &item.id, true).await.unwrap();
-    let result = generic_get(path, &config, &item.id).await;
+    generic_delete(path, "issues", &config, &item.id, true)
+        .await
+        .unwrap();
+    let result = generic_get(path, "issues", &item.id).await;
     assert!(matches!(result, Err(ItemError::NotFound(_))));
 }
 
@@ -154,8 +152,9 @@ async fn test_crud_minimal_features() {
 
     let item = generic_create(
         path,
+        "notes",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Simple Note".to_string(),
             body: "Just a note.".to_string(),
             id: None,
@@ -174,7 +173,7 @@ async fn test_crud_minimal_features() {
     assert!(item.frontmatter.deleted_at.is_none());
 
     // Get it back
-    let fetched = generic_get(path, &config, &item.id).await.unwrap();
+    let fetched = generic_get(path, "notes", &item.id).await.unwrap();
     assert_eq!(fetched.title, "Simple Note");
     assert!(fetched.frontmatter.display_number.is_none());
 }
@@ -192,8 +191,9 @@ async fn test_display_number_auto_increment() {
     for i in 1..=5u32 {
         let item = generic_create(
             path,
+            "issues",
             &config,
-            CreateGenericItemOptions {
+            CreateOptions {
                 title: format!("Issue {i}"),
                 body: String::new(),
                 id: None,
@@ -209,7 +209,7 @@ async fn test_display_number_auto_increment() {
 
     // Verify next display number
     let storage_path = path.join(".centy").join("issues");
-    let next = get_next_display_number_generic(&storage_path)
+    let next = mdstore::get_next_display_number(&storage_path)
         .await
         .unwrap();
     assert_eq!(next, 6);
@@ -228,8 +228,9 @@ async fn test_status_validation_on_create() {
     // Valid status
     let result = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Good Status".to_string(),
             body: String::new(),
             id: None,
@@ -244,8 +245,9 @@ async fn test_status_validation_on_create() {
     // Invalid status
     let result = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Bad Status".to_string(),
             body: String::new(),
             id: None,
@@ -268,8 +270,9 @@ async fn test_status_validation_on_update() {
 
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Status Update Test".to_string(),
             body: String::new(),
             id: None,
@@ -284,9 +287,10 @@ async fn test_status_validation_on_update() {
     // Valid status update
     let result = generic_update(
         path,
+        "issues",
         &config,
         &item.id,
-        UpdateGenericItemOptions {
+        UpdateOptions {
             status: Some("closed".to_string()),
             ..Default::default()
         },
@@ -297,9 +301,10 @@ async fn test_status_validation_on_update() {
     // Invalid status update
     let result = generic_update(
         path,
+        "issues",
         &config,
         &item.id,
-        UpdateGenericItemOptions {
+        UpdateOptions {
             status: Some("nonexistent".to_string()),
             ..Default::default()
         },
@@ -322,8 +327,9 @@ async fn test_priority_validation() {
     for p in 1..=3u32 {
         let result = generic_create(
             path,
+            "issues",
             &config,
-            CreateGenericItemOptions {
+            CreateOptions {
                 title: format!("Priority {p}"),
                 body: String::new(),
                 id: None,
@@ -339,8 +345,9 @@ async fn test_priority_validation() {
     // Invalid priority
     let result = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Bad Priority".to_string(),
             body: String::new(),
             id: None,
@@ -355,8 +362,9 @@ async fn test_priority_validation() {
     // Priority 0 is also invalid
     let result = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Zero Priority".to_string(),
             body: String::new(),
             id: None,
@@ -381,8 +389,9 @@ async fn test_soft_delete_restore_hard_delete() {
 
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Delete Me".to_string(),
             body: String::new(),
             id: None,
@@ -395,31 +404,32 @@ async fn test_soft_delete_restore_hard_delete() {
     .unwrap();
 
     // Soft delete
-    generic_soft_delete(path, &config, &item.id).await.unwrap();
+    generic_soft_delete(path, "issues", &item.id).await.unwrap();
 
     // Should not appear in regular list
-    let items = generic_list(path, &config, ItemFilters::default())
+    let items = generic_list(path, "issues", Filters::default())
         .await
         .unwrap();
     assert!(items.is_empty());
 
     // Should appear with include_deleted
-    let items = generic_list(path, &config, ItemFilters::new().include_deleted())
+    let items = generic_list(path, "issues", Filters::new().include_deleted())
         .await
         .unwrap();
     assert_eq!(items.len(), 1);
     assert!(items[0].frontmatter.deleted_at.is_some());
 
     // Cannot soft-delete again
-    let result = generic_soft_delete(path, &config, &item.id).await;
+    let result = generic_soft_delete(path, "issues", &item.id).await;
     assert!(matches!(result, Err(ItemError::IsDeleted(_))));
 
     // Cannot update a deleted item
     let result = generic_update(
         path,
+        "issues",
         &config,
         &item.id,
-        UpdateGenericItemOptions {
+        UpdateOptions {
             title: Some("Nope".to_string()),
             ..Default::default()
         },
@@ -428,18 +438,20 @@ async fn test_soft_delete_restore_hard_delete() {
     assert!(matches!(result, Err(ItemError::IsDeleted(_))));
 
     // Restore
-    generic_restore(path, &config, &item.id).await.unwrap();
+    generic_restore(path, "issues", &item.id).await.unwrap();
 
     // Should appear again
-    let items = generic_list(path, &config, ItemFilters::default())
+    let items = generic_list(path, "issues", Filters::default())
         .await
         .unwrap();
     assert_eq!(items.len(), 1);
     assert!(items[0].frontmatter.deleted_at.is_none());
 
     // Hard delete
-    generic_delete(path, &config, &item.id, true).await.unwrap();
-    let result = generic_get(path, &config, &item.id).await;
+    generic_delete(path, "issues", &config, &item.id, true)
+        .await
+        .unwrap();
+    let result = generic_get(path, "issues", &item.id).await;
     assert!(matches!(result, Err(ItemError::NotFound(_))));
 }
 
@@ -465,8 +477,9 @@ async fn test_list_filters() {
     for (title, status, priority) in combinations {
         generic_create(
             path,
+            "issues",
             &config,
-            CreateGenericItemOptions {
+            CreateOptions {
                 title: title.to_string(),
                 body: String::new(),
                 id: None,
@@ -480,18 +493,18 @@ async fn test_list_filters() {
     }
 
     // Filter by status
-    let open = generic_list(path, &config, ItemFilters::new().with_status("open"))
+    let open = generic_list(path, "issues", Filters::new().with_status("open"))
         .await
         .unwrap();
     assert_eq!(open.len(), 3);
 
-    let closed = generic_list(path, &config, ItemFilters::new().with_status("closed"))
+    let closed = generic_list(path, "issues", Filters::new().with_status("closed"))
         .await
         .unwrap();
     assert_eq!(closed.len(), 2);
 
     // Filter by priority
-    let p1 = generic_list(path, &config, ItemFilters::new().with_priority(1))
+    let p1 = generic_list(path, "issues", Filters::new().with_priority(1))
         .await
         .unwrap();
     assert_eq!(p1.len(), 2);
@@ -499,33 +512,29 @@ async fn test_list_filters() {
     // Combined filters
     let open_p1 = generic_list(
         path,
-        &config,
-        ItemFilters::new().with_status("open").with_priority(1),
+        "issues",
+        Filters::new().with_status("open").with_priority(1),
     )
     .await
     .unwrap();
     assert_eq!(open_p1.len(), 1);
 
     // Limit
-    let limited = generic_list(path, &config, ItemFilters::new().with_limit(2))
+    let limited = generic_list(path, "issues", Filters::new().with_limit(2))
         .await
         .unwrap();
     assert_eq!(limited.len(), 2);
 
     // Offset
-    let offset = generic_list(path, &config, ItemFilters::new().with_offset(3))
+    let offset = generic_list(path, "issues", Filters::new().with_offset(3))
         .await
         .unwrap();
     assert_eq!(offset.len(), 2);
 
     // Offset + Limit
-    let paged = generic_list(
-        path,
-        &config,
-        ItemFilters::new().with_offset(1).with_limit(2),
-    )
-    .await
-    .unwrap();
+    let paged = generic_list(path, "issues", Filters::new().with_offset(1).with_limit(2))
+        .await
+        .unwrap();
     assert_eq!(paged.len(), 2);
 }
 
@@ -541,8 +550,9 @@ async fn test_uuid_id_strategy() {
 
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "UUID Item".to_string(),
             body: String::new(),
             id: None,
@@ -571,8 +581,9 @@ async fn test_slug_id_strategy() {
 
     let item = generic_create(
         path,
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Getting Started Guide".to_string(),
             body: "Welcome to the docs!".to_string(),
             id: None,
@@ -587,7 +598,7 @@ async fn test_slug_id_strategy() {
     assert_eq!(item.id, "getting-started-guide");
 
     // Get by slug
-    let fetched = generic_get(path, &config, "getting-started-guide")
+    let fetched = generic_get(path, "docs", "getting-started-guide")
         .await
         .unwrap();
     assert_eq!(fetched.title, "Getting Started Guide");
@@ -604,8 +615,9 @@ async fn test_slug_strategy_duplicate_id() {
     // First create succeeds
     generic_create(
         path,
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Same Title".to_string(),
             body: String::new(),
             id: None,
@@ -620,8 +632,9 @@ async fn test_slug_strategy_duplicate_id() {
     // Second create with same title should fail (same slug)
     let result = generic_create(
         path,
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Same Title".to_string(),
             body: String::new(),
             id: None,
@@ -644,8 +657,9 @@ async fn test_explicit_id() {
 
     let item = generic_create(
         path,
+        "notes",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Explicit ID".to_string(),
             body: String::new(),
             id: Some("my-custom-id".to_string()),
@@ -659,7 +673,7 @@ async fn test_explicit_id() {
 
     assert_eq!(item.id, "my-custom-id");
 
-    let fetched = generic_get(path, &config, "my-custom-id").await.unwrap();
+    let fetched = generic_get(path, "notes", "my-custom-id").await.unwrap();
     assert_eq!(fetched.title, "Explicit ID");
 }
 
@@ -708,11 +722,10 @@ async fn test_read_config() {
     let epics_path = centy_path.join("epics");
     fs::create_dir_all(&epics_path).await.unwrap();
 
-    let config = ItemTypeConfig {
+    let config = TypeConfig {
         name: "Epic".to_string(),
-        plural: "epics".to_string(),
-        identifier: "uuid".to_string(),
-        features: ItemTypeFeatures {
+        identifier: IdStrategy::Uuid,
+        features: TypeFeatures {
             display_number: true,
             status: true,
             priority: false,
@@ -761,8 +774,9 @@ async fn test_reconcile_display_numbers_no_conflicts() {
     for i in 1..=3u32 {
         generic_create(
             path,
+            "issues",
             &config,
-            CreateGenericItemOptions {
+            CreateOptions {
                 title: format!("Issue {i}"),
                 body: String::new(),
                 id: None,
@@ -776,7 +790,7 @@ async fn test_reconcile_display_numbers_no_conflicts() {
     }
 
     let storage_path = path.join(".centy").join("issues");
-    let reassigned = reconcile_display_numbers_generic(&storage_path)
+    let reassigned = mdstore::reconcile_display_numbers(&storage_path)
         .await
         .unwrap();
     assert_eq!(reassigned, 0);
@@ -789,7 +803,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
     fs::create_dir_all(&storage_path).await.unwrap();
 
     // Manually write items with conflicting display numbers
-    let fm1 = GenericFrontmatter {
+    let fm1 = Frontmatter {
         display_number: Some(1),
         status: Some("open".to_string()),
         priority: Some(2),
@@ -798,13 +812,13 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content1 = centy_daemon::common::generate_frontmatter(&fm1, "Item A", "");
+    let content1 = mdstore::generate_frontmatter(&fm1, "Item A", "");
     fs::write(storage_path.join("item-a.md"), &content1)
         .await
         .unwrap();
 
     // Same display_number but newer
-    let fm2 = GenericFrontmatter {
+    let fm2 = Frontmatter {
         display_number: Some(1),
         status: Some("open".to_string()),
         priority: Some(2),
@@ -813,12 +827,12 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content2 = centy_daemon::common::generate_frontmatter(&fm2, "Item B", "");
+    let content2 = mdstore::generate_frontmatter(&fm2, "Item B", "");
     fs::write(storage_path.join("item-b.md"), &content2)
         .await
         .unwrap();
 
-    let fm3 = GenericFrontmatter {
+    let fm3 = Frontmatter {
         display_number: Some(2),
         status: Some("open".to_string()),
         priority: Some(2),
@@ -827,12 +841,12 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content3 = centy_daemon::common::generate_frontmatter(&fm3, "Item C", "");
+    let content3 = mdstore::generate_frontmatter(&fm3, "Item C", "");
     fs::write(storage_path.join("item-c.md"), &content3)
         .await
         .unwrap();
 
-    let reassigned = reconcile_display_numbers_generic(&storage_path)
+    let reassigned = mdstore::reconcile_display_numbers(&storage_path)
         .await
         .unwrap();
     assert_eq!(reassigned, 1);
@@ -841,16 +855,14 @@ async fn test_reconcile_display_numbers_with_conflicts() {
     let content = fs::read_to_string(storage_path.join("item-a.md"))
         .await
         .unwrap();
-    let (fm, _, _) =
-        centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content).unwrap();
+    let (fm, _, _) = mdstore::parse_frontmatter::<Frontmatter>(&content).unwrap();
     assert_eq!(fm.display_number, Some(1));
 
     // Item B (newer) should get display_number 3 (max was 2, next is 3)
     let content = fs::read_to_string(storage_path.join("item-b.md"))
         .await
         .unwrap();
-    let (fm, _, _) =
-        centy_daemon::common::parse_frontmatter::<GenericFrontmatter>(&content).unwrap();
+    let (fm, _, _) = mdstore::parse_frontmatter::<Frontmatter>(&content).unwrap();
     assert_eq!(fm.display_number, Some(3));
 }
 
@@ -866,8 +878,9 @@ async fn test_default_status_when_not_provided() {
 
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Default Status".to_string(),
             body: String::new(),
             id: None,
@@ -892,8 +905,9 @@ async fn test_default_priority_when_not_provided() {
 
     let item = generic_create(
         path,
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Default Priority".to_string(),
             body: String::new(),
             id: None,
@@ -916,11 +930,10 @@ async fn test_custom_epic_type() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = ItemTypeConfig {
+    let config = TypeConfig {
         name: "Epic".to_string(),
-        plural: "epics".to_string(),
-        identifier: "uuid".to_string(),
-        features: ItemTypeFeatures {
+        identifier: IdStrategy::Uuid,
+        features: TypeFeatures {
             display_number: true,
             status: true,
             priority: false, // No priority for epics
@@ -941,8 +954,9 @@ async fn test_custom_epic_type() {
 
     let item = generic_create(
         path,
+        "epics",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "User Authentication".to_string(),
             body: "Implement complete auth flow.".to_string(),
             id: None,
@@ -954,7 +968,6 @@ async fn test_custom_epic_type() {
     .await
     .unwrap();
 
-    assert_eq!(item.item_type, "epics");
     assert_eq!(item.frontmatter.display_number, Some(1));
     assert_eq!(item.frontmatter.status, Some("active".to_string()));
     assert!(item.frontmatter.priority.is_none());
@@ -981,8 +994,9 @@ async fn test_list_ordered_by_display_number() {
     for title in ["Third", "Second", "First"] {
         generic_create(
             path,
+            "issues",
             &config,
-            CreateGenericItemOptions {
+            CreateOptions {
                 title: title.to_string(),
                 body: String::new(),
                 id: None,
@@ -995,7 +1009,7 @@ async fn test_list_ordered_by_display_number() {
         .unwrap();
     }
 
-    let items = generic_list(path, &config, ItemFilters::default())
+    let items = generic_list(path, "issues", Filters::default())
         .await
         .unwrap();
     assert_eq!(items.len(), 3);
@@ -1017,8 +1031,9 @@ async fn test_delete_without_force_soft_deletes_first() {
 
     let item = generic_create(
         path,
+        "notes",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Soft first".to_string(),
             body: String::new(),
             id: None,
@@ -1031,12 +1046,12 @@ async fn test_delete_without_force_soft_deletes_first() {
     .unwrap();
 
     // delete with force=false should soft delete
-    generic_delete(path, &config, &item.id, false)
+    generic_delete(path, "notes", &config, &item.id, false)
         .await
         .unwrap();
 
     // Item should still exist but be soft-deleted
-    let fetched = generic_get(path, &config, &item.id).await.unwrap();
+    let fetched = generic_get(path, "notes", &item.id).await.unwrap();
     assert!(fetched.frontmatter.deleted_at.is_some());
 }
 
@@ -1049,12 +1064,13 @@ async fn test_slug_from_empty_title_fails() {
     init_generic_project(path).await;
 
     let mut config = minimal_config();
-    config.identifier = "slug".to_string();
+    config.identifier = IdStrategy::Slug;
 
     let result = generic_create(
         path,
+        "notes",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "   ".to_string(), // Only spaces -> empty slug
             body: String::new(),
             id: None,
@@ -1080,8 +1096,9 @@ async fn test_generic_move_uuid_item() {
 
     let item = generic_create(
         source.path(),
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Movable Issue".to_string(),
             body: "Body text.".to_string(),
             id: None,
@@ -1096,6 +1113,8 @@ async fn test_generic_move_uuid_item() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "issues",
+        "issues",
         &config,
         &config,
         &item.id,
@@ -1110,11 +1129,11 @@ async fn test_generic_move_uuid_item() {
     assert_eq!(result.old_id, item.id);
 
     // Source should not have it
-    let source_get = generic_get(source.path(), &config, &item.id).await;
+    let source_get = generic_get(source.path(), "issues", &item.id).await;
     assert!(matches!(source_get, Err(ItemError::NotFound(_))));
 
     // Target should have it
-    let target_get = generic_get(target.path(), &config, &item.id).await;
+    let target_get = generic_get(target.path(), "issues", &item.id).await;
     assert!(target_get.is_ok());
 }
 
@@ -1129,8 +1148,9 @@ async fn test_generic_move_slug_item() {
 
     let item = generic_create(
         source.path(),
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "My Document".to_string(),
             body: "Doc body.".to_string(),
             id: None,
@@ -1146,6 +1166,8 @@ async fn test_generic_move_slug_item() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "docs",
+        "docs",
         &config,
         &config,
         "my-document",
@@ -1170,8 +1192,9 @@ async fn test_generic_move_slug_rename() {
 
     generic_create(
         source.path(),
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Old Name".to_string(),
             body: String::new(),
             id: None,
@@ -1186,6 +1209,8 @@ async fn test_generic_move_slug_rename() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "docs",
+        "docs",
         &config,
         &config,
         "old-name",
@@ -1198,11 +1223,11 @@ async fn test_generic_move_slug_rename() {
     assert_eq!(result.old_id, "old-name");
 
     // Old slug should be gone from source
-    let source_get = generic_get(source.path(), &config, "old-name").await;
+    let source_get = generic_get(source.path(), "docs", "old-name").await;
     assert!(source_get.is_err());
 
     // New slug in target
-    let target_get = generic_get(target.path(), &config, "new-name").await;
+    let target_get = generic_get(target.path(), "docs", "new-name").await;
     assert!(target_get.is_ok());
 }
 
@@ -1215,8 +1240,9 @@ async fn test_generic_move_same_project_fails() {
 
     let item = generic_create(
         dir.path(),
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Stay Put".to_string(),
             body: String::new(),
             id: None,
@@ -1228,7 +1254,17 @@ async fn test_generic_move_same_project_fails() {
     .await
     .unwrap();
 
-    let result = generic_move(dir.path(), dir.path(), &config, &config, &item.id, None).await;
+    let result = generic_move(
+        dir.path(),
+        dir.path(),
+        "issues",
+        "issues",
+        &config,
+        &config,
+        &item.id,
+        None,
+    )
+    .await;
 
     assert!(matches!(result, Err(ItemError::SameProject)));
 }
@@ -1245,6 +1281,8 @@ async fn test_generic_move_not_found_fails() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "issues",
+        "issues",
         &config,
         &config,
         "nonexistent-id",
@@ -1267,8 +1305,9 @@ async fn test_generic_move_feature_disabled() {
 
     let item = generic_create(
         source.path(),
+        "notes",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "No Move".to_string(),
             body: String::new(),
             id: None,
@@ -1283,6 +1322,8 @@ async fn test_generic_move_feature_disabled() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "notes",
+        "notes",
         &config,
         &config,
         &item.id,
@@ -1305,8 +1346,9 @@ async fn test_generic_move_slug_conflict_fails() {
     // Create same slug in both projects
     generic_create(
         source.path(),
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Conflict".to_string(),
             body: String::new(),
             id: None,
@@ -1320,8 +1362,9 @@ async fn test_generic_move_slug_conflict_fails() {
 
     generic_create(
         target.path(),
+        "docs",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Conflict".to_string(),
             body: String::new(),
             id: None,
@@ -1336,6 +1379,8 @@ async fn test_generic_move_slug_conflict_fails() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "docs",
+        "docs",
         &config,
         &config,
         "conflict",
@@ -1357,8 +1402,9 @@ async fn test_generic_move_preserves_custom_fields() {
 
     let item = generic_create(
         source.path(),
+        "issues",
         &config,
-        CreateGenericItemOptions {
+        CreateOptions {
             title: "Custom Fields Item".to_string(),
             body: "With custom data.".to_string(),
             id: None,
@@ -1376,6 +1422,8 @@ async fn test_generic_move_preserves_custom_fields() {
     let result = generic_move(
         source.path(),
         target.path(),
+        "issues",
+        "issues",
         &config,
         &config,
         &item.id,

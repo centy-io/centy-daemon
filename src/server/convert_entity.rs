@@ -1,5 +1,4 @@
 use crate::item::entities::issue::priority_label;
-use crate::item::generic::types::GenericItem;
 
 use super::proto::{
     Doc, DocMetadata, GenericItem as ProtoGenericItem, GenericItemMetadata, Issue, IssueMetadata,
@@ -46,10 +45,10 @@ pub fn doc_to_proto(doc: &crate::item::entities::doc::Doc) -> Doc {
     }
 }
 
-pub fn generic_item_to_proto(item: &GenericItem) -> ProtoGenericItem {
+pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGenericItem {
     ProtoGenericItem {
         id: item.id.clone(),
-        item_type: item.item_type.clone(),
+        item_type: item_type.to_string(),
         title: item.title.clone(),
         body: item.body.clone(),
         metadata: Some(GenericItemMetadata {

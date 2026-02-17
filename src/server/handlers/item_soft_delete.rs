@@ -53,7 +53,7 @@ pub async fn soft_delete_item(
         }));
     }
 
-    match generic_soft_delete(project_path, &config, &req.item_id).await {
+    match generic_soft_delete(project_path, &item_type, &req.item_id).await {
         Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
@@ -67,10 +67,10 @@ pub async fn soft_delete_item(
             .await;
 
             // Fetch the item after soft-delete to return it
-            let item = generic_get(project_path, &config, &req.item_id)
+            let item = generic_get(project_path, &item_type, &req.item_id)
                 .await
                 .ok()
-                .map(|i| generic_item_to_proto(&i));
+                .map(|i| generic_item_to_proto(&i, &item_type));
 
             Ok(Response::new(SoftDeleteItemResponse {
                 success: true,

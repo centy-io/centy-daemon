@@ -21,7 +21,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
     let target_path = Path::new(&req.target_project_path);
 
     // Resolve source config
-    let (_source_type, source_config) =
+    let (source_type, source_config) =
         match resolve_item_type_config(source_path, &req.item_type).await {
             Ok(pair) => pair,
             Err(e) => {
@@ -34,7 +34,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
         };
 
     // Resolve target config (same item type in target project)
-    let (_target_type, target_config) =
+    let (target_type, target_config) =
         match resolve_item_type_config(target_path, &req.item_type).await {
             Ok(pair) => pair,
             Err(e) => {
@@ -84,6 +84,8 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
     match generic_move(
         source_path,
         target_path,
+        &source_type,
+        &target_type,
         &source_config,
         &target_config,
         &req.item_id,
@@ -110,7 +112,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
             Ok(Response::new(MoveItemResponse {
                 success: true,
                 error: String::new(),
-                item: Some(generic_item_to_proto(&result.item)),
+                item: Some(generic_item_to_proto(&result.item, &target_type)),
                 old_id: result.old_id,
                 source_manifest: source_manifest.map(|m| manifest_to_proto(&m)),
                 target_manifest: target_manifest.map(|m| manifest_to_proto(&m)),

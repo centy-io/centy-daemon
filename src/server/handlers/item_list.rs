@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use crate::item::core::crud::ItemFilters;
 use crate::item::generic::storage::generic_list;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::proto::{ListItemsRequest, ListItemsResponse};
 use crate::server::structured_error::to_error_json;
+use mdstore::Filters;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::resolve_item_type_config;
@@ -13,7 +13,7 @@ use super::item_type_resolve::resolve_item_type_config;
 pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let (_item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
+    let (item_type, _config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(ListItemsResponse {
@@ -25,7 +25,7 @@ pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsRespo
         }
     };
 
-    let mut filters = ItemFilters::new();
+    let mut filters = Filters::new();
     if !req.status.is_empty() {
         filters = filters.with_status(&req.status);
     }
@@ -42,13 +42,16 @@ pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsRespo
         filters = filters.with_offset(req.offset as usize);
     }
 
-    match generic_list(project_path, &config, filters).await {
+    match generic_list(project_path, &item_type, filters).await {
         Ok(items) => {
             let total_count = items.len() as i32;
             Ok(Response::new(ListItemsResponse {
                 success: true,
                 error: String::new(),
-                items: items.iter().map(generic_item_to_proto).collect(),
+                items: items
+                    .iter()
+                    .map(|item| generic_item_to_proto(item, &item_type))
+                    .collect(),
                 total_count,
             }))
         }

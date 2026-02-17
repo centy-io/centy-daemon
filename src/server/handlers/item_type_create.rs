@@ -1,13 +1,11 @@
 use std::path::Path;
 
-use crate::config::item_type_config::{
-    discover_item_types, write_item_type_config, ItemTypeConfig, ItemTypeFeatures,
-};
-use crate::config::CustomFieldDefinition;
+use crate::config::item_type_config::{write_item_type_config, ItemTypeRegistry};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::registry::track_project_async;
 use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse, ItemTypeConfigProto};
 use crate::server::structured_error::StructuredError;
+use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 use tonic::{Response, Status};
 
 /// Validate the plural field: must be lowercase alphanumeric + hyphens, non-empty.
@@ -28,11 +26,11 @@ fn error_response(cwd: &str, code: &str, message: String) -> Response<CreateItem
     })
 }
 
-fn config_to_proto(config: &ItemTypeConfig) -> ItemTypeConfigProto {
+fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto {
     ItemTypeConfigProto {
         name: config.name.clone(),
-        plural: config.plural.clone(),
-        identifier: config.identifier.clone(),
+        plural: folder.to_string(),
+        identifier: config.identifier.to_string(),
         features: Some(crate::server::proto::ItemTypeFeatures {
             display_number: config.features.display_number,
             status: config.features.status,
@@ -96,14 +94,18 @@ fn validate_request(req: &CreateItemTypeRequest) -> Result<(), (String, String)>
     Ok(())
 }
 
-/// Build an `ItemTypeConfig` from the validated request.
-fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
+/// Build a `TypeConfig` from the validated request.
+fn build_config(req: CreateItemTypeRequest) -> TypeConfig {
+    let identifier = if req.identifier == "slug" {
+        IdStrategy::Slug
+    } else {
+        IdStrategy::Uuid
+    };
     let features = req.features.unwrap_or_default();
-    ItemTypeConfig {
+    TypeConfig {
         name: req.name,
-        plural: req.plural,
-        identifier: req.identifier,
-        features: ItemTypeFeatures {
+        identifier,
+        features: TypeFeatures {
             display_number: features.display_number,
             status: features.status,
             priority: features.priority,
@@ -126,7 +128,7 @@ fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
         custom_fields: req
             .custom_fields
             .into_iter()
-            .map(|f| CustomFieldDefinition {
+            .map(|f| CustomFieldDef {
                 name: f.name,
                 field_type: f.field_type,
                 required: f.required,
@@ -153,17 +155,19 @@ pub async fn create_item_type(
     }
 
     // Check for duplicates against existing types
-    match discover_item_types(project_path).await {
-        Ok(existing) => {
-            for t in &existing {
-                if t.plural.eq_ignore_ascii_case(&req.plural) {
+    match ItemTypeRegistry::build(project_path).await {
+        Ok(registry) => {
+            for folder in registry.folders() {
+                if folder.eq_ignore_ascii_case(&req.plural) {
                     return Ok(error_response(
                         &cwd,
                         "ALREADY_EXISTS",
                         format!("Item type with plural \"{}\" already exists", req.plural),
                     ));
                 }
-                if t.name.eq_ignore_ascii_case(&req.name) {
+            }
+            for config in registry.all().values() {
+                if config.name.eq_ignore_ascii_case(&req.name) {
                     return Ok(error_response(
                         &cwd,
                         "ALREADY_EXISTS",
@@ -202,7 +206,7 @@ pub async fn create_item_type(
     Ok(Response::new(CreateItemTypeResponse {
         success: true,
         error: String::new(),
-        config: Some(config_to_proto(&config)),
+        config: Some(config_to_proto(&plural, &config)),
     }))
 }
 
@@ -226,11 +230,10 @@ mod tests {
 
     #[test]
     fn test_config_to_proto_roundtrip() {
-        let config = ItemTypeConfig {
+        let config = TypeConfig {
             name: "Bug".to_string(),
-            plural: "bugs".to_string(),
-            identifier: "uuid".to_string(),
-            features: ItemTypeFeatures {
+            identifier: IdStrategy::Uuid,
+            features: TypeFeatures {
                 display_number: true,
                 status: true,
                 priority: true,
@@ -245,7 +248,7 @@ mod tests {
             custom_fields: vec![],
         };
 
-        let proto = config_to_proto(&config);
+        let proto = config_to_proto("bugs", &config);
         assert_eq!(proto.name, "Bug");
         assert_eq!(proto.plural, "bugs");
         assert_eq!(proto.identifier, "uuid");

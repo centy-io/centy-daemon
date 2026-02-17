@@ -169,9 +169,9 @@ impl ToStructuredError for crate::registry::RegistryError {
 }
 
 // ── ConfigError ────────────────────────────────────────────────────────────────
-impl ToStructuredError for crate::config::ConfigError {
+impl ToStructuredError for mdstore::ConfigError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::config::ConfigError;
+        use mdstore::ConfigError;
         match self {
             ConfigError::IoError(_) => ("IO_ERROR", None),
             ConfigError::JsonError(_) => ("JSON_ERROR", None),
@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_config_error_codes() {
-        use crate::config::ConfigError;
+        use mdstore::ConfigError;
         let err = ConfigError::IoError(std::io::Error::other("test"));
         let (code, _) = err.error_code_and_tip();
         assert_eq!(code, "IO_ERROR");

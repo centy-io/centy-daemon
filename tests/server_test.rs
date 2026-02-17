@@ -3,13 +3,14 @@
 
 mod common;
 
-use centy_daemon::config::{CentyConfig, CustomFieldDefinition, WorkspaceConfig};
+use centy_daemon::config::{CentyConfig, WorkspaceConfig};
 use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
 };
 use centy_daemon::link::CustomLinkTypeDefinition;
 use common::{create_test_dir, init_centy_project};
+use mdstore::CustomFieldDef;
 use std::collections::HashMap;
 
 // Test issue operations that the server handlers wrap
@@ -176,14 +177,14 @@ fn test_config_priority_levels_range() {
 fn test_config_custom_field_uniqueness() {
     let config = CentyConfig {
         custom_fields: vec![
-            CustomFieldDefinition {
+            CustomFieldDef {
                 name: "assignee".to_string(),
                 field_type: "string".to_string(),
                 required: false,
                 default_value: None,
                 enum_values: vec![],
             },
-            CustomFieldDefinition {
+            CustomFieldDef {
                 name: "component".to_string(),
                 field_type: "string".to_string(),
                 required: false,
@@ -203,7 +204,7 @@ fn test_config_custom_field_uniqueness() {
 
 #[test]
 fn test_config_enum_field_has_values() {
-    let valid_enum_field = CustomFieldDefinition {
+    let valid_enum_field = CustomFieldDef {
         name: "priority_label".to_string(),
         field_type: "enum".to_string(),
         required: false,
@@ -212,7 +213,7 @@ fn test_config_enum_field_has_values() {
     };
     assert!(!valid_enum_field.enum_values.is_empty());
 
-    let invalid_enum_field = CustomFieldDefinition {
+    let invalid_enum_field = CustomFieldDef {
         name: "empty_enum".to_string(),
         field_type: "enum".to_string(),
         required: false,

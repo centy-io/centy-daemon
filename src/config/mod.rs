@@ -8,36 +8,8 @@ use crate::utils::get_centy_path;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use thiserror::Error;
 use tokio::fs;
 use tracing::warn;
-
-#[derive(Error, Debug)]
-pub enum ConfigError {
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
-
-    #[error("JSON error: {0}")]
-    JsonError(#[from] serde_json::Error),
-
-    #[error("YAML error: {0}")]
-    YamlError(#[from] serde_yaml::Error),
-}
-
-/// Custom field definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomFieldDefinition {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub field_type: String,
-    #[serde(default)]
-    pub required: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_value: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub enum_values: Vec<String>,
-}
 
 /// Default priority levels (3 = high/medium/low)
 fn default_priority_levels() -> u32 {
@@ -79,7 +51,7 @@ pub struct CentyConfig {
     #[serde(default = "default_priority_levels")]
     pub priority_levels: u32,
     #[serde(default)]
-    pub custom_fields: Vec<CustomFieldDefinition>,
+    pub custom_fields: Vec<mdstore::CustomFieldDef>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
     /// Legacy: allowed status values. Migrated to per-item-type `config.yaml`.
@@ -140,7 +112,7 @@ impl Default for CentyConfig {
 /// Automatically migrates the deprecated nested config format to flat dot-separated keys.
 /// Also normalizes by adding missing sections (e.g. `hooks`) that were introduced
 /// after the project was created, then writes back to disk.
-pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, ConfigError> {
+pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, mdstore::ConfigError> {
     let config_path = get_centy_path(project_path).join("config.json");
 
     if !config_path.exists() {
@@ -193,7 +165,10 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, Con
 }
 
 /// Write the configuration file in flat dot-separated format.
-pub async fn write_config(project_path: &Path, config: &CentyConfig) -> Result<(), ConfigError> {
+pub async fn write_config(
+    project_path: &Path,
+    config: &CentyConfig,
+) -> Result<(), mdstore::ConfigError> {
     let config_path = get_centy_path(project_path).join("config.json");
     let nested_value = serde_json::to_value(config)?;
     let flat_value = migrate::flatten_config(nested_value);
@@ -214,7 +189,7 @@ pub struct ProjectMetadata {
 /// Read the project metadata file (.centy/project.json)
 pub async fn read_project_metadata(
     project_path: &Path,
-) -> Result<Option<ProjectMetadata>, ConfigError> {
+) -> Result<Option<ProjectMetadata>, mdstore::ConfigError> {
     let metadata_path = get_centy_path(project_path).join("project.json");
 
     if !metadata_path.exists() {
@@ -230,7 +205,7 @@ pub async fn read_project_metadata(
 pub async fn write_project_metadata(
     project_path: &Path,
     metadata: &ProjectMetadata,
-) -> Result<(), ConfigError> {
+) -> Result<(), mdstore::ConfigError> {
     let metadata_path = get_centy_path(project_path).join("project.json");
     let content = serde_json::to_string_pretty(metadata)?;
     fs::write(&metadata_path, content).await?;
@@ -250,7 +225,7 @@ pub async fn get_project_title(project_path: &Path) -> Option<String> {
 pub async fn set_project_title(
     project_path: &Path,
     title: Option<String>,
-) -> Result<(), ConfigError> {
+) -> Result<(), mdstore::ConfigError> {
     let mut metadata = read_project_metadata(project_path)
         .await?
         .unwrap_or_default();
@@ -345,8 +320,8 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_field_definition_serialization() {
-        let field = CustomFieldDefinition {
+    fn test_custom_field_def_serialization() {
+        let field = mdstore::CustomFieldDef {
             name: "environment".to_string(),
             field_type: "enum".to_string(),
             required: true,
@@ -355,7 +330,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&field).expect("Should serialize");
-        let deserialized: CustomFieldDefinition =
+        let deserialized: mdstore::CustomFieldDef =
             serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(deserialized.name, "environment");
@@ -366,8 +341,8 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_field_definition_json_uses_camel_case() {
-        let field = CustomFieldDefinition {
+    fn test_custom_field_def_json_uses_camel_case() {
+        let field = mdstore::CustomFieldDef {
             name: "test".to_string(),
             field_type: "string".to_string(),
             required: false,

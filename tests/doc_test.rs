@@ -462,7 +462,7 @@ async fn test_delete_doc_success() {
 
     // Delete it
     let config = default_doc_config();
-    generic_delete(project_path, &config, "to-delete", true)
+    generic_delete(project_path, "docs", &config, "to-delete", true)
         .await
         .expect("Should delete doc");
 
@@ -482,7 +482,7 @@ async fn test_delete_doc_not_found() {
     init_centy_project(project_path).await;
 
     let config = default_doc_config();
-    let result = generic_delete(project_path, &config, "nonexistent", true).await;
+    let result = generic_delete(project_path, "docs", &config, "nonexistent", true).await;
 
     assert!(result.is_err());
 }
@@ -510,7 +510,7 @@ async fn test_delete_doc_removes_file() {
     assert!(doc_path.exists(), "Doc file should exist after creation");
 
     let config = default_doc_config();
-    generic_delete(project_path, &config, "test-doc", true)
+    generic_delete(project_path, "docs", &config, "test-doc", true)
         .await
         .unwrap();
 
@@ -649,6 +649,8 @@ async fn test_move_doc_success() {
     let result = generic_move(
         source_path,
         target_path,
+        "docs",
+        "docs",
         &config,
         &config,
         "api-guide",
@@ -707,13 +709,25 @@ async fn test_move_doc_with_slug_conflict() {
     .unwrap();
 
     // Move without new_id should fail
-    let result = generic_move(source_path, target_path, &config, &config, "guide", None).await;
+    let result = generic_move(
+        source_path,
+        target_path,
+        "docs",
+        "docs",
+        &config,
+        &config,
+        "guide",
+        None,
+    )
+    .await;
     assert!(result.is_err());
 
     // Move with new_id should succeed
     let result = generic_move(
         source_path,
         target_path,
+        "docs",
+        "docs",
         &config,
         &config,
         "guide",
@@ -746,7 +760,17 @@ async fn test_move_doc_same_project_fails() {
     .await
     .unwrap();
 
-    let result = generic_move(project_path, project_path, &config, &config, "test", None).await;
+    let result = generic_move(
+        project_path,
+        project_path,
+        "docs",
+        "docs",
+        &config,
+        &config,
+        "test",
+        None,
+    )
+    .await;
 
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err(), ItemError::SameProject));
@@ -776,6 +800,7 @@ async fn test_duplicate_doc_same_project() {
     let item_type_config = default_doc_config();
 
     let result = generic_duplicate(
+        "docs",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: project_path.to_path_buf(),
@@ -819,6 +844,7 @@ async fn test_duplicate_doc_custom_slug_and_title() {
     let item_type_config = default_doc_config();
 
     let result = generic_duplicate(
+        "docs",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: project_path.to_path_buf(),
@@ -860,6 +886,7 @@ async fn test_duplicate_doc_to_different_project() {
     let item_type_config = default_doc_config();
 
     let result = generic_duplicate(
+        "docs",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: source_path.to_path_buf(),

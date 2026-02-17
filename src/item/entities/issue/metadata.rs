@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::common::CommonMetadata;
+use mdstore::CommonMetadata;
 
 /// Frontmatter metadata for the new YAML-based issue format.
 ///

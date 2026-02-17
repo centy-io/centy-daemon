@@ -1,7 +1,6 @@
-use crate::config::{
-    CentyConfig, CustomFieldDefinition as InternalCustomFieldDef, WorkspaceConfig,
-};
+use crate::config::{CentyConfig, WorkspaceConfig};
 use crate::hooks::HookDefinition as InternalHookDefinition;
+use mdstore::CustomFieldDef as InternalCustomFieldDef;
 
 use super::proto::Config;
 

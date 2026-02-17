@@ -5,7 +5,7 @@ use std::path::Path;
 
 use crate::item::core::crud::ItemCrud;
 use crate::item::core::error::ItemError;
-use crate::item::core::id::ItemId;
+use mdstore::ItemId;
 
 /// Trait for items that support soft deletion.
 ///

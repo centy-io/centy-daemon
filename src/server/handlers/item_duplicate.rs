@@ -24,7 +24,7 @@ pub async fn duplicate_item(
     let target_project_path = Path::new(&req.target_project_path);
 
     // Resolve config from target project
-    let (_item_type, config) =
+    let (item_type, config) =
         match resolve_item_type_config(target_project_path, &req.item_type).await {
             Ok(pair) => pair,
             Err(e) => {
@@ -83,7 +83,7 @@ pub async fn duplicate_item(
         new_title: nonempty(req.new_title),
     };
 
-    match generic_duplicate(&config, options).await {
+    match generic_duplicate(&item_type, &config, options).await {
         Ok(result) => {
             maybe_run_post_hooks(
                 Path::new(&hook_project_path),
@@ -102,7 +102,7 @@ pub async fn duplicate_item(
             Ok(Response::new(DuplicateItemResponse {
                 success: true,
                 error: String::new(),
-                item: Some(generic_item_to_proto(&result.item)),
+                item: Some(generic_item_to_proto(&result.item, &item_type)),
                 original_id: result.original_id,
                 manifest: manifest.as_ref().map(manifest_to_proto),
             }))

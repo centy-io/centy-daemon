@@ -485,7 +485,7 @@ async fn test_delete_issue_success() {
 
     // Delete it
     let config = default_issue_config(&CentyConfig::default());
-    generic_delete(project_path, &config, &created.id, true)
+    generic_delete(project_path, "issues", &config, &created.id, true)
         .await
         .expect("Should delete");
 
@@ -529,7 +529,7 @@ async fn test_delete_issue_removes_files() {
 
     // Delete issue
     let config = default_issue_config(&CentyConfig::default());
-    generic_delete(project_path, &config, &created.id, true)
+    generic_delete(project_path, "issues", &config, &created.id, true)
         .await
         .unwrap();
 
@@ -548,7 +548,7 @@ async fn test_delete_issue_not_found() {
     init_centy_project(project_path).await;
 
     let config = default_issue_config(&CentyConfig::default());
-    let result = generic_delete(project_path, &config, "9999", true).await;
+    let result = generic_delete(project_path, "issues", &config, "9999", true).await;
     assert!(result.is_err());
 }
 
@@ -722,6 +722,8 @@ async fn test_move_issue_success() {
     let result = generic_move(
         source_path,
         target_path,
+        "issues",
+        "issues",
         &config,
         &config,
         &created.id,
@@ -770,6 +772,8 @@ async fn test_move_issue_preserves_uuid() {
     let result = generic_move(
         source_path,
         target_path,
+        "issues",
+        "issues",
         &config,
         &config,
         &created.id,
@@ -829,6 +833,8 @@ async fn test_move_issue_assigns_new_display_number() {
     let result = generic_move(
         source_path,
         target_path,
+        "issues",
+        "issues",
         &config,
         &config,
         &created.id,
@@ -863,6 +869,8 @@ async fn test_move_issue_same_project_fails() {
     let result = generic_move(
         project_path,
         project_path,
+        "issues",
+        "issues",
         &config,
         &config,
         &created.id,
@@ -899,6 +907,7 @@ async fn test_duplicate_issue_same_project() {
     let item_type_config = default_issue_config(&config);
 
     let result = generic_duplicate(
+        "issues",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: project_path.to_path_buf(),
@@ -944,6 +953,7 @@ async fn test_duplicate_issue_with_custom_title() {
     let item_type_config = default_issue_config(&config);
 
     let result = generic_duplicate(
+        "issues",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: project_path.to_path_buf(),
@@ -983,6 +993,7 @@ async fn test_duplicate_issue_to_different_project() {
     let item_type_config = default_issue_config(&config);
 
     let result = generic_duplicate(
+        "issues",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: source_path.to_path_buf(),
@@ -1243,6 +1254,7 @@ async fn test_duplicate_issue_preserves_planning_note() {
     let item_type_config = default_issue_config(&config);
 
     let result = generic_duplicate(
+        "issues",
         &item_type_config,
         DuplicateGenericItemOptions {
             source_project_path: project_path.to_path_buf(),

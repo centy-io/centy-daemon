@@ -7,7 +7,7 @@
 
 use super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::metadata::{IssueFrontmatter, IssueMetadata};
-use crate::common::{generate_frontmatter, parse_frontmatter};
+use mdstore::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -22,7 +22,7 @@ pub enum ReconcileError {
     JsonError(#[from] serde_json::Error),
 
     #[error("YAML frontmatter error: {0}")]
-    FrontmatterError(#[from] crate::common::FrontmatterError),
+    FrontmatterError(#[from] mdstore::FrontmatterError),
 }
 
 /// Information about an issue needed for reconciliation

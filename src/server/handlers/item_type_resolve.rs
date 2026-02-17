@@ -1,13 +1,13 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_doc_config, default_issue_config, read_item_type_config, ItemTypeConfig,
-    ItemTypeRegistry,
+    default_doc_config, default_issue_config, read_item_type_config, ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
+use mdstore::TypeConfig;
 
-/// Resolve an item type string to its folder name and `ItemTypeConfig`.
+/// Resolve an item type string to its folder name and `TypeConfig`.
 ///
 /// Resolution strategy:
 /// 1. Build the `ItemTypeRegistry` and use `resolve()` (handles exact folder,
@@ -18,7 +18,7 @@ use crate::item::core::error::ItemError;
 pub async fn resolve_item_type_config(
     project_path: &Path,
     item_type: &str,
-) -> Result<(String, ItemTypeConfig), ItemError> {
+) -> Result<(String, TypeConfig), ItemError> {
     // 1. Try registry lookup
     let registry = ItemTypeRegistry::build(project_path)
         .await

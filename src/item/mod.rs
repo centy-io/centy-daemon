@@ -13,11 +13,9 @@ pub mod generic;
 pub mod lifecycle;
 pub mod operations;
 pub mod organization;
-pub mod validation;
 
 // Re-export core types
 pub use core::error::ItemError;
-pub use core::id::{Identifiable, ItemId};
 pub use core::metadata::ItemMetadata;
 
 // Re-export organization types

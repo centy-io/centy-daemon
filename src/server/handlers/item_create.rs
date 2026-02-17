@@ -3,13 +3,13 @@ use std::path::Path;
 
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::generic_create;
-use crate::item::generic::types::CreateGenericItemOptions;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreateItemRequest, CreateItemResponse};
 use crate::server::structured_error::to_error_json;
+use mdstore::CreateOptions;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::resolve_item_type_config;
@@ -66,7 +66,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
         })
         .collect();
 
-    let options = CreateGenericItemOptions {
+    let options = CreateOptions {
         title: req.title,
         body: req.body,
         id: None,
@@ -75,7 +75,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
         custom_fields,
     };
 
-    match generic_create(project_path, &config, options).await {
+    match generic_create(project_path, &item_type, &config, options).await {
         Ok(item) => {
             maybe_run_post_hooks(
                 project_path,
@@ -90,7 +90,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
             Ok(Response::new(CreateItemResponse {
                 success: true,
                 error: String::new(),
-                item: Some(generic_item_to_proto(&item)),
+                item: Some(generic_item_to_proto(&item, &item_type)),
             }))
         }
         Err(e) => {

@@ -49,7 +49,7 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
         }));
     }
 
-    match generic_delete(project_path, &config, &req.item_id, req.force).await {
+    match generic_delete(project_path, &item_type, &config, &req.item_id, req.force).await {
         Ok(()) => {
             maybe_run_post_hooks(
                 project_path,

@@ -7,15 +7,14 @@ use super::planning::{
 use super::priority::{validate_priority, PriorityError};
 use super::reconcile::{get_next_display_number, reconcile_display_numbers, ReconcileError};
 use super::status::{validate_status_for_project, StatusError};
-use crate::common::{
-    generate_frontmatter, parse_frontmatter, FrontmatterError, OrgSyncError, OrgSyncable,
-};
+use crate::common::{OrgSyncError, OrgSyncable};
 use crate::config::read_config;
 use crate::link::{read_links, write_links};
 use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use crate::registry::ProjectInfo;
 use crate::utils::{format_markdown, get_centy_path, now_iso};
 use async_trait::async_trait;
+use mdstore::{generate_frontmatter, parse_frontmatter, FrontmatterError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -407,7 +406,7 @@ struct AppliedIssueUpdates {
 /// Build updated metadata struct from current issue and applied updates
 fn build_updated_metadata(current: &Issue, updates: &AppliedIssueUpdates) -> IssueMetadata {
     IssueMetadata {
-        common: crate::common::CommonMetadata {
+        common: mdstore::CommonMetadata {
             display_number: current.metadata.display_number,
             status: updates.status.clone(),
             priority: updates.priority,
