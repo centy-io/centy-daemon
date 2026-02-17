@@ -162,7 +162,8 @@
       "Bash(brew list:*)",
       "Bash(pnpm list:*)",
       "Bash(pnpm dlx centy create issue --help:*)",
-      "Bash(pnpm dlx:*)"
+      "Bash(pnpm dlx:*)",
+      "Bash(npx centy:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
