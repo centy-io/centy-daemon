@@ -51,6 +51,7 @@ message GetItemRequest {
   string project_path = 1;
   string item_type = 2;
   string item_id = 3;                   // Item identifier (UUID or slug)
+  optional uint32 display_number = 4;   // Look up by display number instead of item_id (1-based, 0 = not specified)
 }
 
 message GetItemResponse {
@@ -144,4 +145,27 @@ message DuplicateItemResponse {
   GenericItem item = 3;                 // The new duplicate item
   string original_id = 4;              // ID of the original item
   Manifest manifest = 5;               // Updated target project manifest
+}
+
+// ============ Cross-Project Search Messages ============
+
+message SearchItemsRequest {
+  string item_type = 1;                 // Plural type name (e.g., "issues", "docs")
+  string item_id = 2;                   // Item identifier (UUID or slug) to search for across projects
+}
+
+// A generic item with its source project metadata
+message ItemWithProject {
+  GenericItem item = 1;
+  string project_path = 2;             // Absolute path to the project where this item was found
+  string project_name = 3;             // Human-readable project name (directory name)
+  string display_path = 4;             // Human-readable path with ~/ for home dir (use for display only)
+}
+
+message SearchItemsResponse {
+  repeated ItemWithProject items = 1;
+  int32 total_count = 2;
+  repeated string errors = 3;          // Non-fatal errors (e.g., projects that couldn't be accessed)
+  bool success = 4;
+  string error = 5;
 }

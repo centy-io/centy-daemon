@@ -92,6 +92,7 @@ async fn test_create_and_get_issue_type() {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
         item_id: item.id.clone(),
+        display_number: None,
     })
     .await
     .unwrap()
@@ -140,6 +141,7 @@ async fn test_create_and_get_doc_type() {
         project_path: pp.to_string(),
         item_type: "docs".to_string(),
         item_id: "getting-started".to_string(),
+        display_number: None,
     })
     .await
     .unwrap()
@@ -328,6 +330,7 @@ async fn test_hard_delete() {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
         item_id,
+        display_number: None,
     })
     .await
     .unwrap()
@@ -460,6 +463,7 @@ async fn test_invalid_item_type() {
         project_path: pp.to_string(),
         item_type: "nonexistent".to_string(),
         item_id: "some-id".to_string(),
+        display_number: None,
     })
     .await
     .unwrap()
@@ -537,6 +541,7 @@ async fn test_custom_fields_roundtrip() {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
         item_id: item.id,
+        display_number: None,
     })
     .await
     .unwrap()

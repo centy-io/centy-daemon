@@ -190,6 +190,41 @@ fn build_issue_for_sync(
     }
 }
 
+/// Generate the display title and description, applying a template if specified.
+async fn render_title_and_description(
+    project_path: &Path,
+    options: &CreateIssueOptions,
+    priority: u32,
+    priority_levels: u32,
+    status: &str,
+    frontmatter: &IssueFrontmatter,
+) -> Result<(String, String), IssueError> {
+    if let Some(ref template_name) = options.template {
+        let template_engine = TemplateEngine::new();
+        let context = IssueTemplateContext {
+            title: options.title.clone(),
+            description: options.description.clone(),
+            priority,
+            priority_label: priority_label(priority, priority_levels),
+            status: status.to_string(),
+            created_at: frontmatter.created_at.clone(),
+            custom_fields: options.custom_fields.clone(),
+        };
+        let templated = template_engine
+            .render_issue(project_path, template_name, &context)
+            .await?;
+        let (extracted_title, desc) = parse_templated_content(&templated);
+        let title = if extracted_title.is_empty() {
+            options.title.clone()
+        } else {
+            extracted_title
+        };
+        Ok((title, desc))
+    } else {
+        Ok((options.title.clone(), options.description.clone()))
+    }
+}
+
 /// Create a new issue
 pub async fn create_issue(
     project_path: &Path,
@@ -247,34 +282,15 @@ pub async fn create_issue(
         custom_fields: options.custom_fields.clone(),
     };
 
-    // Generate content with optional template
-    let (display_title, description) = if let Some(ref template_name) = options.template {
-        let template_engine = TemplateEngine::new();
-        let context = IssueTemplateContext {
-            title: options.title.clone(),
-            description: options.description.clone(),
-            priority,
-            priority_label: priority_label(priority, priority_levels),
-            status: status.clone(),
-            created_at: frontmatter.created_at.clone(),
-            custom_fields: options.custom_fields.clone(),
-        };
-        // Template returns the full markdown, we need to extract title and description
-        let templated = template_engine
-            .render_issue(project_path, template_name, &context)
-            .await?;
-        // Extract title and description from templated content
-        let (extracted_title, desc) = parse_templated_content(&templated);
-        // Use extracted title if present, otherwise fall back to options.title
-        let title = if extracted_title.is_empty() {
-            options.title.clone()
-        } else {
-            extracted_title
-        };
-        (title, desc)
-    } else {
-        (options.title.clone(), options.description.clone())
-    };
+    let (display_title, description) = render_title_and_description(
+        project_path,
+        &options,
+        priority,
+        priority_levels,
+        &status,
+        &frontmatter,
+    )
+    .await?;
 
     // Handle planning note - we add it to the body, not the frontmatter
     let body = if is_planning_status(&status) {

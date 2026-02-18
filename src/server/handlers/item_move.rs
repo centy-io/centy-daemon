@@ -81,7 +81,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
         Some(req.new_id.as_str())
     };
 
-    match generic_move(
+    let move_result = generic_move(
         source_path,
         target_path,
         &source_type,
@@ -91,24 +91,24 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
         &req.item_id,
         new_id,
     )
-    .await
-    {
-        Ok(result) => {
-            maybe_run_post_hooks(
-                source_path,
-                &hook_type,
-                HookOperation::Move,
-                &hook_project_path,
-                Some(&hook_item_id),
-                Some(hook_request_data),
-                true,
-            )
-            .await;
+    .await;
 
-            // Read both manifests for the response
+    let success = move_result.is_ok();
+    maybe_run_post_hooks(
+        source_path,
+        &hook_type,
+        HookOperation::Move,
+        &hook_project_path,
+        Some(&hook_item_id),
+        Some(hook_request_data),
+        success,
+    )
+    .await;
+
+    match move_result {
+        Ok(result) => {
             let source_manifest = manifest::read_manifest(source_path).await.ok().flatten();
             let target_manifest = manifest::read_manifest(target_path).await.ok().flatten();
-
             Ok(Response::new(MoveItemResponse {
                 success: true,
                 error: String::new(),
@@ -118,23 +118,10 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
                 target_manifest: target_manifest.map(|m| manifest_to_proto(&m)),
             }))
         }
-        Err(e) => {
-            maybe_run_post_hooks(
-                source_path,
-                &hook_type,
-                HookOperation::Move,
-                &hook_project_path,
-                Some(&hook_item_id),
-                Some(hook_request_data),
-                false,
-            )
-            .await;
-
-            Ok(Response::new(MoveItemResponse {
-                success: false,
-                error: to_error_json(&req.source_project_path, &e),
-                ..Default::default()
-            }))
-        }
+        Err(e) => Ok(Response::new(MoveItemResponse {
+            success: false,
+            error: to_error_json(&req.source_project_path, &e),
+            ..Default::default()
+        })),
     }
 }
