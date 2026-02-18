@@ -163,7 +163,8 @@
       "Bash(pnpm list:*)",
       "Bash(pnpm dlx centy create issue --help:*)",
       "Bash(pnpm dlx:*)",
-      "Bash(npx centy:*)"
+      "Bash(npx centy:*)",
+      "Bash(gh pr diff:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
