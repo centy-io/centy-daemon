@@ -40,6 +40,37 @@ pub async fn generic_get(
     Ok(mdstore::get(&type_dir, id).await?)
 }
 
+/// Get a single generic item by display number.
+///
+/// Lists all items via `mdstore::list` and finds the one whose frontmatter
+/// `display_number` matches the requested number. Returns `FeatureNotEnabled`
+/// if the item type does not have `display_number` enabled.
+pub async fn generic_get_by_display_number(
+    project_path: &Path,
+    folder: &str,
+    config: &TypeConfig,
+    display_number: u32,
+) -> Result<mdstore::Item, ItemError> {
+    if !config.features.display_number {
+        return Err(ItemError::FeatureNotEnabled(
+            "display_number is not enabled for this item type".to_string(),
+        ));
+    }
+
+    let type_dir = type_storage_path(project_path, folder);
+    let items = mdstore::list(&type_dir, Filters::default()).await?;
+
+    for item in items {
+        if item.frontmatter.display_number == Some(display_number) {
+            return Ok(item);
+        }
+    }
+
+    Err(ItemError::NotFound(format!(
+        "display_number {display_number}"
+    )))
+}
+
 /// List generic items with optional filters.
 pub async fn generic_list(
     project_path: &Path,
@@ -759,5 +790,82 @@ mod tests {
             .await
             .unwrap();
         assert!(items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_by_display_number_success() {
+        let temp = tempfile::tempdir().unwrap();
+        setup_project(temp.path()).await;
+
+        let config = default_issue_config(&CentyConfig::default());
+
+        // Create two items
+        let options1 = CreateOptions {
+            title: "First Issue".to_string(),
+            body: "Body 1".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(2),
+            custom_fields: HashMap::new(),
+        };
+        let created1 = generic_create(temp.path(), "issues", &config, options1)
+            .await
+            .unwrap();
+        assert_eq!(created1.frontmatter.display_number, Some(1));
+
+        let options2 = CreateOptions {
+            title: "Second Issue".to_string(),
+            body: "Body 2".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::new(),
+        };
+        let created2 = generic_create(temp.path(), "issues", &config, options2)
+            .await
+            .unwrap();
+        assert_eq!(created2.frontmatter.display_number, Some(2));
+
+        // Look up by display number
+        let found = generic_get_by_display_number(temp.path(), "issues", &config, 2)
+            .await
+            .unwrap();
+        assert_eq!(found.title, "Second Issue");
+        assert_eq!(found.id, created2.id);
+    }
+
+    #[tokio::test]
+    async fn test_get_by_display_number_not_found() {
+        let temp = tempfile::tempdir().unwrap();
+        setup_project(temp.path()).await;
+
+        let config = default_issue_config(&CentyConfig::default());
+
+        let options = CreateOptions {
+            title: "Only Issue".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(2),
+            custom_fields: HashMap::new(),
+        };
+        generic_create(temp.path(), "issues", &config, options)
+            .await
+            .unwrap();
+
+        let result = generic_get_by_display_number(temp.path(), "issues", &config, 99).await;
+        assert!(result.is_err());
+        assert!(matches!(result, Err(ItemError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn test_get_by_display_number_feature_disabled() {
+        let temp = tempfile::tempdir().unwrap();
+        setup_project(temp.path()).await;
+
+        let config = minimal_config(); // display_number feature is disabled
+        let result = generic_get_by_display_number(temp.path(), "notes", &config, 1).await;
+        assert!(result.is_err());
+        assert!(matches!(result, Err(ItemError::FeatureNotEnabled(_))));
     }
 }

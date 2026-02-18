@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::item::generic::storage::generic_get;
+use crate::item::generic::storage::{generic_get, generic_get_by_display_number};
 use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::proto::{GetItemRequest, GetItemResponse};
@@ -12,7 +12,7 @@ use super::item_type_resolve::resolve_item_type_config;
 pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    let (item_type, _config) = match resolve_item_type_config(project_path, &req.item_type).await {
+    let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
         Err(e) => {
             return Ok(Response::new(GetItemResponse {
@@ -23,7 +23,15 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
         }
     };
 
-    match generic_get(project_path, &item_type, &req.item_id).await {
+    // Dispatch: if display_number is specified and > 0, look up by display number
+    let result = match req.display_number {
+        Some(dn) if dn > 0 => {
+            generic_get_by_display_number(project_path, &item_type, &config, dn).await
+        }
+        _ => generic_get(project_path, &item_type, &req.item_id).await,
+    };
+
+    match result {
         Ok(item) => Ok(Response::new(GetItemResponse {
             success: true,
             error: String::new(),

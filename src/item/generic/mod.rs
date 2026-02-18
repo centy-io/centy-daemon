@@ -8,7 +8,7 @@ pub mod storage;
 pub mod types;
 
 pub use storage::{
-    generic_create, generic_delete, generic_duplicate, generic_get, generic_list, generic_move,
-    generic_restore, generic_soft_delete, generic_update,
+    generic_create, generic_delete, generic_duplicate, generic_get, generic_get_by_display_number,
+    generic_list, generic_move, generic_restore, generic_soft_delete, generic_update,
 };
 pub use types::DuplicateGenericItemOptions;

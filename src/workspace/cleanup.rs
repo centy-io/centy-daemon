@@ -80,9 +80,13 @@ pub async fn cleanup_workspace(
     };
 
     // Try to remove the git worktree
-    if let Some(ref meta) = metadata {
-        let source_path = Path::new(&meta.source_project_path);
+    let source_project = metadata
+        .as_ref()
+        .map(|m| m.source_project_path.as_str())
+        .or_else(|| entry.as_ref().map(|e| e.source_project_path.as_str()));
 
+    if let Some(src) = source_project {
+        let source_path = Path::new(src);
         if source_path.exists() {
             match gwq.remove_worktree_from_repo(source_path, workspace_path_buf, true) {
                 Ok(()) => {
@@ -98,58 +102,20 @@ pub async fn cleanup_workspace(
                     }
                 }
             }
-
-            // Prune stale worktree references
             if let Err(e) = gwq.prune(source_path) {
                 warn!("Failed to prune worktrees: {e}");
             }
         } else {
-            warn!(
-                "Source project no longer exists: {}",
-                meta.source_project_path
-            );
-        }
-    } else if let Some(ref ent) = entry {
-        // Use legacy storage entry
-        let source_path = Path::new(&ent.source_project_path);
-
-        if source_path.exists() {
-            match gwq.remove_worktree_from_repo(source_path, workspace_path_buf, true) {
-                Ok(()) => {
-                    result.worktree_removed = true;
-                    info!("Removed git worktree: {workspace_path}");
-                }
-                Err(e) => {
-                    let error_msg = format!("Failed to remove worktree: {e}");
-                    warn!("{error_msg}");
-                    if !force {
-                        result.error = Some(error_msg);
-                        return Ok(result);
-                    }
-                }
-            }
-
-            // Prune stale worktree references
-            if let Err(e) = gwq.prune(source_path) {
-                warn!("Failed to prune worktrees: {e}");
-            }
-        } else {
-            warn!(
-                "Source project no longer exists: {}",
-                ent.source_project_path
-            );
+            warn!("Source project no longer exists: {src}");
         }
     } else {
-        // No metadata found, try to remove worktree directly via gwq
         match gwq.remove_worktree(workspace_path_buf, true) {
             Ok(()) => {
                 result.worktree_removed = true;
                 info!("Removed git worktree (direct): {workspace_path}");
             }
             Err(e) => {
-                let error_msg = format!("Failed to remove worktree: {e}");
-                warn!("{error_msg}");
-                // Continue with cleanup even if this fails
+                warn!("Failed to remove worktree: {e}");
             }
         }
     }

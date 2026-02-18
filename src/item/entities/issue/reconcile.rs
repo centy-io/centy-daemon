@@ -36,6 +36,59 @@ struct IssueInfo {
     created_at: String,
 }
 
+/// Scan the issues directory and collect issue info from both formats.
+async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, ReconcileError> {
+    let mut issues: Vec<IssueInfo> = Vec::new();
+    let mut entries = fs::read_dir(issues_path).await?;
+
+    while let Some(entry) = entries.next_entry().await? {
+        let file_type = entry.file_type().await?;
+        let name = match entry.file_name().to_str() {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+
+        if file_type.is_file() && is_valid_issue_file(&name) {
+            let content = match fs::read_to_string(entry.path()).await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let frontmatter: IssueFrontmatter =
+                match parse_frontmatter::<IssueFrontmatter>(&content) {
+                    Ok((fm, _, _)) => fm,
+                    Err(_) => continue,
+                };
+            let issue_id = name.trim_end_matches(".md").to_string();
+            issues.push(IssueInfo {
+                id: issue_id,
+                is_new_format: true,
+                display_number: frontmatter.display_number,
+                created_at: frontmatter.created_at,
+            });
+        } else if file_type.is_dir() && is_valid_issue_folder(&name) {
+            let metadata_path = entry.path().join("metadata.json");
+            if !metadata_path.exists() {
+                continue;
+            }
+            let content = match fs::read_to_string(&metadata_path).await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let metadata: IssueMetadata = match serde_json::from_str(&content) {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            issues.push(IssueInfo {
+                id: name,
+                is_new_format: false,
+                display_number: metadata.common.display_number,
+                created_at: metadata.common.created_at,
+            });
+        }
+    }
+    Ok(issues)
+}
+
 /// Reconcile display numbers to resolve conflicts.
 ///
 /// This function scans all issues, finds duplicate display numbers, and
@@ -48,58 +101,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
         return Ok(0);
     }
 
-    // Step 1: Read all issues and their display numbers (both formats)
-    let mut issues: Vec<IssueInfo> = Vec::new();
-    let mut entries = fs::read_dir(issues_path).await?;
-
-    while let Some(entry) = entries.next_entry().await? {
-        let file_type = entry.file_type().await?;
-        let name = match entry.file_name().to_str() {
-            Some(n) => n.to_string(),
-            None => continue,
-        };
-
-        // Check for new format: {uuid}.md file
-        if file_type.is_file() && is_valid_issue_file(&name) {
-            let content = match fs::read_to_string(entry.path()).await {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            let frontmatter: IssueFrontmatter =
-                match parse_frontmatter::<IssueFrontmatter>(&content) {
-                    Ok((fm, _, _)) => fm,
-                    Err(_) => continue, // Skip malformed files
-                };
-            let issue_id = name.trim_end_matches(".md").to_string();
-            issues.push(IssueInfo {
-                id: issue_id,
-                is_new_format: true,
-                display_number: frontmatter.display_number,
-                created_at: frontmatter.created_at,
-            });
-        }
-        // Check for old format: {uuid}/ folder
-        else if file_type.is_dir() && is_valid_issue_folder(&name) {
-            let metadata_path = entry.path().join("metadata.json");
-            if !metadata_path.exists() {
-                continue;
-            }
-            let content = match fs::read_to_string(&metadata_path).await {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            let metadata: IssueMetadata = match serde_json::from_str(&content) {
-                Ok(m) => m,
-                Err(_) => continue, // Skip malformed metadata
-            };
-            issues.push(IssueInfo {
-                id: name,
-                is_new_format: false,
-                display_number: metadata.common.display_number,
-                created_at: metadata.common.created_at,
-            });
-        }
-    }
+    let issues = scan_issues(issues_path).await?;
 
     // Step 2: Find duplicates (group by display_number)
     let mut by_display_number: HashMap<u32, Vec<&IssueInfo>> = HashMap::new();

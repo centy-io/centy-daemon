@@ -21,10 +21,10 @@ service CentyDaemon {
   // Deprecated: Use GetItem with item_type="issues" instead.
   rpc GetIssue(GetIssueRequest) returns (GetIssueResponse);
 
-  // Get a single issue by display number (human-readable number like 1, 2, 3)
+  // Deprecated: Use GetItem with display_number instead.
   rpc GetIssueByDisplayNumber(GetIssueByDisplayNumberRequest) returns (GetIssueResponse);
 
-  // Get issues by UUID across all tracked projects (global search)
+  // Deprecated: Use SearchItems instead.
   rpc GetIssuesByUuid(GetIssuesByUuidRequest) returns (GetIssuesByUuidResponse);
 
   // Deprecated: Use ListItems with item_type="issues" instead.
@@ -68,7 +68,7 @@ service CentyDaemon {
   // Deprecated: Use GetItem with item_type="docs" instead.
   rpc GetDoc(GetDocRequest) returns (GetDocResponse);
 
-  // Get docs by slug across all tracked projects (global search)
+  // Deprecated: Use SearchItems instead.
   rpc GetDocsBySlug(GetDocsBySlugRequest) returns (GetDocsBySlugResponse);
 
   // Deprecated: Use ListItems with item_type="docs" instead.
@@ -298,6 +298,9 @@ service CentyDaemon {
 
   // Move an item to another project
   rpc MoveItem(MoveItemRequest) returns (MoveItemResponse);
+
+  // Search for an item by ID across all tracked projects
+  rpc SearchItems(SearchItemsRequest) returns (SearchItemsResponse);
 }
 
 // ============ Init Messages ============

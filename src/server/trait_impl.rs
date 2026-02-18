@@ -1014,4 +1014,17 @@ impl CentyDaemon for CentyDaemonService {
         let _timer = OperationTimer::new("move_item");
         handlers::item_move::move_item(request.into_inner()).await
     }
+
+    #[instrument(
+        name = "grpc.search_items",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn search_items(
+        &self,
+        request: Request<SearchItemsRequest>,
+    ) -> Result<Response<SearchItemsResponse>, Status> {
+        let _timer = OperationTimer::new("search_items");
+        handlers::item_search::search_items(request.into_inner()).await
+    }
 }
