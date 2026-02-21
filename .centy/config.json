@@ -1,12 +1,4 @@
 {
-  "allowedStates": [
-    "open",
-    "in-progress",
-    "closed",
-    "testing",
-    "to-check-if-needed",
-    "For QA"
-  ],
   "customFields": [],
   "defaults": {},
   "hooks": [],
