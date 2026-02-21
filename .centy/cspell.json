@@ -2,9 +2,6 @@
   "version": "0.2",
   "language": "en",
   "words": [
-    "allowDirectEdits",
-    "allowedStates",
-    "autoCloseOnComplete",
     "centy",
     "centyVersion",
     "createdAt",
