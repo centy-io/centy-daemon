@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createTempProject, type TempProject, projectFileExists } from './fixtures/temp-project.js';
+import {
+  createTempProject,
+  type TempProject,
+  projectFileExists,
+  readProjectFile,
+  writeProjectFile,
+} from './fixtures/temp-project.js';
 
 /**
  * gRPC Plain Text Tests for Init Operations
@@ -69,6 +75,105 @@ describe('gRPC: Init Operations', () => {
       expect(result.manifest).toBeDefined();
       expect(result.manifest?.schemaVersion).toBeGreaterThan(0);
       expect(result.manifest?.centyVersion).toBeDefined();
+    });
+
+    it('should create issues/config.yaml', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      expect(projectFileExists(project, '.centy/issues/config.yaml')).toBe(true);
+    });
+
+    it('should create docs/config.yaml', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      expect(projectFileExists(project, '.centy/docs/config.yaml')).toBe(true);
+    });
+
+    it('should create issues/config.yaml with correct defaults', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      const content = await readProjectFile(project, '.centy/issues/config.yaml');
+      expect(content).toContain('name: Issue');
+      expect(content).toContain('identifier: uuid');
+      expect(content).toContain('displayNumber: true');
+      expect(content).toContain('status: true');
+      expect(content).toContain('priority: true');
+      expect(content).toContain('defaultStatus: open');
+    });
+
+    it('should create docs/config.yaml with minimal defaults', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      const content = await readProjectFile(project, '.centy/docs/config.yaml');
+      expect(content).toContain('name: Doc');
+      expect(content).toContain('identifier: slug');
+      expect(content).toContain('displayNumber: false');
+      expect(content).toContain('status: false');
+      expect(content).toContain('priority: false');
+      // Docs should not have statuses, defaultStatus, or priorityLevels
+      expect(content).not.toContain('statuses:');
+      expect(content).not.toContain('defaultStatus:');
+      expect(content).not.toContain('priorityLevels:');
+    });
+
+    it('should not overwrite existing issues/config.yaml on re-init', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      // Overwrite issues/config.yaml with custom content
+      await writeProjectFile(project, '.centy/issues/config.yaml', 'name: CustomIssue\n');
+
+      // Re-init should not overwrite
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      const content = await readProjectFile(project, '.centy/issues/config.yaml');
+      expect(content).toBe('name: CustomIssue\n');
+    });
+
+    it('should not overwrite existing docs/config.yaml on re-init', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      // Overwrite docs/config.yaml with custom content
+      await writeProjectFile(project, '.centy/docs/config.yaml', 'name: CustomDoc\n');
+
+      // Re-init should not overwrite
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      const content = await readProjectFile(project, '.centy/docs/config.yaml');
+      expect(content).toBe('name: CustomDoc\n');
+    });
+
+    it('should report issues/config.yaml and docs/config.yaml as created', async () => {
+      const result = await project.client.init({
+        projectPath: project.path,
+        force: true,
+      });
+
+      expect(result.created).toContain('issues/config.yaml');
+      expect(result.created).toContain('docs/config.yaml');
     });
   });
 
