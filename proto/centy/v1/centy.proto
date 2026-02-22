@@ -152,6 +152,32 @@ service CentyDaemon {
   // Delete an organization
   rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse);
 
+  // ============ Organization Issue RPCs ============
+
+  // Create an organization-level issue
+  rpc CreateOrgIssue(CreateOrgIssueRequest) returns (CreateOrgIssueResponse);
+
+  // Get an org issue by UUID
+  rpc GetOrgIssue(GetOrgIssueRequest) returns (OrgIssue);
+
+  // Get an org issue by display number
+  rpc GetOrgIssueByDisplayNumber(GetOrgIssueByDisplayNumberRequest) returns (OrgIssue);
+
+  // List org issues with optional filters
+  rpc ListOrgIssues(ListOrgIssuesRequest) returns (ListOrgIssuesResponse);
+
+  // Update an org issue
+  rpc UpdateOrgIssue(UpdateOrgIssueRequest) returns (UpdateOrgIssueResponse);
+
+  // Delete an org issue
+  rpc DeleteOrgIssue(DeleteOrgIssueRequest) returns (DeleteOrgIssueResponse);
+
+  // Get org-level config
+  rpc GetOrgConfig(GetOrgConfigRequest) returns (OrgConfig);
+
+  // Update org-level config
+  rpc UpdateOrgConfig(UpdateOrgConfigRequest) returns (UpdateOrgConfigResponse);
+
   // ============ Version RPCs ============
 
   // Get daemon version info
@@ -1753,5 +1779,115 @@ message MoveItemResponse {
   string old_id = 4;
   Manifest source_manifest = 5;
   Manifest target_manifest = 6;
+}
+
+// ============ Organization Issue Messages ============
+
+message OrgIssueMetadata {
+  uint32 display_number = 1;
+  string status = 2;
+  int32 priority = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  map<string, string> custom_fields = 6;
+  string priority_label = 7;
+  repeated string referenced_projects = 8;
+}
+
+message OrgIssue {
+  string id = 1;
+  uint32 display_number = 2;
+  string title = 3;
+  string description = 4;
+  OrgIssueMetadata metadata = 5;
+}
+
+message CreateOrgIssueRequest {
+  string organization_slug = 1;
+  string title = 2;
+  string description = 3;
+  int32 priority = 4;
+  string status = 5;
+  map<string, string> custom_fields = 6;
+  repeated string referenced_projects = 7;
+}
+
+message CreateOrgIssueResponse {
+  bool success = 1;
+  string error = 2;
+  string id = 3;
+  uint32 display_number = 4;
+  repeated string created_files = 5;
+}
+
+message GetOrgIssueRequest {
+  string organization_slug = 1;
+  string issue_id = 2;
+}
+
+message GetOrgIssueByDisplayNumberRequest {
+  string organization_slug = 1;
+  uint32 display_number = 2;
+}
+
+message ListOrgIssuesRequest {
+  string organization_slug = 1;
+  string status = 2;           // Filter by status (empty = all)
+  int32 priority = 3;          // Filter by priority (0 = all)
+  string referenced_project = 4; // Filter by referenced project path (empty = all)
+}
+
+message ListOrgIssuesResponse {
+  repeated OrgIssue issues = 1;
+  int32 total_count = 2;
+}
+
+message UpdateOrgIssueRequest {
+  string organization_slug = 1;
+  string issue_id = 2;
+  string title = 3;
+  string description = 4;
+  string status = 5;
+  int32 priority = 6;
+  map<string, string> custom_fields = 7;
+  repeated string add_referenced_projects = 8;
+  repeated string remove_referenced_projects = 9;
+}
+
+message UpdateOrgIssueResponse {
+  bool success = 1;
+  string error = 2;
+  OrgIssue issue = 3;
+}
+
+message DeleteOrgIssueRequest {
+  string organization_slug = 1;
+  string issue_id = 2;
+}
+
+message DeleteOrgIssueResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message OrgConfig {
+  uint32 priority_levels = 1;
+  repeated CustomFieldDefinition custom_fields = 2;
+}
+
+message GetOrgConfigRequest {
+  string organization_slug = 1;
+}
+
+message UpdateOrgConfigRequest {
+  string organization_slug = 1;
+  uint32 priority_levels = 2;
+  repeated CustomFieldDefinition custom_fields = 3;
+}
+
+message UpdateOrgConfigResponse {
+  bool success = 1;
+  string error = 2;
+  OrgConfig config = 3;
 }
 

@@ -32,6 +32,8 @@ pub mod link_create;
 pub mod link_delete;
 pub mod link_read;
 pub mod manifest;
+pub mod org_issue;
+pub mod org_issue_write;
 pub mod organization;
 pub mod organization_write;
 pub mod project;
