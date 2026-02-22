@@ -42,11 +42,11 @@ pub async fn update_organization(
 pub async fn delete_organization(
     req: DeleteOrganizationRequest,
 ) -> Result<Response<DeleteOrganizationResponse>, Status> {
-    match crate::registry::delete_organization(&req.slug).await {
-        Ok(()) => Ok(Response::new(DeleteOrganizationResponse {
+    match crate::registry::delete_organization(&req.slug, req.cascade).await {
+        Ok(unassigned_projects) => Ok(Response::new(DeleteOrganizationResponse {
             success: true,
             error: String::new(),
-            unassigned_projects: 0,
+            unassigned_projects,
         })),
         Err(e) => Ok(Response::new(DeleteOrganizationResponse {
             success: false,

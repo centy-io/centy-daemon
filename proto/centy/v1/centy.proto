@@ -1121,6 +1121,7 @@ message UpdateOrganizationResponse {
 
 message DeleteOrganizationRequest {
   string slug = 1;
+  bool cascade = 2;
 }
 
 message DeleteOrganizationResponse {
