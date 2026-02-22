@@ -81,6 +81,29 @@ pub fn user_to_proto(user: &crate::user::User) -> ProtoUser {
     }
 }
 
+pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem {
+    let status = if user.deleted_at.is_some() {
+        "deleted".to_string()
+    } else {
+        "active".to_string()
+    };
+    ProtoGenericItem {
+        id: user.id.clone(),
+        item_type: "user".to_string(),
+        title: user.name.clone(),
+        body: String::new(),
+        metadata: Some(GenericItemMetadata {
+            display_number: 0,
+            status,
+            priority: 0,
+            created_at: user.created_at.clone(),
+            updated_at: user.updated_at.clone(),
+            deleted_at: user.deleted_at.clone().unwrap_or_default(),
+            custom_fields: std::collections::HashMap::new(),
+        }),
+    }
+}
+
 pub fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto {
     ItemTypeConfigProto {
         name: config.name.clone(),
