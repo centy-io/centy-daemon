@@ -3,10 +3,12 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::read_item_type_config;
 use centy_daemon::reconciliation::{
     build_reconciliation_plan, execute_reconciliation, ReconciliationDecisions,
 };
 use common::{create_test_dir, init_centy_project, verify_centy_structure};
+use mdstore::IdStrategy;
 use serde_json::Value;
 use tokio::fs;
 
@@ -553,4 +555,137 @@ async fn test_init_cspell_words_are_sorted_after_merge() {
     let mut sorted_words = words.clone();
     sorted_words.sort_unstable();
     assert_eq!(words, sorted_words, "Words should be sorted after merge");
+}
+
+#[tokio::test]
+async fn test_init_creates_issues_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // issues/config.yaml should be reported as created
+    assert!(
+        result.created.contains(&"issues/config.yaml".to_string()),
+        "Should create issues/config.yaml"
+    );
+
+    // File should exist on disk
+    let config_path = project_path.join(".centy").join("issues").join("config.yaml");
+    assert!(config_path.exists(), "issues/config.yaml should exist");
+
+    // Verify default content
+    let config = read_item_type_config(project_path, "issues")
+        .await
+        .expect("Should read")
+        .expect("Should exist");
+
+    assert_eq!(config.name, "Issue");
+    assert_eq!(config.identifier, IdStrategy::Uuid);
+    assert!(config.features.display_number);
+    assert!(config.features.status);
+    assert!(config.features.priority);
+}
+
+#[tokio::test]
+async fn test_init_creates_docs_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // docs/config.yaml should be reported as created
+    assert!(
+        result.created.contains(&"docs/config.yaml".to_string()),
+        "Should create docs/config.yaml"
+    );
+
+    // File should exist on disk
+    let config_path = project_path.join(".centy").join("docs").join("config.yaml");
+    assert!(config_path.exists(), "docs/config.yaml should exist");
+
+    // Verify minimal defaults (no displayNumber, status, or priority)
+    let config = read_item_type_config(project_path, "docs")
+        .await
+        .expect("Should read")
+        .expect("Should exist");
+
+    assert_eq!(config.name, "Doc");
+    assert_eq!(config.identifier, IdStrategy::Slug);
+    assert!(!config.features.display_number);
+    assert!(!config.features.status);
+    assert!(!config.features.priority);
+    assert!(config.statuses.is_empty());
+    assert!(config.default_status.is_none());
+    assert!(config.priority_levels.is_none());
+}
+
+#[tokio::test]
+async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    let centy_path = project_path.join(".centy");
+
+    // Pre-create the issues directory with a custom config.yaml
+    fs::create_dir_all(centy_path.join("issues"))
+        .await
+        .expect("Should create issues dir");
+    let custom_yaml = "name: CustomIssue\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  status: true\n  priority: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\n";
+    fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
+        .await
+        .expect("Should write custom config.yaml");
+
+    // Run init
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // issues/config.yaml should NOT be in the created list
+    assert!(
+        !result.created.contains(&"issues/config.yaml".to_string()),
+        "Should not overwrite existing issues/config.yaml"
+    );
+
+    // Existing content should be preserved
+    let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
+        .await
+        .expect("Should read");
+    assert_eq!(content, custom_yaml, "Custom config.yaml should be preserved");
+}
+
+#[tokio::test]
+async fn test_init_config_yaml_idempotent() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // First init
+    let decisions = ReconciliationDecisions::default();
+    let result1 = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("First reconciliation");
+
+    assert!(result1.created.contains(&"issues/config.yaml".to_string()));
+    assert!(result1.created.contains(&"docs/config.yaml".to_string()));
+
+    // Second init
+    let result2 = execute_reconciliation(project_path, ReconciliationDecisions::default(), false)
+        .await
+        .expect("Second reconciliation");
+
+    // config.yaml files should NOT appear in created on second run
+    assert!(
+        !result2.created.contains(&"issues/config.yaml".to_string()),
+        "issues/config.yaml should not be re-created on second init"
+    );
+    assert!(
+        !result2.created.contains(&"docs/config.yaml".to_string()),
+        "docs/config.yaml should not be re-created on second init"
+    );
 }
