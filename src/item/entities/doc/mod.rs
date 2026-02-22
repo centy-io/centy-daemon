@@ -4,6 +4,7 @@ mod error;
 mod helpers;
 mod move_doc;
 mod read;
+#[cfg(test)]
 mod tests;
 mod types;
 mod update;
