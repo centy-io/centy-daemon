@@ -63,11 +63,9 @@ message GetItemResponse {
 message ListItemsRequest {
   string project_path = 1;
   string item_type = 2;
-  string status = 3;                    // Filter by status (empty = all)
-  int32 priority = 4;                   // Filter by priority (0 = all)
-  bool include_deleted = 5;             // Include soft-deleted items (default: false)
   uint32 limit = 6;                     // Limit results (0 = no limit)
   uint32 offset = 7;                    // Offset for pagination (0 = no offset)
+  string filter = 8;                    // JSON-encoded MQL query (e.g. {"status":{"$in":["open","in-progress"]}})
 }
 
 message ListItemsResponse {

@@ -185,9 +185,7 @@ async fn test_list_with_filters() {
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 0,
-        include_deleted: false,
+        filter: String::new(),
         limit: 0,
         offset: 0,
     })
@@ -197,13 +195,11 @@ async fn test_list_with_filters() {
     assert!(resp.success);
     assert_eq!(resp.total_count, 3);
 
-    // Filter by status
+    // Filter by status (MQL: exact match)
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: "open".to_string(),
-        priority: 0,
-        include_deleted: false,
+        filter: r#"{"status":"open"}"#.to_string(),
         limit: 0,
         offset: 0,
     })
@@ -212,13 +208,11 @@ async fn test_list_with_filters() {
     .into_inner();
     assert_eq!(resp.total_count, 2);
 
-    // Filter by priority
+    // Filter by priority (MQL: exact match)
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 1,
-        include_deleted: false,
+        filter: r#"{"priority":1}"#.to_string(),
         limit: 0,
         offset: 0,
     })
@@ -231,9 +225,7 @@ async fn test_list_with_filters() {
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 0,
-        include_deleted: false,
+        filter: String::new(),
         limit: 1,
         offset: 1,
     })
@@ -380,9 +372,7 @@ async fn test_soft_delete_and_restore() {
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 0,
-        include_deleted: false,
+        filter: String::new(),
         limit: 0,
         offset: 0,
     })
@@ -391,13 +381,11 @@ async fn test_soft_delete_and_restore() {
     .into_inner();
     assert_eq!(resp.total_count, 0);
 
-    // Should appear with include_deleted
+    // Should appear with MQL $exists filter on deletedAt
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 0,
-        include_deleted: true,
+        filter: r#"{"deletedAt":{"$exists":true}}"#.to_string(),
         limit: 0,
         offset: 0,
     })
@@ -423,9 +411,7 @@ async fn test_soft_delete_and_restore() {
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
         project_path: pp.to_string(),
         item_type: "issues".to_string(),
-        status: String::new(),
-        priority: 0,
-        include_deleted: false,
+        filter: String::new(),
         limit: 0,
         offset: 0,
     })
