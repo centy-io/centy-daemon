@@ -41,4 +41,12 @@ pub fn verify_centy_structure(project_path: &Path) {
         centy_path.join("config.json").exists(),
         "config.json should exist"
     );
+    assert!(
+        centy_path.join("issues").join("config.yaml").exists(),
+        "issues/config.yaml should exist"
+    );
+    assert!(
+        centy_path.join("docs").join("config.yaml").exists(),
+        "docs/config.yaml should exist"
+    );
 }
