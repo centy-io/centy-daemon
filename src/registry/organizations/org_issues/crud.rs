@@ -37,7 +37,6 @@ pub enum OrgIssueError {
 
     #[error("Title is required")]
     TitleRequired,
-
 }
 
 /// Frontmatter for org issue markdown files
@@ -70,8 +69,7 @@ pub struct OrgIssue {
     pub referenced_projects: Vec<String>,
 }
 
-impl OrgIssue {
-}
+impl OrgIssue {}
 
 /// Options for listing org issues
 #[derive(Debug, Clone, Default)]
@@ -97,10 +95,7 @@ pub struct UpdateOrgIssueOptions {
 }
 
 /// Read a single org issue file
-async fn read_org_issue_file(
-    issues_dir: &Path,
-    issue_id: &str,
-) -> Result<OrgIssue, OrgIssueError> {
+async fn read_org_issue_file(issues_dir: &Path, issue_id: &str) -> Result<OrgIssue, OrgIssueError> {
     let file_path = issues_dir.join(format!("{issue_id}.md"));
 
     if !file_path.exists() {
@@ -113,8 +108,7 @@ async fn read_org_issue_file(
 
 /// Parse org issue content from markdown with frontmatter
 fn parse_org_issue_content(content: &str, issue_id: &str) -> Result<OrgIssue, OrgIssueError> {
-    let (frontmatter, title, description) =
-        parse_frontmatter::<OrgIssueFrontmatter>(content)?;
+    let (frontmatter, title, description) = parse_frontmatter::<OrgIssueFrontmatter>(content)?;
 
     Ok(OrgIssue {
         id: issue_id.to_string(),

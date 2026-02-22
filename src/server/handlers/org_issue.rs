@@ -39,7 +39,10 @@ pub async fn get_org_issue_handler(
         .await
         .unwrap_or_default();
     match get_org_issue(&req.organization_slug, &req.issue_id).await {
-        Ok(issue) => Ok(Response::new(org_issue_to_proto(&issue, config.priority_levels))),
+        Ok(issue) => Ok(Response::new(org_issue_to_proto(
+            &issue,
+            config.priority_levels,
+        ))),
         Err(e) => Err(Status::not_found(to_error_json(&req.issue_id, &e))),
     }
 }
@@ -51,7 +54,10 @@ pub async fn get_org_issue_by_display_number_handler(
         .await
         .unwrap_or_default();
     match get_org_issue_by_display_number(&req.organization_slug, req.display_number).await {
-        Ok(issue) => Ok(Response::new(org_issue_to_proto(&issue, config.priority_levels))),
+        Ok(issue) => Ok(Response::new(org_issue_to_proto(
+            &issue,
+            config.priority_levels,
+        ))),
         Err(e) => Err(Status::not_found(to_error_json(
             &req.display_number.to_string(),
             &e,

@@ -6,10 +6,10 @@ use crate::registry::{
     OrgCustomFieldDef, OrgIssue, UpdateOrgIssueOptions,
 };
 use crate::server::proto::{
-    CreateOrgIssueRequest, CreateOrgIssueResponse, CustomFieldDefinition,
-    DeleteOrgIssueRequest, DeleteOrgIssueResponse, OrgConfig as ProtoOrgConfig,
-    OrgIssue as ProtoOrgIssue, OrgIssueMetadata, UpdateOrgConfigRequest, UpdateOrgConfigResponse,
-    UpdateOrgIssueRequest, UpdateOrgIssueResponse,
+    CreateOrgIssueRequest, CreateOrgIssueResponse, CustomFieldDefinition, DeleteOrgIssueRequest,
+    DeleteOrgIssueResponse, OrgConfig as ProtoOrgConfig, OrgIssue as ProtoOrgIssue,
+    OrgIssueMetadata, UpdateOrgConfigRequest, UpdateOrgConfigResponse, UpdateOrgIssueRequest,
+    UpdateOrgIssueResponse,
 };
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};

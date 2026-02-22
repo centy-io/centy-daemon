@@ -5,7 +5,9 @@ use crate::registry::{
     get_project_info, infer_organization_from_remote, set_project_organization, track_project_async,
 };
 use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
-use crate::server::proto::{InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse};
+use crate::server::proto::{
+    InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse,
+};
 use crate::server::structured_error::to_error_json;
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
