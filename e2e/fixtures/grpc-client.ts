@@ -397,6 +397,22 @@ export interface CentyClient {
     ) => void
   ): void;
 
+  // Item Types
+  createItemType(
+    request: CreateItemTypeRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: CreateItemTypeResponse
+    ) => void
+  ): void;
+  listItemTypes(
+    request: ListItemTypesRequest,
+    callback: (
+      error: grpc.ServiceError | null,
+      response: ListItemTypesResponse
+    ) => void
+  ): void;
+
   // For cleanup
   close(): void;
 }
@@ -1236,6 +1252,58 @@ export interface SyncUsersResponse {
   manifest?: Manifest;
 }
 
+// ============ Item Type Types ============
+
+export interface CreateItemTypeRequest {
+  projectPath: string;
+  name: string;
+  plural: string;
+  identifier: 'uuid' | 'slug';
+  features?: Partial<ItemTypeFeatures>;
+  statuses?: string[];
+  defaultStatus?: string;
+  priorityLevels?: number;
+  customFields?: CustomFieldDefinition[];
+}
+
+export interface CreateItemTypeResponse {
+  success: boolean;
+  error: string;
+  config?: ItemTypeConfig;
+}
+
+export interface ListItemTypesRequest {
+  projectPath: string;
+}
+
+export interface ItemTypeFeatures {
+  displayNumber: boolean;
+  status: boolean;
+  priority: boolean;
+  assets: boolean;
+  orgSync: boolean;
+  move: boolean;
+  duplicate: boolean;
+}
+
+export interface ItemTypeConfig {
+  name: string;
+  plural: string;
+  identifier: string;
+  features: ItemTypeFeatures;
+  statuses: string[];
+  defaultStatus: string;
+  priorityLevels: number;
+  customFields: CustomFieldDefinition[];
+}
+
+export interface ListItemTypesResponse {
+  success: boolean;
+  error: string;
+  itemTypes: ItemTypeConfig[];
+  totalCount: number;
+}
+
 /**
  * Create a gRPC client for the Centy daemon.
  * Uses plain text (insecure) transport for testing.
@@ -1391,6 +1459,14 @@ export function promisifyClient(client: CentyClient) {
     updateUser: promisify<UpdateUserRequest, UpdateUserResponse>(client.updateUser),
     deleteUser: promisify<DeleteUserRequest, DeleteUserResponse>(client.deleteUser),
     syncUsers: promisify<SyncUsersRequest, SyncUsersResponse>(client.syncUsers),
+
+    // Item Types
+    createItemType: promisify<CreateItemTypeRequest, CreateItemTypeResponse>(
+      client.createItemType
+    ),
+    listItemTypes: promisify<ListItemTypesRequest, ListItemTypesResponse>(
+      client.listItemTypes
+    ),
 
     // Close connection
     close: () => client.close(),
