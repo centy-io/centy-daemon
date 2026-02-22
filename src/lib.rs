@@ -59,8 +59,8 @@ pub use reconciliation::{
     ReconciliationResult,
 };
 pub use registry::{
-    get_project_info, list_projects, track_project, untrack_project, ProjectInfo, ProjectRegistry,
-    RegistryError, TrackedProject,
+    get_project_info, init_ignore_paths, list_projects, track_project, untrack_project,
+    ProjectInfo, ProjectRegistry, RegistryError, TrackedProject,
 };
 pub use server::CentyDaemonService;
 pub use template::{

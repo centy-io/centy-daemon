@@ -115,6 +115,9 @@ async fn main() -> Result<()> {
         user_config::UserConfig::default()
     });
 
+    // Compile user ignore-path patterns into the global registry filter.
+    registry::init_ignore_paths(&user_cfg.registry.ignore_paths);
+
     // Parse address
     let addr = args.addr.parse()?;
 
