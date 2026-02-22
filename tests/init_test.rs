@@ -249,6 +249,110 @@ async fn test_reconciliation_skip_modified_without_decision() {
 }
 
 #[tokio::test]
+async fn test_init_creates_item_type_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    // Initialize
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    let centy_path = project_path.join(".centy");
+
+    // Both config.yaml files should be created
+    assert!(
+        centy_path.join("issues").join("config.yaml").exists(),
+        "issues/config.yaml should be created on init"
+    );
+    assert!(
+        centy_path.join("docs").join("config.yaml").exists(),
+        "docs/config.yaml should be created on init"
+    );
+    assert!(
+        result.created.contains(&"issues/config.yaml".to_string()),
+        "Should report issues/config.yaml as created"
+    );
+    assert!(
+        result.created.contains(&"docs/config.yaml".to_string()),
+        "Should report docs/config.yaml as created"
+    );
+
+    // Verify issues config has expected defaults
+    let issues_content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
+        .await
+        .expect("Should read issues/config.yaml");
+    assert!(
+        issues_content.contains("displayNumber: true"),
+        "issues/config.yaml should have displayNumber: true"
+    );
+    assert!(
+        issues_content.contains("status: true"),
+        "issues/config.yaml should have status: true"
+    );
+    assert!(
+        issues_content.contains("priority: true"),
+        "issues/config.yaml should have priority: true"
+    );
+
+    // Verify docs config has minimal features
+    let docs_content = fs::read_to_string(centy_path.join("docs").join("config.yaml"))
+        .await
+        .expect("Should read docs/config.yaml");
+    assert!(
+        docs_content.contains("displayNumber: false"),
+        "docs/config.yaml should have displayNumber: false"
+    );
+    assert!(
+        docs_content.contains("status: false"),
+        "docs/config.yaml should have status: false"
+    );
+    assert!(
+        docs_content.contains("priority: false"),
+        "docs/config.yaml should have priority: false"
+    );
+}
+
+#[tokio::test]
+async fn test_init_does_not_overwrite_existing_item_type_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    let centy_path = project_path.join(".centy");
+
+    // Create .centy/issues/ with a custom config.yaml
+    fs::create_dir_all(centy_path.join("issues"))
+        .await
+        .expect("Should create issues dir");
+    let custom_yaml = "name: CustomIssue\n";
+    fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
+        .await
+        .expect("Should write custom config.yaml");
+
+    // Initialize
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // issues/config.yaml should NOT be overwritten
+    assert!(
+        !result.created.contains(&"issues/config.yaml".to_string()),
+        "Should not overwrite existing issues/config.yaml"
+    );
+    let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
+        .await
+        .expect("Should read");
+    assert_eq!(content, custom_yaml, "Existing issues/config.yaml should be preserved");
+
+    // docs/config.yaml should still be created
+    assert!(
+        result.created.contains(&"docs/config.yaml".to_string()),
+        "Should create docs/config.yaml when missing"
+    );
+}
+
+#[tokio::test]
 async fn test_init_creates_config_json_with_hooks() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
