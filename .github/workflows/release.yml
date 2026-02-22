@@ -82,6 +82,10 @@ jobs:
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Sign binary (macOS ad-hoc)
+        if: runner.os == 'macOS'
+        run: codesign --force --sign - target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+
       - name: Prepare artifact (Unix)
         if: matrix.os != 'windows-latest'
         run: |
