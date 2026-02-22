@@ -152,8 +152,7 @@ mod tests {
 
         // Simulate the "file absent" branch manually (since we can't override
         // dirs::home_dir() at runtime without mocking infrastructure).
-        let content_result: Result<String, std::io::Error> =
-            fs::read_to_string(&non_existent);
+        let content_result: Result<String, std::io::Error> = fs::read_to_string(&non_existent);
         assert!(content_result.is_err()); // file not found
     }
 
