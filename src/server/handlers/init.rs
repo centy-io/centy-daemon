@@ -1,15 +1,11 @@
 use std::path::Path;
 
-use crate::config::{set_project_title, write_config};
 use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use crate::registry::{
     get_project_info, infer_organization_from_remote, set_project_organization, track_project_async,
 };
 use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
-use crate::server::proto::{
-    Config as ProtoConfig, InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse,
-};
-use crate::server::proto_to_config::proto_to_config;
+use crate::server::proto::{InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse};
 use crate::server::structured_error::to_error_json;
 use crate::utils::get_centy_path;
 use tonic::{Response, Status};
@@ -42,40 +38,6 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
                 }
             }
 
-            // Apply init_config if provided, merging non-zero/non-empty fields over defaults.
-            if let Some(ref proto_config) = req.init_config {
-                if let Err(e) =
-                    apply_init_config(project_path, proto_config).await
-                {
-                    return Ok(Response::new(InitResponse {
-                        success: false,
-                        error: format!("Failed to write init config: {e}"),
-                        created: vec![],
-                        restored: vec![],
-                        reset: vec![],
-                        skipped: vec![],
-                        manifest: None,
-                        org_inference: None,
-                    }));
-                }
-            }
-
-            // Apply project title if provided.
-            if !req.title.is_empty() {
-                if let Err(e) = set_project_title(project_path, Some(req.title.clone())).await {
-                    return Ok(Response::new(InitResponse {
-                        success: false,
-                        error: format!("Failed to write project title: {e}"),
-                        created: vec![],
-                        restored: vec![],
-                        reset: vec![],
-                        skipped: vec![],
-                        manifest: None,
-                        org_inference: None,
-                    }));
-                }
-            }
-
             Ok(Response::new(InitResponse {
                 success: true,
                 error: String::new(),
@@ -98,58 +60,6 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
             org_inference: None,
         })),
     }
-}
-
-/// Merge non-zero/non-empty fields from `proto_config` over the existing project config.
-///
-/// Fields left at their proto3 zero-value (0, "", empty repeated/map) are treated as
-/// "not specified" and the current on-disk value is preserved instead of being overwritten.
-async fn apply_init_config(
-    project_path: &Path,
-    proto_config: &ProtoConfig,
-) -> Result<(), mdstore::ConfigError> {
-    // Read the config written by reconciliation (which has all defaults).
-    let mut config = crate::config::read_config(project_path)
-        .await?
-        .unwrap_or_default();
-
-    // Convert the proto fully, then selectively apply non-zero fields.
-    let overrides = proto_to_config(proto_config);
-
-    if overrides.priority_levels != 0 {
-        config.priority_levels = overrides.priority_levels;
-    }
-    if overrides.version.is_some() {
-        config.version = overrides.version;
-    }
-    if overrides.default_editor.is_some() {
-        config.default_editor = overrides.default_editor;
-    }
-    if !overrides.custom_fields.is_empty() {
-        config.custom_fields = overrides.custom_fields;
-    }
-    if !overrides.defaults.is_empty() {
-        config.defaults = overrides.defaults;
-    }
-    if !overrides.state_colors.is_empty() {
-        config.state_colors = overrides.state_colors;
-    }
-    if !overrides.priority_colors.is_empty() {
-        config.priority_colors = overrides.priority_colors;
-    }
-    if !overrides.custom_link_types.is_empty() {
-        config.custom_link_types = overrides.custom_link_types;
-    }
-    if !overrides.hooks.is_empty() {
-        config.hooks = overrides.hooks;
-    }
-    if let Some(ref ws) = proto_config.workspace {
-        if let Some(v) = ws.update_status_on_open {
-            config.workspace.update_status_on_open = Some(v);
-        }
-    }
-
-    write_config(project_path, &config).await
 }
 
 pub async fn is_initialized(
