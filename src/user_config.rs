@@ -1,4 +1,4 @@
-//! User-level global configuration loaded from `~/.config/centy/config.toml`.
+//! User-level global configuration loaded from `~/.centy/config.toml`.
 //!
 //! This file is optional; if it does not exist all fields fall back to their
 //! `Default` values.  The schema is intentionally minimal — it establishes the
@@ -36,7 +36,7 @@ pub enum UserConfigError {
 pub struct RegistryConfig {}
 
 /// Top-level user configuration, deserialized from
-/// `~/.config/centy/config.toml`.
+/// `~/.centy/config.toml`.
 ///
 /// All fields are optional at the TOML level; missing fields resolve to their
 /// `Default` values.
@@ -51,16 +51,16 @@ pub struct UserConfig {
 // Loader
 // ---------------------------------------------------------------------------
 
-/// Resolve the canonical path for the user config file.
+/// Resolve the canonical path for the user config file (`~/.centy/config.toml`).
 ///
-/// Uses [`dirs::config_dir`] which returns `~/.config` on Linux/macOS and
-/// `%APPDATA%` on Windows, consistent with the XDG Base Directory spec.
+/// Co-located with the rest of the user-scoped centy data (`projects.json`,
+/// `logs/`) so everything user-level lives under one directory.
 #[must_use]
 pub fn user_config_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("centy").join("config.toml"))
+    dirs::home_dir().map(|h| h.join(".centy").join("config.toml"))
 }
 
-/// Load the user configuration from `~/.config/centy/config.toml`.
+/// Load the user configuration from `~/.centy/config.toml`.
 ///
 /// Returns `Ok(UserConfig::default())` if the file does not exist so callers
 /// never need to handle the "absent file" case specially.
@@ -108,7 +108,7 @@ mod tests {
         // Point HOME / config dir somewhere empty via the function under test
         // by verifying that a missing path returns defaults.
         //
-        // We cannot easily override dirs::config_dir() in a unit test, so
+        // We cannot easily override dirs::home_dir() in a unit test, so
         // instead we test the parsing path directly with an empty TOML string.
         let config: UserConfig = toml::from_str("").expect("empty TOML should parse");
         assert_eq!(config, UserConfig::default());
@@ -151,7 +151,7 @@ mod tests {
         assert!(!non_existent.exists());
 
         // Simulate the "file absent" branch manually (since we can't override
-        // dirs::config_dir() at runtime without mocking infrastructure).
+        // dirs::home_dir() at runtime without mocking infrastructure).
         let content_result: Result<String, std::io::Error> =
             fs::read_to_string(&non_existent);
         assert!(content_result.is_err()); // file not found

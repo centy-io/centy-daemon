@@ -109,7 +109,7 @@ async fn main() -> Result<()> {
 
     init_logging(log_config)?;
 
-    // Load user-level config (~/.config/centy/config.toml); file is optional.
+    // Load user-level config (~/.centy/config.toml); file is optional.
     let user_cfg = user_config::load_user_config().unwrap_or_else(|e| {
         warn!("Failed to load user config, using defaults: {e}");
         user_config::UserConfig::default()
