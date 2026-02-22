@@ -406,6 +406,10 @@ export interface InitRequest {
   projectPath: string;
   force?: boolean;
   decisions?: ReconciliationDecisions;
+  /** Optional config to apply during initialization. Unset fields fall back to defaults. */
+  initConfig?: Partial<Config>;
+  /** Optional project title (stored in .centy/project.json, visible to all team members). */
+  title?: string;
 }
 
 export interface InitResponse {
@@ -751,6 +755,13 @@ export interface ProjectInfo {
   docCount: number;
   initialized: boolean;
   name: string;
+  isFavorite: boolean;
+  isArchived: boolean;
+  displayPath: string;
+  organizationSlug: string;
+  organizationName: string;
+  userTitle: string;
+  projectTitle: string;
 }
 
 export interface RegisterProjectRequest {
@@ -798,6 +809,28 @@ export interface Config {
   version: string;
   stateColors: Record<string, string>;
   priorityColors: Record<string, string>;
+  customLinkTypes: LinkTypeDefinition[];
+  defaultEditor: string;
+  hooks: HookDefinition[];
+  workspace?: WorkspaceConfig;
+}
+
+export interface LinkTypeDefinition {
+  name: string;
+  inverse: string;
+  description: string;
+}
+
+export interface HookDefinition {
+  pattern: string;
+  command: string;
+  runAsync: boolean;
+  timeout: number;
+  enabled: boolean;
+}
+
+export interface WorkspaceConfig {
+  updateStatusOnOpen?: boolean;
 }
 
 export interface CustomFieldDefinition {

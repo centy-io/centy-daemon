@@ -314,6 +314,15 @@ message InitRequest {
 
   // Decisions for files that need user input (only used when force=false)
   ReconciliationDecisions decisions = 3;
+
+  // Optional configuration to apply during initialization.
+  // Fields set here will be written to .centy/config.json.
+  // Unset/zero-value fields fall back to project defaults.
+  Config init_config = 4;
+
+  // Optional project title to set during initialization (stored in .centy/project.json,
+  // visible to all team members). Empty string means no title is set.
+  string title = 5;
 }
 
 message InitResponse {

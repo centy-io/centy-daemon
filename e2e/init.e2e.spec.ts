@@ -72,6 +72,67 @@ describe('gRPC: Init Operations', () => {
     });
   });
 
+  describe('Init with config options', () => {
+    it('should apply priorityLevels from initConfig', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+        initConfig: { priorityLevels: 5 },
+      });
+
+      const config = await project.client.getConfig({ projectPath: project.path });
+      expect(config.priorityLevels).toBe(5);
+    });
+
+    it('should apply defaultEditor from initConfig', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+        initConfig: { defaultEditor: 'vscode' },
+      });
+
+      const config = await project.client.getConfig({ projectPath: project.path });
+      expect(config.defaultEditor).toBe('vscode');
+    });
+
+    it('should apply workspace.updateStatusOnOpen from initConfig', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+        initConfig: { workspace: { updateStatusOnOpen: true } },
+      });
+
+      const config = await project.client.getConfig({ projectPath: project.path });
+      expect(config.workspace?.updateStatusOnOpen).toBe(true);
+    });
+
+    it('should apply title during initialization', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+        title: 'My Awesome Project',
+      });
+
+      const { project: info } = await project.client.getProjectInfo({
+        projectPath: project.path,
+      });
+      expect(info?.projectTitle).toBe('My Awesome Project');
+    });
+
+    it('should preserve unset config fields as defaults when initConfig is partial', async () => {
+      await project.client.init({
+        projectPath: project.path,
+        force: true,
+        initConfig: { priorityLevels: 4 },
+      });
+
+      const config = await project.client.getConfig({ projectPath: project.path });
+      expect(config.priorityLevels).toBe(4);
+      // Other fields should remain at defaults
+      expect(config.customFields).toEqual([]);
+    });
+  });
+
   describe('IsInitialized', () => {
     it('should return false for uninitialized directory', async () => {
       const result = await project.client.isInitialized({
