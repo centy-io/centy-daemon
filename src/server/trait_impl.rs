@@ -637,6 +637,62 @@ impl CentyDaemon for CentyDaemonService {
         handlers::organization_write::delete_organization(request.into_inner()).await
     }
 
+    async fn create_org_issue(
+        &self,
+        request: Request<CreateOrgIssueRequest>,
+    ) -> Result<Response<CreateOrgIssueResponse>, Status> {
+        handlers::org_issue_write::create_org_issue_handler(request.into_inner()).await
+    }
+
+    async fn get_org_issue(
+        &self,
+        request: Request<GetOrgIssueRequest>,
+    ) -> Result<Response<OrgIssue>, Status> {
+        handlers::org_issue::get_org_issue_handler(request.into_inner()).await
+    }
+
+    async fn get_org_issue_by_display_number(
+        &self,
+        request: Request<GetOrgIssueByDisplayNumberRequest>,
+    ) -> Result<Response<OrgIssue>, Status> {
+        handlers::org_issue::get_org_issue_by_display_number_handler(request.into_inner()).await
+    }
+
+    async fn list_org_issues(
+        &self,
+        request: Request<ListOrgIssuesRequest>,
+    ) -> Result<Response<ListOrgIssuesResponse>, Status> {
+        handlers::org_issue::list_org_issues_handler(request.into_inner()).await
+    }
+
+    async fn update_org_issue(
+        &self,
+        request: Request<UpdateOrgIssueRequest>,
+    ) -> Result<Response<UpdateOrgIssueResponse>, Status> {
+        handlers::org_issue_write::update_org_issue_handler(request.into_inner()).await
+    }
+
+    async fn delete_org_issue(
+        &self,
+        request: Request<DeleteOrgIssueRequest>,
+    ) -> Result<Response<DeleteOrgIssueResponse>, Status> {
+        handlers::org_issue_write::delete_org_issue_handler(request.into_inner()).await
+    }
+
+    async fn get_org_config(
+        &self,
+        request: Request<GetOrgConfigRequest>,
+    ) -> Result<Response<OrgConfig>, Status> {
+        handlers::org_issue::get_org_config_handler(request.into_inner()).await
+    }
+
+    async fn update_org_config(
+        &self,
+        request: Request<UpdateOrgConfigRequest>,
+    ) -> Result<Response<UpdateOrgConfigResponse>, Status> {
+        handlers::org_issue_write::update_org_config_handler(request.into_inner()).await
+    }
+
     async fn get_daemon_info(
         &self,
         request: Request<GetDaemonInfoRequest>,
