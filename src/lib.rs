@@ -71,7 +71,5 @@ pub use user::{
     UpdateUserOptions, UpdateUserResult, User, UserError,
 };
 pub use workspace::{
-    cleanup_expired_workspaces, cleanup_workspace, create_temp_workspace, list_workspaces,
-    CleanupResult, CreateWorkspaceOptions, CreateWorkspaceResult, TempWorkspaceEntry,
-    WorkspaceError, WorkspaceRegistry, DEFAULT_TTL_HOURS,
+    create_temp_workspace, CreateWorkspaceOptions, CreateWorkspaceResult, WorkspaceError,
 };

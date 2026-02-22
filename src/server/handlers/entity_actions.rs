@@ -7,8 +7,6 @@ use crate::server::action_builders_extra::build_doc_actions;
 use crate::server::proto::{EntityType, GetEntityActionsRequest, GetEntityActionsResponse};
 use crate::server::resolve::resolve_issue;
 use crate::server::structured_error::StructuredError;
-use crate::workspace::terminal::is_terminal_available;
-use crate::workspace::vscode::is_vscode_available;
 use tonic::{Response, Status};
 
 pub async fn get_entity_actions(
@@ -48,8 +46,8 @@ pub async fn get_entity_actions(
             build_issue_actions(
                 entity_status.as_ref(),
                 &allowed_states,
-                is_vscode_available(),
-                is_terminal_available(),
+                which::which("code").is_ok(),
+                terminal_available(),
                 has_entity_id,
             )
         }
@@ -73,4 +71,13 @@ pub async fn get_entity_actions(
         success: true,
         error: String::new(),
     }))
+}
+
+fn terminal_available() -> bool {
+    #[cfg(target_os = "linux")]
+    return which::which("gnome-terminal").is_ok()
+        || which::which("konsole").is_ok()
+        || which::which("xterm").is_ok();
+    #[cfg(not(target_os = "linux"))]
+    return true;
 }
