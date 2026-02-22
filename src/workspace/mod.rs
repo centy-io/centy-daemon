@@ -1,128 +1,154 @@
-//! Temporary workspace management for opening issues in VS Code.
+//! Workspace management via worktree-io.
 //!
-//! This module provides functionality to:
-//! - Create temporary git worktrees for isolated issue work
-//! - Set up VS Code for issue work
-//! - Track and cleanup workspaces with TTL-based expiration
-//!
-//! ## Module Structure
-//!
-//! ### Core Components
-//! - `gwq_client`: Wrapper for the gwq CLI tool (git worktree management)
-//! - `metadata`: Centy-specific workspace metadata (TTL, issue binding, etc.)
-//! - `orchestrator`: Main workspace creation orchestration (replaces `create`)
-//! - `cleanup`: Workspace cleanup and expiration handling
-//!
-//! ### Supporting Components
-//! - `editor`: Editor type and launching (value object)
-//! - `path`: Workspace path generation and sanitization (value objects)
-//! - `data`: Data copying for workspace setup (domain service)
-//! - `storage`: Legacy registry persistence (infrastructure) - kept for backwards compatibility
-//! - `types`: Shared type definitions
-//! - `vscode`: VS Code configuration setup (infrastructure)
-//! - `terminal`: Terminal launching (infrastructure)
-//!
-//! ## gwq Integration
-//!
-//! This module uses [gwq](https://github.com/d-kuro/gwq) for git worktree management.
-//! gwq is bundled with centy and provides:
-//! - Worktree creation/removal
-//! - Worktree listing (JSON output)
-//! - Worktree pruning
-//!
-//! Centy-specific metadata (TTL, issue binding, agent info) is stored separately
-//! in `~/.centy/workspace-metadata.json`.
+//! Creates git worktrees for issues using the `worktree-io` runner library.
+//! Issue data (`.centy/` files) is copied into the worktree after creation.
 
-pub mod builtin_editors;
-pub mod cleanup;
-pub mod create; // Keep for backwards compatibility during transition
 pub mod data;
-pub mod editor;
-pub mod editor_config;
-pub mod gwq_client;
-pub mod metadata;
-pub mod orchestrator;
-pub mod path;
-pub mod storage;
-pub mod terminal;
-pub mod types;
-pub mod vscode;
 
-// Re-export from orchestrator (the new implementation)
-#[allow(unused_imports)]
-pub use cleanup::{cleanup_expired_workspaces, cleanup_workspace, CleanupResult};
-#[allow(unused_imports)]
-pub use editor::EditorType;
-#[allow(unused_imports)]
-pub use editor::{open_editor_by_id, run_editor_setup_by_id};
-#[allow(unused_imports)]
-pub use editor_config::{
-    find_editor, get_all_editors, is_editor_available, resolve_editor_id, EditorConfig,
-    UserEditorConfig,
-};
-#[allow(unused_imports)]
-pub use orchestrator::{
-    create_standalone_workspace, create_temp_workspace, CreateStandaloneWorkspaceOptions,
-    CreateStandaloneWorkspaceResult, CreateWorkspaceOptions, CreateWorkspaceResult,
-};
-#[allow(unused_imports)]
-pub use path::{
-    calculate_expires_at, generate_standalone_workspace_path, generate_workspace_path,
-    sanitize_project_name, sanitize_workspace_name,
-};
-#[allow(unused_imports)]
-pub use storage::{
-    add_workspace, find_standalone_workspace, find_workspace_for_issue, get_workspace,
-    list_workspaces, read_registry, remove_workspace, update_workspace_expiration, write_registry,
-};
-#[allow(unused_imports)]
-pub use terminal::{is_terminal_available, open_terminal};
-#[allow(unused_imports)]
-pub use types::{TempWorkspaceEntry, WorkspaceRegistry, DEFAULT_TTL_HOURS};
-#[allow(unused_imports)]
-pub use vscode::{open_vscode, setup_vscode_config};
-
-// Re-export gwq types for convenience
-#[allow(unused_imports)]
-pub use gwq_client::{GwqClient, GwqError, GwqWorktree};
-
-// Re-export metadata types
-#[allow(unused_imports)]
-pub use metadata::{MetadataRegistry, WorkspaceMetadata};
-
+use crate::item::entities::issue::Issue;
+use std::path::PathBuf;
 use thiserror::Error;
+use worktree_io::{IssueRef, Workspace};
 
 #[derive(Error, Debug)]
 pub enum WorkspaceError {
-    #[error("Home directory not found")]
-    HomeDirNotFound,
-
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
-    #[error("JSON error: {0}")]
-    JsonError(#[from] serde_json::Error),
-
     #[error("Source is not a git repository")]
+    #[allow(dead_code)]
     NotGitRepository,
 
     #[error("Git error: {0}")]
     GitError(String),
 
-    #[error("VS Code failed to open: {0}")]
-    VscodeError(String),
-
-    #[error("Terminal failed to open: {0}")]
-    #[allow(dead_code)] // Used on macOS and Windows only
-    TerminalError(String),
-
-    #[error("No terminal emulator found")]
-    #[allow(dead_code)] // Used on Linux and unsupported platforms only
-    TerminalNotFound,
-
     #[error("Issue error: {0}")]
     IssueError(#[from] crate::item::entities::issue::IssueCrudError),
+}
 
-    #[error("Source project not found: {0}")]
-    SourceProjectNotFound(String),
+pub struct CreateWorkspaceOptions {
+    pub source_project_path: PathBuf,
+    pub issue: Issue,
+}
+
+pub struct CreateWorkspaceResult {
+    pub workspace_path: PathBuf,
+    pub workspace_reused: bool,
+}
+
+/// Create (or reopen) a git worktree for the given issue, then copy `.centy/` data into it.
+pub async fn create_temp_workspace(
+    options: CreateWorkspaceOptions,
+) -> Result<CreateWorkspaceResult, WorkspaceError> {
+    let issue_ref = IssueRef::Local {
+        project_path: options.source_project_path.clone(),
+        display_number: options.issue.metadata.display_number,
+    };
+
+    let workspace = Workspace::open_or_create(issue_ref)
+        .map_err(|e| WorkspaceError::GitError(e.to_string()))?;
+
+    data::copy_issue_data_to_workspace(
+        &options.source_project_path,
+        &workspace.path,
+        &options.issue.id,
+    )
+    .await?;
+
+    Ok(CreateWorkspaceResult {
+        workspace_path: workspace.path,
+        workspace_reused: !workspace.created,
+    })
+}
+
+pub struct CreateStandaloneWorkspaceOptions {
+    pub source_project_path: PathBuf,
+    pub name: Option<String>,
+}
+
+pub struct CreateStandaloneWorkspaceResult {
+    pub workspace_path: PathBuf,
+    pub workspace_id: String,
+    pub workspace_name: String,
+    pub workspace_reused: bool,
+}
+
+/// Create (or reopen) a standalone git worktree (not tied to an issue).
+pub async fn create_standalone_workspace(
+    options: CreateStandaloneWorkspaceOptions,
+) -> Result<CreateStandaloneWorkspaceResult, WorkspaceError> {
+    let workspace_id = uuid::Uuid::new_v4().to_string();
+    let workspace_name = options
+        .name
+        .clone()
+        .unwrap_or_else(|| format!("standalone-{workspace_id}"));
+
+    let project_path = &options.source_project_path;
+    let project_name = project_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "project".to_string());
+
+    let workspace_path = dirs::home_dir()
+        .ok_or(WorkspaceError::GitError(
+            "Could not determine home directory".to_string(),
+        ))?
+        .join("worktrees")
+        .join("local")
+        .join(&project_name)
+        .join(&workspace_name);
+
+    // Reuse if the path already exists
+    if workspace_path.exists() {
+        data::copy_project_config_to_workspace(project_path, &workspace_path).await?;
+        return Ok(CreateStandaloneWorkspaceResult {
+            workspace_path,
+            workspace_id,
+            workspace_name,
+            workspace_reused: true,
+        });
+    }
+
+    // Create parent directories
+    if let Some(parent) = workspace_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Create a new local branch and worktree
+    let branch = format!("standalone-{workspace_id}");
+    let branch_exists = worktree_io::git::branch_exists_local(project_path, &branch);
+    worktree_io::git::create_local_worktree(project_path, &workspace_path, &branch, branch_exists)
+        .map_err(|e| WorkspaceError::GitError(e.to_string()))?;
+
+    data::copy_project_config_to_workspace(project_path, &workspace_path).await?;
+
+    Ok(CreateStandaloneWorkspaceResult {
+        workspace_path,
+        workspace_id,
+        workspace_name,
+        workspace_reused: false,
+    })
+}
+
+/// Remove a git worktree by path.
+///
+/// Returns `(worktree_removed, directory_removed)`.
+pub async fn remove_workspace(path: &str, force: bool) -> (bool, bool) {
+    let mut cmd = std::process::Command::new("git");
+    cmd.args(["-C", path, "worktree", "remove"]);
+    if force {
+        cmd.arg("--force");
+    }
+    cmd.arg(path);
+
+    let worktree_removed = cmd.status().map(|s| s.success()).unwrap_or(false);
+
+    let path_buf = std::path::Path::new(path);
+    let directory_removed = if path_buf.exists() {
+        tokio::fs::remove_dir_all(path_buf).await.is_ok()
+    } else {
+        true // already gone
+    };
+
+    (worktree_removed, directory_removed)
 }

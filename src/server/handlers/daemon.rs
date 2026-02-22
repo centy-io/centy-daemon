@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::server::proto::{DaemonInfo, GetDaemonInfoRequest, ShutdownRequest, ShutdownResponse};
 use crate::server::ShutdownSignal;
 use crate::utils::{format_display_path, CENTY_VERSION};
-use crate::workspace::vscode::is_vscode_available;
 use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
@@ -16,7 +15,7 @@ pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<Daem
     Ok(Response::new(DaemonInfo {
         version: CENTY_VERSION.to_string(),
         binary_path,
-        vscode_available: is_vscode_available(),
+        vscode_available: false,
     }))
 }
 

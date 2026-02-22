@@ -196,19 +196,13 @@ impl ToStructuredError for crate::workspace::WorkspaceError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
         use crate::workspace::WorkspaceError;
         match self {
-            WorkspaceError::HomeDirNotFound => ("HOME_DIR_NOT_FOUND", None),
             WorkspaceError::IoError(_) => ("IO_ERROR", None),
-            WorkspaceError::JsonError(_) => ("JSON_ERROR", None),
             WorkspaceError::NotGitRepository => (
                 "NOT_GIT_REPOSITORY",
                 Some("This command must be run inside a git repository"),
             ),
             WorkspaceError::GitError(_) => ("WORKSPACE_GIT_ERROR", None),
-            WorkspaceError::VscodeError(_) => ("WORKSPACE_VSCODE_ERROR", None),
-            WorkspaceError::TerminalError(_) => ("WORKSPACE_TERMINAL_ERROR", None),
-            WorkspaceError::TerminalNotFound => ("WORKSPACE_TERMINAL_NOT_FOUND", None),
             WorkspaceError::IssueError(_) => ("ISSUE_ERROR", None),
-            WorkspaceError::SourceProjectNotFound(_) => ("SOURCE_PROJECT_NOT_FOUND", None),
         }
     }
 }

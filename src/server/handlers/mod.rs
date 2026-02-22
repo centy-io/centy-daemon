@@ -50,8 +50,4 @@ pub mod user_update;
 pub mod workspace_cleanup;
 pub mod workspace_manage;
 pub mod workspace_standalone;
-pub mod workspace_standalone_terminal;
-pub mod workspace_standalone_vscode;
 pub mod workspace_temp;
-pub mod workspace_temp_terminal;
-pub mod workspace_temp_vscode;
