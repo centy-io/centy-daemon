@@ -197,10 +197,6 @@ impl ToStructuredError for crate::workspace::WorkspaceError {
         use crate::workspace::WorkspaceError;
         match self {
             WorkspaceError::IoError(_) => ("IO_ERROR", None),
-            WorkspaceError::NotGitRepository => (
-                "NOT_GIT_REPOSITORY",
-                Some("This command must be run inside a git repository"),
-            ),
             WorkspaceError::GitError(_) => ("WORKSPACE_GIT_ERROR", None),
             WorkspaceError::IssueError(_) => ("ISSUE_ERROR", None),
         }

@@ -15,10 +15,6 @@ pub enum WorkspaceError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
-    #[error("Source is not a git repository")]
-    #[allow(dead_code)]
-    NotGitRepository,
-
     #[error("Git error: {0}")]
     GitError(String),
 
