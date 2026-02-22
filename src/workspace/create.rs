@@ -219,7 +219,7 @@ fn handle_worktree_creation(
 /// 1. Checks if an existing workspace for this issue already exists (reopen if so)
 /// 2. Validates the source project is a git repository
 /// 3. Creates a git worktree at a temporary location
-/// 4. Sets up editor configuration (VS Code tasks.json for VS Code mode)
+/// 4. Sets up editor configuration (VS Code mode)
 /// 5. Records the workspace in the registry
 /// 6. Opens the selected editor (VS Code, Terminal, or None)
 pub async fn create_temp_workspace(

@@ -2,7 +2,7 @@
 //!
 //! This module provides functionality to:
 //! - Create temporary git worktrees for isolated issue work
-//! - Set up VS Code with auto-running agent tasks
+//! - Set up VS Code for issue work
 //! - Track and cleanup workspaces with TTL-based expiration
 //!
 //! ## Module Structure
