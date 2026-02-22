@@ -364,10 +364,9 @@ mod tests {
     #[test]
     fn test_workspace_error_codes() {
         use crate::workspace::WorkspaceError;
-        let err = WorkspaceError::NotGitRepository;
-        let (code, tip) = err.error_code_and_tip();
-        assert_eq!(code, "NOT_GIT_REPOSITORY");
-        assert!(tip.is_some());
+        let err = WorkspaceError::GitError("not a git repository".to_string());
+        let (code, _tip) = err.error_code_and_tip();
+        assert_eq!(code, "WORKSPACE_GIT_ERROR");
     }
 
     #[test]

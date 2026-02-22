@@ -772,7 +772,7 @@ impl CentyDaemon for CentyDaemonService {
             action: req.action,
             agent_name: req.agent_name,
             ttl_hours: req.ttl_hours,
-            editor_id: String::new(),
+            editor_id: "vscode".to_string(),
         })
         .await
     }
@@ -788,7 +788,7 @@ impl CentyDaemon for CentyDaemonService {
             action: req.action,
             agent_name: req.agent_name,
             ttl_hours: req.ttl_hours,
-            editor_id: String::new(),
+            editor_id: "terminal".to_string(),
         })
         .await
     }
