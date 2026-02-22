@@ -73,6 +73,21 @@ describe('gRPC: Init Operations', () => {
   });
 
   describe('Init with config options', () => {
+    // Full default config shape returned by the daemon after a plain init.
+    // version is dynamic (daemon version), so we match it with expect.any(String).
+    const defaultConfig = {
+      customFields: [],
+      defaults: {},
+      priorityLevels: 3,
+      version: expect.any(String),
+      stateColors: {},
+      priorityColors: {},
+      customLinkTypes: [],
+      defaultEditor: '',
+      hooks: [],
+      workspace: {},
+    };
+
     it('should apply priorityLevels from initConfig', async () => {
       await project.client.init({
         projectPath: project.path,
@@ -81,7 +96,7 @@ describe('gRPC: Init Operations', () => {
       });
 
       const config = await project.client.getConfig({ projectPath: project.path });
-      expect(config.priorityLevels).toBe(5);
+      expect(config).toEqual({ ...defaultConfig, priorityLevels: 5 });
     });
 
     it('should apply defaultEditor from initConfig', async () => {
@@ -92,7 +107,7 @@ describe('gRPC: Init Operations', () => {
       });
 
       const config = await project.client.getConfig({ projectPath: project.path });
-      expect(config.defaultEditor).toBe('vscode');
+      expect(config).toEqual({ ...defaultConfig, defaultEditor: 'vscode' });
     });
 
     it('should apply workspace.updateStatusOnOpen from initConfig', async () => {
@@ -103,7 +118,7 @@ describe('gRPC: Init Operations', () => {
       });
 
       const config = await project.client.getConfig({ projectPath: project.path });
-      expect(config.workspace?.updateStatusOnOpen).toBe(true);
+      expect(config).toEqual({ ...defaultConfig, workspace: { updateStatusOnOpen: true } });
     });
 
     it('should apply title during initialization', async () => {
@@ -119,7 +134,7 @@ describe('gRPC: Init Operations', () => {
       expect(info?.projectTitle).toBe('My Awesome Project');
     });
 
-    it('should preserve unset config fields as defaults when initConfig is partial', async () => {
+    it('should preserve all other config fields as defaults when initConfig is partial', async () => {
       await project.client.init({
         projectPath: project.path,
         force: true,
@@ -127,9 +142,7 @@ describe('gRPC: Init Operations', () => {
       });
 
       const config = await project.client.getConfig({ projectPath: project.path });
-      expect(config.priorityLevels).toBe(4);
-      // Other fields should remain at defaults
-      expect(config.customFields).toEqual([]);
+      expect(config).toEqual({ ...defaultConfig, priorityLevels: 4 });
     });
   });
 
