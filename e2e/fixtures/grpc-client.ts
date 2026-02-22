@@ -12,6 +12,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   enums: String,
   defaults: true,
   oneofs: true,
+  includeDirs: [join(process.cwd(), '../proto')],
 });
 
 const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
