@@ -268,22 +268,21 @@ async fn test_init_creates_config_json_with_hooks() {
         "Should report config.json as created"
     );
 
-    // Verify it contains the hooks property
+    // Verify the config.json is valid JSON — default config uses sparse format
+    // so empty collections and default values are omitted.
     let content = fs::read_to_string(&config_path)
         .await
         .expect("Should read config.json");
     let value: Value = serde_json::from_str(&content).expect("Should parse config.json");
     let obj = value.as_object().expect("Config should be an object");
 
+    // Empty hooks are omitted in sparse format
     assert!(
-        obj.contains_key("hooks"),
-        "config.json should contain hooks property"
+        !obj.contains_key("hooks"),
+        "config.json should not contain hooks when empty (sparse format)"
     );
-    assert_eq!(
-        obj.get("hooks"),
-        Some(&Value::Array(vec![])),
-        "hooks should be an empty array"
-    );
+    // config.json should be a valid (possibly empty) object
+    assert!(value.is_object(), "config.json should be a JSON object");
 }
 
 #[tokio::test]

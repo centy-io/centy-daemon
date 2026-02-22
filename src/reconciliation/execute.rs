@@ -435,12 +435,18 @@ mod tests {
             "Should report config.json as created"
         );
 
-        // Should contain hooks key
+        // Default config is written in sparse format (only non-default values).
+        // An empty default config results in an empty JSON object.
         let content = fs::read_to_string(&config_path).await.expect("Should read");
         let value: serde_json::Value = serde_json::from_str(&content).expect("Should parse");
         assert!(
-            value.as_object().unwrap().contains_key("hooks"),
-            "config.json should contain hooks key"
+            value.is_object(),
+            "config.json should contain a JSON object"
+        );
+        // Empty hooks and other defaults are omitted in sparse format
+        assert!(
+            !value.as_object().unwrap().contains_key("hooks"),
+            "config.json should not contain empty hooks in sparse format"
         );
     }
 

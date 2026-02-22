@@ -16,6 +16,12 @@ fn default_priority_levels() -> u32 {
     3
 }
 
+/// Returns `true` when priority levels equals the default (3), used by `skip_serializing_if`
+/// so that `priorityLevels` is omitted from `config.json` when unchanged.
+fn is_default_priority_levels(v: &u32) -> bool {
+    *v == default_priority_levels()
+}
+
 /// Default allowed states for issues (used only during migration to per-item-type config.yaml)
 fn default_allowed_states() -> Vec<String> {
     vec![
@@ -48,11 +54,14 @@ pub struct CentyConfig {
     /// - 3 levels: high, medium, low
     /// - 4 levels: critical, high, medium, low
     /// - 5+ levels: P1, P2, P3, etc.
-    #[serde(default = "default_priority_levels")]
+    #[serde(
+        default = "default_priority_levels",
+        skip_serializing_if = "is_default_priority_levels"
+    )]
     pub priority_levels: u32,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub custom_fields: Vec<mdstore::CustomFieldDef>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub defaults: HashMap<String, String>,
     /// Legacy: allowed status values. Migrated to per-item-type `config.yaml`.
     /// Kept only for backward-compatible deserialization of old `config.json` files.
@@ -60,10 +69,10 @@ pub struct CentyConfig {
     #[serde(default = "default_allowed_states", skip_serializing)]
     pub allowed_states: Vec<String>,
     /// State colors: state name → hex color (e.g., "open" → "#10b981")
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub state_colors: HashMap<String, String>,
     /// Priority colors: priority level → hex color (e.g., "1" → "#ef4444")
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub priority_colors: HashMap<String, String>,
     /// Custom link types (in addition to built-in types)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -73,7 +82,7 @@ pub struct CentyConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_editor: Option<String>,
     /// Lifecycle hooks (bash scripts to run before/after operations)
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hooks: Vec<HookDefinition>,
     /// Workspace settings (e.g. auto-update issue status on open)
     #[serde(default)]
@@ -130,11 +139,6 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, mds
             config_path.display()
         );
         raw = migrate::flatten_config(raw);
-        needs_write = true;
-    }
-
-    // Check if normalization is needed (e.g. missing "hooks" key)
-    if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
         needs_write = true;
     }
 
@@ -301,7 +305,26 @@ mod tests {
 
     #[test]
     fn test_centy_config_json_uses_camel_case() {
-        let config = CentyConfig::default();
+        // Use non-default values so fields are serialized (sparse config skips defaults)
+        let mut config = CentyConfig::default();
+        config.priority_levels = 5;
+        config
+            .state_colors
+            .insert("open".to_string(), "#10b981".to_string());
+        config
+            .priority_colors
+            .insert("1".to_string(), "#ef4444".to_string());
+        config.custom_fields.push(mdstore::CustomFieldDef {
+            name: "env".to_string(),
+            field_type: "string".to_string(),
+            required: false,
+            default_value: None,
+            enum_values: vec![],
+        });
+        config
+            .defaults
+            .insert("priority".to_string(), "1".to_string());
+
         let json = serde_json::to_string(&config).expect("Should serialize");
 
         // Check for camelCase keys
@@ -492,7 +515,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_config_normalizes_missing_hooks() {
+    async fn test_read_config_removes_deprecated_fields() {
         use tempfile::tempdir;
 
         let temp_dir = tempdir().expect("Should create temp dir");
@@ -501,9 +524,8 @@ mod tests {
             .await
             .expect("Should create .centy dir");
 
-        // Write a config.json in flat format WITHOUT the hooks key
-        // (also has legacy allowedStates + defaultState that should be stripped)
-        let config_without_hooks = r#"{
+        // Write a config.json with legacy allowedStates + defaultState that should be stripped
+        let config_with_deprecated = r#"{
   "priorityLevels": 3,
   "customFields": [],
   "defaults": {},
@@ -513,30 +535,34 @@ mod tests {
   "priorityColors": {}
 }"#;
         let config_path = centy_dir.join("config.json");
-        fs::write(&config_path, config_without_hooks)
+        fs::write(&config_path, config_with_deprecated)
             .await
             .expect("Should write config");
 
-        // Reading should succeed and return empty hooks
+        // Reading should succeed and return empty hooks (via default)
         let config = read_config(temp_dir.path())
             .await
             .expect("Should read")
             .expect("Config should exist");
         assert!(config.hooks.is_empty());
 
-        // The file should now contain the hooks key (in flat format)
+        // The file should be rewritten without deprecated fields
         let raw = fs::read_to_string(&config_path)
             .await
             .expect("Should read file");
         let value: serde_json::Value = serde_json::from_str(&raw).expect("Should parse");
         assert!(
-            value.as_object().unwrap().contains_key("hooks"),
-            "config.json should now contain the hooks key"
+            !value.as_object().unwrap().contains_key("allowedStates"),
+            "config.json should not contain deprecated allowedStates after rewrite"
         );
-        // Should not contain removed llm config
         assert!(
-            !value.as_object().unwrap().contains_key("llm"),
-            "config.json should not contain llm config"
+            !value.as_object().unwrap().contains_key("defaultState"),
+            "config.json should not contain deprecated defaultState after rewrite"
+        );
+        // hooks is omitted in sparse format (default value)
+        assert!(
+            !value.as_object().unwrap().contains_key("hooks"),
+            "config.json should not contain empty hooks in sparse format"
         );
     }
 
@@ -658,12 +684,12 @@ mod tests {
     }
 
     #[test]
-    fn test_hooks_always_serialized_even_when_empty() {
+    fn test_hooks_omitted_when_empty() {
         let config = CentyConfig::default();
         let json = serde_json::to_string(&config).expect("Should serialize");
         assert!(
-            json.contains("\"hooks\""),
-            "hooks key should be present in serialized JSON even when empty"
+            !json.contains("\"hooks\""),
+            "hooks key should be omitted from serialized JSON when empty (sparse config)"
         );
     }
 
