@@ -15,7 +15,7 @@ pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<Daem
     Ok(Response::new(DaemonInfo {
         version: CENTY_VERSION.to_string(),
         binary_path,
-        vscode_available: false,
+        vscode_available: which::which("code").is_ok(),
     }))
 }
 
