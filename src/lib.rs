@@ -25,6 +25,7 @@ pub mod registry;
 pub mod server;
 pub mod template;
 pub mod user;
+pub mod user_config;
 pub mod utils;
 pub mod workspace;
 

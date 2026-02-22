@@ -27,6 +27,7 @@ mod registry;
 mod server;
 mod template;
 mod user;
+mod user_config;
 mod utils;
 mod workspace;
 
@@ -41,7 +42,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
-use tracing::info;
+use tracing::{info, warn};
 
 const DEFAULT_ADDR: &str = "127.0.0.1:50051";
 
@@ -108,6 +109,12 @@ async fn main() -> Result<()> {
 
     init_logging(log_config)?;
 
+    // Load user-level config (~/.centy/config.toml); file is optional.
+    let user_cfg = user_config::load_user_config().unwrap_or_else(|e| {
+        warn!("Failed to load user config, using defaults: {e}");
+        user_config::UserConfig::default()
+    });
+
     // Parse address
     let addr = args.addr.parse()?;
 
@@ -140,7 +147,7 @@ async fn main() -> Result<()> {
     // Get the current executable path for restart
     let exe_path = std::env::current_exe().ok();
 
-    let service = CentyDaemonService::new(shutdown_tx.clone(), exe_path);
+    let service = CentyDaemonService::new(shutdown_tx.clone(), exe_path, user_cfg);
 
     // Create reflection service
     let reflection_service = tonic_reflection::server::Builder::configure()
