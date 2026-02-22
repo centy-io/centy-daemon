@@ -6,7 +6,6 @@ use crate::server::proto::{
 use crate::workspace::remove_workspace;
 use tonic::{Response, Status};
 
-/// Returns an empty list — the editor system has been removed.
 pub async fn get_supported_editors(
     _req: GetSupportedEditorsRequest,
 ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
