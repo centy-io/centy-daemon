@@ -67,7 +67,7 @@ async fn test_infer_org_from_github_https() {
     assert!(result.existing_org_slug.is_none());
 
     // Cleanup
-    let _ = delete_organization("acme-corp").await;
+    let _ = delete_organization("acme-corp", false).await;
 }
 
 #[tokio::test]
@@ -82,7 +82,7 @@ async fn test_infer_org_from_github_ssh() {
     assert!(!result.has_mismatch);
 
     // Cleanup
-    let _ = delete_organization("my-startup").await;
+    let _ = delete_organization("my-startup", false).await;
 }
 
 #[tokio::test]
@@ -103,7 +103,7 @@ async fn test_infer_org_from_gitlab_url() {
     assert!(!result.has_mismatch);
 
     // Cleanup
-    let _ = delete_organization("engineering-team").await;
+    let _ = delete_organization("engineering-team", false).await;
 }
 
 #[tokio::test]
@@ -121,7 +121,7 @@ async fn test_infer_org_from_self_hosted() {
     assert!(!result.has_mismatch);
 
     // Cleanup
-    let _ = delete_organization("platform").await;
+    let _ = delete_organization("platform", false).await;
 }
 
 #[tokio::test]
@@ -138,7 +138,7 @@ async fn test_infer_org_mismatch_detection() {
     assert!(result.message.unwrap().contains("but git remote suggests"));
 
     // Cleanup - only delete if it was created
-    let _ = delete_organization("new-org").await;
+    let _ = delete_organization("new-org", false).await;
 }
 
 #[tokio::test]
@@ -154,7 +154,7 @@ async fn test_infer_org_no_mismatch_when_same() {
     assert!(!result.has_mismatch);
 
     // Cleanup
-    let _ = delete_organization("same-org").await;
+    let _ = delete_organization("same-org", false).await;
 }
 
 #[tokio::test]
@@ -198,7 +198,7 @@ async fn test_infer_org_creates_organization() {
     setup_git_repo_with_remote(&temp_dir, "https://github.com/auto-create-test/repo.git");
 
     // First ensure the org doesn't exist
-    let _ = delete_organization("auto-create-test").await;
+    let _ = delete_organization("auto-create-test", false).await;
 
     let result = infer_organization_from_remote(temp_dir.path(), None).await;
 
@@ -217,7 +217,7 @@ async fn test_infer_org_creates_organization() {
     assert_eq!(org.unwrap().slug, "auto-create-test");
 
     // Cleanup
-    let _ = delete_organization("auto-create-test").await;
+    let _ = delete_organization("auto-create-test", false).await;
 }
 
 #[tokio::test]
@@ -226,7 +226,7 @@ async fn test_infer_org_uses_existing_organization() {
     setup_git_repo_with_remote(&temp_dir, "https://github.com/existing-org-test/repo.git");
 
     // Cleanup any leftover from previous test runs
-    let _ = delete_organization("existing-org-test").await;
+    let _ = delete_organization("existing-org-test", false).await;
 
     // Pre-create the organization
     centy_daemon::registry::create_organization(
@@ -250,7 +250,7 @@ async fn test_infer_org_uses_existing_organization() {
         .contains("Using existing organization"));
 
     // Cleanup
-    let _ = delete_organization("existing-org-test").await;
+    let _ = delete_organization("existing-org-test", false).await;
 }
 
 #[tokio::test]
@@ -265,5 +265,5 @@ async fn test_infer_org_slugifies_name() {
     assert_eq!(result.inferred_org_slug, Some("my-org-name".to_string()));
 
     // Cleanup
-    let _ = delete_organization("my-org-name").await;
+    let _ = delete_organization("my-org-name", false).await;
 }

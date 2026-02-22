@@ -27,13 +27,37 @@ pub enum UserConfigError {
 // Schema
 // ---------------------------------------------------------------------------
 
-/// Registry-scoped settings (`[registry]` table in the TOML file).
+/// Default ignore-path patterns applied when the user has not set `ignore_paths`.
 ///
-/// Currently empty; `ignore_paths` (issue #204) and other fields will be
-/// added here.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+/// Includes the system temporary directory and `~/worktrees/*` (worktree-io
+/// checkout paths), which are ephemeral and should not appear in project
+/// listings by default.
+fn default_ignore_paths() -> Vec<String> {
+    vec!["$TMPDIR".to_string(), "~/worktrees/*".to_string()]
+}
+
+/// Registry-scoped settings (`[registry]` table in the TOML file).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct RegistryConfig {}
+pub struct RegistryConfig {
+    /// Glob patterns for project paths that should be excluded from listings.
+    ///
+    /// Supports `~` expansion and `$VAR` substitution.  A trailing `/*` or
+    /// `/**` is stripped and prefix-matching is used, so `~/worktrees/*`
+    /// excludes everything under `~/worktrees/`.
+    ///
+    /// Defaults: `["$TMPDIR", "~/worktrees/*"]`.
+    #[serde(default = "default_ignore_paths")]
+    pub ignore_paths: Vec<String>,
+}
+
+impl Default for RegistryConfig {
+    fn default() -> Self {
+        Self {
+            ignore_paths: default_ignore_paths(),
+        }
+    }
+}
 
 /// Top-level user configuration, deserialized from
 /// `~/.centy/config.toml`.
@@ -130,7 +154,29 @@ mod tests {
     fn test_registry_section_only() {
         let toml_str = "[registry]\n";
         let cfg: UserConfig = toml::from_str(toml_str).expect("Should parse [registry] section");
+        // Missing ignore_paths falls back to the serde default
         assert_eq!(cfg.registry, RegistryConfig::default());
+    }
+
+    #[test]
+    fn test_ignore_paths_explicit() {
+        let toml_str = "[registry]\nignore_paths = [\"/tmp\", \"~/scratch\"]\n";
+        let cfg: UserConfig = toml::from_str(toml_str).expect("Should parse ignore_paths");
+        assert_eq!(cfg.registry.ignore_paths, vec!["/tmp", "~/scratch"]);
+    }
+
+    #[test]
+    fn test_ignore_paths_empty_overrides_default() {
+        let toml_str = "[registry]\nignore_paths = []\n";
+        let cfg: UserConfig = toml::from_str(toml_str).expect("Should parse empty ignore_paths");
+        assert!(cfg.registry.ignore_paths.is_empty());
+    }
+
+    #[test]
+    fn test_default_ignore_paths_contains_tmpdir_and_worktrees() {
+        let defaults = default_ignore_paths();
+        assert!(defaults.iter().any(|p| p.contains("$TMPDIR")));
+        assert!(defaults.iter().any(|p| p.contains("worktrees")));
     }
 
     #[test]
