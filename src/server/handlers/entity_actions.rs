@@ -46,8 +46,8 @@ pub async fn get_entity_actions(
             build_issue_actions(
                 entity_status.as_ref(),
                 &allowed_states,
-                false,
-                false,
+                which::which("code").is_ok(),
+                terminal_available(),
                 has_entity_id,
             )
         }
@@ -71,4 +71,13 @@ pub async fn get_entity_actions(
         success: true,
         error: String::new(),
     }))
+}
+
+fn terminal_available() -> bool {
+    #[cfg(target_os = "linux")]
+    return which::which("gnome-terminal").is_ok()
+        || which::which("konsole").is_ok()
+        || which::which("xterm").is_ok();
+    #[cfg(not(target_os = "linux"))]
+    return true;
 }
