@@ -258,7 +258,9 @@ async fn test_delete_organization_success() {
         .await
         .expect("Should create");
 
-    delete_organization(&slug, false).await.expect("Should delete");
+    delete_organization(&slug, false)
+        .await
+        .expect("Should delete");
 
     let org = get_organization(&slug).await.expect("Should complete");
     assert!(org.is_none());

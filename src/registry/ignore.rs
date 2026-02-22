@@ -23,10 +23,7 @@ static IGNORE_PREFIXES: OnceLock<Vec<PathBuf>> = OnceLock::new();
 /// Should be called once at daemon startup.  Subsequent calls are no-ops
 /// (OnceLock semantics).
 pub fn init_ignore_paths(patterns: &[String]) {
-    let prefixes: Vec<PathBuf> = patterns
-        .iter()
-        .filter_map(|p| resolve_pattern(p))
-        .collect();
+    let prefixes: Vec<PathBuf> = patterns.iter().filter_map(|p| resolve_pattern(p)).collect();
     // Ignore error if already set (e.g. during tests)
     let _ = IGNORE_PREFIXES.set(prefixes);
 }
