@@ -9,7 +9,7 @@ use crate::server::proto::{RestoreItemRequest, RestoreItemResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::resolve_item_type_config;
+use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
 pub async fn restore_item(
     req: RestoreItemRequest,
@@ -29,12 +29,24 @@ pub async fn restore_item(
     };
     let hook_type = config.name.to_lowercase();
 
+    // Resolve display-number strings to real IDs
+    let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
+        Ok(id) => id,
+        Err(e) => {
+            return Ok(Response::new(RestoreItemResponse {
+                success: false,
+                error: to_error_json(&req.project_path, &e),
+                ..Default::default()
+            }));
+        }
+    };
+
     // Pre-hook
     let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.item_id.clone();
+    let hook_item_id = item_id.clone();
     let hook_request_data = serde_json::json!({
         "item_type": &item_type,
-        "item_id": &req.item_id,
+        "item_id": &item_id,
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
@@ -53,7 +65,7 @@ pub async fn restore_item(
         }));
     }
 
-    match generic_restore(project_path, &item_type, &req.item_id).await {
+    match generic_restore(project_path, &item_type, &item_id).await {
         Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
@@ -67,7 +79,7 @@ pub async fn restore_item(
             .await;
 
             // Fetch the item after restore to return it
-            let item = generic_get(project_path, &item_type, &req.item_id)
+            let item = generic_get(project_path, &item_type, &item_id)
                 .await
                 .ok()
                 .map(|i| generic_item_to_proto(&i, &item_type));

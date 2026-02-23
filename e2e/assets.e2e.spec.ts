@@ -14,11 +14,12 @@ describe('gRPC: Asset Operations', () => {
     project = await createTempProject({ initialize: true });
 
     // Create an issue to attach assets to
-    const result = await project.client.createIssue({
+    const result = await project.client.createItem({
       projectPath: project.path,
+      itemType: 'issues',
       title: 'Asset Test Issue',
     });
-    issueId = result.id;
+    issueId = result.item.id;
   });
 
   afterEach(async () => {

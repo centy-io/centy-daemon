@@ -14,16 +14,3 @@ pub async fn resolve_issue(
     }
 }
 
-/// Resolve an issue ID (display number or UUID) to a UUID string.
-pub async fn resolve_issue_id(
-    project_path: &Path,
-    issue_id: &str,
-) -> Result<String, IssueCrudError> {
-    if let Ok(display_num) = issue_id.parse::<u32>() {
-        get_issue_by_display_number(project_path, display_num)
-            .await
-            .map(|issue| issue.id)
-    } else {
-        Ok(issue_id.to_string())
-    }
-}

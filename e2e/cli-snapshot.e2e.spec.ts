@@ -198,7 +198,6 @@ describe('CLI with Filesystem Snapshots', () => {
     it('should create a document and track file changes', async () => {
       const result = await cli.docCreate('Getting Started', {
         content: '# Getting Started\n\nWelcome to the project!',
-        slug: 'getting-started',
       });
 
       expect(result.exitCode).toBe(0);
@@ -214,8 +213,8 @@ describe('CLI with Filesystem Snapshots', () => {
     });
 
     it('should list documents', async () => {
-      await cli.docCreate('Doc 1', { slug: 'doc-1' });
-      await cli.docCreate('Doc 2', { slug: 'doc-2' });
+      await cli.docCreate('Doc 1');
+      await cli.docCreate('Doc 2');
 
       const result = await cli.docList();
       expect(result.exitCode).toBe(0);
@@ -231,7 +230,7 @@ describe('CLI with Filesystem Snapshots', () => {
       await cli.init({ force: true });
       await cli.issueCreate('Test Issue 1', {});
       await cli.issueCreate('Test Issue 2', {});
-      await cli.docCreate('Test Doc', { slug: 'test-doc' });
+      await cli.docCreate('Test Doc');
 
       await snapshots.take('full-project');
       const tree = snapshots.getFileTree('full-project');
@@ -243,7 +242,7 @@ describe('CLI with Filesystem Snapshots', () => {
     it.skip('should match file extensions breakdown', async () => {
       await cli.init({ force: true });
       await cli.issueCreate('Test Issue', { description: 'Test' });
-      await cli.docCreate('Test Doc', { slug: 'test-doc' });
+      await cli.docCreate('Test Doc');
 
       await snapshots.take('with-content');
       const tree = snapshots.getFileTree('with-content');

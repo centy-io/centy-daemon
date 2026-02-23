@@ -131,17 +131,16 @@ export class CLIWrapper {
       description?: string;
       priority?: number;
       status?: string;
-      template?: string;
     } = {}
   ): Promise<CLIResult> {
     try {
-      const result = await this.client.createIssue({
+      const result = await this.client.createItem({
         projectPath: this.cwd,
+        itemType: 'issues',
         title,
-        description: options.description,
+        body: options.description,
         priority: options.priority,
         status: options.status,
-        template: options.template,
       });
 
       if (!result.success) {
@@ -154,7 +153,7 @@ export class CLIWrapper {
       }
 
       return {
-        stdout: `Created issue #${result.displayNumber}: ${title}`,
+        stdout: `Created issue #${result.item.metadata.displayNumber}: ${title}`,
         stderr: '',
         exitCode: 0,
         data: result,
@@ -174,13 +173,17 @@ export class CLIWrapper {
     } = {}
   ): Promise<CLIResult> {
     try {
-      const result = await this.client.listIssues({
+      const filterParts: Record<string, unknown> = {};
+      if (options.status) filterParts['status'] = { $eq: options.status };
+      if (options.priority) filterParts['priority'] = { $eq: options.priority };
+
+      const result = await this.client.listItems({
         projectPath: this.cwd,
-        status: options.status,
-        priority: options.priority,
+        itemType: 'issues',
+        filter: Object.keys(filterParts).length > 0 ? JSON.stringify(filterParts) : undefined,
       });
 
-      if (result.issues.length === 0) {
+      if (result.items.length === 0) {
         return {
           stdout: 'No issues found.',
           stderr: '',
@@ -189,9 +192,9 @@ export class CLIWrapper {
         };
       }
 
-      const lines = result.issues.map(
-        (issue) =>
-          `#${issue.displayNumber} [${issue.metadata.status}] ${issue.title}`
+      const lines = result.items.map(
+        (item) =>
+          `#${item.metadata.displayNumber} [${item.metadata.status}] ${item.title}`
       );
 
       return {
@@ -210,19 +213,21 @@ export class CLIWrapper {
    */
   async issueShow(displayNumber: number): Promise<CLIResult> {
     try {
-      const result = await this.client.getIssueByDisplayNumber({
+      const result = await this.client.getItem({
         projectPath: this.cwd,
+        itemType: 'issues',
         displayNumber,
       });
 
+      const item = result.item;
       const lines = [
-        `Issue #${result.displayNumber}`,
-        `Title: ${result.title}`,
-        `Status: ${result.metadata.status}`,
-        `Priority: ${result.metadata.priorityLabel}`,
-        `Created: ${result.metadata.createdAt}`,
+        `Issue #${item.metadata.displayNumber}`,
+        `Title: ${item.title}`,
+        `Status: ${item.metadata.status}`,
+        `Priority: ${item.metadata.priority}`,
+        `Created: ${item.metadata.createdAt}`,
         '',
-        result.description || '(No description)',
+        item.body || '(No description)',
       ];
 
       return {
@@ -250,15 +255,20 @@ export class CLIWrapper {
   ): Promise<CLIResult> {
     try {
       // First get the issue to get its ID
-      const issue = await this.client.getIssueByDisplayNumber({
+      const getResult = await this.client.getItem({
         projectPath: this.cwd,
+        itemType: 'issues',
         displayNumber,
       });
 
-      const result = await this.client.updateIssue({
+      const result = await this.client.updateItem({
         projectPath: this.cwd,
-        issueId: issue.id,
-        ...options,
+        itemType: 'issues',
+        itemId: getResult.item.id,
+        title: options.title,
+        body: options.description,
+        status: options.status,
+        priority: options.priority,
       });
 
       if (!result.success) {
@@ -286,14 +296,17 @@ export class CLIWrapper {
    */
   async issueDelete(displayNumber: number): Promise<CLIResult> {
     try {
-      const issue = await this.client.getIssueByDisplayNumber({
+      const getResult = await this.client.getItem({
         projectPath: this.cwd,
+        itemType: 'issues',
         displayNumber,
       });
 
-      const result = await this.client.deleteIssue({
+      const result = await this.client.deleteItem({
         projectPath: this.cwd,
-        issueId: issue.id,
+        itemType: 'issues',
+        itemId: getResult.item.id,
+        force: true,
       });
 
       if (!result.success) {
@@ -317,23 +330,20 @@ export class CLIWrapper {
   }
 
   /**
-   * Execute: centy doc create <title> [--content] [--slug]
+   * Execute: centy doc create <title> [--content]
    */
   async docCreate(
     title: string,
     options: {
       content?: string;
-      slug?: string;
-      template?: string;
     } = {}
   ): Promise<CLIResult> {
     try {
-      const result = await this.client.createDoc({
+      const result = await this.client.createItem({
         projectPath: this.cwd,
+        itemType: 'docs',
         title,
-        content: options.content,
-        slug: options.slug,
-        template: options.template,
+        body: options.content,
       });
 
       if (!result.success) {
@@ -346,7 +356,7 @@ export class CLIWrapper {
       }
 
       return {
-        stdout: `Created doc: ${result.slug}`,
+        stdout: `Created doc: ${result.item.id}`,
         stderr: '',
         exitCode: 0,
         data: result,
@@ -361,11 +371,12 @@ export class CLIWrapper {
    */
   async docList(): Promise<CLIResult> {
     try {
-      const result = await this.client.listDocs({
+      const result = await this.client.listItems({
         projectPath: this.cwd,
+        itemType: 'docs',
       });
 
-      if (result.docs.length === 0) {
+      if (result.items.length === 0) {
         return {
           stdout: 'No documents found.',
           stderr: '',
@@ -374,7 +385,7 @@ export class CLIWrapper {
         };
       }
 
-      const lines = result.docs.map((doc) => `${doc.slug}: ${doc.title}`);
+      const lines = result.items.map((item) => `${item.id}: ${item.title}`);
 
       return {
         stdout: lines.join('\n'),
