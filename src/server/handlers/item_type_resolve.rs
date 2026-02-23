@@ -64,8 +64,7 @@ pub async fn resolve_item_id(
     if config.features.display_number {
         if let Ok(num) = id.parse::<u32>() {
             if num > 0 {
-                let item =
-                    generic_get_by_display_number(project_path, folder, config, num).await?;
+                let item = generic_get_by_display_number(project_path, folder, config, num).await?;
                 return Ok(item.id);
             }
         }

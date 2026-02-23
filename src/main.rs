@@ -81,7 +81,11 @@ struct Args {
 // Include the file descriptor set for gRPC reflection
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("centy_descriptor");
 
-fn report_server_error(addr: std::net::SocketAddr, log_file: &std::path::Path, e: &tonic::transport::Error) {
+fn report_server_error(
+    addr: std::net::SocketAddr,
+    log_file: &std::path::Path,
+    e: &tonic::transport::Error,
+) {
     let err_string = format!("{e:?}");
     if err_string.contains("AddrInUse") {
         eprintln!();

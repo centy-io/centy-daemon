@@ -13,4 +13,3 @@ pub async fn resolve_issue(
         get_issue(project_path, issue_id).await
     }
 }
-

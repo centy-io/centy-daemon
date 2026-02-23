@@ -14,6 +14,29 @@ use tonic::{Response, Status};
 
 use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
+fn build_update_options(
+    title: String,
+    body: String,
+    status: String,
+    priority: i32,
+    raw_fields: HashMap<String, String>,
+) -> UpdateOptions {
+    let custom_fields = raw_fields
+        .into_iter()
+        .map(|(k, v)| {
+            let val = serde_json::from_str(&v).unwrap_or(serde_json::Value::String(v));
+            (k, val)
+        })
+        .collect();
+    UpdateOptions {
+        title: nonempty(title),
+        body: nonempty(body),
+        status: nonempty(status),
+        priority: nonzero_u32(priority),
+        custom_fields,
+    }
+}
+
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
@@ -70,23 +93,13 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         }));
     }
 
-    // Convert custom_fields
-    let custom_fields: HashMap<String, serde_json::Value> = req
-        .custom_fields
-        .into_iter()
-        .map(|(k, v)| {
-            let val = serde_json::from_str(&v).unwrap_or(serde_json::Value::String(v));
-            (k, val)
-        })
-        .collect();
-
-    let options = UpdateOptions {
-        title: nonempty(req.title),
-        body: nonempty(req.body),
-        status: nonempty(req.status),
-        priority: nonzero_u32(req.priority),
-        custom_fields,
-    };
+    let options = build_update_options(
+        req.title,
+        req.body,
+        req.status,
+        req.priority,
+        req.custom_fields,
+    );
 
     match generic_update(project_path, &item_type, &config, &item_id, options).await {
         Ok(item) => {
