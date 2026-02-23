@@ -58,7 +58,7 @@ pub async fn generic_get_by_display_number(
     }
 
     let type_dir = type_storage_path(project_path, folder);
-    let items = mdstore::list(&type_dir, Filters::default()).await?;
+    let items = mdstore::list(&type_dir, Filters::new().include_deleted()).await?;
 
     for item in items {
         if item.frontmatter.display_number == Some(display_number) {
@@ -278,6 +278,48 @@ pub async fn generic_move(
     update_project_manifest(target_project_path).await?;
 
     Ok(result)
+}
+
+/// Rename a slug-based item within the same project folder.
+///
+/// This is used when `move_item` is called with `source_path == target_path`
+/// and a non-empty `new_id`.  The `mdstore::move_item` implementation rejects
+/// same-directory moves, so we handle the rename directly.
+pub async fn generic_rename_slug(
+    project_path: &Path,
+    folder: &str,
+    _config: &TypeConfig,
+    item_id: &str,
+    new_id: &str,
+) -> Result<mdstore::MoveResult, ItemError> {
+    let type_dir = type_storage_path(project_path, folder);
+
+    let source_file = type_dir.join(format!("{item_id}.md"));
+    let target_file = type_dir.join(format!("{new_id}.md"));
+
+    if !source_file.exists() {
+        return Err(ItemError::NotFound(item_id.to_string()));
+    }
+    if target_file.exists() {
+        return Err(ItemError::Custom(format!(
+            "item with id '{new_id}' already exists"
+        )));
+    }
+
+    // Read the item first (for the return value)
+    let mut item = mdstore::get(&type_dir, item_id).await?;
+    item.id = new_id.to_string();
+
+    // Rename the file
+    tokio::fs::rename(&source_file, &target_file).await?;
+
+    // Update the manifest
+    update_project_manifest(project_path).await?;
+
+    Ok(mdstore::MoveResult {
+        item,
+        old_id: item_id.to_string(),
+    })
 }
 
 /// Recursively copy the contents of one directory to another.
