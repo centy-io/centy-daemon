@@ -343,7 +343,10 @@ async fn test_init_does_not_overwrite_existing_item_type_config_yaml() {
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("Should read");
-    assert_eq!(content, custom_yaml, "Existing issues/config.yaml should be preserved");
+    assert_eq!(
+        content, custom_yaml,
+        "Existing issues/config.yaml should be preserved"
+    );
 
     // docs/config.yaml should still be created
     assert!(
@@ -678,7 +681,10 @@ async fn test_init_creates_issues_config_yaml() {
     );
 
     // File should exist on disk
-    let config_path = project_path.join(".centy").join("issues").join("config.yaml");
+    let config_path = project_path
+        .join(".centy")
+        .join("issues")
+        .join("config.yaml");
     assert!(config_path.exists(), "issues/config.yaml should exist");
 
     // Verify default content
@@ -761,7 +767,10 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("Should read");
-    assert_eq!(content, custom_yaml, "Custom config.yaml should be preserved");
+    assert_eq!(
+        content, custom_yaml,
+        "Custom config.yaml should be preserved"
+    );
 }
 
 #[tokio::test]
