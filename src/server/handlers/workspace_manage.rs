@@ -3,6 +3,7 @@ use crate::server::proto::{
     GetSupportedEditorsRequest, GetSupportedEditorsResponse, ListTempWorkspacesRequest,
     ListTempWorkspacesResponse,
 };
+use crate::server::structured_error::StructuredError;
 use crate::workspace::remove_workspace;
 use tonic::{Response, Status};
 
@@ -64,7 +65,12 @@ pub async fn close_temp_workspace(
     Ok(Response::new(CloseTempWorkspaceResponse {
         success: worktree_removed || directory_removed,
         error: if !worktree_removed && !directory_removed {
-            "Failed to remove workspace".to_string()
+            StructuredError::new(
+                &req.workspace_path,
+                "WORKSPACE_REMOVE_FAILED",
+                "Failed to remove workspace".to_string(),
+            )
+            .to_json()
         } else {
             String::new()
         },
