@@ -4,7 +4,8 @@ use super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::types::{ListProjectsOptions, ProjectInfo, TrackedProject};
 use super::RegistryError;
 use crate::config::get_project_title;
-use crate::utils::{get_centy_path, now_iso};
+use crate::manifest::read_manifest;
+use crate::utils::{get_centy_path, now_iso, CENTY_VERSION};
 use std::path::Path;
 use tokio::fs;
 use tracing::warn;
@@ -131,6 +132,19 @@ pub async fn enrich_project(
     // Get project-scope title from .centy/project.json
     let project_title = get_project_title(project_path).await;
 
+    // Read manifest to get project version and check if it's behind the daemon
+    let (project_version, project_behind) = if initialized {
+        match read_manifest(project_path).await {
+            Ok(Some(manifest)) => {
+                let behind = is_version_behind(&manifest.centy_version, CENTY_VERSION);
+                (Some(manifest.centy_version), behind)
+            }
+            _ => (None, false),
+        }
+    } else {
+        (None, false)
+    };
+
     ProjectInfo {
         path: path.to_string(),
         first_accessed: tracked.first_accessed.clone(),
@@ -145,6 +159,18 @@ pub async fn enrich_project(
         organization_name: org_name,
         user_title: tracked.user_title.clone(),
         project_title,
+        project_version,
+        project_behind,
+    }
+}
+
+/// Returns true if `project_ver` is strictly less than `daemon_ver` using semver.
+/// Falls back to false if either version cannot be parsed.
+fn is_version_behind(project_ver: &str, daemon_ver: &str) -> bool {
+    use semver::Version;
+    match (Version::parse(project_ver), Version::parse(daemon_ver)) {
+        (Ok(pv), Ok(dv)) => pv < dv,
+        _ => false,
     }
 }
 
@@ -507,4 +533,30 @@ pub async fn get_org_projects(
     projects.retain(|p| p.initialized);
 
     Ok(projects)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_version_behind_older() {
+        assert!(is_version_behind("0.7.0", "0.8.0"));
+    }
+
+    #[test]
+    fn test_is_version_behind_same() {
+        assert!(!is_version_behind("0.8.0", "0.8.0"));
+    }
+
+    #[test]
+    fn test_is_version_behind_newer() {
+        assert!(!is_version_behind("0.9.0", "0.8.0"));
+    }
+
+    #[test]
+    fn test_is_version_behind_invalid() {
+        assert!(!is_version_behind("invalid", "0.8.0"));
+        assert!(!is_version_behind("0.8.0", "invalid"));
+    }
 }
