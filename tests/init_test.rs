@@ -49,6 +49,10 @@ async fn test_init_creates_manifest_and_structure() {
     );
     assert!(centy_path.join("issues").is_dir(), "Should create issues/");
     assert!(centy_path.join("docs").is_dir(), "Should create docs/");
+    assert!(
+        centy_path.join("archived").is_dir(),
+        "Should create archived/"
+    );
     assert!(centy_path.join("assets").is_dir(), "Should create assets/");
 }
 
@@ -261,7 +265,7 @@ async fn test_init_creates_item_type_config_yaml() {
 
     let centy_path = project_path.join(".centy");
 
-    // Both config.yaml files should be created
+    // All config.yaml files should be created
     assert!(
         centy_path.join("issues").join("config.yaml").exists(),
         "issues/config.yaml should be created on init"
@@ -271,12 +275,20 @@ async fn test_init_creates_item_type_config_yaml() {
         "docs/config.yaml should be created on init"
     );
     assert!(
+        centy_path.join("archived").join("config.yaml").exists(),
+        "archived/config.yaml should be created on init"
+    );
+    assert!(
         result.created.contains(&"issues/config.yaml".to_string()),
         "Should report issues/config.yaml as created"
     );
     assert!(
         result.created.contains(&"docs/config.yaml".to_string()),
         "Should report docs/config.yaml as created"
+    );
+    assert!(
+        result.created.contains(&"archived/config.yaml".to_string()),
+        "Should report archived/config.yaml as created"
     );
 
     // Verify issues config has expected defaults
@@ -312,6 +324,48 @@ async fn test_init_creates_item_type_config_yaml() {
         docs_content.contains("priority: false"),
         "docs/config.yaml should have priority: false"
     );
+}
+
+#[tokio::test]
+async fn test_init_creates_archived_config_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    // archived/config.yaml should be reported as created
+    assert!(
+        result.created.contains(&"archived/config.yaml".to_string()),
+        "Should create archived/config.yaml"
+    );
+
+    // File should exist on disk
+    let config_path = project_path
+        .join(".centy")
+        .join("archived")
+        .join("config.yaml");
+    assert!(config_path.exists(), "archived/config.yaml should exist");
+
+    // Verify archived config has expected defaults
+    let config = read_item_type_config(project_path, "archived")
+        .await
+        .expect("Should read")
+        .expect("Should exist");
+
+    assert_eq!(config.name, "Archived");
+    assert_eq!(config.identifier, IdStrategy::Uuid);
+    assert!(!config.features.display_number);
+    assert!(!config.features.status);
+    assert!(!config.features.priority);
+    assert!(config.features.assets);
+    assert!(config.features.org_sync);
+    assert!(config.features.move_item);
+    assert!(!config.features.duplicate);
+    assert_eq!(config.custom_fields.len(), 1);
+    assert_eq!(config.custom_fields[0].name, "original_item_type");
 }
 
 #[tokio::test]
@@ -786,6 +840,7 @@ async fn test_init_config_yaml_idempotent() {
 
     assert!(result1.created.contains(&"issues/config.yaml".to_string()));
     assert!(result1.created.contains(&"docs/config.yaml".to_string()));
+    assert!(result1.created.contains(&"archived/config.yaml".to_string()));
 
     // Second init
     let result2 = execute_reconciliation(project_path, ReconciliationDecisions::default(), false)
@@ -800,5 +855,9 @@ async fn test_init_config_yaml_idempotent() {
     assert!(
         !result2.created.contains(&"docs/config.yaml".to_string()),
         "docs/config.yaml should not be re-created on second init"
+    );
+    assert!(
+        !result2.created.contains(&"archived/config.yaml".to_string()),
+        "archived/config.yaml should not be re-created on second init"
     );
 }

@@ -663,6 +663,32 @@ impl CentyDaemon for CentyDaemonService {
     }
 
     #[instrument(
+        name = "grpc.archive_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn archive_item(
+        &self,
+        request: Request<ArchiveItemRequest>,
+    ) -> Result<Response<ArchiveItemResponse>, Status> {
+        let _timer = OperationTimer::new("archive_item");
+        handlers::item_archive::archive_item(request.into_inner()).await
+    }
+
+    #[instrument(
+        name = "grpc.unarchive_item",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn unarchive_item(
+        &self,
+        request: Request<UnarchiveItemRequest>,
+    ) -> Result<Response<UnarchiveItemResponse>, Status> {
+        let _timer = OperationTimer::new("unarchive_item");
+        handlers::item_unarchive::unarchive_item(request.into_inner()).await
+    }
+
+    #[instrument(
         name = "grpc.search_items",
         skip(self, request),
         fields(request_id = %generate_request_id())

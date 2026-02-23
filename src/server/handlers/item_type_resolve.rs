@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_doc_config, default_issue_config, read_item_type_config, ItemTypeRegistry,
+    default_archived_config, default_doc_config, default_issue_config, read_item_type_config,
+    ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
@@ -46,6 +47,7 @@ pub async fn resolve_item_type_config(
             Ok(("issues".to_string(), default_issue_config(&config)))
         }
         "docs" | "doc" => Ok(("docs".to_string(), default_doc_config())),
+        "archived" | "archive" => Ok(("archived".to_string(), default_archived_config())),
         _ => Err(ItemError::ItemTypeNotFound(item_type.to_string())),
     }
 }

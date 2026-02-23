@@ -263,6 +263,12 @@ service CentyDaemon {
   // Move an item to another project
   rpc MoveItem(MoveItemRequest) returns (MoveItemResponse);
 
+  // Archive an item by moving it to the archived folder and recording its original type
+  rpc ArchiveItem(ArchiveItemRequest) returns (ArchiveItemResponse);
+
+  // Unarchive an item by moving it back to its original folder
+  rpc UnarchiveItem(UnarchiveItemRequest) returns (UnarchiveItemResponse);
+
   // Search for an item by ID across all tracked projects
   rpc SearchItems(SearchItemsRequest) returns (SearchItemsResponse);
 }
@@ -1352,6 +1358,33 @@ message MoveItemResponse {
   string old_id = 4;
   Manifest source_manifest = 5;
   Manifest target_manifest = 6;
+}
+
+// ============ Archive Messages ============
+
+message ArchiveItemRequest {
+  string project_path = 1;
+  string item_type = 2;   // Source folder name (e.g., "issues", "docs")
+  string item_id = 3;     // UUID of the item to archive
+}
+
+message ArchiveItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;   // The archived item with original_item_type set
+}
+
+message UnarchiveItemRequest {
+  string project_path = 1;
+  string item_id = 2;           // UUID of the archived item
+  string target_item_type = 3;  // Optional: override original_item_type from metadata
+}
+
+message UnarchiveItemResponse {
+  bool success = 1;
+  string error = 2;
+  GenericItem item = 3;             // The restored item
+  string original_item_type = 4;    // The folder the item was restored to
 }
 
 // ============ Organization Issue Messages ============
