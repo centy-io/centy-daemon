@@ -81,6 +81,29 @@ struct Args {
 // Include the file descriptor set for gRPC reflection
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("centy_descriptor");
 
+fn report_server_error(addr: std::net::SocketAddr, log_file: &std::path::Path, e: &tonic::transport::Error) {
+    let err_string = format!("{e:?}");
+    if err_string.contains("AddrInUse") {
+        eprintln!();
+        eprintln!("Error: Failed to start server - address {addr} is already in use");
+        eprintln!();
+        eprintln!("Another instance of centy-daemon may already be running.");
+        eprintln!();
+        eprintln!("Options:");
+        eprintln!("  1. Kill the existing process:   pkill centy-daemon");
+        eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
+        eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
+        eprintln!();
+        eprintln!("Logs: {}", log_file.display());
+        eprintln!();
+    }
+    eprintln!();
+    eprintln!("Error: Failed to start server: {e}");
+    eprintln!();
+    eprintln!("Logs: {}", log_file.display());
+    eprintln!();
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Install color-eyre error hooks for colored error output
@@ -107,7 +130,15 @@ async fn main() -> Result<()> {
         ..Default::default()
     };
 
-    init_logging(log_config)?;
+    if let Err(e) = init_logging(log_config) {
+        eprintln!();
+        eprintln!("Error: Failed to initialize logging: {e}");
+        eprintln!();
+        eprintln!("Note: Logging could not be set up.");
+        eprintln!("Logs: {}", log_file.display());
+        eprintln!();
+        return Err(e);
+    }
 
     // Load user-level config (~/.centy/config.toml); file is optional.
     let user_cfg = user_config::load_user_config().unwrap_or_else(|e| {
@@ -186,26 +217,7 @@ async fn main() -> Result<()> {
         .await;
 
     if let Err(e) = server_result {
-        let err_string = format!("{e:?}");
-        if err_string.contains("AddrInUse") {
-            eprintln!();
-            eprintln!("Error: Failed to start server - address {addr} is already in use");
-            eprintln!();
-            eprintln!("Another instance of centy-daemon may already be running.");
-            eprintln!();
-            eprintln!("Options:");
-            eprintln!("  1. Kill the existing process:   pkill centy-daemon");
-            eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
-            eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
-            eprintln!();
-            eprintln!("Logs: {}", log_file.display());
-            eprintln!();
-        }
-        eprintln!();
-        eprintln!("Error: Failed to start server: {e}");
-        eprintln!();
-        eprintln!("Logs: {}", log_file.display());
-        eprintln!();
+        report_server_error(addr, &log_file, &e);
         return Err(e.into());
     }
 
