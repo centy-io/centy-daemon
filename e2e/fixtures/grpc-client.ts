@@ -1210,6 +1210,24 @@ export interface ListItemTypesResponse {
 }
 
 /**
+ * Strip proto3 optional-field presence markers (_fieldName: "fieldName") from a decoded
+ * protobuf object. @grpc/proto-loader adds these underscore-prefixed keys as "oneof case"
+ * discriminators when an optional scalar field is set; they are an internal implementation
+ * detail and should not appear in test assertions or application code.
+ */
+function stripProtoPresenceFields(obj: unknown): unknown {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(stripProtoPresenceFields);
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (!key.startsWith('_')) {
+      result[key] = stripProtoPresenceFields(value);
+    }
+  }
+  return result;
+}
+
+/**
  * Create a gRPC client for the Centy daemon.
  * Uses plain text (insecure) transport for testing.
  */
@@ -1288,7 +1306,9 @@ export function promisifyClient(client: CentyClient) {
 
     // Config
     getConfig: (request: GetConfigRequest): Promise<Config> =>
-      promisify<GetConfigRequest, GetConfigResponse>(client.getConfig)(request).then((r) => r.config),
+      promisify<GetConfigRequest, GetConfigResponse>(client.getConfig)(request).then((r) =>
+        stripProtoPresenceFields(r.config) as Config
+      ),
     updateConfig: promisify<UpdateConfigRequest, UpdateConfigResponse>(client.updateConfig),
     getManifest: (request: GetManifestRequest): Promise<Manifest> =>
       promisify<GetManifestRequest, GetManifestResponse>(client.getManifest)(request).then((r) => r.manifest),
