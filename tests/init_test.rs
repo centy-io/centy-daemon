@@ -840,7 +840,9 @@ async fn test_init_config_yaml_idempotent() {
 
     assert!(result1.created.contains(&"issues/config.yaml".to_string()));
     assert!(result1.created.contains(&"docs/config.yaml".to_string()));
-    assert!(result1.created.contains(&"archived/config.yaml".to_string()));
+    assert!(result1
+        .created
+        .contains(&"archived/config.yaml".to_string()));
 
     // Second init
     let result2 = execute_reconciliation(project_path, ReconciliationDecisions::default(), false)
@@ -857,7 +859,9 @@ async fn test_init_config_yaml_idempotent() {
         "docs/config.yaml should not be re-created on second init"
     );
     assert!(
-        !result2.created.contains(&"archived/config.yaml".to_string()),
+        !result2
+            .created
+            .contains(&"archived/config.yaml".to_string()),
         "archived/config.yaml should not be re-created on second init"
     );
 }

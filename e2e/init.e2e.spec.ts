@@ -223,7 +223,12 @@ describe('gRPC: Init Operations', () => {
       });
 
       const config = await project.client.getConfig({ projectPath: project.path });
-      expect(config).toEqual({ ...defaultConfig, workspace: { updateStatusOnOpen: true } });
+      // proto3 optional bool fields emit a _fieldName presence marker; use objectContaining
+      // for the workspace sub-object so that extra presence fields do not cause the assertion to fail.
+      expect(config).toEqual({
+        ...defaultConfig,
+        workspace: expect.objectContaining({ updateStatusOnOpen: true }),
+      });
     });
 
     it('should apply title during initialization', async () => {

@@ -110,8 +110,8 @@ describe('CLI with Filesystem Snapshots', () => {
     it('should list issues', async () => {
       // Create multiple issues
       await cli.issueCreate('Issue 1', { status: 'open' });
-      await cli.issueCreate('Issue 2', { status: 'in_progress' });
-      await cli.issueCreate('Issue 3', { status: 'done' });
+      await cli.issueCreate('Issue 2', { status: 'in-progress' });
+      await cli.issueCreate('Issue 3', { status: 'closed' });
 
       // List all issues
       const result = await cli.issueList();
@@ -145,7 +145,7 @@ describe('CLI with Filesystem Snapshots', () => {
       // Update the issue
       const result = await cli.issueUpdate(1, {
         title: 'Updated Title',
-        status: 'in_progress',
+        status: 'in-progress',
       });
 
       expect(result.exitCode).toBe(0);

@@ -103,6 +103,9 @@ fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Fi
     match condition {
         serde_json::Value::String(s) => filters.with_statuses(vec![s.clone()]),
         serde_json::Value::Object(ops) => {
+            if let Some(v) = ops.get("$eq").and_then(serde_json::Value::as_str) {
+                return filters.with_statuses(vec![v.to_string()]);
+            }
             if let Some(arr) = ops.get("$in").and_then(|v| v.as_array()) {
                 let statuses: Vec<String> = arr
                     .iter()

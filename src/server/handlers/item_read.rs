@@ -8,7 +8,7 @@ use crate::server::structured_error::to_error_json;
 use crate::user::get_user;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::resolve_item_type_config;
+use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
 pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, Status> {
     track_project_async(req.project_path.clone());
@@ -47,7 +47,14 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
         Some(dn) if dn > 0 => {
             generic_get_by_display_number(project_path, &item_type, &config, dn).await
         }
-        _ => generic_get(project_path, &item_type, &req.item_id).await,
+        _ => {
+            let resolved_id =
+                resolve_item_id(project_path, &item_type, &config, &req.item_id).await;
+            match resolved_id {
+                Ok(id) => generic_get(project_path, &item_type, &id).await,
+                Err(e) => Err(e),
+            }
+        }
     };
 
     match result {
