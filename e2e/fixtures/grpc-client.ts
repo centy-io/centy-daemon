@@ -43,97 +43,46 @@ export interface CentyClient {
     ) => void
   ): void;
 
-  // Issues
-  createIssue(
-    request: CreateIssueRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: CreateIssueResponse
-    ) => void
+  // Generic Items
+  createItem(
+    request: CreateItemRequest,
+    callback: (error: grpc.ServiceError | null, response: CreateItemResponse) => void
   ): void;
-  getIssue(
-    request: GetIssueRequest,
-    callback: (error: grpc.ServiceError | null, response: GetIssueResponse) => void
+  getItem(
+    request: GetItemRequest,
+    callback: (error: grpc.ServiceError | null, response: GetItemResponse) => void
   ): void;
-  getIssueByDisplayNumber(
-    request: GetIssueByDisplayNumberRequest,
-    callback: (error: grpc.ServiceError | null, response: GetIssueResponse) => void
+  listItems(
+    request: ListItemsRequest,
+    callback: (error: grpc.ServiceError | null, response: ListItemsResponse) => void
   ): void;
-  listIssues(
-    request: ListIssuesRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: ListIssuesResponse
-    ) => void
+  updateItem(
+    request: UpdateItemRequest,
+    callback: (error: grpc.ServiceError | null, response: UpdateItemResponse) => void
   ): void;
-  updateIssue(
-    request: UpdateIssueRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: UpdateIssueResponse
-    ) => void
+  deleteItem(
+    request: DeleteItemRequest,
+    callback: (error: grpc.ServiceError | null, response: DeleteItemResponse) => void
   ): void;
-  deleteIssue(
-    request: DeleteIssueRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: DeleteIssueResponse
-    ) => void
+  softDeleteItem(
+    request: SoftDeleteItemRequest,
+    callback: (error: grpc.ServiceError | null, response: SoftDeleteItemResponse) => void
   ): void;
-  softDeleteIssue(
-    request: SoftDeleteIssueRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: SoftDeleteIssueResponse
-    ) => void
+  restoreItem(
+    request: RestoreItemRequest,
+    callback: (error: grpc.ServiceError | null, response: RestoreItemResponse) => void
   ): void;
-  restoreIssue(
-    request: RestoreIssueRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: RestoreIssueResponse
-    ) => void
+  duplicateItem(
+    request: DuplicateItemRequest,
+    callback: (error: grpc.ServiceError | null, response: DuplicateItemResponse) => void
   ): void;
-  getNextIssueNumber(
-    request: GetNextIssueNumberRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: GetNextIssueNumberResponse
-    ) => void
+  moveItem(
+    request: MoveItemRequest,
+    callback: (error: grpc.ServiceError | null, response: MoveItemResponse) => void
   ): void;
-
-  // Docs
-  createDoc(
-    request: CreateDocRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: CreateDocResponse
-    ) => void
-  ): void;
-  getDoc(
-    request: GetDocRequest,
-    callback: (error: grpc.ServiceError | null, response: GetDocResponse) => void
-  ): void;
-  listDocs(
-    request: ListDocsRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: ListDocsResponse
-    ) => void
-  ): void;
-  updateDoc(
-    request: UpdateDocRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: UpdateDocResponse
-    ) => void
-  ): void;
-  deleteDoc(
-    request: DeleteDocRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: DeleteDocResponse
-    ) => void
+  searchItems(
+    request: SearchItemsRequest,
+    callback: (error: grpc.ServiceError | null, response: SearchItemsResponse) => void
   ): void;
 
   // Assets
@@ -470,219 +419,175 @@ export interface IsInitializedResponse {
   centyPath: string;
 }
 
-export interface CreateIssueRequest {
-  projectPath: string;
-  title: string;
-  description?: string;
-  priority?: number;
-  status?: string;
-  customFields?: Record<string, string>;
-  template?: string;
-  isOrgIssue?: boolean;
-}
+// ============ Generic Item Types ============
 
-export interface OrgSyncResult {
-  projectPath: string;
-  success: boolean;
-  error: string;
-}
-
-export interface CreateIssueResponse {
-  success: boolean;
-  error: string;
-  id: string;
-  displayNumber: number;
-  issueNumber: string;
-  createdFiles: string[];
-  manifest?: Manifest;
-  orgDisplayNumber?: number;
-  syncResults?: OrgSyncResult[];
-}
-
-export interface GetIssueRequest {
-  projectPath: string;
-  issueId: string;
-}
-
-export interface GetIssueByDisplayNumberRequest {
-  projectPath: string;
-  displayNumber: number;
-}
-
-export interface Issue {
-  id: string;
-  displayNumber: number;
-  issueNumber: string;
-  title: string;
-  description: string;
-  metadata: IssueMetadata;
-}
-
-export interface IssueMetadata {
+export interface GenericItemMetadata {
   displayNumber: number;
   status: string;
   priority: number;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string;
   customFields: Record<string, string>;
-  priorityLabel: string;
-  draft?: boolean;
-  deletedAt?: string;
-  isOrgIssue?: boolean;
-  orgSlug?: string;
-  orgDisplayNumber?: number;
 }
 
-export interface GetIssueResponse {
-  success: boolean;
-  error: string;
-  issue: Issue;
+export interface GenericItem {
+  id: string;
+  itemType: string;
+  title: string;
+  body: string;
+  metadata: GenericItemMetadata;
 }
 
-export interface ListIssuesRequest {
+export interface CreateItemRequest {
   projectPath: string;
-  status?: string;
-  priority?: number;
-}
-
-export interface ListIssuesResponse {
-  issues: Issue[];
-  totalCount: number;
-}
-
-export interface UpdateIssueRequest {
-  projectPath: string;
-  issueId: string;
-  title?: string;
-  description?: string;
+  itemType: string;
+  title: string;
+  body?: string;
   status?: string;
   priority?: number;
   customFields?: Record<string, string>;
 }
 
-export interface UpdateIssueResponse {
+export interface CreateItemResponse {
   success: boolean;
   error: string;
-  issue?: Issue;
-  manifest?: Manifest;
-  syncResults?: OrgSyncResult[];
+  item: GenericItem;
 }
 
-export interface DeleteIssueRequest {
+export interface GetItemRequest {
   projectPath: string;
-  issueId: string;
+  itemType: string;
+  itemId?: string;
+  displayNumber?: number;
 }
 
-export interface DeleteIssueResponse {
+export interface GetItemResponse {
   success: boolean;
   error: string;
-  manifest?: Manifest;
+  item: GenericItem;
 }
 
-export interface SoftDeleteIssueRequest {
+export interface ListItemsRequest {
   projectPath: string;
-  issueId: string;
+  itemType: string;
+  limit?: number;
+  offset?: number;
+  filter?: string;
 }
 
-export interface SoftDeleteIssueResponse {
+export interface ListItemsResponse {
   success: boolean;
   error: string;
-  issue?: Issue;
-  manifest?: Manifest;
-}
-
-export interface RestoreIssueRequest {
-  projectPath: string;
-  issueId: string;
-}
-
-export interface RestoreIssueResponse {
-  success: boolean;
-  error: string;
-  issue?: Issue;
-  manifest?: Manifest;
-}
-
-export interface GetNextIssueNumberRequest {
-  projectPath: string;
-}
-
-export interface GetNextIssueNumberResponse {
-  issueNumber: string;
-}
-
-export interface CreateDocRequest {
-  projectPath: string;
-  title: string;
-  content?: string;
-  slug?: string;
-  template?: string;
-}
-
-export interface CreateDocResponse {
-  success: boolean;
-  error: string;
-  slug: string;
-  createdFile: string;
-  manifest?: Manifest;
-}
-
-export interface GetDocRequest {
-  projectPath: string;
-  slug: string;
-}
-
-export interface Doc {
-  slug: string;
-  title: string;
-  content: string;
-  metadata: DocMetadata;
-}
-
-export interface DocMetadata {
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GetDocResponse {
-  success: boolean;
-  error: string;
-  doc: Doc;
-}
-
-export interface ListDocsRequest {
-  projectPath: string;
-}
-
-export interface ListDocsResponse {
-  docs: Doc[];
+  items: GenericItem[];
   totalCount: number;
 }
 
-export interface UpdateDocRequest {
+export interface UpdateItemRequest {
   projectPath: string;
-  slug: string;
+  itemType: string;
+  itemId: string;
   title?: string;
-  content?: string;
-  newSlug?: string;
+  body?: string;
+  status?: string;
+  priority?: number;
+  customFields?: Record<string, string>;
 }
 
-export interface UpdateDocResponse {
+export interface UpdateItemResponse {
   success: boolean;
   error: string;
-  doc?: Doc;
-  manifest?: Manifest;
+  item: GenericItem;
 }
 
-export interface DeleteDocRequest {
+export interface DeleteItemRequest {
   projectPath: string;
-  slug: string;
+  itemType: string;
+  itemId: string;
+  force?: boolean;
 }
 
-export interface DeleteDocResponse {
+export interface DeleteItemResponse {
   success: boolean;
   error: string;
+}
+
+export interface SoftDeleteItemRequest {
+  projectPath: string;
+  itemType: string;
+  itemId: string;
+}
+
+export interface SoftDeleteItemResponse {
+  success: boolean;
+  error: string;
+  item: GenericItem;
+}
+
+export interface RestoreItemRequest {
+  projectPath: string;
+  itemType: string;
+  itemId: string;
+}
+
+export interface RestoreItemResponse {
+  success: boolean;
+  error: string;
+  item: GenericItem;
+}
+
+export interface DuplicateItemRequest {
+  sourceProjectPath: string;
+  itemType: string;
+  itemId: string;
+  targetProjectPath: string;
+  newId?: string;
+  newTitle?: string;
+}
+
+export interface DuplicateItemResponse {
+  success: boolean;
+  error: string;
+  item: GenericItem;
+  originalId: string;
   manifest?: Manifest;
+}
+
+export interface MoveItemRequest {
+  sourceProjectPath: string;
+  targetProjectPath: string;
+  itemType: string;
+  itemId: string;
+  newId?: string;
+}
+
+export interface MoveItemResponse {
+  success: boolean;
+  error: string;
+  item: GenericItem;
+  oldId: string;
+  sourceManifest?: Manifest;
+  targetManifest?: Manifest;
+}
+
+export interface SearchItemsRequest {
+  itemType: string;
+  itemId: string;
+}
+
+export interface ItemWithProject {
+  item: GenericItem;
+  projectPath: string;
+  projectName: string;
+  displayPath: string;
+}
+
+export interface SearchItemsResponse {
+  items: ItemWithProject[];
+  totalCount: number;
+  errors: string[];
+  success: boolean;
+  error: string;
 }
 
 export interface AddAssetRequest {
@@ -1348,28 +1253,17 @@ export function promisifyClient(client: CentyClient) {
       client.isInitialized
     ),
 
-    // Issues
-    createIssue: promisify<CreateIssueRequest, CreateIssueResponse>(client.createIssue),
-    getIssue: (request: GetIssueRequest): Promise<Issue> =>
-      promisify<GetIssueRequest, GetIssueResponse>(client.getIssue)(request).then((r) => r.issue),
-    getIssueByDisplayNumber: (request: GetIssueByDisplayNumberRequest): Promise<Issue> =>
-      promisify<GetIssueByDisplayNumberRequest, GetIssueResponse>(client.getIssueByDisplayNumber)(request).then((r) => r.issue),
-    listIssues: promisify<ListIssuesRequest, ListIssuesResponse>(client.listIssues),
-    updateIssue: promisify<UpdateIssueRequest, UpdateIssueResponse>(client.updateIssue),
-    deleteIssue: promisify<DeleteIssueRequest, DeleteIssueResponse>(client.deleteIssue),
-    softDeleteIssue: promisify<SoftDeleteIssueRequest, SoftDeleteIssueResponse>(client.softDeleteIssue),
-    restoreIssue: promisify<RestoreIssueRequest, RestoreIssueResponse>(client.restoreIssue),
-    getNextIssueNumber: promisify<GetNextIssueNumberRequest, GetNextIssueNumberResponse>(
-      client.getNextIssueNumber
-    ),
-
-    // Docs
-    createDoc: promisify<CreateDocRequest, CreateDocResponse>(client.createDoc),
-    getDoc: (request: GetDocRequest): Promise<Doc> =>
-      promisify<GetDocRequest, GetDocResponse>(client.getDoc)(request).then((r) => r.doc),
-    listDocs: promisify<ListDocsRequest, ListDocsResponse>(client.listDocs),
-    updateDoc: promisify<UpdateDocRequest, UpdateDocResponse>(client.updateDoc),
-    deleteDoc: promisify<DeleteDocRequest, DeleteDocResponse>(client.deleteDoc),
+    // Generic Items
+    createItem: promisify<CreateItemRequest, CreateItemResponse>(client.createItem),
+    getItem: promisify<GetItemRequest, GetItemResponse>(client.getItem),
+    listItems: promisify<ListItemsRequest, ListItemsResponse>(client.listItems),
+    updateItem: promisify<UpdateItemRequest, UpdateItemResponse>(client.updateItem),
+    deleteItem: promisify<DeleteItemRequest, DeleteItemResponse>(client.deleteItem),
+    softDeleteItem: promisify<SoftDeleteItemRequest, SoftDeleteItemResponse>(client.softDeleteItem),
+    restoreItem: promisify<RestoreItemRequest, RestoreItemResponse>(client.restoreItem),
+    duplicateItem: promisify<DuplicateItemRequest, DuplicateItemResponse>(client.duplicateItem),
+    moveItem: promisify<MoveItemRequest, MoveItemResponse>(client.moveItem),
+    searchItems: promisify<SearchItemsRequest, SearchItemsResponse>(client.searchItems),
 
     // Assets
     addAsset: promisify<AddAssetRequest, AddAssetResponse>(client.addAsset),

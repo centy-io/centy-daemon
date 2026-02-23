@@ -4,7 +4,7 @@ import { createTempProject, type TempProject } from './fixtures/temp-project.js'
 /**
  * gRPC Plain Text Tests for Issue Operations
  *
- * Tests direct gRPC calls for issue CRUD operations.
+ * Tests direct gRPC calls for issue CRUD operations via the generic item RPCs.
  */
 describe('gRPC: Issue Operations', () => {
   let project: TempProject;
@@ -17,313 +17,325 @@ describe('gRPC: Issue Operations', () => {
     await project.cleanup();
   });
 
-  describe('CreateIssue', () => {
+  describe('CreateItem (issues)', () => {
     it('should create an issue with minimal fields', async () => {
-      const result = await project.client.createIssue({
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Test Issue',
       });
 
       expect(result.success).toBe(true);
       expect(result.error).toBe('');
-      expect(result.id).toBeDefined();
-      expect(result.displayNumber).toBe(1);
+      expect(result.item.id).toBeDefined();
+      expect(result.item.metadata.displayNumber).toBe(1);
     });
 
     it('should create an issue with all fields', async () => {
-      const result = await project.client.createIssue({
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Full Issue',
-        description: 'This is a detailed description',
+        body: 'This is a detailed description',
         priority: 1,
         status: 'in-progress',
       });
 
       expect(result.success).toBe(true);
-      expect(result.displayNumber).toBe(1);
-      expect(result.createdFiles.length).toBeGreaterThan(0);
+      expect(result.item.metadata.displayNumber).toBe(1);
     });
 
     it('should auto-increment display numbers', async () => {
-      const issue1 = await project.client.createIssue({
+      const issue1 = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'First Issue',
       });
 
-      const issue2 = await project.client.createIssue({
+      const issue2 = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Second Issue',
       });
 
-      const issue3 = await project.client.createIssue({
+      const issue3 = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Third Issue',
       });
 
-      expect(issue1.displayNumber).toBe(1);
-      expect(issue2.displayNumber).toBe(2);
-      expect(issue3.displayNumber).toBe(3);
-    });
-
-    it('should return updated manifest', async () => {
-      const result = await project.client.createIssue({
-        projectPath: project.path,
-        title: 'Manifest Test',
-      });
-
-      expect(result.manifest).toBeDefined();
-      expect(result.manifest?.updatedAt).toBeDefined();
+      expect(issue1.item.metadata.displayNumber).toBe(1);
+      expect(issue2.item.metadata.displayNumber).toBe(2);
+      expect(issue3.item.metadata.displayNumber).toBe(3);
     });
   });
 
-  describe('GetIssue', () => {
+  describe('GetItem (issues)', () => {
     it('should get issue by ID', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Get By ID Test',
-        description: 'Test description',
+        body: 'Test description',
       });
 
-      const issue = await project.client.getIssue({
+      const result = await project.client.getItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
       });
 
-      expect(issue.id).toBe(created.id);
-      expect(issue.title).toBe('Get By ID Test');
-      expect(issue.description).toContain('Test description');
+      expect(result.item.id).toBe(created.item.id);
+      expect(result.item.title).toBe('Get By ID Test');
+      expect(result.item.body).toContain('Test description');
     });
 
     it('should return full metadata', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Metadata Test',
         priority: 2,
         status: 'open',
       });
 
-      const issue = await project.client.getIssue({
+      const result = await project.client.getItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
       });
 
-      expect(issue.metadata).toBeDefined();
-      expect(issue.metadata.status).toBe('open');
-      expect(issue.metadata.priority).toBe(2);
-      expect(issue.metadata.createdAt).toBeDefined();
-      expect(issue.metadata.updatedAt).toBeDefined();
+      expect(result.item.metadata).toBeDefined();
+      expect(result.item.metadata.status).toBe('open');
+      expect(result.item.metadata.priority).toBe(2);
+      expect(result.item.metadata.createdAt).toBeDefined();
+      expect(result.item.metadata.updatedAt).toBeDefined();
     });
   });
 
-  describe('GetIssueByDisplayNumber', () => {
+  describe('GetItem by display number (issues)', () => {
     it('should get issue by display number', async () => {
-      await project.client.createIssue({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Number Test',
       });
 
-      const issue = await project.client.getIssueByDisplayNumber({
+      const result = await project.client.getItem({
         projectPath: project.path,
+        itemType: 'issues',
         displayNumber: 1,
       });
 
-      expect(issue.displayNumber).toBe(1);
-      expect(issue.title).toBe('Display Number Test');
+      expect(result.item.metadata.displayNumber).toBe(1);
+      expect(result.item.title).toBe('Display Number Test');
     });
   });
 
-  describe('ListIssues', () => {
+  describe('ListItems (issues)', () => {
     it('should list all issues', async () => {
-      await project.client.createIssue({
-        projectPath: project.path,
-        title: 'Issue 1',
-      });
-      await project.client.createIssue({
-        projectPath: project.path,
-        title: 'Issue 2',
-      });
-      await project.client.createIssue({
-        projectPath: project.path,
-        title: 'Issue 3',
-      });
+      await project.client.createItem({ projectPath: project.path, itemType: 'issues', title: 'Issue 1' });
+      await project.client.createItem({ projectPath: project.path, itemType: 'issues', title: 'Issue 2' });
+      await project.client.createItem({ projectPath: project.path, itemType: 'issues', title: 'Issue 3' });
 
-      const result = await project.client.listIssues({
+      const result = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'issues',
       });
 
       expect(result.totalCount).toBe(3);
-      expect(result.issues.length).toBe(3);
+      expect(result.items.length).toBe(3);
     });
 
     it('should filter by status', async () => {
-      await project.client.createIssue({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Open Issue',
         status: 'open',
       });
-      await project.client.createIssue({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Closed Issue',
         status: 'closed',
       });
 
-      const result = await project.client.listIssues({
+      const result = await project.client.listItems({
         projectPath: project.path,
-        status: 'open',
+        itemType: 'issues',
+        filter: JSON.stringify({ status: { $eq: 'open' } }),
       });
 
       expect(result.totalCount).toBe(1);
-      expect(result.issues[0].title).toBe('Open Issue');
+      expect(result.items[0].title).toBe('Open Issue');
     });
 
     it('should filter by priority', async () => {
-      await project.client.createIssue({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'High Priority',
         priority: 1,
       });
-      await project.client.createIssue({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Low Priority',
         priority: 3,
       });
 
-      const result = await project.client.listIssues({
+      const result = await project.client.listItems({
         projectPath: project.path,
-        priority: 1,
+        itemType: 'issues',
+        filter: JSON.stringify({ priority: { $eq: 1 } }),
       });
 
       expect(result.totalCount).toBe(1);
-      expect(result.issues[0].title).toBe('High Priority');
+      expect(result.items[0].title).toBe('High Priority');
     });
 
     it('should return empty list for empty project', async () => {
-      const result = await project.client.listIssues({
+      const result = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'issues',
       });
 
       expect(result.totalCount).toBe(0);
-      expect(result.issues.length).toBe(0);
+      expect(result.items.length).toBe(0);
     });
   });
 
-  describe('UpdateIssue', () => {
+  describe('UpdateItem (issues)', () => {
     it('should update issue title', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Original Title',
       });
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
         title: 'Updated Title',
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.title).toBe('Updated Title');
+      expect(result.item.title).toBe('Updated Title');
     });
 
     it('should update issue status', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Status Update Test',
         status: 'open',
       });
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
         status: 'closed',
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.metadata.status).toBe('closed');
+      expect(result.item.metadata.status).toBe('closed');
     });
 
     it('should update issue priority', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Priority Update Test',
         priority: 3,
       });
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
         priority: 1,
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.metadata.priority).toBe(1);
+      expect(result.item.metadata.priority).toBe(1);
     });
 
-    it('should update issue description', async () => {
-      const created = await project.client.createIssue({
+    it('should update issue body', async () => {
+      const created = await project.client.createItem({
         projectPath: project.path,
-        title: 'Description Update Test',
-        description: 'Original description',
+        itemType: 'issues',
+        title: 'Body Update Test',
+        body: 'Original description',
       });
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: created.id,
-        description: 'Updated description with more details',
+        itemType: 'issues',
+        itemId: created.item.id,
+        body: 'Updated description with more details',
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.description).toContain('Updated description');
+      expect(result.item.body).toContain('Updated description');
     });
 
     it('should update updatedAt timestamp', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Timestamp Test',
       });
 
       // Small delay to ensure different timestamp
       await new Promise((r) => setTimeout(r, 100));
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
         title: 'Updated Timestamp Test',
       });
 
-      const originalUpdatedAt = new Date(created.id).getTime();
-      const newUpdatedAt = new Date(result.issue!.metadata.updatedAt).getTime();
-
       // Just verify updatedAt is a valid date
-      expect(result.issue?.metadata.updatedAt).toBeDefined();
+      expect(result.item.metadata.updatedAt).toBeDefined();
     });
   });
 
-  describe('DeleteIssue', () => {
+  describe('DeleteItem (issues)', () => {
     it('should delete an issue', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'To Delete',
       });
 
-      const deleteResult = await project.client.deleteIssue({
+      const deleteResult = await project.client.deleteItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
+        force: true,
       });
 
       expect(deleteResult.success).toBe(true);
 
       // Verify it's gone
-      const listResult = await project.client.listIssues({
+      const listResult = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'issues',
       });
       expect(listResult.totalCount).toBe(0);
     });
 
     it('should return error for non-existent issue', async () => {
       try {
-        await project.client.deleteIssue({
+        await project.client.deleteItem({
           projectPath: project.path,
-          issueId: 'non-existent-id',
+          itemType: 'issues',
+          itemId: 'non-existent-id',
+          force: true,
         });
         expect.fail('Should have thrown an error');
       } catch (error: any) {
@@ -333,113 +345,106 @@ describe('gRPC: Issue Operations', () => {
   });
 
   describe('Display number resolution', () => {
-    it('should get issue by display number string via getIssue', async () => {
-      const created = await project.client.createIssue({
+    it('should get issue by display number string via getItem', async () => {
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Num Get Test',
       });
 
-      const issue = await project.client.getIssue({
+      const result = await project.client.getItem({
         projectPath: project.path,
-        issueId: String(created.displayNumber),
+        itemType: 'issues',
+        itemId: String(created.item.metadata.displayNumber),
       });
 
-      expect(issue.id).toBe(created.id);
-      expect(issue.title).toBe('Display Num Get Test');
+      expect(result.item.id).toBe(created.item.id);
+      expect(result.item.title).toBe('Display Num Get Test');
     });
 
     it('should update issue by display number string', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Num Update Test',
       });
 
-      const result = await project.client.updateIssue({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        issueId: String(created.displayNumber),
+        itemType: 'issues',
+        itemId: String(created.item.metadata.displayNumber),
         title: 'Updated via Display Number',
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.title).toBe('Updated via Display Number');
+      expect(result.item.title).toBe('Updated via Display Number');
     });
 
     it('should soft-delete issue by display number string', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Num Soft Delete Test',
       });
 
-      const result = await project.client.softDeleteIssue({
+      const result = await project.client.softDeleteItem({
         projectPath: project.path,
-        issueId: String(created.displayNumber),
+        itemType: 'issues',
+        itemId: String(created.item.metadata.displayNumber),
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.metadata.deletedAt).toBeDefined();
-      expect(result.issue?.metadata.deletedAt).not.toBe('');
+      expect(result.item.metadata.deletedAt).toBeDefined();
+      expect(result.item.metadata.deletedAt).not.toBe('');
     });
 
     it('should restore issue by display number string', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Num Restore Test',
       });
 
       // First soft-delete
-      await project.client.softDeleteIssue({
+      await project.client.softDeleteItem({
         projectPath: project.path,
-        issueId: created.id,
+        itemType: 'issues',
+        itemId: created.item.id,
       });
 
       // Then restore using display number
-      const result = await project.client.restoreIssue({
+      const result = await project.client.restoreItem({
         projectPath: project.path,
-        issueId: String(created.displayNumber),
+        itemType: 'issues',
+        itemId: String(created.item.metadata.displayNumber),
       });
 
       expect(result.success).toBe(true);
-      expect(result.issue?.metadata.deletedAt).toBe('');
+      expect(result.item.metadata.deletedAt).toBe('');
     });
 
     it('should delete issue by display number string', async () => {
-      const created = await project.client.createIssue({
+      const created = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Display Num Delete Test',
       });
 
-      const deleteResult = await project.client.deleteIssue({
+      const deleteResult = await project.client.deleteItem({
         projectPath: project.path,
-        issueId: String(created.displayNumber),
+        itemType: 'issues',
+        itemId: String(created.item.metadata.displayNumber),
+        force: true,
       });
 
       expect(deleteResult.success).toBe(true);
 
       // Verify it's gone
-      const listResult = await project.client.listIssues({
+      const listResult = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'issues',
       });
       expect(listResult.totalCount).toBe(0);
-    });
-  });
-
-  describe('GetNextIssueNumber', () => {
-    it('should return next available number', async () => {
-      const result1 = await project.client.getNextIssueNumber({
-        projectPath: project.path,
-      });
-
-      await project.client.createIssue({
-        projectPath: project.path,
-        title: 'Issue 1',
-      });
-
-      const result2 = await project.client.getNextIssueNumber({
-        projectPath: project.path,
-      });
-
-      expect(result1.issueNumber).toBeDefined();
-      expect(result2.issueNumber).toBeDefined();
     });
   });
 });

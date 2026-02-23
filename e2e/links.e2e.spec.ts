@@ -16,19 +16,21 @@ describe.skip('Links E2E Tests', () => {
     project = await createTempProject({ initialize: true });
 
     // Create two issues for linking tests
-    const issue1 = await project.client.createIssue({
+    const issue1 = await project.client.createItem({
       projectPath: project.path,
+      itemType: 'issues',
       title: 'Issue 1',
-      description: 'First test issue',
+      body: 'First test issue',
     });
-    issueId1 = issue1.id;
+    issueId1 = issue1.item.id;
 
-    const issue2 = await project.client.createIssue({
+    const issue2 = await project.client.createItem({
       projectPath: project.path,
+      itemType: 'issues',
       title: 'Issue 2',
-      description: 'Second test issue',
+      body: 'Second test issue',
     });
-    issueId2 = issue2.id;
+    issueId2 = issue2.item.id;
   });
 
   afterEach(async () => {
@@ -188,12 +190,13 @@ describe.skip('Links E2E Tests', () => {
 
     beforeEach(async () => {
       // Create a doc for cross-entity linking
-      const docResult = await project.client.createDoc({
+      const docResult = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Test Documentation',
-        content: 'This is test documentation content.',
+        body: 'This is test documentation content.',
       });
-      docSlug = docResult.slug;
+      docSlug = docResult.item.id;
     });
 
     it('should link issue to doc', async () => {
@@ -225,8 +228,9 @@ describe.skip('Links E2E Tests', () => {
       });
 
       // Create a third issue and link it
-      const issue3 = await project.client.createIssue({
+      const issue3 = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'Issue 3',
       });
 
@@ -234,7 +238,7 @@ describe.skip('Links E2E Tests', () => {
         projectPath: project.path,
         sourceId: issueId1,
         sourceType: LinkTargetType.ISSUE,
-        targetId: issue3.id,
+        targetId: issue3.item.id,
         targetType: LinkTargetType.ISSUE,
         linkType: 'parent-of',
       });
@@ -266,14 +270,15 @@ describe.skip('Links E2E Tests', () => {
 
     it('should return empty list when no links exist', async () => {
       // Create an issue with no links
-      const newIssue = await project.client.createIssue({
+      const newIssue = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'issues',
         title: 'No Links Issue',
       });
 
       const result = await project.client.listLinks({
         projectPath: project.path,
-        entityId: newIssue.id,
+        entityId: newIssue.item.id,
         entityType: LinkTargetType.ISSUE,
       });
 

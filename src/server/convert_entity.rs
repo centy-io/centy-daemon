@@ -1,50 +1,8 @@
-use crate::item::entities::issue::priority_label;
 use mdstore::TypeConfig;
 
 use super::proto::{
-    Doc, DocMetadata, GenericItem as ProtoGenericItem, GenericItemMetadata, Issue, IssueMetadata,
-    ItemTypeConfigProto, User as ProtoUser,
+    GenericItem as ProtoGenericItem, GenericItemMetadata, ItemTypeConfigProto, User as ProtoUser,
 };
-
-#[allow(deprecated)]
-pub fn issue_to_proto(issue: &crate::item::entities::issue::Issue, priority_levels: u32) -> Issue {
-    Issue {
-        id: issue.id.clone(),
-        display_number: issue.metadata.display_number,
-        issue_number: issue.issue_number.clone(), // Legacy
-        title: issue.title.clone(),
-        description: issue.description.clone(),
-        metadata: Some(IssueMetadata {
-            display_number: issue.metadata.display_number,
-            status: issue.metadata.status.clone(),
-            priority: issue.metadata.priority as i32,
-            created_at: issue.metadata.created_at.clone(),
-            updated_at: issue.metadata.updated_at.clone(),
-            custom_fields: issue.metadata.custom_fields.clone(),
-            priority_label: priority_label(issue.metadata.priority, priority_levels),
-            draft: issue.metadata.draft,
-            deleted_at: issue.metadata.deleted_at.clone().unwrap_or_default(),
-            is_org_issue: issue.metadata.is_org_issue,
-            org_slug: issue.metadata.org_slug.clone().unwrap_or_default(),
-            org_display_number: issue.metadata.org_display_number.unwrap_or(0),
-        }),
-    }
-}
-
-pub fn doc_to_proto(doc: &crate::item::entities::doc::Doc) -> Doc {
-    Doc {
-        slug: doc.slug.clone(),
-        title: doc.title.clone(),
-        content: doc.content.clone(),
-        metadata: Some(DocMetadata {
-            created_at: doc.metadata.created_at.clone(),
-            updated_at: doc.metadata.updated_at.clone(),
-            deleted_at: doc.metadata.deleted_at.clone().unwrap_or_default(),
-            is_org_doc: doc.metadata.is_org_doc,
-            org_slug: doc.metadata.org_slug.clone().unwrap_or_default(),
-        }),
-    }
-}
 
 pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGenericItem {
     ProtoGenericItem {

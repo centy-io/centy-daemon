@@ -12,7 +12,7 @@ use crate::server::structured_error::to_error_json;
 use mdstore::UpdateOptions;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::resolve_item_type_config;
+use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
@@ -30,9 +30,21 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
     };
     let hook_type = config.name.to_lowercase();
 
+    // Resolve display-number strings to real IDs
+    let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
+        Ok(id) => id,
+        Err(e) => {
+            return Ok(Response::new(UpdateItemResponse {
+                success: false,
+                error: to_error_json(&req.project_path, &e),
+                ..Default::default()
+            }));
+        }
+    };
+
     // Pre-hook
     let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.item_id.clone();
+    let hook_item_id = item_id.clone();
     let hook_data = serde_json::json!({
         "item_type": &item_type,
         "item_id": &req.item_id,
@@ -76,7 +88,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         custom_fields,
     };
 
-    match generic_update(project_path, &item_type, &config, &req.item_id, options).await {
+    match generic_update(project_path, &item_type, &config, &item_id, options).await {
         Ok(item) => {
             maybe_run_post_hooks(
                 project_path,

@@ -9,7 +9,7 @@ use crate::server::structured_error::to_error_json;
 use crate::user::delete_user;
 use tonic::{Response, Status};
 
-use super::item_type_resolve::resolve_item_type_config;
+use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
 pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());
@@ -42,12 +42,23 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
     };
     let hook_type = config.name.to_lowercase();
 
+    // Resolve display-number strings to real IDs
+    let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
+        Ok(id) => id,
+        Err(e) => {
+            return Ok(Response::new(DeleteItemResponse {
+                success: false,
+                error: to_error_json(&req.project_path, &e),
+            }));
+        }
+    };
+
     // Pre-hook
     let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.item_id.clone();
+    let hook_item_id = item_id.clone();
     let hook_request_data = serde_json::json!({
         "item_type": &item_type,
-        "item_id": &req.item_id,
+        "item_id": &item_id,
         "force": req.force,
     });
     if let Err(e) = maybe_run_pre_hooks(
@@ -66,7 +77,7 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
         }));
     }
 
-    match generic_delete(project_path, &item_type, &config, &req.item_id, req.force).await {
+    match generic_delete(project_path, &item_type, &config, &item_id, req.force).await {
         Ok(()) => {
             maybe_run_post_hooks(
                 project_path,
