@@ -1,9 +1,9 @@
 ---
 displayNumber: 159
-status: open
+status: in-progress
 priority: 2
 createdAt: 2026-02-10T12:02:17.554131+00:00
-updatedAt: 2026-02-10T12:02:17.554131+00:00
+updatedAt: 2026-02-22T23:38:03.537108+00:00
 ---
 
 # Flatten config to dot-separated keys (VS Code style)

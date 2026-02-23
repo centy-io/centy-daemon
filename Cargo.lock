@@ -255,7 +255,7 @@ dependencies = [
 
 [[package]]
 name = "centy-daemon"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3039,9 +3039,9 @@ dependencies = [
 
 [[package]]
 name = "worktree-io"
-version = "0.7.2"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beea5279c6f31277fff8ef91344d7754f34f7b7eab853e7d86e34994635aa2cb"
+checksum = "13061b3e38a0824484fe3b642a6f35ec6d0a53718314905b59d8e11b905d7361"
 dependencies = [
  "anyhow",
  "clap",
