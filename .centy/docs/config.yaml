@@ -1,5 +1,4 @@
 name: Doc
-plural: docs
 identifier: slug
 features:
   displayNumber: false

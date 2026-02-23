@@ -1,5 +1,4 @@
 name: Issue
-plural: issues
 identifier: uuid
 features:
   displayNumber: true
