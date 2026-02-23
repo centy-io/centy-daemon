@@ -1,6 +1,6 @@
 use super::CentyConfig;
 use crate::utils::get_centy_path;
-use mdstore::{IdStrategy, TypeConfig, TypeFeatures};
+use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{info, warn};
@@ -46,6 +46,38 @@ pub fn default_doc_config() -> TypeConfig {
         default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
+    }
+}
+
+/// Build the default archived config with hardcoded defaults.
+///
+/// The archived folder is a catch-all for items moved out of active view.
+/// Items retain their content and metadata; `original_item_type` tracks the
+/// source folder so they can be unarchived back to the correct location.
+#[must_use]
+pub fn default_archived_config() -> TypeConfig {
+    TypeConfig {
+        name: "Archived".to_string(),
+        identifier: IdStrategy::Uuid,
+        features: TypeFeatures {
+            display_number: false,
+            status: false,
+            priority: false,
+            assets: true,
+            org_sync: true,
+            move_item: true,
+            duplicate: false,
+        },
+        statuses: Vec::new(),
+        default_status: None,
+        priority_levels: None,
+        custom_fields: vec![CustomFieldDef {
+            name: "original_item_type".to_string(),
+            field_type: "string".to_string(),
+            required: false,
+            default_value: None,
+            enum_values: Vec::new(),
+        }],
     }
 }
 
@@ -190,7 +222,7 @@ impl ItemTypeRegistry {
     }
 }
 
-/// Create `config.yaml` for issues and docs if they don't already exist.
+/// Create `config.yaml` for issues, docs, and archived if they don't already exist.
 /// Returns the list of relative paths that were created.
 pub async fn migrate_to_item_type_configs(
     project_path: &Path,
@@ -214,6 +246,14 @@ pub async fn migrate_to_item_type_configs(
         let doc_config = default_doc_config();
         write_item_type_config(project_path, "docs", &doc_config).await?;
         created.push("docs/config.yaml".to_string());
+    }
+
+    // Archived
+    let archived_config_path = centy_path.join("archived").join("config.yaml");
+    if !archived_config_path.exists() {
+        let archived_config = default_archived_config();
+        write_item_type_config(project_path, "archived", &archived_config).await?;
+        created.push("archived/config.yaml".to_string());
     }
 
     Ok(created)
@@ -274,6 +314,48 @@ mod tests {
         assert!(doc.features.org_sync);
         assert!(doc.features.move_item);
         assert!(doc.features.duplicate);
+    }
+
+    #[test]
+    fn test_default_archived_config() {
+        let archived = default_archived_config();
+
+        assert_eq!(archived.name, "Archived");
+        assert_eq!(archived.identifier, IdStrategy::Uuid);
+        assert!(archived.statuses.is_empty());
+        assert!(archived.default_status.is_none());
+        assert!(archived.priority_levels.is_none());
+        assert_eq!(archived.custom_fields.len(), 1);
+        assert_eq!(archived.custom_fields[0].name, "original_item_type");
+        assert_eq!(archived.custom_fields[0].field_type, "string");
+        assert!(!archived.features.display_number);
+        assert!(!archived.features.status);
+        assert!(!archived.features.priority);
+        assert!(archived.features.assets);
+        assert!(archived.features.org_sync);
+        assert!(archived.features.move_item);
+        assert!(!archived.features.duplicate);
+    }
+
+    #[test]
+    fn test_archived_config_yaml_serialization() {
+        let config = default_archived_config();
+        let yaml = serde_yaml::to_string(&config).expect("Should serialize");
+
+        assert!(yaml.contains("name: Archived"));
+        assert!(yaml.contains("identifier: uuid"));
+        assert!(yaml.contains("displayNumber: false"));
+        assert!(yaml.contains("status: false"));
+        assert!(yaml.contains("priority: false"));
+        assert!(yaml.contains("assets: true"));
+        assert!(yaml.contains("orgSync: true"));
+        assert!(yaml.contains("move: true"));
+        assert!(yaml.contains("duplicate: false"));
+        assert!(yaml.contains("original_item_type"));
+        // Should NOT have statuses, defaultStatus, or priorityLevels
+        assert!(!yaml.contains("statuses:"));
+        assert!(!yaml.contains("defaultStatus:"));
+        assert!(!yaml.contains("priorityLevels:"));
     }
 
     #[test]
@@ -355,19 +437,24 @@ mod tests {
         fs::create_dir_all(centy_dir.join("docs"))
             .await
             .expect("create docs/");
+        fs::create_dir_all(centy_dir.join("archived"))
+            .await
+            .expect("create archived/");
 
         let config = CentyConfig::default();
         let created = migrate_to_item_type_configs(temp.path(), &config)
             .await
             .expect("Should migrate");
 
-        assert_eq!(created.len(), 2);
+        assert_eq!(created.len(), 3);
         assert!(created.contains(&"issues/config.yaml".to_string()));
         assert!(created.contains(&"docs/config.yaml".to_string()));
+        assert!(created.contains(&"archived/config.yaml".to_string()));
 
         // Files should exist on disk
         assert!(centy_dir.join("issues").join("config.yaml").exists());
         assert!(centy_dir.join("docs").join("config.yaml").exists());
+        assert!(centy_dir.join("archived").join("config.yaml").exists());
     }
 
     // ─── ItemTypeRegistry tests ───────────────────────────────────────────────
@@ -695,6 +782,9 @@ mod tests {
         fs::create_dir_all(centy_dir.join("docs"))
             .await
             .expect("create docs/");
+        fs::create_dir_all(centy_dir.join("archived"))
+            .await
+            .expect("create archived/");
 
         // Pre-create issues/config.yaml
         fs::write(
@@ -709,9 +799,10 @@ mod tests {
             .await
             .expect("Should migrate");
 
-        // Only docs should be created
-        assert_eq!(created.len(), 1);
+        // Only docs and archived should be created
+        assert_eq!(created.len(), 2);
         assert!(created.contains(&"docs/config.yaml".to_string()));
+        assert!(created.contains(&"archived/config.yaml".to_string()));
 
         // Existing file should be untouched
         let content = fs::read_to_string(centy_dir.join("issues").join("config.yaml"))

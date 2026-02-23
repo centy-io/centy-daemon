@@ -38,6 +38,7 @@ Use the CLI commands below to interact with the centy system.
 - `issues/` - Project issues
 - `docs/` - Project documentation
 - `assets/` - Shared assets
+- `archived/` - Archived items from any type
 - `templates/` - Custom templates for issues and docs
 
 ## Getting Started
@@ -228,6 +229,15 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     );
 
     files.insert(
+        "archived/".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::Directory,
+            content: None,
+            merge_strategy: None,
+        },
+    );
+
+    files.insert(
         "assets/".to_string(),
         ManagedFileTemplate {
             file_type: ManagedFileType::Directory,
@@ -370,6 +380,7 @@ mod tests {
         // Should have expected directories
         assert!(files.contains_key("issues/"));
         assert!(files.contains_key("docs/"));
+        assert!(files.contains_key("archived/"));
         assert!(files.contains_key("assets/"));
         assert!(files.contains_key("templates/"));
         assert!(files.contains_key("templates/issues/"));
@@ -390,6 +401,7 @@ mod tests {
         let directories = [
             "issues/",
             "docs/",
+            "archived/",
             "assets/",
             "templates/",
             "templates/issues/",
@@ -499,8 +511,8 @@ mod tests {
     fn test_get_managed_files_count() {
         let files = get_managed_files();
 
-        // 6 directories + 4 files = 10 total
-        assert_eq!(files.len(), 10);
+        // 7 directories + 4 files = 11 total
+        assert_eq!(files.len(), 11);
     }
 
     #[test]

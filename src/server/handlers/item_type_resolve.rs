@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_doc_config, default_issue_config, read_item_type_config, ItemTypeRegistry,
+    default_archived_config, default_doc_config, default_issue_config, read_item_type_config,
+    ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
-use crate::item::generic::storage::generic_get_by_display_number;
 use mdstore::TypeConfig;
 
 /// Resolve an item type string to its folder name and `TypeConfig`.
@@ -46,28 +46,7 @@ pub async fn resolve_item_type_config(
             Ok(("issues".to_string(), default_issue_config(&config)))
         }
         "docs" | "doc" => Ok(("docs".to_string(), default_doc_config())),
+        "archived" | "archive" => Ok(("archived".to_string(), default_archived_config())),
         _ => Err(ItemError::ItemTypeNotFound(item_type.to_string())),
     }
-}
-
-/// Resolve a display-number string to the actual item UUID.
-///
-/// If `id` is a pure positive-integer string (e.g. "1") and the item type has
-/// the `display_number` feature enabled, this looks up the item by display
-/// number and returns its real UUID.  Otherwise returns `id` unchanged.
-pub async fn resolve_item_id(
-    project_path: &Path,
-    folder: &str,
-    config: &TypeConfig,
-    id: &str,
-) -> Result<String, ItemError> {
-    if config.features.display_number {
-        if let Ok(num) = id.parse::<u32>() {
-            if num > 0 {
-                let item = generic_get_by_display_number(project_path, folder, config, num).await?;
-                return Ok(item.id);
-            }
-        }
-    }
-    Ok(id.to_string())
 }

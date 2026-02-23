@@ -32,6 +32,10 @@ pub fn verify_centy_structure(project_path: &Path) {
     );
     assert!(centy_path.join("issues").exists(), "issues/ should exist");
     assert!(centy_path.join("docs").exists(), "docs/ should exist");
+    assert!(
+        centy_path.join("archived").exists(),
+        "archived/ should exist"
+    );
     assert!(centy_path.join("assets").exists(), "assets/ should exist");
     assert!(
         centy_path.join("README.md").exists(),
@@ -48,5 +52,9 @@ pub fn verify_centy_structure(project_path: &Path) {
     assert!(
         centy_path.join("docs").join("config.yaml").exists(),
         "docs/config.yaml should exist"
+    );
+    assert!(
+        centy_path.join("archived").join("config.yaml").exists(),
+        "archived/config.yaml should exist"
     );
 }
