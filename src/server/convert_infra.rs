@@ -25,6 +25,8 @@ pub fn project_info_to_proto(info: &ProjectInfo) -> super::proto::ProjectInfo {
         organization_name: info.organization_name.clone().unwrap_or_default(),
         user_title: info.user_title.clone().unwrap_or_default(),
         project_title: info.project_title.clone().unwrap_or_default(),
+        project_version: info.project_version.clone().unwrap_or_default(),
+        project_behind: info.project_behind,
     }
 }
 

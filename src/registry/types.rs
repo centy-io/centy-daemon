@@ -114,6 +114,12 @@ pub struct ProjectInfo {
 
     /// Project-scope custom title (stored in .centy/project.json, visible to all)
     pub project_title: Option<String>,
+
+    /// The centy version recorded in the project manifest (fetched live)
+    pub project_version: Option<String>,
+
+    /// Whether the project version is behind the current daemon version (fetched live)
+    pub project_behind: bool,
 }
 
 /// Organization info returned by API (enriched with project count)
@@ -340,6 +346,8 @@ mod tests {
             organization_name: None,
             user_title: None,
             project_title: None,
+            project_version: None,
+            project_behind: false,
         };
 
         let debug = format!("{info:?}");

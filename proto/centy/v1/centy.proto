@@ -546,6 +546,8 @@ message ProjectInfo {
   string organization_name = 12;  // Organization display name (for convenience)
   string user_title = 13;         // User-scope custom title (from ~/.centy/projects.json)
   string project_title = 14;      // Project-scope custom title (from .centy/project.json)
+  string project_version = 15;    // Centy version recorded in manifest (empty if not initialized)
+  bool project_behind = 16;       // True if project version is behind current daemon version
 }
 
 message ListProjectsRequest {
