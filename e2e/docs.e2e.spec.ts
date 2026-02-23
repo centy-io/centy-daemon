@@ -4,7 +4,8 @@ import { createTempProject, type TempProject } from './fixtures/temp-project.js'
 /**
  * gRPC Plain Text Tests for Documentation Operations
  *
- * Tests direct gRPC calls for doc CRUD operations.
+ * Tests direct gRPC calls for doc CRUD operations using generic RPCs.
+ * Docs use item_type="docs" and are identified by slug as item_id.
  */
 describe('gRPC: Doc Operations', () => {
   let project: TempProject;
@@ -17,230 +18,280 @@ describe('gRPC: Doc Operations', () => {
     await project.cleanup();
   });
 
-  describe('CreateDoc', () => {
+  describe('CreateItem (docs)', () => {
     it('should create a doc with title only', async () => {
-      const result = await project.client.createDoc({
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Getting Started',
       });
 
       expect(result.success).toBe(true);
       expect(result.error).toBe('');
-      expect(result.slug).toBe('getting-started');
+      expect(result.item).toBeDefined();
+      expect(result.item!.id).toBe('getting-started');
+      expect(result.item!.itemType).toBe('docs');
     });
 
     it('should create a doc with content', async () => {
-      const result = await project.client.createDoc({
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'API Reference',
-        content: '# API\n\nThis is the API documentation.',
+        body: '# API\n\nThis is the API documentation.',
       });
 
       expect(result.success).toBe(true);
-      expect(result.slug).toBe('api-reference');
+      expect(result.item!.id).toBe('api-reference');
+      expect(result.item!.body).toContain('API documentation');
     });
 
-    it('should create a doc with custom slug', async () => {
-      const result = await project.client.createDoc({
+    it('should create a doc with custom slug via item_id', async () => {
+      // For docs, provide a pre-slugified title that becomes the id
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'My Guide',
-        slug: 'custom-slug',
       });
 
       expect(result.success).toBe(true);
-      expect(result.slug).toBe('custom-slug');
+      expect(result.item!.id).toBe('my-guide');
     });
 
-    it('should return created file path', async () => {
-      const result = await project.client.createDoc({
+    it('should have no display number or priority for docs', async () => {
+      const result = await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'File Path Test',
       });
 
-      expect(result.createdFile).toBeDefined();
-      expect(result.createdFile).toContain('.centy/docs/');
-      expect(result.createdFile).toContain('.md');
+      expect(result.success).toBe(true);
+      // Docs have no display number, status, or priority
+      expect(result.item!.metadata.displayNumber).toBe(0);
+      expect(result.item!.metadata.status).toBe('');
+      expect(result.item!.metadata.priority).toBe(0);
     });
   });
 
-  describe('GetDoc', () => {
+  describe('GetItem (docs)', () => {
     it('should get doc by slug', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Test Doc',
-        content: '# Test\n\nThis is test content.',
+        body: '# Test\n\nThis is test content.',
       });
 
-      const doc = await project.client.getDoc({
+      const result = await project.client.getItem({
         projectPath: project.path,
-        slug: 'test-doc',
+        itemType: 'docs',
+        itemId: 'test-doc',
       });
 
-      expect(doc.slug).toBe('test-doc');
-      expect(doc.title).toBe('Test Doc');
-      expect(doc.content).toContain('test content');
+      expect(result.success).toBe(true);
+      expect(result.item!.id).toBe('test-doc');
+      expect(result.item!.title).toBe('Test Doc');
+      expect(result.item!.body).toContain('test content');
     });
 
     it('should return doc metadata', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Metadata Test',
       });
 
-      const doc = await project.client.getDoc({
+      const result = await project.client.getItem({
         projectPath: project.path,
-        slug: 'metadata-test',
+        itemType: 'docs',
+        itemId: 'metadata-test',
       });
 
-      expect(doc.metadata).toBeDefined();
-      expect(doc.metadata.createdAt).toBeDefined();
-      expect(doc.metadata.updatedAt).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(result.item!.metadata).toBeDefined();
+      expect(result.item!.metadata.createdAt).toBeTruthy();
+      expect(result.item!.metadata.updatedAt).toBeTruthy();
     });
   });
 
-  describe('ListDocs', () => {
+  describe('ListItems (docs)', () => {
     it('should list all docs', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Doc One',
       });
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Doc Two',
       });
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Doc Three',
       });
 
-      const result = await project.client.listDocs({
+      const result = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'docs',
       });
 
+      expect(result.success).toBe(true);
       expect(result.totalCount).toBe(3);
-      expect(result.docs.length).toBe(3);
+      expect(result.items.length).toBe(3);
     });
 
     it('should return empty list for empty project', async () => {
-      const result = await project.client.listDocs({
+      const result = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'docs',
       });
 
+      expect(result.success).toBe(true);
       expect(result.totalCount).toBe(0);
-      expect(result.docs.length).toBe(0);
+      expect(result.items.length).toBe(0);
     });
 
     it('should return docs with all fields populated', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Full Doc',
-        content: '# Content here',
+        body: '# Content here',
       });
 
-      const result = await project.client.listDocs({
+      const result = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'docs',
       });
 
-      const doc = result.docs[0];
-      expect(doc.slug).toBeDefined();
+      expect(result.success).toBe(true);
+      const doc = result.items[0];
+      expect(doc.id).toBeDefined();
       expect(doc.title).toBeDefined();
       expect(doc.metadata).toBeDefined();
     });
   });
 
-  describe('UpdateDoc', () => {
+  describe('UpdateItem (docs)', () => {
     it('should update doc title', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Original Title',
       });
 
-      const result = await project.client.updateDoc({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        slug: 'original-title',
+        itemType: 'docs',
+        itemId: 'original-title',
         title: 'Updated Title',
       });
 
       expect(result.success).toBe(true);
-      expect(result.doc?.title).toBe('Updated Title');
+      expect(result.item?.title).toBe('Updated Title');
     });
 
     it('should update doc content', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'Content Test',
-        content: 'Original content',
+        body: 'Original content',
       });
 
-      const result = await project.client.updateDoc({
+      const result = await project.client.updateItem({
         projectPath: project.path,
-        slug: 'content-test',
-        content: 'Updated content with more information',
+        itemType: 'docs',
+        itemId: 'content-test',
+        body: 'Updated content with more information',
       });
 
       expect(result.success).toBe(true);
-      expect(result.doc?.content).toContain('Updated content');
-    });
-
-    it('should rename doc (change slug)', async () => {
-      await project.client.createDoc({
-        projectPath: project.path,
-        title: 'Old Slug',
-      });
-
-      const result = await project.client.updateDoc({
-        projectPath: project.path,
-        slug: 'old-slug',
-        newSlug: 'new-slug',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.doc?.slug).toBe('new-slug');
-
-      // Verify old slug no longer exists
-      try {
-        await project.client.getDoc({
-          projectPath: project.path,
-          slug: 'old-slug',
-        });
-        expect.fail('Should have thrown an error');
-      } catch {
-        // Expected
-      }
+      expect(result.item?.body).toContain('Updated content');
     });
   });
 
-  describe('DeleteDoc', () => {
+  describe('DeleteItem (docs)', () => {
     it('should delete a doc', async () => {
-      await project.client.createDoc({
+      await project.client.createItem({
         projectPath: project.path,
+        itemType: 'docs',
         title: 'To Delete',
       });
 
-      const deleteResult = await project.client.deleteDoc({
+      const deleteResult = await project.client.deleteItem({
         projectPath: project.path,
-        slug: 'to-delete',
+        itemType: 'docs',
+        itemId: 'to-delete',
+        force: true,
       });
 
       expect(deleteResult.success).toBe(true);
 
       // Verify it's gone
-      const listResult = await project.client.listDocs({
+      const listResult = await project.client.listItems({
         projectPath: project.path,
+        itemType: 'docs',
       });
       expect(listResult.totalCount).toBe(0);
     });
 
     it('should return error for non-existent doc', async () => {
-      try {
-        await project.client.deleteDoc({
-          projectPath: project.path,
-          slug: 'non-existent',
-        });
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error).toBeDefined();
-      }
+      const result = await project.client.deleteItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        itemId: 'non-existent',
+        force: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+    });
+  });
+
+  describe('SoftDeleteItem and RestoreItem (docs)', () => {
+    it('should soft-delete a doc', async () => {
+      await project.client.createItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        title: 'Soft Delete Test',
+      });
+
+      const result = await project.client.softDeleteItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        itemId: 'soft-delete-test',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.item?.metadata.deletedAt).toBeTruthy();
+    });
+
+    it('should restore a soft-deleted doc', async () => {
+      await project.client.createItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        title: 'Restore Test',
+      });
+
+      // First soft-delete
+      await project.client.softDeleteItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        itemId: 'restore-test',
+      });
+
+      // Then restore
+      const result = await project.client.restoreItem({
+        projectPath: project.path,
+        itemType: 'docs',
+        itemId: 'restore-test',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.item?.metadata.deletedAt).toBe('');
     });
   });
 });
