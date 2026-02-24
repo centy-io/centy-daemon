@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
 
@@ -12,6 +13,7 @@ pub struct HookExecResult {
     pub exit_code: i32,
     pub stdout: String,
     pub stderr: String,
+    pub duration_ms: u64,
 }
 
 /// Execute a single hook command
@@ -24,6 +26,7 @@ pub async fn execute_hook(
 ) -> Result<HookExecResult, HookError> {
     let env_vars = context.to_env_vars();
     let json_input = context.to_json()?;
+    let start = Instant::now();
 
     let mut child = Command::new("bash")
         .arg("-c")
@@ -52,6 +55,7 @@ pub async fn execute_hook(
 
     match wait_result {
         Ok(Ok(status)) => {
+            let duration_ms = start.elapsed().as_millis() as u64;
             // Read stdout and stderr
             let mut stdout_buf = Vec::new();
             let mut stderr_buf = Vec::new();
@@ -66,6 +70,7 @@ pub async fn execute_hook(
                 exit_code: status.code().unwrap_or(-1),
                 stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
                 stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
+                duration_ms,
             })
         }
         Ok(Err(e)) => Err(HookError::ExecutionError(format!(

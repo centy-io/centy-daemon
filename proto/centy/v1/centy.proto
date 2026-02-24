@@ -271,6 +271,14 @@ service CentyDaemon {
 
   // Search for an item by ID across all tracked projects
   rpc SearchItems(SearchItemsRequest) returns (SearchItemsResponse);
+
+  // ============ Hook Execution History RPCs ============
+
+  // List hook execution records for a project
+  rpc ListHookExecutions(ListHookExecutionsRequest) returns (ListHookExecutionsResponse);
+
+  // Get a single hook execution record by ID
+  rpc GetHookExecution(GetHookExecutionRequest) returns (GetHookExecutionResponse);
 }
 
 // ============ Init Messages ============
@@ -1495,5 +1503,49 @@ message UpdateOrgConfigResponse {
   bool success = 1;
   string error = 2;
   OrgConfig config = 3;
+}
+
+// ============ Hook Execution History Messages ============
+
+message HookExecution {
+  string id = 1;
+  string timestamp = 2;
+  string hook_pattern = 3;
+  string command = 4;
+  // -1 when timed_out is true (no exit code available)
+  int32 exit_code = 5;
+  string stdout = 6;
+  string stderr = 7;
+  uint64 duration_ms = 8;
+  bool blocked_operation = 9;
+  string phase = 10;
+  string item_type = 11;
+  string operation = 12;
+  string item_id = 13;
+  bool timed_out = 14;
+}
+
+message ListHookExecutionsRequest {
+  string project_path = 1;
+  // Optional filters
+  string phase = 2;
+  string item_type = 3;
+  string operation = 4;
+  string item_id = 5;
+  uint32 limit = 6;
+}
+
+message ListHookExecutionsResponse {
+  repeated HookExecution executions = 1;
+}
+
+message GetHookExecutionRequest {
+  string project_path = 1;
+  string execution_id = 2;
+}
+
+message GetHookExecutionResponse {
+  bool found = 1;
+  HookExecution execution = 2;
 }
 
