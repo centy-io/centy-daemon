@@ -9,6 +9,7 @@ use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{MoveItemRequest, MoveItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::{IdStrategy, TypeConfig};
 use tonic::{Response, Status};
@@ -70,6 +71,29 @@ async fn finish_move(
     }
 }
 
+/// Assert both source and target projects are initialized, returning an error response if not.
+async fn assert_both_initialized(
+    req: &MoveItemRequest,
+    source_path: &Path,
+    target_path: &Path,
+) -> Result<(), Response<MoveItemResponse>> {
+    if let Err(e) = assert_initialized(source_path).await {
+        return Err(Response::new(MoveItemResponse {
+            success: false,
+            error: to_error_json(&req.source_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    if let Err(e) = assert_initialized(target_path).await {
+        return Err(Response::new(MoveItemResponse {
+            success: false,
+            error: to_error_json(&req.target_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    Ok(())
+}
+
 /// Resolve item type configs for source and target paths.
 async fn resolve_configs(
     req: &MoveItemRequest,
@@ -103,6 +127,10 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
 
     let source_path = Path::new(&req.source_project_path);
     let target_path = Path::new(&req.target_project_path);
+
+    if let Err(resp) = assert_both_initialized(&req, source_path, target_path).await {
+        return Ok(resp);
+    }
 
     let ((source_type, source_config), (target_type, target_config)) =
         match resolve_configs(&req, source_path, target_path).await {

@@ -4,12 +4,20 @@ use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::config_to_proto::config_to_proto;
 use crate::server::proto::{Config, GetConfigRequest, GetConfigResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(GetConfigResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match read_config(project_path).await {
         Ok(Some(config)) => Ok(Response::new(GetConfigResponse {

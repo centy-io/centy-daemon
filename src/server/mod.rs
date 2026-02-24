@@ -1,3 +1,4 @@
+pub mod assert_service;
 mod action_builders;
 mod action_builders_extra;
 mod actions;

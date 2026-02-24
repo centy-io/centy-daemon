@@ -7,6 +7,7 @@ use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UnarchiveItemRequest, UnarchiveItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::{Item, TypeConfig};
 use tonic::{Response, Status};
@@ -127,6 +128,13 @@ pub async fn unarchive_item(
 ) -> Result<Response<UnarchiveItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(UnarchiveItemResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     // Resolve archived config
     let (archived_type, archived_config) =

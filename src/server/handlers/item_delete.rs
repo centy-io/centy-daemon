@@ -5,6 +5,7 @@ use crate::item::generic::storage::generic_delete;
 use crate::registry::track_project_async;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteItemRequest, DeleteItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::delete_user;
 use tonic::{Response, Status};
@@ -14,6 +15,12 @@ use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(DeleteItemResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+        }));
+    }
 
     // Route user type to user-specific handler
     let lower = req.item_type.to_lowercase();

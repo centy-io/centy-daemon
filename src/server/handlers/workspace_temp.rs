@@ -5,6 +5,7 @@ use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
 use crate::server::proto::{OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest};
 use crate::server::resolve::resolve_issue;
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::workspace::{create_temp_workspace, CreateWorkspaceOptions};
 use tonic::{Response, Status};
@@ -34,6 +35,14 @@ pub async fn open_in_temp_workspace(
 ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(err_response(
+            to_error_json(&req.project_path, &e),
+            String::new(),
+            0,
+            false,
+        ));
+    }
 
     let issue = match resolve_issue(project_path, &req.issue_id).await {
         Ok(i) => i,

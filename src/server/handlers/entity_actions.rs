@@ -4,9 +4,10 @@ use crate::config::item_type_config::read_item_type_config;
 use crate::registry::track_project_async;
 use crate::server::action_builders::build_issue_actions;
 use crate::server::action_builders_extra::build_doc_actions;
+use crate::server::assert_service::assert_initialized;
 use crate::server::proto::{EntityType, GetEntityActionsRequest, GetEntityActionsResponse};
 use crate::server::resolve::resolve_issue;
-use crate::server::structured_error::StructuredError;
+use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
 pub async fn get_entity_actions(
@@ -14,6 +15,13 @@ pub async fn get_entity_actions(
 ) -> Result<Response<GetEntityActionsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(GetEntityActionsResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     let has_entity_id = !req.entity_id.is_empty();
 

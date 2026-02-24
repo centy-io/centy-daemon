@@ -8,12 +8,20 @@ use crate::server::convert_link::proto_link_target_to_internal;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteLinkRequest, DeleteLinkResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn delete_link(req: DeleteLinkRequest) -> Result<Response<DeleteLinkResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(DeleteLinkResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.source_id.clone();
     let hook_request_data = serde_json::json!({
