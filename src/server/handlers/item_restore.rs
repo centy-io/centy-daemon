@@ -6,6 +6,7 @@ use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{RestoreItemRequest, RestoreItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
@@ -16,6 +17,13 @@ pub async fn restore_item(
 ) -> Result<Response<RestoreItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(RestoreItemResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     // Resolve config
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,

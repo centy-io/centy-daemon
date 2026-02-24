@@ -6,6 +6,7 @@ use crate::server::convert_entity::user_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{SoftDeleteUserRequest, SoftDeleteUserResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::soft_delete_user as internal_soft_delete_user;
 use tonic::{Response, Status};
@@ -15,6 +16,13 @@ pub async fn soft_delete_user(
 ) -> Result<Response<SoftDeleteUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(SoftDeleteUserResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     // Pre-hook
     let hook_project_path = req.project_path.clone();

@@ -6,12 +6,20 @@ use crate::server::proto::{
     GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse,
     ListSharedAssetsRequest,
 };
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListAssetsResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match crate::item::entities::issue::list_assets(project_path, &req.issue_id, req.include_shared)
         .await
@@ -37,6 +45,13 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
 pub async fn get_asset(req: GetAssetRequest) -> Result<Response<GetAssetResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(GetAssetResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     let issue_id = if req.issue_id.is_empty() {
         None
@@ -72,6 +87,13 @@ pub async fn list_shared_assets(
 ) -> Result<Response<ListAssetsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListAssetsResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match crate::item::entities::issue::list_shared_assets(project_path).await {
         Ok(assets) => {

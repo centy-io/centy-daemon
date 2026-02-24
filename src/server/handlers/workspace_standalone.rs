@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::proto::{
     OpenStandaloneWorkspaceResponse, OpenStandaloneWorkspaceWithEditorRequest,
 };
@@ -27,6 +28,10 @@ pub async fn open_standalone_workspace(
             original_created_at: String::new(),
         }))
     };
+
+    if let Err(e) = assert_initialized(project_path).await {
+        return err_response(to_error_json(&req.project_path, &e));
+    }
 
     let name = if req.name.is_empty() {
         None

@@ -10,10 +10,38 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::resolve_item_type_config;
+
+fn err_resp(cwd: &str, e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError) -> Response<DuplicateItemResponse> {
+    Response::new(DuplicateItemResponse { success: false, error: to_error_json(cwd, &e), ..Default::default() })
+}
+
+/// Assert both source and target projects are initialized, returning an error response if not.
+async fn assert_both_initialized(
+    req: &DuplicateItemRequest,
+    source_path: &Path,
+    target_path: &Path,
+) -> Result<(), Response<DuplicateItemResponse>> {
+    if let Err(e) = assert_initialized(source_path).await {
+        return Err(Response::new(DuplicateItemResponse {
+            success: false,
+            error: to_error_json(&req.source_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    if let Err(e) = assert_initialized(target_path).await {
+        return Err(Response::new(DuplicateItemResponse {
+            success: false,
+            error: to_error_json(&req.target_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    Ok(())
+}
 
 pub async fn duplicate_item(
     req: DuplicateItemRequest,
@@ -21,32 +49,25 @@ pub async fn duplicate_item(
     track_project_async(req.source_project_path.clone());
     track_project_async(req.target_project_path.clone());
 
+    let source_path = Path::new(&req.source_project_path);
     let target_project_path = Path::new(&req.target_project_path);
+
+    if let Err(resp) = assert_both_initialized(&req, source_path, target_project_path).await {
+        return Ok(resp);
+    }
 
     // Resolve config from target project
     let (item_type, config) =
         match resolve_item_type_config(target_project_path, &req.item_type).await {
             Ok(pair) => pair,
-            Err(e) => {
-                return Ok(Response::new(DuplicateItemResponse {
-                    success: false,
-                    error: to_error_json(&req.source_project_path, &e),
-                    ..Default::default()
-                }));
-            }
+            Err(e) => return Ok(err_resp(&req.source_project_path, e)),
         };
     let hook_type = config.name.to_lowercase();
 
     // Check if duplicate feature is enabled
     if !config.features.duplicate {
-        return Ok(Response::new(DuplicateItemResponse {
-            success: false,
-            error: to_error_json(
-                &req.source_project_path,
-                &crate::item::core::error::ItemError::FeatureNotEnabled("duplicate".to_string()),
-            ),
-            ..Default::default()
-        }));
+        let e = crate::item::core::error::ItemError::FeatureNotEnabled("duplicate".to_string());
+        return Ok(err_resp(&req.source_project_path, e));
     }
 
     // Pre-hook

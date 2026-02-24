@@ -5,6 +5,7 @@ use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::registry::track_project_async;
 use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::StructuredError;
 use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 use tonic::{Response, Status};
@@ -119,6 +120,9 @@ pub async fn create_item_type(
     track_project_async(req.project_path.clone());
     let cwd = req.project_path.clone();
     let project_path = Path::new(&cwd);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(error_response(&cwd, "NOT_INITIALIZED", e.to_string()));
+    }
 
     if let Err((code, msg)) = validate_request(&req) {
         return Ok(error_response(&cwd, &code, msg));

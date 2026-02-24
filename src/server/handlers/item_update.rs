@@ -8,11 +8,20 @@ use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UpdateItemRequest, UpdateItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::UpdateOptions;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
+
+fn err_response(cwd: &str, e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError) -> Response<UpdateItemResponse> {
+    Response::new(UpdateItemResponse {
+        success: false,
+        error: to_error_json(cwd, &e),
+        ..Default::default()
+    })
+}
 
 fn build_update_options(
     title: String,
@@ -40,29 +49,20 @@ fn build_update_options(
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(err_response(&req.project_path, e));
+    }
     // Resolve config
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
-        Err(e) => {
-            return Ok(Response::new(UpdateItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-                ..Default::default()
-            }));
-        }
+        Err(e) => return Ok(err_response(&req.project_path, e)),
     };
     let hook_type = config.name.to_lowercase();
 
     // Resolve display-number strings to real IDs
     let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
         Ok(id) => id,
-        Err(e) => {
-            return Ok(Response::new(UpdateItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-                ..Default::default()
-            }));
-        }
+        Err(e) => return Ok(err_response(&req.project_path, e)),
     };
 
     // Pre-hook

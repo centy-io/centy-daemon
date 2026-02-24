@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::user_to_proto;
 use crate::server::proto::{GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::{get_user as internal_get_user, list_users as internal_list_users};
 use tonic::{Response, Status};
@@ -10,6 +11,13 @@ use tonic::{Response, Status};
 pub async fn get_user(req: GetUserRequest) -> Result<Response<GetUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(GetUserResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match internal_get_user(project_path, &req.user_id).await {
         Ok(user) => Ok(Response::new(GetUserResponse {
@@ -28,6 +36,13 @@ pub async fn get_user(req: GetUserRequest) -> Result<Response<GetUserResponse>, 
 pub async fn list_users(req: ListUsersRequest) -> Result<Response<ListUsersResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListUsersResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     let filter = if req.git_username.is_empty() {
         None

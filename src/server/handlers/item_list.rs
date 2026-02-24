@@ -4,6 +4,7 @@ use crate::item::generic::storage::generic_list;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::proto::{ListItemsRequest, ListItemsResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::Filters;
 use tonic::{Response, Status};
@@ -13,6 +14,13 @@ use super::item_type_resolve::resolve_item_type_config;
 pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListItemsResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     let (item_type, _config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
         Err(e) => {

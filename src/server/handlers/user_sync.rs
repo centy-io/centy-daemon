@@ -5,6 +5,7 @@ use crate::server::convert_infra::manifest_to_proto;
 use crate::server::proto::{
     GitContributor as ProtoGitContributor, SyncUsersRequest, SyncUsersResponse,
 };
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::sync_users as internal_sync_users;
 use tonic::{Response, Status};
@@ -12,6 +13,13 @@ use tonic::{Response, Status};
 pub async fn sync_users(req: SyncUsersRequest) -> Result<Response<SyncUsersResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(SyncUsersResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match internal_sync_users(project_path, req.dry_run).await {
         Ok(full_result) => {

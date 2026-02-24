@@ -7,12 +7,20 @@ use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
 };
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListLinksResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     // Convert proto type to internal type
     let entity_type = proto_link_target_to_internal(req.entity_type());

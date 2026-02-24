@@ -4,6 +4,7 @@ use crate::config::item_type_config::ItemTypeRegistry;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::{ListItemTypesRequest, ListItemTypesResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
@@ -12,6 +13,13 @@ pub async fn list_item_types(
 ) -> Result<Response<ListItemTypesResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(ListItemTypesResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
 
     match ItemTypeRegistry::build(project_path).await {
         Ok(registry) => {

@@ -8,6 +8,7 @@ use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreateItemRequest, CreateItemResponse};
+use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::CreateOptions;
 use tonic::{Response, Status};
@@ -17,6 +18,13 @@ use super::item_type_resolve::resolve_item_type_config;
 pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path).await {
+        return Ok(Response::new(CreateItemResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     // Resolve config
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,

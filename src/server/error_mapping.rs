@@ -3,6 +3,19 @@ pub trait ToStructuredError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>);
 }
 
+// ── AssertError ─────────────────────────────────────────────────────────────
+impl ToStructuredError for crate::server::assert_service::AssertError {
+    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
+        use crate::server::assert_service::AssertError;
+        match self {
+            AssertError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
+        }
+    }
+}
+
 // ── ItemError ──────────────────────────────────────────────────────────────────
 impl ToStructuredError for crate::item::core::error::ItemError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
