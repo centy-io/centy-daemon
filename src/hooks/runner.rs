@@ -1,10 +1,12 @@
 use std::path::Path;
 use tracing::{debug, warn};
+use uuid::Uuid;
 
 use super::config::{HookDefinition, HookOperation, ParsedPattern, Phase};
 use super::context::HookContext;
 use super::error::HookError;
 use super::executor::execute_hook;
+use super::history::{append_hook_execution, HookExecutionRecord};
 
 /// Load hooks configuration from the project's config.json.
 /// Returns an empty vec if no config exists or no hooks are configured.
@@ -62,21 +64,71 @@ pub async fn run_pre_hooks(
     );
 
     for hook in matching {
-        let result = execute_hook(
+        let exec_result = execute_hook(
             &hook.command,
             context,
             project_path,
             hook.timeout,
             &hook.pattern,
         )
-        .await?;
+        .await;
 
-        if result.exit_code != 0 {
-            return Err(HookError::PreHookFailed {
-                pattern: hook.pattern.clone(),
-                exit_code: result.exit_code,
-                stderr: result.stderr,
-            });
+        match exec_result {
+            Ok(result) => {
+                let blocked = result.exit_code != 0;
+                let record = HookExecutionRecord {
+                    id: Uuid::new_v4().to_string(),
+                    timestamp: chrono::Utc::now(),
+                    hook_pattern: hook.pattern.clone(),
+                    command: hook.command.clone(),
+                    exit_code: Some(result.exit_code),
+                    stdout: result.stdout.clone(),
+                    stderr: result.stderr.clone(),
+                    duration_ms: result.duration_ms,
+                    blocked_operation: blocked,
+                    phase: context.phase.clone(),
+                    item_type: context.item_type.clone(),
+                    operation: context.operation.clone(),
+                    item_id: context.item_id.clone(),
+                    timed_out: false,
+                };
+                append_hook_execution(project_path, &record).await;
+
+                if blocked {
+                    return Err(HookError::PreHookFailed {
+                        pattern: hook.pattern.clone(),
+                        exit_code: result.exit_code,
+                        stderr: result.stderr,
+                    });
+                }
+            }
+            Err(HookError::Timeout {
+                ref pattern,
+                timeout_secs,
+            }) => {
+                let record = HookExecutionRecord {
+                    id: Uuid::new_v4().to_string(),
+                    timestamp: chrono::Utc::now(),
+                    hook_pattern: hook.pattern.clone(),
+                    command: hook.command.clone(),
+                    exit_code: None,
+                    stdout: String::new(),
+                    stderr: String::new(),
+                    duration_ms: timeout_secs * 1000,
+                    blocked_operation: true,
+                    phase: context.phase.clone(),
+                    item_type: context.item_type.clone(),
+                    operation: context.operation.clone(),
+                    item_id: context.item_id.clone(),
+                    timed_out: true,
+                };
+                append_hook_execution(project_path, &record).await;
+                return Err(HookError::Timeout {
+                    pattern: pattern.clone(),
+                    timeout_secs,
+                });
+            }
+            Err(e) => return Err(e),
         }
     }
 
@@ -116,16 +168,57 @@ pub async fn run_post_hooks(
             let pattern = hook.pattern.clone();
             tokio::spawn(async move {
                 match execute_hook(&command, &context, &path, timeout, &pattern).await {
-                    Ok(result) if result.exit_code != 0 => {
-                        debug!(
-                            "Async post-hook '{}' exited with code {}: {}",
-                            pattern, result.exit_code, result.stderr
-                        );
+                    Ok(result) => {
+                        let record = HookExecutionRecord {
+                            id: Uuid::new_v4().to_string(),
+                            timestamp: chrono::Utc::now(),
+                            hook_pattern: pattern.clone(),
+                            command: command.clone(),
+                            exit_code: Some(result.exit_code),
+                            stdout: result.stdout.clone(),
+                            stderr: result.stderr.clone(),
+                            duration_ms: result.duration_ms,
+                            blocked_operation: false,
+                            phase: context.phase.clone(),
+                            item_type: context.item_type.clone(),
+                            operation: context.operation.clone(),
+                            item_id: context.item_id.clone(),
+                            timed_out: false,
+                        };
+                        append_hook_execution(&path, &record).await;
+                        if result.exit_code != 0 {
+                            debug!(
+                                "Async post-hook '{}' exited with code {}: {}",
+                                pattern, result.exit_code, result.stderr
+                            );
+                        }
+                    }
+                    Err(HookError::Timeout {
+                        ref pattern,
+                        timeout_secs,
+                    }) => {
+                        let record = HookExecutionRecord {
+                            id: Uuid::new_v4().to_string(),
+                            timestamp: chrono::Utc::now(),
+                            hook_pattern: pattern.clone(),
+                            command: command.clone(),
+                            exit_code: None,
+                            stdout: String::new(),
+                            stderr: String::new(),
+                            duration_ms: timeout_secs * 1000,
+                            blocked_operation: false,
+                            phase: context.phase.clone(),
+                            item_type: context.item_type.clone(),
+                            operation: context.operation.clone(),
+                            item_id: context.item_id.clone(),
+                            timed_out: true,
+                        };
+                        append_hook_execution(&path, &record).await;
+                        debug!("Async post-hook '{}' timed out", pattern);
                     }
                     Err(e) => {
                         debug!("Async post-hook '{}' failed: {}", pattern, e);
                     }
-                    _ => {}
                 }
             });
         } else {
@@ -139,16 +232,57 @@ pub async fn run_post_hooks(
             )
             .await
             {
-                Ok(result) if result.exit_code != 0 => {
-                    warn!(
-                        "Post-hook '{}' exited with code {}: {}",
-                        hook.pattern, result.exit_code, result.stderr
-                    );
+                Ok(result) => {
+                    let record = HookExecutionRecord {
+                        id: Uuid::new_v4().to_string(),
+                        timestamp: chrono::Utc::now(),
+                        hook_pattern: hook.pattern.clone(),
+                        command: hook.command.clone(),
+                        exit_code: Some(result.exit_code),
+                        stdout: result.stdout.clone(),
+                        stderr: result.stderr.clone(),
+                        duration_ms: result.duration_ms,
+                        blocked_operation: false,
+                        phase: context.phase.clone(),
+                        item_type: context.item_type.clone(),
+                        operation: context.operation.clone(),
+                        item_id: context.item_id.clone(),
+                        timed_out: false,
+                    };
+                    append_hook_execution(project_path, &record).await;
+                    if result.exit_code != 0 {
+                        warn!(
+                            "Post-hook '{}' exited with code {}: {}",
+                            hook.pattern, result.exit_code, result.stderr
+                        );
+                    }
+                }
+                Err(HookError::Timeout {
+                    ref pattern,
+                    timeout_secs,
+                }) => {
+                    let record = HookExecutionRecord {
+                        id: Uuid::new_v4().to_string(),
+                        timestamp: chrono::Utc::now(),
+                        hook_pattern: hook.pattern.clone(),
+                        command: hook.command.clone(),
+                        exit_code: None,
+                        stdout: String::new(),
+                        stderr: String::new(),
+                        duration_ms: timeout_secs * 1000,
+                        blocked_operation: false,
+                        phase: context.phase.clone(),
+                        item_type: context.item_type.clone(),
+                        operation: context.operation.clone(),
+                        item_id: context.item_id.clone(),
+                        timed_out: true,
+                    };
+                    append_hook_execution(project_path, &record).await;
+                    warn!("Post-hook '{}' timed out", pattern);
                 }
                 Err(e) => {
                     warn!("Post-hook '{}' failed: {}", hook.pattern, e);
                 }
-                _ => {}
             }
         }
     }

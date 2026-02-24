@@ -6,6 +6,7 @@ pub mod config_update;
 pub mod daemon;
 pub mod daemon_restart;
 pub mod entity_actions;
+pub mod hook_execution_read;
 pub mod init;
 pub mod item_archive;
 pub mod item_create;

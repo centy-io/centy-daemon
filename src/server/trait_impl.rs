@@ -700,4 +700,30 @@ impl CentyDaemon for CentyDaemonService {
         let _timer = OperationTimer::new("search_items");
         handlers::item_search::search_items(request.into_inner()).await
     }
+
+    #[instrument(
+        name = "grpc.list_hook_executions",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn list_hook_executions(
+        &self,
+        request: Request<ListHookExecutionsRequest>,
+    ) -> Result<Response<ListHookExecutionsResponse>, Status> {
+        let _timer = OperationTimer::new("list_hook_executions");
+        handlers::hook_execution_read::list_hook_executions_handler(request.into_inner()).await
+    }
+
+    #[instrument(
+        name = "grpc.get_hook_execution",
+        skip(self, request),
+        fields(request_id = %generate_request_id())
+    )]
+    async fn get_hook_execution(
+        &self,
+        request: Request<GetHookExecutionRequest>,
+    ) -> Result<Response<GetHookExecutionResponse>, Status> {
+        let _timer = OperationTimer::new("get_hook_execution");
+        handlers::hook_execution_read::get_hook_execution_handler(request.into_inner()).await
+    }
 }
