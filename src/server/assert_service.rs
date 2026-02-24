@@ -42,7 +42,7 @@ impl fmt::Display for AssertError {
 /// Assert that the project at `project_path` has been initialized.
 ///
 /// Initialization is determined by the presence of `.centy/.centy-manifest.json`.
-/// This is a fast check (single `metadata` syscall) and does not modify any files.
+/// This is a fast check (single filesystem stat) and does not modify any files.
 ///
 /// # Errors
 ///
@@ -58,7 +58,6 @@ pub async fn assert_initialized(project_path: &Path) -> Result<(), AssertError> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
     use tempfile::TempDir;
 
     #[tokio::test]
