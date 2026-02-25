@@ -15,7 +15,20 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   includeDirs: [join(process.cwd(), '../proto')],
 });
 
-const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
+interface CentyProtoDescriptor extends grpc.GrpcObject {
+  centy: {
+    v1: {
+      CentyDaemon: new (
+        address: string,
+        credentials: grpc.ChannelCredentials
+      ) => grpc.Client;
+    };
+  };
+}
+
+const protoDescriptor = grpc.loadPackageDefinition(
+  packageDefinition
+) as unknown as CentyProtoDescriptor;
 
 // Type definitions for gRPC client methods
 export interface CentyClient {
@@ -797,7 +810,7 @@ export interface FileInfo {
   contentPreview: string;
 }
 
-export interface GetDaemonInfoRequest {}
+export type GetDaemonInfoRequest = Record<string, never>;
 
 export interface DaemonInfo {
   version: string;
@@ -846,7 +859,7 @@ export interface CreateOrganizationResponse {
   organization?: Organization;
 }
 
-export interface ListOrganizationsRequest {}
+export type ListOrganizationsRequest = Record<string, never>;
 
 export interface ListOrganizationsResponse {
   organizations: Organization[];
@@ -1231,10 +1244,12 @@ export function createGrpcClient(
  */
 export function promisifyClient(client: CentyClient) {
   const promisify =
-    <TReq, TRes>(method: (req: TReq, cb: (err: any, res: TRes) => void) => void) =>
+    <TReq, TRes>(
+      method: (req: TReq, cb: (err: grpc.ServiceError | null, res: TRes) => void) => void
+    ) =>
     (request: TReq): Promise<TRes> =>
       new Promise((resolve, reject) => {
-        method.call(client, request, (err: any, response: TRes) => {
+        method.call(client, request, (err: grpc.ServiceError | null, response: TRes) => {
           if (err) reject(err);
           else resolve(response);
         });

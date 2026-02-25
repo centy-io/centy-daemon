@@ -155,7 +155,7 @@ describe.skip('Org Issues E2E Tests', () => {
           issueId: 'non-existent-uuid',
         });
         expect.fail('Should have thrown an error');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeDefined();
       }
     });
@@ -185,7 +185,7 @@ describe.skip('Org Issues E2E Tests', () => {
           displayNumber: 999,
         });
         expect.fail('Should have thrown an error');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeDefined();
       }
     });
@@ -407,7 +407,7 @@ describe.skip('Org Issues E2E Tests', () => {
           issueId: created.id,
         });
         expect.fail('Should have thrown an error');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeDefined();
       }
     });
@@ -419,7 +419,7 @@ describe.skip('Org Issues E2E Tests', () => {
           issueId: 'non-existent-uuid',
         });
         expect.fail('Should have thrown an error');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeDefined();
       }
     });

@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  createTempProject,
-  type TempProject,
-  testData,
-} from './fixtures/temp-project.js';
+import { createTempProject, type TempProject } from './fixtures/temp-project.js';
 import { LinkTargetType } from './fixtures/grpc-client.js';
 
 // Skip until links backend is implemented

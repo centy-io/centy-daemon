@@ -338,7 +338,7 @@ describe('gRPC: Issue Operations', () => {
           force: true,
         });
         expect.fail('Should have thrown an error');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeDefined();
       }
     });
