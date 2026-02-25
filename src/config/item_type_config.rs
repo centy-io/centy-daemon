@@ -142,9 +142,19 @@ impl From<&ItemTypeConfig> for TypeConfig {
 
 // ── Default configs ───────────────────────────────────────────────────────────
 
+/// Default issue statuses used when no legacy `allowedStates` migration data is available.
+pub const DEFAULT_ISSUE_STATUSES: &[&str] = &["open", "planning", "in-progress", "closed"];
+
 /// Build the default issues config from the project's `CentyConfig`.
+/// Statuses default to [`DEFAULT_ISSUE_STATUSES`]; callers that perform legacy
+/// migration should overwrite `statuses` / `default_status` after calling this.
 #[must_use]
 pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
+    let statuses: Vec<String> = DEFAULT_ISSUE_STATUSES
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect();
+    let default_status = statuses.first().cloned();
     ItemTypeConfig {
         name: "Issue".to_string(),
         icon: Some("clipboard".to_string()),
@@ -159,11 +169,30 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
             move_item: true,
             duplicate: true,
         },
-        statuses: config.allowed_states.clone(),
-        default_status: config.allowed_states.first().cloned(),
+        statuses,
+        default_status,
         priority_levels: Some(config.priority_levels),
         custom_fields: config.custom_fields.clone(),
         template: Some("template.md".to_string()),
+    }
+}
+
+/// Read legacy `allowedStates` from a raw `config.json` file, if present.
+/// Returns `None` when config.json is absent, malformed, or has no `allowedStates` key.
+/// Must be called **before** `read_config` so the key is still present on disk.
+pub async fn read_legacy_allowed_states(project_path: &Path) -> Option<Vec<String>> {
+    let config_path = get_centy_path(project_path).join("config.json");
+    let content = fs::read_to_string(&config_path).await.ok()?;
+    let raw: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let arr = raw.get("allowedStates")?.as_array()?;
+    let states: Vec<String> = arr
+        .iter()
+        .filter_map(|v| v.as_str().map(str::to_string))
+        .collect();
+    if states.is_empty() {
+        None
+    } else {
+        Some(states)
     }
 }
 
@@ -440,9 +469,14 @@ impl ItemTypeRegistry {
 
 /// Create `config.yaml` for issues, docs, and archived if they don't already exist.
 /// Returns the list of relative paths that were created.
+///
+/// `legacy_statuses` – caller should supply the `allowedStates` value read from
+/// `config.json` *before* `read_config` strips that key, so the migration can
+/// preserve custom statuses defined in old projects.
 pub async fn migrate_to_item_type_configs(
     project_path: &Path,
     config: &CentyConfig,
+    legacy_statuses: Option<Vec<String>>,
 ) -> Result<Vec<String>, mdstore::ConfigError> {
     let mut created = Vec::new();
 
@@ -451,7 +485,12 @@ pub async fn migrate_to_item_type_configs(
     // Issues
     let issues_config_path = centy_path.join("issues").join("config.yaml");
     if !issues_config_path.exists() {
-        let issue_config = default_issue_config(config);
+        let mut issue_config = default_issue_config(config);
+        // Apply legacy `allowedStates` from old config.json when available.
+        if let Some(statuses) = legacy_statuses.filter(|s| !s.is_empty()) {
+            issue_config.default_status = statuses.first().cloned();
+            issue_config.statuses = statuses;
+        }
         write_item_type_config(project_path, "issues", &issue_config).await?;
         created.push("issues/config.yaml".to_string());
     }
@@ -494,11 +533,6 @@ mod tests {
     #[test]
     fn test_default_issue_config_maps_fields() {
         let mut config = CentyConfig::default();
-        config.allowed_states = vec![
-            "open".to_string(),
-            "in-progress".to_string(),
-            "closed".to_string(),
-        ];
         config.priority_levels = 5;
 
         let issue = default_issue_config(&config);
@@ -506,7 +540,14 @@ mod tests {
         assert_eq!(issue.name, "Issue");
         assert_eq!(issue.icon, Some("clipboard".to_string()));
         assert_eq!(issue.identifier, IdStrategy::Uuid);
-        assert_eq!(issue.statuses, config.allowed_states);
+        // Statuses default to the built-in list (allowedStates removed from CentyConfig)
+        assert_eq!(
+            issue.statuses,
+            DEFAULT_ISSUE_STATUSES
+                .iter()
+                .map(|s| (*s).to_string())
+                .collect::<Vec<_>>()
+        );
         assert_eq!(issue.default_status, Some("open".to_string()));
         assert_eq!(issue.priority_levels, Some(5));
         assert_eq!(issue.template, Some("template.md".to_string()));
@@ -932,7 +973,7 @@ mod tests {
             .expect("create archived/");
 
         let config = CentyConfig::default();
-        let created = migrate_to_item_type_configs(temp.path(), &config)
+        let created = migrate_to_item_type_configs(temp.path(), &config, None)
             .await
             .expect("Should migrate");
 
@@ -1292,7 +1333,7 @@ mod tests {
         .expect("write");
 
         let config = CentyConfig::default();
-        let created = migrate_to_item_type_configs(temp.path(), &config)
+        let created = migrate_to_item_type_configs(temp.path(), &config, None)
             .await
             .expect("Should migrate");
 
