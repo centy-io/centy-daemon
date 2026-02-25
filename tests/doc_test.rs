@@ -4,6 +4,7 @@
 mod common;
 
 use centy_daemon::config::item_type_config::default_doc_config;
+use mdstore::TypeConfig;
 use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::doc::{
     create_doc, get_doc, list_docs, update_doc, CreateDocOptions, UpdateDocOptions,
@@ -461,7 +462,7 @@ async fn test_delete_doc_success() {
     assert!(get_doc(project_path, "to-delete").await.is_ok());
 
     // Delete it
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
     generic_delete(project_path, "docs", &config, "to-delete", true)
         .await
         .expect("Should delete doc");
@@ -481,7 +482,7 @@ async fn test_delete_doc_not_found() {
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
 
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
     let result = generic_delete(project_path, "docs", &config, "nonexistent", true).await;
 
     assert!(result.is_err());
@@ -509,7 +510,7 @@ async fn test_delete_doc_removes_file() {
     let doc_path = project_path.join(".centy").join("docs").join("test-doc.md");
     assert!(doc_path.exists(), "Doc file should exist after creation");
 
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
     generic_delete(project_path, "docs", &config, "test-doc", true)
         .await
         .unwrap();
@@ -631,7 +632,7 @@ async fn test_move_doc_success() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
 
     // Create doc in source
     create_doc(
@@ -681,7 +682,7 @@ async fn test_move_doc_with_slug_conflict() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
 
     // Create doc with same slug in both projects
     create_doc(
@@ -746,7 +747,7 @@ async fn test_move_doc_same_project_fails() {
 
     init_centy_project(project_path).await;
 
-    let config = default_doc_config();
+    let config = TypeConfig::from(&default_doc_config());
 
     create_doc(
         project_path,
@@ -797,7 +798,7 @@ async fn test_duplicate_doc_same_project() {
     .await
     .unwrap();
 
-    let item_type_config = default_doc_config();
+    let item_type_config = TypeConfig::from(&default_doc_config());
 
     let result = generic_duplicate(
         "docs",
@@ -841,7 +842,7 @@ async fn test_duplicate_doc_custom_slug_and_title() {
     .await
     .unwrap();
 
-    let item_type_config = default_doc_config();
+    let item_type_config = TypeConfig::from(&default_doc_config());
 
     let result = generic_duplicate(
         "docs",
@@ -883,7 +884,7 @@ async fn test_duplicate_doc_to_different_project() {
     .await
     .unwrap();
 
-    let item_type_config = default_doc_config();
+    let item_type_config = TypeConfig::from(&default_doc_config());
 
     let result = generic_duplicate(
         "docs",

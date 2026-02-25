@@ -51,6 +51,14 @@ fn minimal_config() -> TypeConfig {
     }
 }
 
+fn issue_type_config() -> TypeConfig {
+    TypeConfig::from(&default_issue_config(&CentyConfig::default()))
+}
+
+fn doc_type_config() -> TypeConfig {
+    TypeConfig::from(&default_doc_config())
+}
+
 // ─── Full CRUD Roundtrip (all features enabled) ─────────────────────────────
 
 #[tokio::test]
@@ -59,7 +67,7 @@ async fn test_full_crud_roundtrip() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     // Create
     let item = generic_create(
@@ -186,7 +194,7 @@ async fn test_display_number_auto_increment() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     for i in 1..=5u32 {
         let item = generic_create(
@@ -223,7 +231,7 @@ async fn test_status_validation_on_create() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     // Valid status
     let result = generic_create(
@@ -266,7 +274,7 @@ async fn test_status_validation_on_update() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let item = generic_create(
         path,
@@ -321,7 +329,7 @@ async fn test_priority_validation() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default()); // priority_levels = 3
+    let config = issue_type_config(); // priority_levels = 3
 
     // Valid priority (1-3)
     for p in 1..=3u32 {
@@ -385,7 +393,7 @@ async fn test_soft_delete_restore_hard_delete() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let item = generic_create(
         path,
@@ -463,7 +471,7 @@ async fn test_list_filters() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     // Create items with different statuses and priorities
     let combinations = [
@@ -546,7 +554,7 @@ async fn test_uuid_id_strategy() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default()); // UUID strategy
+    let config = issue_type_config(); // UUID strategy
 
     let item = generic_create(
         path,
@@ -577,7 +585,7 @@ async fn test_slug_id_strategy() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_doc_config();
+    let config = doc_type_config();
 
     let item = generic_create(
         path,
@@ -610,7 +618,7 @@ async fn test_slug_strategy_duplicate_id() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_doc_config();
+    let config = doc_type_config();
 
     // First create succeeds
     generic_create(
@@ -768,7 +776,7 @@ async fn test_reconcile_display_numbers_no_conflicts() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     // Create items with sequential display numbers
     for i in 1..=3u32 {
@@ -874,7 +882,7 @@ async fn test_default_status_when_not_provided() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default()); // default_status = "open"
+    let config = issue_type_config(); // default_status = "open"
 
     let item = generic_create(
         path,
@@ -901,7 +909,7 @@ async fn test_default_priority_when_not_provided() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default()); // priority_levels = 3
+    let config = issue_type_config(); // priority_levels = 3
 
     let item = generic_create(
         path,
@@ -988,7 +996,7 @@ async fn test_list_ordered_by_display_number() {
     let path = temp.path();
     init_generic_project(path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     // Create in reverse order
     for title in ["Third", "Second", "First"] {
@@ -1092,7 +1100,7 @@ async fn test_generic_move_uuid_item() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let item = generic_create(
         source.path(),
@@ -1144,7 +1152,7 @@ async fn test_generic_move_slug_item() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_doc_config();
+    let config = doc_type_config();
 
     let item = generic_create(
         source.path(),
@@ -1188,7 +1196,7 @@ async fn test_generic_move_slug_rename() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_doc_config();
+    let config = doc_type_config();
 
     generic_create(
         source.path(),
@@ -1236,7 +1244,7 @@ async fn test_generic_move_same_project_fails() {
     let dir = create_test_dir();
     init_generic_project(dir.path()).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let item = generic_create(
         dir.path(),
@@ -1276,7 +1284,7 @@ async fn test_generic_move_not_found_fails() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let result = generic_move(
         source.path(),
@@ -1341,7 +1349,7 @@ async fn test_generic_move_slug_conflict_fails() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_doc_config();
+    let config = doc_type_config();
 
     // Create same slug in both projects
     generic_create(
@@ -1398,7 +1406,7 @@ async fn test_generic_move_preserves_custom_fields() {
     init_generic_project(source.path()).await;
     init_generic_project(target.path()).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = issue_type_config();
 
     let item = generic_create(
         source.path(),

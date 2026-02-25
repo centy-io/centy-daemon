@@ -17,6 +17,10 @@ use mdstore::TypeConfig;
 /// 2. If registry lookup fails, try `read_item_type_config` for legacy projects.
 /// 3. Fall back to built-in defaults for "issues"/"issue" and "docs"/"doc".
 /// 4. Otherwise return `ItemError::ItemTypeNotFound`.
+///
+/// Returns `TypeConfig` (mdstore's type) for use with storage operations.
+/// The `ItemTypeConfig` → `TypeConfig` conversion drops centy-only fields
+/// (`icon`, `soft_delete`, `template`) which are not needed for storage.
 pub async fn resolve_item_type_config(
     project_path: &Path,
     item_type: &str,
@@ -26,13 +30,13 @@ pub async fn resolve_item_type_config(
         .await
         .map_err(|e| ItemError::Custom(e.to_string()))?;
 
-    if let Some((folder, config)) = registry.resolve(item_type) {
-        return Ok((folder.clone(), config.clone()));
+    if let Some((folder, item_config)) = registry.resolve(item_type) {
+        return Ok((folder.clone(), TypeConfig::from(item_config)));
     }
 
     // 2. Try direct config read for legacy projects
-    if let Ok(Some(config)) = read_item_type_config(project_path, item_type).await {
-        return Ok((item_type.to_string(), config));
+    if let Ok(Some(item_config)) = read_item_type_config(project_path, item_type).await {
+        return Ok((item_type.to_string(), TypeConfig::from(&item_config)));
     }
 
     // 3. Built-in fallbacks
@@ -44,10 +48,19 @@ pub async fn resolve_item_type_config(
                 .ok()
                 .flatten()
                 .unwrap_or_default();
-            Ok(("issues".to_string(), default_issue_config(&config)))
+            Ok((
+                "issues".to_string(),
+                TypeConfig::from(&default_issue_config(&config)),
+            ))
         }
-        "docs" | "doc" => Ok(("docs".to_string(), default_doc_config())),
-        "archived" | "archive" => Ok(("archived".to_string(), default_archived_config())),
+        "docs" | "doc" => Ok((
+            "docs".to_string(),
+            TypeConfig::from(&default_doc_config()),
+        )),
+        "archived" | "archive" => Ok((
+            "archived".to_string(),
+            TypeConfig::from(&default_archived_config()),
+        )),
         _ => Err(ItemError::ItemTypeNotFound(item_type.to_string())),
     }
 }

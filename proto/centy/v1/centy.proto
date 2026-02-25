@@ -1296,6 +1296,7 @@ message ItemTypeFeatures {
   bool org_sync = 5;                    // Enable organization sync
   bool move = 6;                        // Enable moving between projects
   bool duplicate = 7;                   // Enable duplication
+  bool soft_delete = 8;                 // Enable soft-deletion (restorable delete)
 }
 
 // Request to create a new item type
@@ -1328,6 +1329,8 @@ message ItemTypeConfigProto {
   string default_status = 6;
   uint32 priority_levels = 7;
   repeated CustomFieldDefinition custom_fields = 8;
+  string icon = 9;                      // Optional icon identifier (e.g. "clipboard")
+  string template = 10;                 // Optional template file path
 }
 
 message ListItemTypesRequest {

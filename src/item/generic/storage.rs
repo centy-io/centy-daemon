@@ -352,7 +352,6 @@ mod tests {
     use super::*;
     use crate::config::item_type_config::default_issue_config;
     use crate::config::CentyConfig;
-    use mdstore::TypeFeatures;
     use std::collections::HashMap;
 
     async fn setup_project(temp: &Path) {
@@ -364,11 +363,16 @@ mod tests {
         manifest::write_manifest(temp, &manifest).await.unwrap();
     }
 
+    /// Helper: build the default issue `TypeConfig` for use with generic storage functions.
+    fn issue_type_config() -> TypeConfig {
+        TypeConfig::from(&default_issue_config(&CentyConfig::default()))
+    }
+
     fn minimal_config() -> TypeConfig {
         TypeConfig {
             name: "Note".to_string(),
             identifier: mdstore::IdStrategy::Uuid,
-            features: TypeFeatures::default(),
+            features: mdstore::TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,
             priority_levels: None,
@@ -381,7 +385,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Test Issue".to_string(),
             body: "This is a test.".to_string(),
@@ -459,7 +463,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Bad Status".to_string(),
             body: String::new(),
@@ -479,7 +483,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Bad Priority".to_string(),
             body: String::new(),
@@ -499,7 +503,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
 
         // Create multiple items
         for (title, status) in [
@@ -550,7 +554,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Original Title".to_string(),
             body: "Original body.".to_string(),
@@ -591,7 +595,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let result = generic_update(
             temp.path(),
             "issues",
@@ -609,7 +613,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "To Delete".to_string(),
             body: String::new(),
@@ -659,7 +663,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "To Hard Delete".to_string(),
             body: String::new(),
@@ -688,7 +692,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
 
         for i in 1..=3u32 {
             let options = CreateOptions {
@@ -712,7 +716,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Keep Fields".to_string(),
             body: "Original body.".to_string(),
@@ -755,7 +759,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
         let options = CreateOptions {
             title: "Will Delete".to_string(),
             body: String::new(),
@@ -839,7 +843,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
 
         // Create two items
         let options1 = CreateOptions {
@@ -881,7 +885,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         setup_project(temp.path()).await;
 
-        let config = default_issue_config(&CentyConfig::default());
+        let config = issue_type_config();
 
         let options = CreateOptions {
             title: "Only Issue".to_string(),

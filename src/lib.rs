@@ -31,8 +31,9 @@ pub mod workspace;
 
 // Re-export commonly used types
 pub use config::item_type_config::{
-    default_doc_config, default_issue_config, discover_item_types, read_item_type_config,
-    write_item_type_config, ItemTypeRegistry,
+    default_archived_config, default_doc_config, default_issue_config, discover_item_types,
+    read_item_type_config, validate_item_type_config, write_item_type_config, ItemTypeConfig,
+    ItemTypeFeatures, ItemTypeRegistry,
 };
 pub use config::CentyConfig;
 pub use hooks::{HookContext, HookDefinition, HookError};
