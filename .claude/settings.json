@@ -165,7 +165,8 @@
       "Bash(pnpm dlx:*)",
       "Bash(npx centy:*)",
       "Bash(gh pr diff:*)",
-      "Bash(npm root:*)"
+      "Bash(npm root:*)",
+      "Bash(cargo dylint:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
