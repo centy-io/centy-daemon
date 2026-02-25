@@ -7,7 +7,8 @@ use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse};
 use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::StructuredError;
-use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
+use crate::config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
+use mdstore::{CustomFieldDef, IdStrategy};
 use tonic::{Response, Status};
 
 /// Validate the plural field: must be lowercase alphanumeric + hyphens, non-empty.
@@ -65,21 +66,23 @@ fn validate_request(req: &CreateItemTypeRequest) -> Result<(), (String, String)>
     Ok(())
 }
 
-/// Build a `TypeConfig` from the validated request.
-fn build_config(req: CreateItemTypeRequest) -> TypeConfig {
+/// Build an `ItemTypeConfig` from the validated request.
+fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
     let identifier = if req.identifier == "slug" {
         IdStrategy::Slug
     } else {
         IdStrategy::Uuid
     };
     let features = req.features.unwrap_or_default();
-    TypeConfig {
+    ItemTypeConfig {
         name: req.name,
+        icon: None,
         identifier,
-        features: TypeFeatures {
+        features: ItemTypeFeatures {
             display_number: features.display_number,
             status: features.status,
             priority: features.priority,
+            soft_delete: features.soft_delete,
             assets: features.assets,
             org_sync: features.org_sync,
             move_item: features.r#move,
@@ -111,6 +114,7 @@ fn build_config(req: CreateItemTypeRequest) -> TypeConfig {
                 enum_values: f.enum_values,
             })
             .collect(),
+        template: None,
     }
 }
 
@@ -204,13 +208,15 @@ mod tests {
 
     #[test]
     fn test_config_to_proto_roundtrip() {
-        let config = TypeConfig {
+        let config = ItemTypeConfig {
             name: "Bug".to_string(),
+            icon: Some("bug".to_string()),
             identifier: IdStrategy::Uuid,
-            features: TypeFeatures {
+            features: ItemTypeFeatures {
                 display_number: true,
                 status: true,
                 priority: true,
+                soft_delete: true,
                 assets: false,
                 org_sync: false,
                 move_item: true,
@@ -220,6 +226,7 @@ mod tests {
             default_status: Some("open".to_string()),
             priority_levels: Some(3),
             custom_fields: vec![],
+            template: Some("bug.md".to_string()),
         };
 
         let proto = config_to_proto("bugs", &config);
@@ -229,11 +236,14 @@ mod tests {
         assert_eq!(proto.statuses, vec!["open", "closed"]);
         assert_eq!(proto.default_status, "open");
         assert_eq!(proto.priority_levels, 3);
+        assert_eq!(proto.icon, "bug");
+        assert_eq!(proto.template, "bug.md");
 
         let f = proto.features.unwrap();
         assert!(f.display_number);
         assert!(f.status);
         assert!(f.priority);
+        assert!(f.soft_delete);
         assert!(!f.assets);
         assert!(f.r#move);
         assert!(f.duplicate);

@@ -4,6 +4,7 @@
 mod common;
 
 use centy_daemon::config::item_type_config::default_issue_config;
+use mdstore::TypeConfig;
 use centy_daemon::config::CentyConfig;
 use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::issue::{
@@ -484,7 +485,7 @@ async fn test_delete_issue_success() {
     assert!(issue_file.exists());
 
     // Delete it
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
     generic_delete(project_path, "issues", &config, &created.id, true)
         .await
         .expect("Should delete");
@@ -528,7 +529,7 @@ async fn test_delete_issue_removes_files() {
     );
 
     // Delete issue
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
     generic_delete(project_path, "issues", &config, &created.id, true)
         .await
         .unwrap();
@@ -547,7 +548,7 @@ async fn test_delete_issue_not_found() {
 
     init_centy_project(project_path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
     let result = generic_delete(project_path, "issues", &config, "9999", true).await;
     assert!(result.is_err());
 }
@@ -703,7 +704,7 @@ async fn test_move_issue_success() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
 
     // Create issue in source
     let created = create_issue(
@@ -756,7 +757,7 @@ async fn test_move_issue_preserves_uuid() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
 
     let created = create_issue(
         source_path,
@@ -796,7 +797,7 @@ async fn test_move_issue_assigns_new_display_number() {
     init_centy_project(source_path).await;
     init_centy_project(target_path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
 
     // Create existing issues in target
     create_issue(
@@ -854,7 +855,7 @@ async fn test_move_issue_same_project_fails() {
 
     init_centy_project(project_path).await;
 
-    let config = default_issue_config(&CentyConfig::default());
+    let config = TypeConfig::from(&default_issue_config(&CentyConfig::default()));
 
     let created = create_issue(
         project_path,
@@ -904,7 +905,7 @@ async fn test_duplicate_issue_same_project() {
     .unwrap();
 
     let config = CentyConfig::default();
-    let item_type_config = default_issue_config(&config);
+    let item_type_config = TypeConfig::from(&default_issue_config(&config));
 
     let result = generic_duplicate(
         "issues",
@@ -950,7 +951,7 @@ async fn test_duplicate_issue_with_custom_title() {
     .unwrap();
 
     let config = CentyConfig::default();
-    let item_type_config = default_issue_config(&config);
+    let item_type_config = TypeConfig::from(&default_issue_config(&config));
 
     let result = generic_duplicate(
         "issues",
@@ -990,7 +991,7 @@ async fn test_duplicate_issue_to_different_project() {
     .unwrap();
 
     let config = CentyConfig::default();
-    let item_type_config = default_issue_config(&config);
+    let item_type_config = TypeConfig::from(&default_issue_config(&config));
 
     let result = generic_duplicate(
         "issues",
@@ -1251,7 +1252,7 @@ async fn test_duplicate_issue_preserves_planning_note() {
 
     // Duplicate it
     let config = CentyConfig::default();
-    let item_type_config = default_issue_config(&config);
+    let item_type_config = TypeConfig::from(&default_issue_config(&config));
 
     let result = generic_duplicate(
         "issues",

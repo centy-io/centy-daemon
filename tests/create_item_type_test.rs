@@ -40,6 +40,7 @@ fn make_request(project_path: &str) -> CreateItemTypeRequest {
             display_number: true,
             status: true,
             priority: true,
+            soft_delete: false,
             assets: false,
             org_sync: false,
             r#move: true,

@@ -1,4 +1,4 @@
-use mdstore::TypeConfig;
+use crate::config::item_type_config::ItemTypeConfig;
 
 use super::proto::{
     GenericItem as ProtoGenericItem, GenericItemMetadata, ItemTypeConfigProto, User as ProtoUser,
@@ -62,7 +62,7 @@ pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem 
     }
 }
 
-pub fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto {
+pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigProto {
     ItemTypeConfigProto {
         name: config.name.clone(),
         plural: folder.to_string(),
@@ -71,6 +71,7 @@ pub fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto
             display_number: config.features.display_number,
             status: config.features.status,
             priority: config.features.priority,
+            soft_delete: config.features.soft_delete,
             assets: config.features.assets,
             org_sync: config.features.org_sync,
             r#move: config.features.move_item,
@@ -90,5 +91,7 @@ pub fn config_to_proto(folder: &str, config: &TypeConfig) -> ItemTypeConfigProto
                 enum_values: f.enum_values.clone(),
             })
             .collect(),
+        icon: config.icon.clone().unwrap_or_default(),
+        template: config.template.clone().unwrap_or_default(),
     }
 }
