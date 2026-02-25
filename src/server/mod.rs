@@ -1,7 +1,7 @@
-pub mod assert_service;
 mod action_builders;
 mod action_builders_extra;
 mod actions;
+pub mod assert_service;
 mod config_to_proto;
 mod convert_entity;
 mod convert_infra;

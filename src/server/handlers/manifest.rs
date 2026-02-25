@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::proto::{GetManifestRequest, GetManifestResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 

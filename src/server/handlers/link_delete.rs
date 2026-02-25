@@ -4,11 +4,11 @@ use crate::config::read_config;
 use crate::hooks::HookOperation;
 use crate::link::DeleteLinkOptions;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_link::proto_link_target_to_internal;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteLinkRequest, DeleteLinkResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

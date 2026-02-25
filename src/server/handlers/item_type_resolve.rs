@@ -53,10 +53,7 @@ pub async fn resolve_item_type_config(
                 TypeConfig::from(&default_issue_config(&config)),
             ))
         }
-        "docs" | "doc" => Ok((
-            "docs".to_string(),
-            TypeConfig::from(&default_doc_config()),
-        )),
+        "docs" | "doc" => Ok(("docs".to_string(), TypeConfig::from(&default_doc_config()))),
         "archived" | "archive" => Ok((
             "archived".to_string(),
             TypeConfig::from(&default_archived_config()),

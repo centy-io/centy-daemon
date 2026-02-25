@@ -5,19 +5,26 @@ use crate::item::generic::storage::generic_duplicate;
 use crate::item::generic::types::DuplicateGenericItemOptions;
 use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::resolve_item_type_config;
 
-fn err_resp(cwd: &str, e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError) -> Response<DuplicateItemResponse> {
-    Response::new(DuplicateItemResponse { success: false, error: to_error_json(cwd, &e), ..Default::default() })
+fn err_resp(
+    cwd: &str,
+    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+) -> Response<DuplicateItemResponse> {
+    Response::new(DuplicateItemResponse {
+        success: false,
+        error: to_error_json(cwd, &e),
+        ..Default::default()
+    })
 }
 
 /// Assert both source and target projects are initialized, returning an error response if not.

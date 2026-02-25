@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::user_to_proto;
 use crate::server::proto::{GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::{get_user as internal_get_user, list_users as internal_list_users};
 use tonic::{Response, Status};

@@ -3,10 +3,10 @@ use std::path::Path;
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::{generic_get, generic_restore};
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{RestoreItemRequest, RestoreItemResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

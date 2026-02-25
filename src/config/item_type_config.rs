@@ -317,7 +317,10 @@ pub async fn discover_item_types(
     project_path: &Path,
 ) -> Result<Vec<ItemTypeConfig>, mdstore::ConfigError> {
     let centy_path = get_centy_path(project_path);
-    Ok(discover_item_types_map(&centy_path).await?.into_values().collect())
+    Ok(discover_item_types_map(&centy_path)
+        .await?
+        .into_values()
+        .collect())
 }
 
 // ── Registry ──────────────────────────────────────────────────────────────────
@@ -635,7 +638,10 @@ mod tests {
         assert_eq!(deserialized.statuses.len(), config.statuses.len());
         assert_eq!(deserialized.default_status, config.default_status);
         assert_eq!(deserialized.priority_levels, config.priority_levels);
-        assert_eq!(deserialized.features.soft_delete, config.features.soft_delete);
+        assert_eq!(
+            deserialized.features.soft_delete,
+            config.features.soft_delete
+        );
         assert_eq!(deserialized.template, config.template);
     }
 
@@ -776,7 +782,9 @@ mod tests {
         };
         let result = validate_item_type_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("status names must not be empty"));
+        assert!(result
+            .unwrap_err()
+            .contains("status names must not be empty"));
     }
 
     #[test]

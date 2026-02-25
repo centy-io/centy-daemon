@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::config::read_config;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::config_to_proto::config_to_proto;
 use crate::server::proto::{Config, GetConfigRequest, GetConfigResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

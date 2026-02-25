@@ -4,10 +4,10 @@ use crate::hooks::HookOperation;
 use crate::item::entities::issue::AssetScope;
 use crate::manifest::read_manifest;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_infra::{asset_info_to_proto, manifest_to_proto};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{AddAssetRequest, AddAssetResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

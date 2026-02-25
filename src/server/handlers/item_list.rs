@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::item::generic::storage::generic_list;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::proto::{ListItemsRequest, ListItemsResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::Filters;
 use tonic::{Response, Status};

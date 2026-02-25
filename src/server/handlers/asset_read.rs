@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_infra::asset_info_to_proto;
 use crate::server::proto::{
     GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse,
     ListSharedAssetsRequest,
 };
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

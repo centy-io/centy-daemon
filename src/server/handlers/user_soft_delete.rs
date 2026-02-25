@@ -2,11 +2,11 @@ use std::path::Path;
 
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::user_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{SoftDeleteUserRequest, SoftDeleteUserResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use crate::user::soft_delete_user as internal_soft_delete_user;
 use tonic::{Response, Status};

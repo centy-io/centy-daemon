@@ -4,7 +4,6 @@
 mod common;
 
 use centy_daemon::config::item_type_config::default_issue_config;
-use mdstore::TypeConfig;
 use centy_daemon::config::CentyConfig;
 use centy_daemon::item::core::error::ItemError;
 use centy_daemon::item::entities::issue::{
@@ -14,6 +13,7 @@ use centy_daemon::item::entities::issue::{
 use centy_daemon::item::generic::storage::{generic_delete, generic_move};
 use centy_daemon::item::generic::{generic_duplicate, DuplicateGenericItemOptions};
 use common::{create_test_dir, init_centy_project};
+use mdstore::TypeConfig;
 use std::collections::HashMap;
 
 #[tokio::test]

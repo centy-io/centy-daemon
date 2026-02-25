@@ -4,18 +4,21 @@ use std::path::Path;
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::generic_update;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UpdateItemRequest, UpdateItemResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use mdstore::UpdateOptions;
 use tonic::{Response, Status};
 
 use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
-fn err_response(cwd: &str, e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError) -> Response<UpdateItemResponse> {
+fn err_response(
+    cwd: &str,
+    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+) -> Response<UpdateItemResponse> {
     Response::new(UpdateItemResponse {
         success: false,
         error: to_error_json(cwd, &e),

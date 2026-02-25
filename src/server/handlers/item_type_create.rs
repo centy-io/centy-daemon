@@ -1,13 +1,13 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{write_item_type_config, ItemTypeRegistry};
+use crate::config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::{CreateItemTypeRequest, CreateItemTypeResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::StructuredError;
-use crate::config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
 use mdstore::{CustomFieldDef, IdStrategy};
 use tonic::{Response, Status};
 

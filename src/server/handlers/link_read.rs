@@ -2,12 +2,12 @@ use std::path::Path;
 
 use crate::config::read_config;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_link::{internal_link_to_proto, proto_link_target_to_internal};
 use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
 };
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 

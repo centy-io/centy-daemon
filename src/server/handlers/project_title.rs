@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::config::set_project_title as set_project_title_config;
 use crate::registry::get_project_info;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_infra::project_info_to_proto;
 use crate::server::proto::{SetProjectTitleRequest, SetProjectTitleResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 

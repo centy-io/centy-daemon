@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::config::write_config;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_initialized;
 use crate::server::config_to_proto::config_to_proto;
 use crate::server::proto::{UpdateConfigRequest, UpdateConfigResponse};
-use crate::server::assert_service::assert_initialized;
 use crate::server::proto_to_config::proto_to_config;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::server::validate_config::validate_config;
