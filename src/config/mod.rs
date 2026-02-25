@@ -16,16 +16,6 @@ fn default_priority_levels() -> u32 {
     3
 }
 
-/// Default allowed states for issues (used only during migration to per-item-type config.yaml)
-fn default_allowed_states() -> Vec<String> {
-    vec![
-        "open".to_string(),
-        "planning".to_string(),
-        "in-progress".to_string(),
-        "closed".to_string(),
-    ]
-}
-
 /// Workspace configuration section
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,11 +44,6 @@ pub struct CentyConfig {
     pub custom_fields: Vec<mdstore::CustomFieldDef>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
-    /// Legacy: allowed status values. Migrated to per-item-type `config.yaml`.
-    /// Kept only for backward-compatible deserialization of old `config.json` files.
-    /// New code should read statuses from `ItemTypeConfig::statuses` instead.
-    #[serde(default = "default_allowed_states", skip_serializing)]
-    pub allowed_states: Vec<String>,
     /// State colors: state name → hex color (e.g., "open" → "#10b981")
     #[serde(default)]
     pub state_colors: HashMap<String, String>,
@@ -97,7 +82,6 @@ impl Default for CentyConfig {
             priority_levels: default_priority_levels(),
             custom_fields: Vec::new(),
             defaults: HashMap::new(),
-            allowed_states: default_allowed_states(),
             state_colors: HashMap::new(),
             priority_colors: HashMap::new(),
             custom_link_types: Vec::new(),
@@ -244,17 +228,6 @@ mod tests {
     }
 
     #[test]
-    fn test_default_allowed_states() {
-        // Legacy: still used during migration to per-item-type config.yaml
-        let states = default_allowed_states();
-        assert_eq!(states.len(), 4);
-        assert!(states.contains(&"open".to_string()));
-        assert!(states.contains(&"planning".to_string()));
-        assert!(states.contains(&"in-progress".to_string()));
-        assert!(states.contains(&"closed".to_string()));
-    }
-
-    #[test]
     fn test_centy_config_default() {
         let config = CentyConfig::default();
 
@@ -262,7 +235,6 @@ mod tests {
         assert_eq!(config.priority_levels, 3);
         assert!(config.custom_fields.is_empty());
         assert!(config.defaults.is_empty());
-        assert_eq!(config.allowed_states.len(), 4); // Legacy field with defaults for migration
         assert!(config.state_colors.is_empty());
         assert!(config.priority_colors.is_empty());
         assert!(config.custom_link_types.is_empty());
@@ -310,13 +282,12 @@ mod tests {
         assert!(json.contains("stateColors"));
         assert!(json.contains("priorityColors"));
 
-        // allowedStates should NOT be serialized (skip_serializing)
+        // allowedStates is removed from the struct and should not appear
         assert!(!json.contains("allowedStates"));
 
         // Should NOT contain snake_case
         assert!(!json.contains("priority_levels"));
         assert!(!json.contains("custom_fields"));
-        assert!(!json.contains("allowed_states"));
     }
 
     #[test]
@@ -603,14 +574,13 @@ mod tests {
             .await
             .expect("Should write config");
 
-        // Read config - should still deserialize allowedStates for migration use
-        let config = read_config(temp_dir.path())
+        // Read config - allowedStates is now ignored on deserialization
+        let _config = read_config(temp_dir.path())
             .await
             .expect("Should read")
             .expect("Config should exist");
-        assert_eq!(config.allowed_states.len(), 4);
 
-        // File should have been rewritten WITHOUT allowedStates (skip_serializing)
+        // File should have been rewritten WITHOUT allowedStates
         let raw = fs::read_to_string(&config_path)
             .await
             .expect("Should read file");

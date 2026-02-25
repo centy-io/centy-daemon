@@ -300,11 +300,14 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
 
     let config = CentyConfig {
         priority_levels: 7,
-        allowed_states: vec!["open".to_string(), "done".to_string()],
         ..Default::default()
     };
 
-    let issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
+    // Build an issue config with custom statuses directly (allowed_states removed from CentyConfig)
+    let mut issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
+    issue_config.statuses = vec!["open".to_string(), "done".to_string()];
+    issue_config.default_status = Some("open".to_string());
+
     write_item_type_config(project_path, "issues", &issue_config)
         .await
         .expect("write");
