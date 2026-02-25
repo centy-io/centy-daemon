@@ -1,0 +1,24 @@
+name: persona
+identifier: slug
+features:
+  displayNumber: false
+  status: false
+  priority: false
+  assets: false
+  orgSync: false
+  move: false
+  duplicate: false
+statuses:
+- active
+- archived
+defaultStatus: active
+customFields:
+- name: role
+  type: string
+  required: false
+- name: goals
+  type: string
+  required: false
+- name: pain-points
+  type: string
+  required: false
