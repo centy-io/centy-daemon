@@ -30,7 +30,7 @@ pub struct ItemTypeFeatures {
     /// Enable file attachments.
     #[serde(default)]
     pub assets: bool,
-    /// Enable organisation sync.
+    /// Enable organization sync.
     #[serde(default)]
     pub org_sync: bool,
     /// Enable moving items between projects.
@@ -693,7 +693,7 @@ mod tests {
     #[test]
     fn test_validate_item_type_config_empty_name() {
         let config = ItemTypeConfig {
-            name: "".to_string(),
+            name: String::new(),
             icon: None,
             identifier: IdStrategy::Uuid,
             features: ItemTypeFeatures::default(),
@@ -768,7 +768,7 @@ mod tests {
             icon: None,
             identifier: IdStrategy::Uuid,
             features: ItemTypeFeatures::default(),
-            statuses: vec!["open".to_string(), "".to_string()],
+            statuses: vec!["open".to_string(), String::new()],
             default_status: Some("open".to_string()),
             priority_levels: None,
             custom_fields: Vec::new(),

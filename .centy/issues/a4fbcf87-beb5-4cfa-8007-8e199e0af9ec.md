@@ -1,9 +1,9 @@
 ---
 displayNumber: 188
-status: open
+status: in-progress
 priority: 2
 createdAt: 2026-02-15T18:09:48.637151+00:00
-updatedAt: 2026-02-15T18:09:48.637151+00:00
+updatedAt: 2026-02-24T14:40:45.668640+00:00
 ---
 
 # Create an assert service to enforce preconditions before each command
