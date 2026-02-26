@@ -8,7 +8,9 @@ pub use convert::{default_archived_config, default_issue_config};
 #[allow(unused_imports)]
 pub use defaults::{default_doc_config, validate_item_type_config};
 #[allow(unused_imports)]
-pub use io::{discover_item_types, read_item_type_config, write_item_type_config};
+pub use io::{
+    discover_item_types, read_item_type_config, read_legacy_allowed_states, write_item_type_config,
+};
 pub use registry::ItemTypeRegistry;
 pub use types::{ItemTypeConfig, ItemTypeFeatures};
 
@@ -17,9 +19,11 @@ use std::path::Path;
 
 /// Create `config.yaml` for issues, docs, and archived if they don't already exist.
 /// Returns the list of relative paths that were created.
+/// `legacy_statuses` is read from `allowedStates` in `config.json` before migration.
 pub async fn migrate_to_item_type_configs(
     project_path: &Path,
     config: &CentyConfig,
+    legacy_statuses: Option<Vec<String>>,
 ) -> Result<Vec<String>, mdstore::ConfigError> {
     let mut created = Vec::new();
 
@@ -28,7 +32,11 @@ pub async fn migrate_to_item_type_configs(
     // Issues
     let issues_config_path = centy_path.join("issues").join("config.yaml");
     if !issues_config_path.exists() {
-        let issue_config = default_issue_config(config);
+        let mut issue_config = default_issue_config(config);
+        if let Some(statuses) = legacy_statuses {
+            issue_config.default_status = statuses.first().cloned();
+            issue_config.statuses = statuses;
+        }
         write_item_type_config(project_path, "issues", &issue_config).await?;
         created.push("issues/config.yaml".to_string());
     }

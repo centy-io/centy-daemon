@@ -70,11 +70,10 @@ async fn test_read_config_strips_legacy_allowed_states() {
     fs::write(&config_path, config_with_allowed_states)
         .await
         .expect("Should write config");
-    let config = read_config(temp_dir.path())
+    let _config = read_config(temp_dir.path())
         .await
         .expect("Should read")
         .expect("Config should exist");
-    assert_eq!(config.allowed_states.len(), 4);
     let raw = fs::read_to_string(&config_path)
         .await
         .expect("Should read file");

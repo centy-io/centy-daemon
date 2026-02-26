@@ -73,7 +73,20 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).await?;
     }
-    let temp_path = path.with_extension("json.tmp");
+
+    // Write atomically using a per-call unique temp file + rename.
+    // Using a unique suffix avoids races when multiple processes write concurrently
+    // (e.g. parallel integration-test binaries), which would otherwise cause one
+    // process to rename a temp file written by another.
+    let unique_id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let temp_name = format!("projects.{unique_id}.json.tmp");
+    let temp_path = path
+        .parent()
+        .unwrap_or(std::path::Path::new("."))
+        .join(temp_name);
     let content = serde_json::to_string_pretty(registry)?;
     fs::write(&temp_path, &content).await?;
     fs::rename(&temp_path, &path).await?;

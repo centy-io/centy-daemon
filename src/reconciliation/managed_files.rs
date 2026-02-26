@@ -5,7 +5,7 @@ mod managed_files_content;
 #[path = "managed_files_content2.rs"]
 mod managed_files_content2;
 use managed_files_content::{ISSUES_README_CONTENT, README_CONTENT};
-use managed_files_content2::{CSPELL_JSON_CONTENT, TEMPLATES_README_CONTENT};
+use managed_files_content2::{CSPELL_JSON_CONTENT, HOOKS_YAML_CONTENT, TEMPLATES_README_CONTENT};
 /// Strategy for how a managed file should be updated when it already exists
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergeStrategy {
@@ -68,6 +68,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         CSPELL_JSON_CONTENT,
         Some(MergeStrategy::JsonArrayMerge),
     );
+    file(&mut files, "hooks.yaml", HOOKS_YAML_CONTENT, None);
     files
 }
 /// Merge existing JSON with template using `JsonArrayMerge` strategy.

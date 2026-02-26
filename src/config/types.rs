@@ -6,15 +6,6 @@ use std::collections::HashMap;
 pub fn default_priority_levels() -> u32 {
     3
 }
-/// Default allowed states for issues (used only during migration to per-item-type config.yaml)
-pub fn default_allowed_states() -> Vec<String> {
-    vec![
-        "open".to_string(),
-        "planning".to_string(),
-        "in-progress".to_string(),
-        "closed".to_string(),
-    ]
-}
 /// Workspace configuration section
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,9 +29,6 @@ pub struct CentyConfig {
     pub custom_fields: Vec<mdstore::CustomFieldDef>,
     #[serde(default)]
     pub defaults: HashMap<String, String>,
-    /// Legacy: allowed status values. Migrated to per-item-type `config.yaml`.
-    #[serde(default = "default_allowed_states", skip_serializing)]
-    pub allowed_states: Vec<String>,
     /// State colors: state name → hex color (e.g., "open" → "#10b981")
     #[serde(default)]
     pub state_colors: HashMap<String, String>,
@@ -76,7 +64,6 @@ impl Default for CentyConfig {
             priority_levels: default_priority_levels(),
             custom_fields: Vec::new(),
             defaults: HashMap::new(),
-            allowed_states: default_allowed_states(),
             state_colors: HashMap::new(),
             priority_colors: HashMap::new(),
             custom_link_types: Vec::new(),

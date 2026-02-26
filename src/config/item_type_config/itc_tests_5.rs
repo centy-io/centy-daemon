@@ -19,7 +19,7 @@ async fn test_migrate_creates_both_configs() {
         .expect("create archived/");
 
     let config = CentyConfig::default();
-    let created = migrate_to_item_type_configs(temp.path(), &config)
+    let created = migrate_to_item_type_configs(temp.path(), &config, None)
         .await
         .expect("Should migrate");
 
@@ -55,7 +55,7 @@ async fn test_migrate_skips_existing_configs() {
     .expect("write");
 
     let config = CentyConfig::default();
-    let created = migrate_to_item_type_configs(temp.path(), &config)
+    let created = migrate_to_item_type_configs(temp.path(), &config, None)
         .await
         .expect("Should migrate");
 

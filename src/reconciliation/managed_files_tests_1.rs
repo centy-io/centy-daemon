@@ -18,6 +18,7 @@ fn test_get_managed_files_returns_expected_files() {
     assert!(files.contains_key("issues/README.md"));
     assert!(files.contains_key("templates/README.md"));
     assert!(files.contains_key("cspell.json"));
+    assert!(files.contains_key("hooks.yaml"));
 }
 
 #[test]
@@ -60,6 +61,7 @@ fn test_get_managed_files_files_have_correct_type() {
         "issues/README.md",
         "templates/README.md",
         "cspell.json",
+        "hooks.yaml",
     ];
     for file in regular_files {
         let template = files

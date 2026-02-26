@@ -6,11 +6,6 @@ use mdstore::IdStrategy;
 #[test]
 fn test_default_issue_config_maps_fields() {
     let mut config = CentyConfig::default();
-    config.allowed_states = vec![
-        "open".to_string(),
-        "in-progress".to_string(),
-        "closed".to_string(),
-    ];
     config.priority_levels = 5;
 
     let issue = default_issue_config(&config);
@@ -18,7 +13,10 @@ fn test_default_issue_config_maps_fields() {
     assert_eq!(issue.name, "Issue");
     assert_eq!(issue.icon, Some("clipboard".to_string()));
     assert_eq!(issue.identifier, IdStrategy::Uuid);
-    assert_eq!(issue.statuses, config.allowed_states);
+    assert_eq!(
+        issue.statuses,
+        vec!["open", "planning", "in-progress", "closed"]
+    );
     assert_eq!(issue.default_status, Some("open".to_string()));
     assert_eq!(issue.priority_levels, Some(5));
     assert_eq!(issue.template, Some("template.md".to_string()));

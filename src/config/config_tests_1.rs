@@ -6,23 +6,12 @@ fn test_default_priority_levels() {
 }
 
 #[test]
-fn test_default_allowed_states() {
-    let states = default_allowed_states();
-    assert_eq!(states.len(), 4);
-    assert!(states.contains(&"open".to_string()));
-    assert!(states.contains(&"planning".to_string()));
-    assert!(states.contains(&"in-progress".to_string()));
-    assert!(states.contains(&"closed".to_string()));
-}
-
-#[test]
 fn test_centy_config_default() {
     let config = CentyConfig::default();
     assert!(config.version.is_none());
     assert_eq!(config.priority_levels, 3);
     assert!(config.custom_fields.is_empty());
     assert!(config.defaults.is_empty());
-    assert_eq!(config.allowed_states.len(), 4);
     assert!(config.state_colors.is_empty());
     assert!(config.priority_colors.is_empty());
     assert!(config.custom_link_types.is_empty());

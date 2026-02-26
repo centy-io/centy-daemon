@@ -1,0 +1,15 @@
+name: Epic
+identifier: uuid
+features:
+  displayNumber: true
+  status: true
+  priority: true
+  assets: false
+  orgSync: false
+  move: true
+  duplicate: true
+statuses:
+- open
+- in-progress
+- closed
+defaultStatus: open

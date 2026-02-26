@@ -9,9 +9,7 @@ pub use io::{
     write_project_metadata,
 };
 #[allow(unused_imports)]
-pub use types::{
-    default_allowed_states, default_priority_levels, CentyConfig, ProjectMetadata, WorkspaceConfig,
-};
+pub use types::{default_priority_levels, CentyConfig, ProjectMetadata, WorkspaceConfig};
 #[cfg(test)]
 #[allow(clippy::field_reassign_with_default)]
 #[path = "config_tests_1.rs"]

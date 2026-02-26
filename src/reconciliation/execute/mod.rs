@@ -3,7 +3,7 @@ mod file_ops;
 mod types;
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
-use crate::config::item_type_config::migrate_to_item_type_configs;
+use crate::config::item_type_config::{migrate_to_item_type_configs, read_legacy_allowed_states};
 use crate::config::{read_config, write_config, CentyConfig};
 use crate::manifest::{create_manifest, read_manifest, update_manifest, write_manifest};
 use crate::utils::get_centy_path;
@@ -61,8 +61,10 @@ pub async fn execute_reconciliation(
         write_config(project_path, &default_config).await?;
         result.created.push("config.json".to_string());
     }
+    // Read legacy allowedStates BEFORE read_config strips the key from config.json.
+    let legacy_statuses = read_legacy_allowed_states(project_path).await;
     let config = read_config(project_path).await?.unwrap_or_default();
-    let migrated = migrate_to_item_type_configs(project_path, &config).await?;
+    let migrated = migrate_to_item_type_configs(project_path, &config, legacy_statuses).await?;
     for path in migrated {
         result.created.push(path);
     }

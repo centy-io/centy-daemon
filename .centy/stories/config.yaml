@@ -1,0 +1,22 @@
+name: story
+identifier: slug
+features:
+  displayNumber: false
+  status: false
+  priority: false
+  assets: false
+  orgSync: false
+  move: false
+  duplicate: false
+statuses:
+- draft
+- ready
+- done
+defaultStatus: draft
+customFields:
+- name: persona
+  type: string
+  required: false
+- name: acceptance-criteria
+  type: string
+  required: false

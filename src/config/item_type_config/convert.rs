@@ -63,9 +63,19 @@ pub fn default_archived_config() -> ItemTypeConfig {
     }
 }
 
+/// Default issue statuses used when no legacy `allowedStates` migration data is available.
+pub const DEFAULT_ISSUE_STATUSES: &[&str] = &["open", "planning", "in-progress", "closed"];
+
 /// Build the default issues config from the project's `CentyConfig`.
+/// Statuses default to [`DEFAULT_ISSUE_STATUSES`]; callers that perform legacy
+/// migration should overwrite `statuses` / `default_status` after calling this.
 #[must_use]
 pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
+    let statuses: Vec<String> = DEFAULT_ISSUE_STATUSES
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect();
+    let default_status = statuses.first().cloned();
     ItemTypeConfig {
         name: "Issue".to_string(),
         icon: Some("clipboard".to_string()),
@@ -80,8 +90,8 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
             move_item: true,
             duplicate: true,
         },
-        statuses: config.allowed_states.clone(),
-        default_status: config.allowed_states.first().cloned(),
+        statuses,
+        default_status,
         priority_levels: Some(config.priority_levels),
         custom_fields: config.custom_fields.clone(),
         template: Some("template.md".to_string()),

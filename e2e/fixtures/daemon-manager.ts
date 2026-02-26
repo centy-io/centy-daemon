@@ -217,7 +217,7 @@ export function useExistingDaemon(
   return {
     process: null as unknown as ChildProcess,
     address,
-    port: parseInt(address.split(':')[1]),
+    port: parseInt(address.split(':')[1] ?? '0', 10),
     tempDir: '',
     stop: async () => {
       /* no-op for external daemon */

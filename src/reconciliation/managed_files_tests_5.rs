@@ -45,3 +45,17 @@ fn test_managed_file_template_cspell_content() {
     assert!(content.contains("createdAt"));
     assert!(content.contains("allowedStates"));
 }
+
+#[test]
+fn test_managed_file_template_hooks_yaml_content() {
+    let files = get_managed_files();
+    let hooks = files.get("hooks.yaml").expect("Should have hooks.yaml");
+
+    let content = hooks
+        .content
+        .as_ref()
+        .expect("hooks.yaml should have content");
+    assert!(content.contains("https://docs.centy.io/hooks"));
+    assert!(content.contains("issue.created"));
+    assert!(content.contains("$CENTY_ITEM_TITLE"));
+}

@@ -13,7 +13,6 @@ fn test_all_config_fields_acknowledged_in_init() {
         priority_levels: _,   // ✓ exposed via InitRequest.init_config (Config.priority_levels)
         custom_fields: _,     // ✓ exposed via InitRequest.init_config (Config.custom_fields)
         defaults: _,          // ✓ exposed via InitRequest.init_config (Config.defaults)
-        allowed_states: _,    // deprecated: migrated to per-item-type config.yaml
         state_colors: _,      // ✓ exposed via InitRequest.init_config (Config.state_colors)
         priority_colors: _,   // ✓ exposed via InitRequest.init_config (Config.priority_colors)
         custom_link_types: _, // ✓ exposed via InitRequest.init_config (Config.custom_link_types)
