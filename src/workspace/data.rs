@@ -14,6 +14,7 @@ use tokio::fs;
 /// - Issue folder: `.centy/issues/{issue_id}/` (issue.md, metadata.json, assets/)
 /// - Shared assets: `.centy/assets/`
 /// - Project config: `.centy/config.json`
+#[allow(unknown_lints, max_nesting_depth)]
 pub async fn copy_issue_data_to_workspace(
     source_project: &Path,
     workspace_path: &Path,

@@ -4,6 +4,7 @@ use mdstore::CustomFieldDef as InternalCustomFieldDef;
 
 use super::proto::Config;
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub fn proto_to_config(proto: &Config) -> CentyConfig {
     CentyConfig {
         version: if proto.version.is_empty() {

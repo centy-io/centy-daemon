@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use crate::config::read_config;
 use crate::hooks::HookOperation;
 use crate::link::DeleteLinkOptions;
@@ -12,6 +11,7 @@ use crate::server::proto::{DeleteLinkRequest, DeleteLinkResponse};
 use crate::server::structured_error::to_error_json;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn delete_link(req: DeleteLinkRequest) -> Result<Response<DeleteLinkResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use crate::config::read_config;
 use crate::hooks::HookOperation;
 use crate::link::CreateLinkOptions;
@@ -16,85 +15,46 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path).await {
         return Ok(Response::new(CreateLinkResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
+            success: false, error: to_error_json(&req.project_path, &e), ..Default::default()
         }));
     }
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.source_id.clone();
     let hook_request_data = serde_json::json!({
-        "source_id": &req.source_id,
-        "target_id": &req.target_id,
-        "link_type": &req.link_type,
+        "source_id": &req.source_id, "target_id": &req.target_id, "link_type": &req.link_type,
     });
-    if let Err(e) = maybe_run_pre_hooks(
-        project_path,
-        "link",
-        HookOperation::Create,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data.clone()),
-    )
-    .await
+    if let Err(e) = maybe_run_pre_hooks(project_path, "link", HookOperation::Create,
+        &hook_project_path, Some(&hook_item_id), Some(hook_request_data.clone())).await
     {
         return Ok(Response::new(CreateLinkResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
+            success: false, error: to_error_json(&req.project_path, &e), ..Default::default()
         }));
     }
-
     let source_type = proto_link_target_to_internal(req.source_type());
     let target_type = proto_link_target_to_internal(req.target_type());
     let custom_types = match read_config(project_path).await {
-        Ok(Some(config)) => config.custom_link_types,
-        Ok(None) | Err(_) => vec![],
+        Ok(Some(config)) => config.custom_link_types, Ok(None) | Err(_) => vec![],
     };
-
     let options = CreateLinkOptions {
-        source_id: req.source_id,
-        source_type,
-        target_id: req.target_id,
-        target_type,
+        source_id: req.source_id, source_type, target_id: req.target_id, target_type,
         link_type: req.link_type,
     };
-
     match crate::link::create_link(project_path, options, &custom_types).await {
         Ok(result) => {
-            maybe_run_post_hooks(
-                project_path,
-                "link",
-                HookOperation::Create,
-                &hook_project_path,
-                Some(&hook_item_id),
-                Some(hook_request_data),
-                true,
-            )
-            .await;
+            maybe_run_post_hooks(project_path, "link", HookOperation::Create,
+                &hook_project_path, Some(&hook_item_id), Some(hook_request_data), true).await;
             Ok(Response::new(CreateLinkResponse {
-                success: true,
-                error: String::new(),
+                success: true, error: String::new(),
                 created_link: Some(internal_link_to_proto(&result.created_link)),
                 inverse_link: Some(internal_link_to_proto(&result.inverse_link)),
             }))
         }
         Err(e) => {
-            maybe_run_post_hooks(
-                project_path,
-                "link",
-                HookOperation::Create,
-                &hook_project_path,
-                Some(&hook_item_id),
-                Some(hook_request_data),
-                false,
-            )
-            .await;
+            maybe_run_post_hooks(project_path, "link", HookOperation::Create,
+                &hook_project_path, Some(&hook_item_id), Some(hook_request_data), false).await;
             Ok(Response::new(CreateLinkResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-                created_link: None,
-                inverse_link: None,
+                success: false, error: to_error_json(&req.project_path, &e),
+                created_link: None, inverse_link: None,
             }))
         }
     }

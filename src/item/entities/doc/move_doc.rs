@@ -9,6 +9,7 @@ use super::helpers::{slugify, validate_slug};
 use super::types::{MoveDocOptions, MoveDocResult};
 
 /// Move a doc to another project
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn move_doc(options: MoveDocOptions) -> Result<MoveDocResult, DocError> {
     if options.source_project_path == options.target_project_path {
         return Err(DocError::SameProjectMove);

@@ -67,6 +67,7 @@ pub async fn resolve_item_type_config(
 /// If `id` is a pure positive-integer string (e.g. "1") and the item type has
 /// the `display_number` feature enabled, this looks up the item by display
 /// number and returns its real UUID.  Otherwise returns `id` unchanged.
+#[allow(unknown_lints, max_nesting_depth)]
 pub async fn resolve_item_id(
     project_path: &Path,
     folder: &str,

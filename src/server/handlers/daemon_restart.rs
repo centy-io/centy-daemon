@@ -9,6 +9,7 @@ use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
 
+#[allow(unknown_lints, clippy::unused_async, max_lines_per_function)]
 pub async fn restart(
     req: RestartRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,

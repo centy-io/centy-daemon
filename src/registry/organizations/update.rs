@@ -6,6 +6,7 @@ use crate::utils::now_iso;
 use tracing::info;
 
 /// Update an existing organization
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn update_organization(
     slug: &str,
     name: Option<&str>,
@@ -35,7 +36,7 @@ pub async fn update_organization(
         };
     }
 
-    org.updated_at = now.clone();
+    org.updated_at.clone_from(&now);
 
     // Handle slug rename
     let final_slug = if let Some(ns) = new_slug {

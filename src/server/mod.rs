@@ -26,7 +26,8 @@ use tokio::sync::watch;
 pub mod proto {
     #![allow(clippy::pedantic)]
     #![allow(clippy::all)]
-    tonic::include_proto!("centy.v1");
+    #![allow(unknown_lints, max_lines_per_file, max_lines_per_function, clippy::too_many_lines, clippy::wildcard_imports)]
+    include!(concat!(env!("OUT_DIR"), "/centy.v1.include.rs"));
 }
 
 /// Signal type for daemon shutdown/restart

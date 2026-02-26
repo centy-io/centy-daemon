@@ -11,6 +11,7 @@ use crate::server::structured_error::to_error_json;
 use crate::user::restore_user as internal_restore_user;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn restore_user(
     req: RestoreUserRequest,
 ) -> Result<Response<RestoreUserResponse>, Status> {

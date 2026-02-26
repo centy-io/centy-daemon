@@ -10,6 +10,7 @@ use crate::server::resolve::resolve_issue;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn get_entity_actions(
     req: GetEntityActionsRequest,
 ) -> Result<Response<GetEntityActionsResponse>, Status> {

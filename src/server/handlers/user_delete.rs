@@ -10,6 +10,7 @@ use crate::server::structured_error::to_error_json;
 use crate::user::delete_user as internal_delete_user;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

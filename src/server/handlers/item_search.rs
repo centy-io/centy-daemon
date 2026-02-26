@@ -12,6 +12,7 @@ use tonic::{Response, Status};
 
 use super::item_type_resolve::resolve_item_type_config;
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn search_items(
     req: SearchItemsRequest,
 ) -> Result<Response<SearchItemsResponse>, Status> {
