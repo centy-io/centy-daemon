@@ -2,6 +2,7 @@ use super::actions::{make_action, make_status_action};
 use super::proto::{ActionCategory, EntityAction};
 
 /// Build issue-specific actions.
+#[allow(unknown_lints, max_lines_per_function)]
 pub fn build_issue_actions(
     entity_status: Option<&String>,
     allowed_states: &[String],

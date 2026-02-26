@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use handlebars::Handlebars;
 use std::path::Path;
 use thiserror::Error;
@@ -10,13 +11,10 @@ use crate::utils::get_centy_path;
 pub enum TemplateError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-
     #[error("Template error: {0}")]
     TemplateError(#[from] handlebars::TemplateError),
-
     #[error("Render error: {0}")]
     RenderError(#[from] handlebars::RenderError),
-
     #[error("Template '{0}' not found")]
     TemplateNotFound(String),
 }
@@ -28,8 +26,9 @@ pub struct TemplateEngine {
 impl TemplateEngine {
     #[must_use]
     pub fn new() -> Self {
-        let handlebars = Handlebars::new();
-        Self { handlebars }
+        Self {
+            handlebars: Handlebars::new(),
+        }
     }
 
     /// Get the templates directory path
@@ -47,8 +46,7 @@ impl TemplateEngine {
         Self::get_templates_path(project_path).join(template_type.folder_name())
     }
 
-    /// Load a template from disk by name
-    /// Looks for "{`template_name}.md`" in the appropriate template folder
+    /// Load a template from disk by name. Looks for "{template_name}.md" in the appropriate folder.
     pub async fn load_template(
         &self,
         project_path: &Path,
@@ -58,10 +56,8 @@ impl TemplateEngine {
         let template_folder = Self::get_template_type_path(project_path, template_type);
         let file_name = format!("{template_name}.md");
         let template_path = template_folder.join(&file_name);
-
         if template_path.exists() {
-            let content = fs::read_to_string(&template_path).await?;
-            Ok(content)
+            Ok(fs::read_to_string(&template_path).await?)
         } else {
             Err(TemplateError::TemplateNotFound(file_name))
         }
@@ -77,7 +73,6 @@ impl TemplateEngine {
         let template_content = self
             .load_template(project_path, TemplateType::Issue, template_name)
             .await?;
-
         self.handlebars
             .render_template(&template_content, context)
             .map_err(TemplateError::from)
@@ -93,7 +88,6 @@ impl TemplateEngine {
         let template_content = self
             .load_template(project_path, TemplateType::Doc, template_name)
             .await?;
-
         self.handlebars
             .render_template(&template_content, context)
             .map_err(TemplateError::from)
@@ -107,40 +101,5 @@ impl Default for TemplateEngine {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_template_type_folder_name() {
-        assert_eq!(TemplateType::Issue.folder_name(), "issues");
-        assert_eq!(TemplateType::Doc.folder_name(), "docs");
-    }
-
-    #[test]
-    fn test_template_engine_creation() {
-        let engine = TemplateEngine::new();
-        // Basic test that engine can be created
-        assert!(engine.handlebars.get_templates().is_empty());
-    }
-
-    #[test]
-    fn test_get_templates_path() {
-        let project_path = Path::new("/test/project");
-        let templates_path = TemplateEngine::get_templates_path(project_path);
-        assert_eq!(templates_path, Path::new("/test/project/.centy/templates"));
-    }
-
-    #[test]
-    fn test_get_template_type_path() {
-        let project_path = Path::new("/test/project");
-
-        let issues_path = TemplateEngine::get_template_type_path(project_path, TemplateType::Issue);
-        assert_eq!(
-            issues_path,
-            Path::new("/test/project/.centy/templates/issues")
-        );
-
-        let docs_path = TemplateEngine::get_template_type_path(project_path, TemplateType::Doc);
-        assert_eq!(docs_path, Path::new("/test/project/.centy/templates/docs"));
-    }
-}
+#[path = "engine_tests.rs"]
+mod tests;

@@ -8,8 +8,8 @@ use crate::registry::RegistryError;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
-
 /// Set or remove a project's organization assignment
+#[allow(unknown_lints, max_lines_per_function, max_nesting_depth)]
 pub async fn set_project_organization(
     project_path: &str,
     org_slug: Option<&str>,

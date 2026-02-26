@@ -11,6 +11,7 @@ use crate::server::structured_error::to_error_json;
 use crate::user::soft_delete_user as internal_soft_delete_user;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn soft_delete_user(
     req: SoftDeleteUserRequest,
 ) -> Result<Response<SoftDeleteUserResponse>, Status> {

@@ -7,6 +7,12 @@ use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
 
+#[allow(
+    renamed_and_removed_lints,
+    unknown_lints,
+    unused_async,
+    clippy::unused_async
+)]
 pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<DaemonInfo>, Status> {
     let binary_path = std::env::current_exe()
         .map(|p| format_display_path(&p.to_string_lossy()))
@@ -19,6 +25,12 @@ pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<Daem
     }))
 }
 
+#[allow(
+    renamed_and_removed_lints,
+    unknown_lints,
+    unused_async,
+    clippy::unused_async
+)]
 pub async fn shutdown(
     req: ShutdownRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,

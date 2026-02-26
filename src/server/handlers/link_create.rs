@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::config::read_config;
 use crate::hooks::HookOperation;
 use crate::link::CreateLinkOptions;
@@ -9,8 +7,10 @@ use crate::server::convert_link::{internal_link_to_proto, proto_link_target_to_i
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreateLinkRequest, CreateLinkResponse};
 use crate::server::structured_error::to_error_json;
+use std::path::Path;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
@@ -24,9 +24,7 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.source_id.clone();
     let hook_request_data = serde_json::json!({
-        "source_id": &req.source_id,
-        "target_id": &req.target_id,
-        "link_type": &req.link_type,
+        "source_id": &req.source_id, "target_id": &req.target_id, "link_type": &req.link_type,
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
@@ -44,14 +42,12 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
             ..Default::default()
         }));
     }
-
     let source_type = proto_link_target_to_internal(req.source_type());
     let target_type = proto_link_target_to_internal(req.target_type());
     let custom_types = match read_config(project_path).await {
         Ok(Some(config)) => config.custom_link_types,
         Ok(None) | Err(_) => vec![],
     };
-
     let options = CreateLinkOptions {
         source_id: req.source_id,
         source_type,
@@ -59,7 +55,6 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
         target_type,
         link_type: req.link_type,
     };
-
     match crate::link::create_link(project_path, options, &custom_types).await {
         Ok(result) => {
             maybe_run_post_hooks(

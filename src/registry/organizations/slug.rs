@@ -39,32 +39,5 @@ pub(super) fn validate_slug(slug: &str) -> Result<(), OrganizationError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_slugify() {
-        assert_eq!(slugify("Hello World"), "hello-world");
-        assert_eq!(slugify("Centy.io"), "centy-io");
-        assert_eq!(slugify("My-Org"), "my-org");
-        assert_eq!(slugify("test  spaces"), "test-spaces");
-        assert_eq!(slugify("  leading"), "leading");
-        assert_eq!(slugify("trailing  "), "trailing");
-        assert_eq!(slugify("UPPERCASE"), "uppercase");
-        assert_eq!(slugify("numbers123"), "numbers123");
-    }
-
-    #[test]
-    fn test_validate_slug() {
-        assert!(validate_slug("valid-slug").is_ok());
-        assert!(validate_slug("also-valid-123").is_ok());
-        assert!(validate_slug("simple").is_ok());
-
-        assert!(validate_slug("").is_err());
-        assert!(validate_slug("-start-with-hyphen").is_err());
-        assert!(validate_slug("end-with-hyphen-").is_err());
-        assert!(validate_slug("UPPERCASE").is_err());
-        assert!(validate_slug("has spaces").is_err());
-        assert!(validate_slug("has_underscore").is_err());
-    }
-}
+#[path = "slug_tests.rs"]
+mod tests;

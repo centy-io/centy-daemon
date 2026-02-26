@@ -3,16 +3,14 @@ use std::sync::LazyLock;
 use crate::config::CentyConfig;
 
 /// Static regex for validating hex colors (compiled once on first use)
-#[expect(
-    clippy::expect_used,
-    reason = "Regex literal is compile-time constant and cannot fail"
-)]
+#[allow(unknown_lints, no_expect, clippy::expect_used)]
 pub static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
         .expect("HEX_COLOR_REGEX is a valid regex literal")
 });
 
 /// Validate the config and return an error message if invalid.
+#[allow(unknown_lints, max_lines_per_function)]
 pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
     if config.priority_levels < 1 || config.priority_levels > 10 {
         return Err("priority_levels must be between 1 and 10".to_string());

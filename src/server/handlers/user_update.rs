@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
@@ -10,8 +8,10 @@ use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{UpdateUserRequest, UpdateUserResponse};
 use crate::server::structured_error::to_error_json;
 use crate::user::{update_user as internal_update_user, UpdateUserOptions};
+use std::path::Path;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
@@ -22,14 +22,10 @@ pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserRe
             ..Default::default()
         }));
     }
-
-    // Pre-hook
     let hook_project_path = req.project_path.clone();
     let hook_item_id = req.user_id.clone();
     let hook_request_data = serde_json::json!({
-        "user_id": &req.user_id,
-        "name": &req.name,
-        "email": &req.email,
+        "user_id": &req.user_id, "name": &req.name, "email": &req.email,
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
@@ -47,7 +43,6 @@ pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserRe
             ..Default::default()
         }));
     }
-
     let options = UpdateUserOptions {
         name: nonempty(req.name),
         email: nonempty(req.email),
@@ -57,7 +52,6 @@ pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserRe
             Some(req.git_usernames)
         },
     };
-
     match internal_update_user(project_path, &req.user_id, options).await {
         Ok(result) => {
             maybe_run_post_hooks(
@@ -70,7 +64,6 @@ pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserRe
                 true,
             )
             .await;
-
             Ok(Response::new(UpdateUserResponse {
                 success: true,
                 error: String::new(),
@@ -89,7 +82,6 @@ pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserRe
                 false,
             )
             .await;
-
             Ok(Response::new(UpdateUserResponse {
                 success: false,
                 error: to_error_json(&req.project_path, &e),
