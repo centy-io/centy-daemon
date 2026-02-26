@@ -53,42 +53,82 @@ pub async fn migrate_to_item_type_configs(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_1.rs"]
 mod itc_tests_1;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
+#[path = "itc_tests_10.rs"]
+mod itc_tests_10;
+#[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_2.rs"]
 mod itc_tests_2;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_3.rs"]
 mod itc_tests_3;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_4.rs"]
 mod itc_tests_4;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_5.rs"]
 mod itc_tests_5;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_6.rs"]
 mod itc_tests_6;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_7.rs"]
 mod itc_tests_7;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_8.rs"]
 mod itc_tests_8;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 #[path = "itc_tests_9.rs"]
 mod itc_tests_9;
-#[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::field_reassign_with_default)]
-#[path = "itc_tests_10.rs"]
-mod itc_tests_10;

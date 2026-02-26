@@ -12,7 +12,9 @@ async fn test_registry_build_skips_malformed_yaml() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let bad_dir = centy_dir.join("broken");
     fs::create_dir_all(&bad_dir).await.unwrap();

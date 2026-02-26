@@ -28,7 +28,8 @@ fn test_is_in_temp_dir_temp_path() {
 
 #[test]
 fn test_is_in_temp_dir_non_temp_path() {
-    let home_dir = dirs::home_dir().unwrap_or_else(|| std::path::Path::new("/home/user").to_path_buf());
+    let home_dir =
+        dirs::home_dir().unwrap_or_else(|| std::path::Path::new("/home/user").to_path_buf());
     let test_path = home_dir.join("projects/my-project");
     assert!(!is_in_temp_dir(&test_path));
 }

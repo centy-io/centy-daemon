@@ -1,4 +1,4 @@
-use std::path::Path;
+use super::editor::open_editor_with_hooks;
 use crate::config::read_config;
 use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
@@ -7,14 +7,25 @@ use crate::server::proto::{OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithE
 use crate::server::resolve::resolve_issue;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::workspace::{create_temp_workspace, CreateWorkspaceOptions};
+use std::path::Path;
 use tonic::{Response, Status};
-use super::editor::open_editor_with_hooks;
-fn err_response(error: String, issue_id: String, dn: u32, req_cfg: bool) -> Response<OpenInTempWorkspaceResponse> {
+fn err_response(
+    error: String,
+    issue_id: String,
+    dn: u32,
+    req_cfg: bool,
+) -> Response<OpenInTempWorkspaceResponse> {
     Response::new(OpenInTempWorkspaceResponse {
-        success: false, error, workspace_path: String::new(),
-        issue_id, display_number: dn, expires_at: String::new(),
-        editor_opened: false, requires_status_config: req_cfg,
-        workspace_reused: false, original_created_at: String::new(),
+        success: false,
+        error,
+        workspace_path: String::new(),
+        issue_id,
+        display_number: dn,
+        expires_at: String::new(),
+        editor_opened: false,
+        requires_status_config: req_cfg,
+        workspace_reused: false,
+        original_created_at: String::new(),
     })
 }
 #[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
@@ -24,14 +35,27 @@ pub async fn open_in_temp_workspace(
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path).await {
-        return Ok(err_response(to_error_json(&req.project_path, &e), String::new(), 0, false));
+        return Ok(err_response(
+            to_error_json(&req.project_path, &e),
+            String::new(),
+            0,
+            false,
+        ));
     }
     let issue = match resolve_issue(project_path, &req.issue_id).await {
         Ok(i) => i,
-        Err(e) => return Ok(err_response(to_error_json(&req.project_path, &e), String::new(), 0, false)),
+        Err(e) => {
+            return Ok(err_response(
+                to_error_json(&req.project_path, &e),
+                String::new(),
+                0,
+                false,
+            ))
+        }
     };
     let config = read_config(project_path).await.ok().flatten();
-    let requires_status_config = config.as_ref()
+    let requires_status_config = config
+        .as_ref()
         .map(|c| c.workspace.update_status_on_open.is_none())
         .unwrap_or(true);
     if requires_status_config {
@@ -49,26 +73,48 @@ pub async fn open_in_temp_workspace(
             && issue.metadata.status != "closed"
         {
             let _ = update_issue(
-                project_path, &issue.id,
-                UpdateIssueOptions { status: Some("in-progress".to_string()), ..Default::default() },
-            ).await;
+                project_path,
+                &issue.id,
+                UpdateIssueOptions {
+                    status: Some("in-progress".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await;
         }
     }
     match create_temp_workspace(CreateWorkspaceOptions {
-        source_project_path: project_path.to_path_buf(), issue: issue.clone(),
-    }).await {
+        source_project_path: project_path.to_path_buf(),
+        issue: issue.clone(),
+    })
+    .await
+    {
         Ok(result) => {
             let workspace_path = result.workspace_path.to_string_lossy().to_string();
             let editor_opened = open_editor_with_hooks(
-                &req.editor_id, &workspace_path, issue.metadata.display_number, project_path,
+                &req.editor_id,
+                &workspace_path,
+                issue.metadata.display_number,
+                project_path,
             );
             Ok(Response::new(OpenInTempWorkspaceResponse {
-                success: true, error: String::new(), workspace_path,
-                issue_id: issue.id.clone(), display_number: issue.metadata.display_number,
-                expires_at: String::new(), editor_opened, requires_status_config: false,
-                workspace_reused: result.workspace_reused, original_created_at: String::new(),
+                success: true,
+                error: String::new(),
+                workspace_path,
+                issue_id: issue.id.clone(),
+                display_number: issue.metadata.display_number,
+                expires_at: String::new(),
+                editor_opened,
+                requires_status_config: false,
+                workspace_reused: result.workspace_reused,
+                original_created_at: String::new(),
             }))
         }
-        Err(e) => Ok(err_response(to_error_json(&req.project_path, &e), String::new(), 0, false)),
+        Err(e) => Ok(err_response(
+            to_error_json(&req.project_path, &e),
+            String::new(),
+            0,
+            false,
+        )),
     }
 }

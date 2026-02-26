@@ -16,7 +16,8 @@ pub(super) fn open_editor_with_hooks(
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
     let hook_ctx = HookContext {
-        owner: project_name, repo: String::new(),
+        owner: project_name,
+        repo: String::new(),
         issue: display_number.to_string(),
         branch: format!("issue-{display_number}"),
         worktree_path: workspace_path.to_string(),
@@ -26,7 +27,9 @@ pub(super) fn open_editor_with_hooks(
             let _ = run_hook(script, &hook_ctx);
         }
     }
-    if editor_id.is_empty() { return false; }
+    if editor_id.is_empty() {
+        return false;
+    }
     let cmd = opener::resolve_editor_command(editor_id);
     let path = Path::new(workspace_path);
     let post_script = config.as_ref().and_then(|c| c.hooks.post_open.as_ref());

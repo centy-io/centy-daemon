@@ -14,11 +14,13 @@ pub async fn sync_to_org_projects<T: OrgSyncable>(
     let source_path_str = source_project_path.to_string_lossy().to_string();
     let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
         Ok(projects) => projects,
-        Err(e) => return vec![OrgSyncResult {
-            project_path: "<registry>".to_string(),
-            success: false,
-            error: Some(format!("Failed to get org projects: {e}")),
-        }],
+        Err(e) => {
+            return vec![OrgSyncResult {
+                project_path: "<registry>".to_string(),
+                success: false,
+                error: Some(format!("Failed to get org projects: {e}")),
+            }]
+        }
     };
     let mut results = Vec::new();
     for project in org_projects {
@@ -45,16 +47,20 @@ pub async fn sync_update_to_org_projects<T: OrgSyncable>(
     let source_path_str = source_project_path.to_string_lossy().to_string();
     let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
         Ok(projects) => projects,
-        Err(e) => return vec![OrgSyncResult {
-            project_path: "<registry>".to_string(),
-            success: false,
-            error: Some(format!("Failed to get org projects: {e}")),
-        }],
+        Err(e) => {
+            return vec![OrgSyncResult {
+                project_path: "<registry>".to_string(),
+                success: false,
+                error: Some(format!("Failed to get org projects: {e}")),
+            }]
+        }
     };
     let mut results = Vec::new();
     for project in org_projects {
         let target_path = Path::new(&project.path);
-        let result = item.sync_update_to_project(target_path, org_slug, old_id).await;
+        let result = item
+            .sync_update_to_project(target_path, org_slug, old_id)
+            .await;
         results.push(OrgSyncResult {
             project_path: project.path.clone(),
             success: result.is_ok(),

@@ -65,7 +65,10 @@ fn test_item_type_config_yaml_roundtrip() {
     assert_eq!(deserialized.statuses.len(), config.statuses.len());
     assert_eq!(deserialized.default_status, config.default_status);
     assert_eq!(deserialized.priority_levels, config.priority_levels);
-    assert_eq!(deserialized.features.soft_delete, config.features.soft_delete);
+    assert_eq!(
+        deserialized.features.soft_delete,
+        config.features.soft_delete
+    );
     assert_eq!(deserialized.template, config.template);
 }
 
@@ -91,4 +94,3 @@ fn test_yaml_with_icon_and_template() {
     assert_eq!(config.icon, Some("tasks".to_string()));
     assert_eq!(config.template, Some("task-template.md".to_string()));
 }
-

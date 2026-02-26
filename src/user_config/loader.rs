@@ -1,5 +1,5 @@
-use tracing::{debug, warn};
 use super::{user_config_path, UserConfig, UserConfigError};
+use tracing::{debug, warn};
 /// Load the user configuration from `~/.centy/config.toml`.
 ///
 /// Returns `Ok(UserConfig::default())` if the file does not exist.
@@ -16,7 +16,10 @@ pub fn load_user_config() -> Result<UserConfig, UserConfigError> {
         }
     };
     if !path.exists() {
-        debug!("User config not found at {}; using defaults", path.display());
+        debug!(
+            "User config not found at {}; using defaults",
+            path.display()
+        );
         return Ok(UserConfig::default());
     }
     let content = std::fs::read_to_string(&path)?;

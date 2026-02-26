@@ -14,10 +14,7 @@ pub fn condense_trait_block(lines: &[String]) -> Vec<String> {
         None => return lines.to_vec(),
     };
 
-    let prefix: Vec<String> = refs[..=open_idx]
-        .iter()
-        .map(|l| (*l).to_string())
-        .collect();
+    let prefix: Vec<String> = refs[..=open_idx].iter().map(|l| (*l).to_string()).collect();
 
     // Find the closing `}` (last line).
     let close_idx = refs.len().saturating_sub(1);

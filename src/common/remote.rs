@@ -37,7 +37,9 @@ fn parse_ssh_url(ssh_part: &str) -> Option<ParsedRemote> {
 }
 
 fn parse_https_url(url: &str) -> Option<ParsedRemote> {
-    let url = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://"))?;
+    let url = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))?;
     let (host, path) = url.split_once('/')?;
     parse_path_segments(host, path)
 }
@@ -47,7 +49,11 @@ fn parse_path_segments(host: &str, path: &str) -> Option<ParsedRemote> {
     let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     let org = parts.first()?;
     let repo = parts.get(1)?;
-    Some(ParsedRemote { host: host.to_string(), org: (*org).to_string(), repo: (*repo).to_string() })
+    Some(ParsedRemote {
+        host: host.to_string(),
+        org: (*org).to_string(),
+        repo: (*repo).to_string(),
+    })
 }
 
 #[cfg(test)]

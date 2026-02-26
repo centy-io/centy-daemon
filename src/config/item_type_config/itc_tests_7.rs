@@ -11,7 +11,9 @@ async fn test_registry_get_by_name() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 
@@ -31,13 +33,17 @@ async fn test_registry_folders() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let docs_dir = centy_dir.join("docs");
     fs::create_dir_all(&docs_dir).await.unwrap();
     let doc_config = default_doc_config();
     let yaml = serde_yaml::to_string(&doc_config).unwrap();
-    fs::write(docs_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(docs_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
     let mut folders: Vec<&String> = registry.folders();
@@ -57,7 +63,9 @@ async fn test_registry_all() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
     let all = registry.all();

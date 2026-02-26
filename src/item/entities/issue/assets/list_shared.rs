@@ -1,5 +1,5 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::types::{AssetError, AssetInfo, compute_binary_hash, get_mime_type};
+use super::types::{compute_binary_hash, get_mime_type, AssetError, AssetInfo};
 use crate::manifest::read_manifest;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -34,8 +34,11 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
                         .unwrap_or_else(|_| now_iso());
                     assets.push(AssetInfo {
                         filename: filename.to_string(),
-                        hash, size, mime_type,
-                        is_shared: true, created_at,
+                        hash,
+                        size,
+                        mime_type,
+                        is_shared: true,
+                        created_at,
                     });
                 }
             }

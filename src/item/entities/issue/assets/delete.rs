@@ -1,5 +1,5 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::types::{AssetError, DeleteAssetResult, sanitize_filename};
+use super::types::{sanitize_filename, AssetError, DeleteAssetResult};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::get_centy_path;
 use std::path::Path;
@@ -33,7 +33,11 @@ pub async fn delete_asset(
             .join(id)
             .join(&sanitized_filename);
         let old_path = issue_folder_path.join("assets").join(&sanitized_filename);
-        if new_path.exists() { new_path } else { old_path }
+        if new_path.exists() {
+            new_path
+        } else {
+            old_path
+        }
     };
     if !asset_path.exists() {
         return Err(AssetError::AssetNotFound(sanitized_filename));
@@ -41,5 +45,8 @@ pub async fn delete_asset(
     fs::remove_file(&asset_path).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
-    Ok(DeleteAssetResult { filename: sanitized_filename, was_shared: is_shared })
+    Ok(DeleteAssetResult {
+        filename: sanitized_filename,
+        was_shared: is_shared,
+    })
 }

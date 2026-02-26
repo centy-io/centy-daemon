@@ -1,4 +1,3 @@
-use std::path::Path;
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
@@ -8,6 +7,7 @@ use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{CreateUserRequest, CreateUserResponse};
 use crate::server::structured_error::to_error_json;
 use crate::user::{create_user as internal_create_user, CreateUserOptions};
+use std::path::Path;
 use tonic::{Response, Status};
 
 #[allow(unknown_lints, max_lines_per_function)]

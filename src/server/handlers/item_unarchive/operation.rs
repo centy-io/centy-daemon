@@ -1,4 +1,4 @@
-use std::path::Path;
+use super::super::item_archive::ARCHIVED_FOLDER;
 use crate::hooks::HookOperation;
 use crate::item::core::error::ItemError;
 use crate::item::generic::storage::generic_move;
@@ -7,8 +7,8 @@ use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::UnarchiveItemResponse;
 use crate::server::structured_error::to_error_json;
 use mdstore::{Item, TypeConfig};
+use std::path::Path;
 use tonic::{Response, Status};
-use super::super::item_archive::ARCHIVED_FOLDER;
 /// Determine the destination folder for an unarchive operation.
 pub(super) fn resolve_target_folder(
     project_path_str: &str,
@@ -18,7 +18,11 @@ pub(super) fn resolve_target_folder(
     if !requested.is_empty() {
         return Ok(requested.to_string());
     }
-    match archived_item.frontmatter.custom_fields.get("original_item_type") {
+    match archived_item
+        .frontmatter
+        .custom_fields
+        .get("original_item_type")
+    {
         Some(serde_json::Value::String(s)) if !s.is_empty() => Ok(s.clone()),
         _ => {
             let err = ItemError::custom(
@@ -47,32 +51,54 @@ pub(super) async fn move_and_respond(
         "target_folder": &target_folder,
     });
     if let Err(e) = maybe_run_pre_hooks(
-        project_path, &hook_type, HookOperation::Move,
-        project_path_str, Some(item_id), Some(hook_request_data.clone()),
-    ).await {
+        project_path,
+        &hook_type,
+        HookOperation::Move,
+        project_path_str,
+        Some(item_id),
+        Some(hook_request_data.clone()),
+    )
+    .await
+    {
         return Ok(Response::new(UnarchiveItemResponse {
-            success: false, error: to_error_json(project_path_str, &e), ..Default::default()
+            success: false,
+            error: to_error_json(project_path_str, &e),
+            ..Default::default()
         }));
     }
     let move_result = generic_move(
-        project_path, project_path,
-        archived_type, target_type,
-        archived_config, target_config,
-        item_id, None,
-    ).await;
+        project_path,
+        project_path,
+        archived_type,
+        target_type,
+        archived_config,
+        target_config,
+        item_id,
+        None,
+    )
+    .await;
     let success = move_result.is_ok();
     maybe_run_post_hooks(
-        project_path, &hook_type, HookOperation::Move,
-        project_path_str, Some(item_id), Some(hook_request_data), success,
-    ).await;
+        project_path,
+        &hook_type,
+        HookOperation::Move,
+        project_path_str,
+        Some(item_id),
+        Some(hook_request_data),
+        success,
+    )
+    .await;
     match move_result {
         Ok(result) => Ok(Response::new(UnarchiveItemResponse {
-            success: true, error: String::new(),
+            success: true,
+            error: String::new(),
             item: Some(generic_item_to_proto(&result.item, target_type)),
             original_item_type: target_folder,
         })),
         Err(e) => Ok(Response::new(UnarchiveItemResponse {
-            success: false, error: to_error_json(project_path_str, &e), ..Default::default()
+            success: false,
+            error: to_error_json(project_path_str, &e),
+            ..Default::default()
         })),
     }
 }

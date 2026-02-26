@@ -65,8 +65,7 @@ fn test_remove_manually_edited_note() {
 fn test_remove_formatted_planning_note() {
     // When formatted by markdown formatter, the note may have leading spaces
     // and be wrapped differently
-    let content =
-        " > \n > **Planning Mode**: Do not implement code changes.\n\nSome description";
+    let content = " > \n > **Planning Mode**: Do not implement code changes.\n\nSome description";
     let result = remove_planning_note(content);
     assert!(
         !result.contains("Planning Mode"),

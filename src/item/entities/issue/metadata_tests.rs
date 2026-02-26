@@ -10,7 +10,8 @@ fn test_deserialize_priority_number() {
 
 #[test]
 fn test_deserialize_priority_string_high() {
-    let json = r#"{"status":"open","priority":"high","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
+    let json =
+        r#"{"status":"open","priority":"high","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
     let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
     assert_eq!(metadata.common.priority, 1);
 }
@@ -24,7 +25,8 @@ fn test_deserialize_priority_string_medium() {
 
 #[test]
 fn test_deserialize_priority_string_low() {
-    let json = r#"{"status":"open","priority":"low","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
+    let json =
+        r#"{"status":"open","priority":"low","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
     let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
     assert_eq!(metadata.common.priority, 3);
 }

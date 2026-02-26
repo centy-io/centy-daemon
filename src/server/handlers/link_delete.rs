@@ -1,4 +1,3 @@
-use std::path::Path;
 use crate::config::read_config;
 use crate::hooks::HookOperation;
 use crate::link::DeleteLinkOptions;
@@ -9,6 +8,7 @@ use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{DeleteLinkRequest, DeleteLinkResponse};
 use crate::server::structured_error::to_error_json;
+use std::path::Path;
 use tonic::{Response, Status};
 
 #[allow(unknown_lints, max_lines_per_function)]

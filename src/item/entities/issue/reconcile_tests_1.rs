@@ -54,4 +54,3 @@ async fn test_reconcile_no_conflicts() {
     let reassigned = reconcile_display_numbers(&issues_path).await.unwrap();
     assert_eq!(reassigned, 0);
 }
-

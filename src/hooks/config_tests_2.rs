@@ -72,4 +72,3 @@ fn test_hook_definition_camel_case() {
     assert!(json.contains("\"async\""));
     assert!(!json.contains("is_async"));
 }
-

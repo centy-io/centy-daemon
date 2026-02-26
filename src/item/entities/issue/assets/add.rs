@@ -1,5 +1,8 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::types::{AddAssetResult, AssetError, AssetInfo, AssetScope, compute_binary_hash, get_mime_type, sanitize_filename};
+use super::types::{
+    compute_binary_hash, get_mime_type, sanitize_filename, AddAssetResult, AssetError, AssetInfo,
+    AssetScope,
+};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;

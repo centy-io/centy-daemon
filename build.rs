@@ -1,15 +1,15 @@
-#[path = "build/split.rs"]
-mod split;
 #[path = "build/attrs.rs"]
 mod attrs;
-#[path = "build/trait_condense.rs"]
-mod trait_condense;
-#[path = "build/service_transform.rs"]
-mod service_transform;
-#[path = "build/service_extract.rs"]
-mod service_extract;
 #[path = "build/mod_split.rs"]
 mod mod_split;
+#[path = "build/service_extract.rs"]
+mod service_extract;
+#[path = "build/service_transform.rs"]
+mod service_transform;
+#[path = "build/split.rs"]
+mod split;
+#[path = "build/trait_condense.rs"]
+mod trait_condense;
 
 use mod_split::write_maybe_split;
 use split::split_into_chunks;

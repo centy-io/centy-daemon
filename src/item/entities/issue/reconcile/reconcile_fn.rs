@@ -1,7 +1,7 @@
 //! Display number reconciliation for resolving conflicts.
+use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::scan::scan_issues;
 use super::types::{IssueInfo, ReconcileError};
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use mdstore::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
@@ -13,19 +13,31 @@ use tokio::fs;
 /// The oldest issue (by `created_at`) keeps its original number.
 ///
 /// Returns the number of issues that were reassigned.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines, max_nesting_depth)]
+#[allow(
+    unknown_lints,
+    max_lines_per_function,
+    clippy::too_many_lines,
+    max_nesting_depth
+)]
 pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, ReconcileError> {
-    if !issues_path.exists() { return Ok(0); }
+    if !issues_path.exists() {
+        return Ok(0);
+    }
     let issues = scan_issues(issues_path).await?;
     let mut by_display_number: HashMap<u32, Vec<&IssueInfo>> = HashMap::new();
     for issue in &issues {
-        by_display_number.entry(issue.display_number).or_default().push(issue);
+        by_display_number
+            .entry(issue.display_number)
+            .or_default()
+            .push(issue);
     }
     let max_display_number = issues.iter().map(|i| i.display_number).max().unwrap_or(0);
     let mut reassignments: Vec<(IssueInfo, u32)> = Vec::new();
     let mut next_available = max_display_number.saturating_add(1);
     for (display_number, mut group) in by_display_number {
-        if group.len() <= 1 { continue; }
+        if group.len() <= 1 {
+            continue;
+        }
         if display_number == 0 {
             for issue in &group {
                 reassignments.push(((*issue).clone(), next_available));

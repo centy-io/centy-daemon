@@ -18,7 +18,10 @@ fn test_get_available_link_types_with_custom() {
     let custom_type = types.iter().find(|t| !t.is_builtin).unwrap();
     assert_eq!(custom_type.name, "depends-on");
     assert_eq!(custom_type.inverse, "dependency-of");
-    assert_eq!(custom_type.description, Some("Dependency relationship".to_string()));
+    assert_eq!(
+        custom_type.description,
+        Some("Dependency relationship".to_string())
+    );
 }
 #[test]
 fn test_link_error_invalid_link_type() {

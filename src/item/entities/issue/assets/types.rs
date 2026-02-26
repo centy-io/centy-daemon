@@ -2,7 +2,11 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum AssetScope { #[default] IssueSpecific, Shared }
+pub enum AssetScope {
+    #[default]
+    IssueSpecific,
+    Shared,
+}
 
 #[derive(Debug, Clone)]
 pub struct AssetInfo {
@@ -16,31 +20,53 @@ pub struct AssetInfo {
 
 #[derive(Error, Debug)]
 pub enum AssetError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("Manifest error: {0}")] ManifestError(#[from] crate::manifest::ManifestError),
-    #[error("Centy not initialized. Run 'centy init' first.")] NotInitialized,
-    #[error("Issue not found: {0}")] IssueNotFound(String),
-    #[error("Asset not found: {0}")] AssetNotFound(String),
-    #[error("Asset already exists: {0}")] AssetAlreadyExists(String),
-    #[error("Invalid filename: {0}")] InvalidFilename(String),
-    #[error("Unsupported file type: {0}")] UnsupportedFileType(String),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Manifest error: {0}")]
+    ManifestError(#[from] crate::manifest::ManifestError),
+    #[error("Centy not initialized. Run 'centy init' first.")]
+    NotInitialized,
+    #[error("Issue not found: {0}")]
+    IssueNotFound(String),
+    #[error("Asset not found: {0}")]
+    AssetNotFound(String),
+    #[error("Asset already exists: {0}")]
+    AssetAlreadyExists(String),
+    #[error("Invalid filename: {0}")]
+    InvalidFilename(String),
+    #[error("Unsupported file type: {0}")]
+    UnsupportedFileType(String),
 }
 
 #[derive(Debug, Clone)]
-pub struct AddAssetResult { pub asset: AssetInfo, pub path: String }
+pub struct AddAssetResult {
+    pub asset: AssetInfo,
+    pub path: String,
+}
 
 #[derive(Debug, Clone)]
-pub struct DeleteAssetResult { pub filename: String, pub was_shared: bool }
+pub struct DeleteAssetResult {
+    pub filename: String,
+    pub was_shared: bool,
+}
 
 pub const IMAGE_MIME_TYPES: &[(&str, &str)] = &[
-    ("png", "image/png"), ("jpg", "image/jpeg"), ("jpeg", "image/jpeg"),
-    ("gif", "image/gif"), ("webp", "image/webp"), ("svg", "image/svg+xml"),
-    ("ico", "image/x-icon"), ("bmp", "image/bmp"),
+    ("png", "image/png"),
+    ("jpg", "image/jpeg"),
+    ("jpeg", "image/jpeg"),
+    ("gif", "image/gif"),
+    ("webp", "image/webp"),
+    ("svg", "image/svg+xml"),
+    ("ico", "image/x-icon"),
+    ("bmp", "image/bmp"),
 ];
 
 pub const VIDEO_MIME_TYPES: &[(&str, &str)] = &[
-    ("mp4", "video/mp4"), ("webm", "video/webm"), ("mov", "video/quicktime"),
-    ("avi", "video/x-msvideo"), ("mkv", "video/x-matroska"),
+    ("mp4", "video/mp4"),
+    ("webm", "video/webm"),
+    ("mov", "video/quicktime"),
+    ("avi", "video/x-msvideo"),
+    ("mkv", "video/x-matroska"),
 ];
 
 pub fn compute_binary_hash(data: &[u8]) -> String {
@@ -52,17 +78,23 @@ pub fn compute_binary_hash(data: &[u8]) -> String {
 pub fn get_mime_type(filename: &str) -> Option<String> {
     let extension = filename.rsplit('.').next()?.to_lowercase();
     for (ext, mime) in IMAGE_MIME_TYPES {
-        if extension == *ext { return Some((*mime).to_string()); }
+        if extension == *ext {
+            return Some((*mime).to_string());
+        }
     }
     for (ext, mime) in VIDEO_MIME_TYPES {
-        if extension == *ext { return Some((*mime).to_string()); }
+        if extension == *ext {
+            return Some((*mime).to_string());
+        }
     }
     None
 }
 
 pub fn sanitize_filename(filename: &str) -> Result<String, AssetError> {
     if filename.is_empty() {
-        return Err(AssetError::InvalidFilename("Filename cannot be empty".to_string()));
+        return Err(AssetError::InvalidFilename(
+            "Filename cannot be empty".to_string(),
+        ));
     }
     if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
         return Err(AssetError::InvalidFilename(
@@ -70,7 +102,9 @@ pub fn sanitize_filename(filename: &str) -> Result<String, AssetError> {
         ));
     }
     if filename.starts_with('.') {
-        return Err(AssetError::InvalidFilename("Filename cannot start with '.'".to_string()));
+        return Err(AssetError::InvalidFilename(
+            "Filename cannot start with '.'".to_string(),
+        ));
     }
     if filename.len() > 255 {
         return Err(AssetError::InvalidFilename(

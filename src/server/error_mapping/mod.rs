@@ -11,7 +11,10 @@ impl ToStructuredError for crate::server::assert_service::AssertError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
         use crate::server::assert_service::AssertError;
         match self {
-            AssertError::NotInitialized => ("NOT_INITIALIZED", Some("Run 'centy init' to initialize the project")),
+            AssertError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
         }
     }
 }
@@ -22,7 +25,10 @@ impl ToStructuredError for crate::item::core::error::ItemError {
         match self {
             ItemError::IoError(_) => ("IO_ERROR", None),
             ItemError::NotFound(_) => ("ITEM_NOT_FOUND", None),
-            ItemError::NotInitialized => ("NOT_INITIALIZED", Some("Run 'centy init' to initialize the project")),
+            ItemError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
             ItemError::ValidationError(_) => ("VALIDATION_ERROR", None),
             ItemError::ManifestError(_) => ("MANIFEST_ERROR", None),
             ItemError::JsonError(_) => ("JSON_ERROR", None),
@@ -39,7 +45,10 @@ impl ToStructuredError for crate::item::core::error::ItemError {
             ItemError::NotDeleted(_) => ("NOT_DELETED", None),
             ItemError::Custom(_) => ("CUSTOM_ERROR", None),
             ItemError::SameProject => ("SAME_PROJECT", None),
-            ItemError::TargetNotInitialized => ("TARGET_NOT_INITIALIZED", Some("Run 'centy init' in the target project first")),
+            ItemError::TargetNotInitialized => (
+                "TARGET_NOT_INITIALIZED",
+                Some("Run 'centy init' in the target project first"),
+            ),
         }
     }
 }
@@ -51,7 +60,10 @@ impl ToStructuredError for crate::item::entities::issue::IssueError {
             IssueError::IoError(_) => ("IO_ERROR", None),
             IssueError::ManifestError(_) => ("MANIFEST_ERROR", None),
             IssueError::JsonError(_) => ("JSON_ERROR", None),
-            IssueError::NotInitialized => ("NOT_INITIALIZED", Some("Run 'centy init' to initialize the project")),
+            IssueError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
             IssueError::TitleRequired => ("TITLE_REQUIRED", Some("Provide a non-empty title")),
             IssueError::InvalidPriority(_) => ("INVALID_PRIORITY", None),
             IssueError::InvalidStatus(_) => ("INVALID_STATUS", None),
@@ -72,7 +84,10 @@ impl ToStructuredError for crate::item::entities::issue::IssueCrudError {
             IssueCrudError::ManifestError(_) => ("MANIFEST_ERROR", None),
             IssueCrudError::JsonError(_) => ("JSON_ERROR", None),
             IssueCrudError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
-            IssueCrudError::NotInitialized => ("NOT_INITIALIZED", Some("Run 'centy init' to initialize the project")),
+            IssueCrudError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
             IssueCrudError::IssueNotFound(_) => ("ISSUE_NOT_FOUND", None),
             IssueCrudError::IssueDisplayNumberNotFound(_) => ("ISSUE_NOT_FOUND", None),
             IssueCrudError::IssueNotDeleted(_) => ("ISSUE_NOT_DELETED", None),
@@ -81,7 +96,10 @@ impl ToStructuredError for crate::item::entities::issue::IssueCrudError {
             IssueCrudError::InvalidPriority(_) => ("INVALID_PRIORITY", None),
             IssueCrudError::InvalidStatus(_) => ("INVALID_STATUS", None),
             IssueCrudError::ReconcileError(_) => ("RECONCILE_ERROR", None),
-            IssueCrudError::TargetNotInitialized => ("TARGET_NOT_INITIALIZED", Some("Run 'centy init' in the target project first")),
+            IssueCrudError::TargetNotInitialized => (
+                "TARGET_NOT_INITIALIZED",
+                Some("Run 'centy init' in the target project first"),
+            ),
             IssueCrudError::InvalidPriorityInTarget(_) => ("INVALID_PRIORITY_IN_TARGET", None),
             IssueCrudError::SameProject => ("SAME_PROJECT", None),
         }

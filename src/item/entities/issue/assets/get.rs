@@ -1,5 +1,5 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::types::{AssetError, AssetInfo, compute_binary_hash, get_mime_type, sanitize_filename};
+use super::types::{compute_binary_hash, get_mime_type, sanitize_filename, AssetError, AssetInfo};
 use crate::manifest::read_manifest;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
@@ -33,7 +33,11 @@ pub async fn get_asset(
             .join(id)
             .join(&sanitized_filename);
         let old_path = issue_folder_path.join("assets").join(&sanitized_filename);
-        if new_path.exists() { new_path } else { old_path }
+        if new_path.exists() {
+            new_path
+        } else {
+            old_path
+        }
     };
     if !asset_path.exists() {
         return Err(AssetError::AssetNotFound(sanitized_filename));
@@ -52,6 +56,13 @@ pub async fn get_asset(
                 .to_string()
         })
         .unwrap_or_else(|_| now_iso());
-    let asset_info = AssetInfo { filename: sanitized_filename, hash, size, mime_type, is_shared, created_at };
+    let asset_info = AssetInfo {
+        filename: sanitized_filename,
+        hash,
+        size,
+        mime_type,
+        is_shared,
+        created_at,
+    };
     Ok((data, asset_info))
 }

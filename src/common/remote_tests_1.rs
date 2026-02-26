@@ -77,4 +77,3 @@ fn test_parse_gitlab_ssh() {
         })
     );
 }
-

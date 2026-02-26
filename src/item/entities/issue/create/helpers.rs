@@ -97,4 +97,3 @@ pub fn build_issue_for_sync(
         },
     }
 }
-

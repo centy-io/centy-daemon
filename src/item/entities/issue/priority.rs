@@ -20,7 +20,9 @@ pub fn validate_priority(priority: u32, max_levels: u32) -> Result<(), PriorityE
 /// Examples: levels=1->1, levels=2->1, levels=3->2, levels=4->2, levels=5->3
 #[must_use]
 pub fn default_priority(priority_levels: u32) -> u32 {
-    if priority_levels == 0 { return 1; }
+    if priority_levels == 0 {
+        return 1;
+    }
     priority_levels.div_ceil(2)
 }
 
@@ -30,11 +32,20 @@ pub fn default_priority(priority_levels: u32) -> u32 {
 pub fn priority_label(priority: u32, max_levels: u32) -> String {
     match max_levels {
         0 | 1 => "normal".to_string(),
-        2 => match priority { 1 => "high".to_string(), _ => "low".to_string() },
-        3 => match priority { 1 => "high".to_string(), 2 => "medium".to_string(), _ => "low".to_string() },
+        2 => match priority {
+            1 => "high".to_string(),
+            _ => "low".to_string(),
+        },
+        3 => match priority {
+            1 => "high".to_string(),
+            2 => "medium".to_string(),
+            _ => "low".to_string(),
+        },
         4 => match priority {
-            1 => "critical".to_string(), 2 => "high".to_string(),
-            3 => "medium".to_string(), _ => "low".to_string()
+            1 => "critical".to_string(),
+            2 => "high".to_string(),
+            3 => "medium".to_string(),
+            _ => "low".to_string(),
         },
         _ => format!("P{priority}"),
     }
@@ -45,7 +56,13 @@ pub fn priority_label(priority: u32, max_levels: u32) -> String {
 pub fn label_to_priority(label: &str, max_levels: u32) -> Option<u32> {
     match label.to_lowercase().as_str() {
         "critical" | "urgent" => Some(1),
-        "high" => if max_levels >= 4 { Some(2) } else { Some(1) },
+        "high" => {
+            if max_levels >= 4 {
+                Some(2)
+            } else {
+                Some(1)
+            }
+        }
         "medium" | "normal" => Some(default_priority(max_levels)),
         "low" => Some(max_levels),
         _ => {

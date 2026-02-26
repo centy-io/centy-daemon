@@ -6,7 +6,10 @@ impl ToStructuredError for crate::item::entities::doc::DocError {
             DocError::IoError(_) => ("IO_ERROR", None),
             DocError::ManifestError(_) => ("MANIFEST_ERROR", None),
             DocError::JsonError(_) => ("JSON_ERROR", None),
-            DocError::NotInitialized => ("NOT_INITIALIZED", Some("Run 'centy init' to initialize the project")),
+            DocError::NotInitialized => (
+                "NOT_INITIALIZED",
+                Some("Run 'centy init' to initialize the project"),
+            ),
             DocError::DocNotFound(_) => ("DOC_NOT_FOUND", None),
             DocError::TitleRequired => ("TITLE_REQUIRED", Some("Provide a non-empty title")),
             DocError::SlugAlreadyExists(_) => ("SLUG_ALREADY_EXISTS", None),
@@ -14,7 +17,10 @@ impl ToStructuredError for crate::item::entities::doc::DocError {
             DocError::DocNotDeleted(_) => ("DOC_NOT_DELETED", None),
             DocError::DocAlreadyDeleted(_) => ("DOC_ALREADY_DELETED", None),
             DocError::TemplateError(_) => ("TEMPLATE_ERROR", None),
-            DocError::TargetNotInitialized => ("TARGET_NOT_INITIALIZED", Some("Run 'centy init' in the target project first")),
+            DocError::TargetNotInitialized => (
+                "TARGET_NOT_INITIALIZED",
+                Some("Run 'centy init' in the target project first"),
+            ),
             DocError::SameProjectMove => ("SAME_PROJECT", None),
             DocError::NoOrganization => ("NO_ORGANIZATION", None),
             DocError::RegistryError(_) => ("REGISTRY_ERROR", None),

@@ -1,5 +1,5 @@
-use super::types::{HookOperation, PatternSegment, Phase};
 use super::super::error::HookError;
+use super::types::{HookOperation, PatternSegment, Phase};
 /// A parsed hook pattern (e.g., "pre:issue:create")
 #[derive(Debug, Clone)]
 pub struct ParsedPattern {
@@ -29,22 +29,42 @@ impl ParsedPattern {
         let item_type = Self::parse_item_type_segment(item_type_str)?;
         let operation = Self::parse_segment(
             operation_str,
-            &["create", "update", "delete", "soft-delete", "restore", "move", "duplicate"],
+            &[
+                "create",
+                "update",
+                "delete",
+                "soft-delete",
+                "restore",
+                "move",
+                "duplicate",
+            ],
         )?;
-        Ok(ParsedPattern { phase, item_type, operation })
+        Ok(ParsedPattern {
+            phase,
+            item_type,
+            operation,
+        })
     }
     fn parse_segment(value: &str, valid_values: &[&str]) -> Result<PatternSegment, HookError> {
-        if value == "*" { return Ok(PatternSegment::Wildcard); }
-        if valid_values.contains(&value) { return Ok(PatternSegment::Exact(value.to_string())); }
+        if value == "*" {
+            return Ok(PatternSegment::Wildcard);
+        }
+        if valid_values.contains(&value) {
+            return Ok(PatternSegment::Exact(value.to_string()));
+        }
         Err(HookError::InvalidPattern(format!(
             "Invalid pattern value '{value}', expected one of: {}, or '*'",
             valid_values.join(", ")
         )))
     }
     fn parse_item_type_segment(value: &str) -> Result<PatternSegment, HookError> {
-        if value == "*" { return Ok(PatternSegment::Wildcard); }
+        if value == "*" {
+            return Ok(PatternSegment::Wildcard);
+        }
         if value.is_empty() {
-            return Err(HookError::InvalidPattern("Item type segment must not be empty".to_string()));
+            return Err(HookError::InvalidPattern(
+                "Item type segment must not be empty".to_string(),
+            ));
         }
         Ok(PatternSegment::Exact(value.to_string()))
     }
@@ -61,9 +81,15 @@ impl ParsedPattern {
     }
     pub fn specificity(&self) -> u8 {
         let mut count: u8 = 0;
-        if self.phase != PatternSegment::Wildcard { count = count.saturating_add(1); }
-        if self.item_type != PatternSegment::Wildcard { count = count.saturating_add(1); }
-        if self.operation != PatternSegment::Wildcard { count = count.saturating_add(1); }
+        if self.phase != PatternSegment::Wildcard {
+            count = count.saturating_add(1);
+        }
+        if self.item_type != PatternSegment::Wildcard {
+            count = count.saturating_add(1);
+        }
+        if self.operation != PatternSegment::Wildcard {
+            count = count.saturating_add(1);
+        }
         count
     }
 }

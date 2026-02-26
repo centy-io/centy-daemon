@@ -8,10 +8,15 @@ use tokio::fs;
 /// Read users from the .centy/users.json file.
 /// Returns an empty list if the file doesn't exist.
 pub async fn read_users(project_path: &Path) -> Result<Vec<User>, UserError> {
-    read_manifest(project_path).await.map_err(|_| UserError::NotInitialized)?.ok_or(UserError::NotInitialized)?;
+    read_manifest(project_path)
+        .await
+        .map_err(|_| UserError::NotInitialized)?
+        .ok_or(UserError::NotInitialized)?;
     let centy_path = get_centy_path(project_path);
     let users_path = centy_path.join("users.json");
-    if !users_path.exists() { return Ok(Vec::new()); }
+    if !users_path.exists() {
+        return Ok(Vec::new());
+    }
     let content = fs::read_to_string(&users_path).await?;
     let users_file: UsersFile = serde_json::from_str(&content)?;
     Ok(users_file.users)
@@ -21,7 +26,9 @@ pub async fn read_users(project_path: &Path) -> Result<Vec<User>, UserError> {
 pub async fn write_users(project_path: &Path, users: &[User]) -> Result<(), UserError> {
     let centy_path = get_centy_path(project_path);
     let users_path = centy_path.join("users.json");
-    let users_file = UsersFile { users: users.to_vec() };
+    let users_file = UsersFile {
+        users: users.to_vec(),
+    };
     let content = serde_json::to_string_pretty(&users_file)?;
     fs::write(&users_path, content).await?;
     Ok(())

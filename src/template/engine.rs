@@ -24,7 +24,11 @@ pub struct TemplateEngine {
 
 impl TemplateEngine {
     #[must_use]
-    pub fn new() -> Self { Self { handlebars: Handlebars::new() } }
+    pub fn new() -> Self {
+        Self {
+            handlebars: Handlebars::new(),
+        }
+    }
 
     /// Get the templates directory path
     #[must_use]
@@ -34,12 +38,20 @@ impl TemplateEngine {
 
     /// Get the path for a specific template type's folder
     #[must_use]
-    pub fn get_template_type_path(project_path: &Path, template_type: TemplateType) -> std::path::PathBuf {
+    pub fn get_template_type_path(
+        project_path: &Path,
+        template_type: TemplateType,
+    ) -> std::path::PathBuf {
         Self::get_templates_path(project_path).join(template_type.folder_name())
     }
 
     /// Load a template from disk by name. Looks for "{template_name}.md" in the appropriate folder.
-    pub async fn load_template(&self, project_path: &Path, template_type: TemplateType, template_name: &str) -> Result<String, TemplateError> {
+    pub async fn load_template(
+        &self,
+        project_path: &Path,
+        template_type: TemplateType,
+        template_name: &str,
+    ) -> Result<String, TemplateError> {
         let template_folder = Self::get_template_type_path(project_path, template_type);
         let file_name = format!("{template_name}.md");
         let template_path = template_folder.join(&file_name);
@@ -51,20 +63,40 @@ impl TemplateEngine {
     }
 
     /// Render an issue using a template
-    pub async fn render_issue(&self, project_path: &Path, template_name: &str, context: &IssueTemplateContext) -> Result<String, TemplateError> {
-        let template_content = self.load_template(project_path, TemplateType::Issue, template_name).await?;
-        self.handlebars.render_template(&template_content, context).map_err(TemplateError::from)
+    pub async fn render_issue(
+        &self,
+        project_path: &Path,
+        template_name: &str,
+        context: &IssueTemplateContext,
+    ) -> Result<String, TemplateError> {
+        let template_content = self
+            .load_template(project_path, TemplateType::Issue, template_name)
+            .await?;
+        self.handlebars
+            .render_template(&template_content, context)
+            .map_err(TemplateError::from)
     }
 
     /// Render a doc using a template
-    pub async fn render_doc(&self, project_path: &Path, template_name: &str, context: &DocTemplateContext) -> Result<String, TemplateError> {
-        let template_content = self.load_template(project_path, TemplateType::Doc, template_name).await?;
-        self.handlebars.render_template(&template_content, context).map_err(TemplateError::from)
+    pub async fn render_doc(
+        &self,
+        project_path: &Path,
+        template_name: &str,
+        context: &DocTemplateContext,
+    ) -> Result<String, TemplateError> {
+        let template_content = self
+            .load_template(project_path, TemplateType::Doc, template_name)
+            .await?;
+        self.handlebars
+            .render_template(&template_content, context)
+            .map_err(TemplateError::from)
     }
 }
 
 impl Default for TemplateEngine {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

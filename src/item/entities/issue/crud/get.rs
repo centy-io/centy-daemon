@@ -1,20 +1,17 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::migrate::migrate_issue_to_new_format;
-use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
-use super::types::{Issue, IssueCrudError};
 use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::super::reconcile::reconcile_display_numbers;
+use super::migrate::migrate_issue_to_new_format;
+use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
+use super::types::{Issue, IssueCrudError};
 use crate::manifest::read_manifest;
 use crate::utils::get_centy_path;
 use mdstore::parse_frontmatter;
 use std::path::Path;
 use tokio::fs;
 
-pub async fn get_issue(
-    project_path: &Path,
-    issue_number: &str,
-) -> Result<Issue, IssueCrudError> {
+pub async fn get_issue(project_path: &Path, issue_number: &str) -> Result<Issue, IssueCrudError> {
     read_manifest(project_path)
         .await?
         .ok_or(IssueCrudError::NotInitialized)?;
@@ -59,11 +56,14 @@ pub async fn get_issue_by_display_number(
                 }
             } else if file_type.is_dir() && is_valid_issue_folder(name) {
                 let metadata_path = entry.path().join("metadata.json");
-                if !metadata_path.exists() { continue; }
+                if !metadata_path.exists() {
+                    continue;
+                }
                 if let Ok(content) = fs::read_to_string(&metadata_path).await {
                     if let Ok(meta) = serde_json::from_str::<IssueMetadata>(&content) {
                         if meta.common.display_number == display_number {
-                            return migrate_issue_to_new_format(&issues_path, &entry.path(), name).await;
+                            return migrate_issue_to_new_format(&issues_path, &entry.path(), name)
+                                .await;
                         }
                     }
                 }

@@ -1,6 +1,6 @@
+use super::Doc;
 use crate::manifest::CentyManifest;
 use std::path::PathBuf;
-use super::Doc;
 /// Options for creating a doc
 #[derive(Debug, Clone, Default)]
 pub struct CreateDocOptions {
@@ -12,7 +12,11 @@ pub struct CreateDocOptions {
 }
 /// Result of syncing an org doc to another project
 #[derive(Debug, Clone)]
-pub struct OrgDocSyncResult { pub project_path: String, pub success: bool, pub error: Option<String> }
+pub struct OrgDocSyncResult {
+    pub project_path: String,
+    pub success: bool,
+    pub error: Option<String>,
+}
 /// Result of doc creation
 #[derive(Debug, Clone)]
 pub struct CreateDocResult {
@@ -23,7 +27,11 @@ pub struct CreateDocResult {
 }
 /// Options for updating a doc
 #[derive(Debug, Clone, Default)]
-pub struct UpdateDocOptions { pub title: Option<String>, pub content: Option<String>, pub new_slug: Option<String> }
+pub struct UpdateDocOptions {
+    pub title: Option<String>,
+    pub content: Option<String>,
+    pub new_slug: Option<String>,
+}
 /// Result of doc update
 #[derive(Debug, Clone)]
 pub struct UpdateDocResult {
@@ -33,10 +41,17 @@ pub struct UpdateDocResult {
 }
 /// A doc with its source project information
 #[derive(Debug, Clone)]
-pub struct DocWithProject { pub doc: Doc, pub project_path: String, pub project_name: String }
+pub struct DocWithProject {
+    pub doc: Doc,
+    pub project_path: String,
+    pub project_name: String,
+}
 /// Result of searching for docs by slug across projects
 #[derive(Debug, Clone)]
-pub struct GetDocsBySlugResult { pub docs: Vec<DocWithProject>, pub errors: Vec<String> }
+pub struct GetDocsBySlugResult {
+    pub docs: Vec<DocWithProject>,
+    pub errors: Vec<String>,
+}
 /// Options for moving a doc to another project
 #[derive(Debug, Clone)]
 pub struct MoveDocOptions {

@@ -1,10 +1,10 @@
 #![allow(unknown_lints, max_nesting_depth)]
+use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
+use super::super::reconcile::reconcile_display_numbers;
 use super::get::get_issue;
 use super::migrate::migrate_issue_to_new_format;
 use super::read::read_issue_from_frontmatter;
 use super::types::{GetIssuesByUuidResult, Issue, IssueCrudError, IssueWithProject};
-use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
-use super::super::reconcile::reconcile_display_numbers;
 use crate::manifest::read_manifest;
 use crate::registry::ProjectInfo;
 use crate::utils::get_centy_path;
@@ -24,7 +24,9 @@ pub async fn list_issues(
         .ok_or(IssueCrudError::NotInitialized)?;
     let centy_path = get_centy_path(project_path);
     let issues_path = centy_path.join("issues");
-    if !issues_path.exists() { return Ok(Vec::new()); }
+    if !issues_path.exists() {
+        return Ok(Vec::new());
+    }
     reconcile_display_numbers(&issues_path).await?;
     let mut issues = Vec::new();
     let mut entries = fs::read_dir(&issues_path).await?;
@@ -66,20 +68,32 @@ pub async fn get_issues_by_uuid(
     let mut found_issues = Vec::new();
     let mut errors = Vec::new();
     for project in projects {
-        if !project.initialized { continue; }
+        if !project.initialized {
+            continue;
+        }
         let project_path = Path::new(&project.path);
         match get_issue(project_path, uuid).await {
             Ok(issue) => {
                 let project_name = project.name.clone().unwrap_or_else(|| {
-                    project_path.file_name()
+                    project_path
+                        .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_else(|| project.path.clone())
                 });
-                found_issues.push(IssueWithProject { issue, project_path: project.path.clone(), project_name });
+                found_issues.push(IssueWithProject {
+                    issue,
+                    project_path: project.path.clone(),
+                    project_name,
+                });
             }
             Err(IssueCrudError::IssueNotFound(_) | IssueCrudError::NotInitialized) => {}
-            Err(e) => { errors.push(format!("Error searching {}: {}", project.path, e)); }
+            Err(e) => {
+                errors.push(format!("Error searching {}: {}", project.path, e));
+            }
         }
     }
-    Ok(GetIssuesByUuidResult { issues: found_issues, errors })
+    Ok(GetIssuesByUuidResult {
+        issues: found_issues,
+        errors,
+    })
 }

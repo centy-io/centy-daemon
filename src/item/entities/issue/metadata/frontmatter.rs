@@ -1,7 +1,7 @@
+use super::IssueMetadata;
+use mdstore::CommonMetadata;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use mdstore::CommonMetadata;
-use super::IssueMetadata;
 /// Frontmatter metadata for the new YAML-based issue format.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -50,8 +50,11 @@ impl IssueFrontmatter {
                 priority: self.priority,
                 created_at: self.created_at.clone(),
                 updated_at: self.updated_at.clone(),
-                custom_fields: self.custom_fields.iter()
-                    .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone()))).collect(),
+                custom_fields: self
+                    .custom_fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                    .collect(),
             },
             draft: self.draft,
             deleted_at: self.deleted_at.clone(),

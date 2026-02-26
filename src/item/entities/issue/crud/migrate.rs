@@ -1,8 +1,8 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::read::{read_issue_from_legacy_folder};
-use super::types::{Issue, IssueCrudError};
 use super::super::metadata::IssueFrontmatter;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
+use super::read::read_issue_from_legacy_folder;
+use super::types::{Issue, IssueCrudError};
 use crate::link::{read_links, write_links};
 use crate::utils::format_markdown;
 use mdstore::generate_frontmatter;
@@ -31,13 +31,12 @@ pub async fn migrate_issue_to_new_format(
         org_display_number: issue.metadata.org_display_number,
         custom_fields: issue.metadata.custom_fields.clone(),
     };
-    let body = if is_planning_status(&issue.metadata.status)
-        && !has_planning_note(&issue.description)
-    {
-        add_planning_note(&issue.description)
-    } else {
-        issue.description.clone()
-    };
+    let body =
+        if is_planning_status(&issue.metadata.status) && !has_planning_note(&issue.description) {
+            add_planning_note(&issue.description)
+        } else {
+            issue.description.clone()
+        };
     let issue_content = generate_frontmatter(&frontmatter, &issue.title, &body);
     let new_issue_file = issues_path.join(format!("{issue_id}.md"));
     fs::write(&new_issue_file, format_markdown(&issue_content)).await?;

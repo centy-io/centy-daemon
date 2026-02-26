@@ -8,7 +8,9 @@ pub fn format_markdown(input: &str) -> String {
     let parser = Parser::new_ext(input, options);
     let mut output = String::new();
     let _ = cmark(parser, &mut output);
-    if !output.ends_with('\n') { output.push('\n'); }
+    if !output.ends_with('\n') {
+        output.push('\n');
+    }
     output
 }
 

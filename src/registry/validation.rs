@@ -21,8 +21,12 @@ impl ValidationService {
     ) -> Result<(), OrganizationError> {
         let project_name_normalized = Self::normalize_name(project_name);
         for (path, tracked) in &registry.projects {
-            if path == current_project_path { continue; }
-            if tracked.organization_slug.as_deref() != Some(org_slug) { continue; }
+            if path == current_project_path {
+                continue;
+            }
+            if tracked.organization_slug.as_deref() != Some(org_slug) {
+                continue;
+            }
             if let Some(existing_name) = Self::extract_project_name(path) {
                 if Self::normalize_name(&existing_name) == project_name_normalized {
                     return Err(OrganizationError::DuplicateNameInOrganization {
@@ -35,10 +39,14 @@ impl ValidationService {
         Ok(())
     }
 
-    fn normalize_name(name: &str) -> String { name.trim().to_lowercase() }
+    fn normalize_name(name: &str) -> String {
+        name.trim().to_lowercase()
+    }
 
     fn extract_project_name(path: &str) -> Option<String> {
-        Path::new(path).file_name().map(|name| name.to_string_lossy().to_string())
+        Path::new(path)
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
     }
 }
 

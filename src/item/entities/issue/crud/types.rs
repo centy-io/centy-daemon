@@ -9,22 +9,38 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IssueCrudError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("Manifest error: {0}")] ManifestError(#[from] crate::manifest::ManifestError),
-    #[error("JSON error: {0}")] JsonError(#[from] serde_json::Error),
-    #[error("YAML frontmatter error: {0}")] FrontmatterError(#[from] FrontmatterError),
-    #[error("Centy not initialized. Run 'centy init' first.")] NotInitialized,
-    #[error("Issue {0} not found")] IssueNotFound(String),
-    #[error("Issue with display number {0} not found")] IssueDisplayNumberNotFound(u32),
-    #[error("Issue {0} is not soft-deleted")] IssueNotDeleted(String),
-    #[error("Issue {0} is already soft-deleted")] IssueAlreadyDeleted(String),
-    #[error("Invalid issue format: {0}")] InvalidIssueFormat(String),
-    #[error("Invalid priority: {0}")] InvalidPriority(#[from] PriorityError),
-    #[error("Invalid status: {0}")] InvalidStatus(#[from] StatusError),
-    #[error("Reconcile error: {0}")] ReconcileError(#[from] ReconcileError),
-    #[error("Target project not initialized")] TargetNotInitialized,
-    #[error("Priority {0} exceeds target project's priority_levels")] InvalidPriorityInTarget(u32),
-    #[error("Cannot move issue to same project")] SameProject,
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Manifest error: {0}")]
+    ManifestError(#[from] crate::manifest::ManifestError),
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
+    #[error("YAML frontmatter error: {0}")]
+    FrontmatterError(#[from] FrontmatterError),
+    #[error("Centy not initialized. Run 'centy init' first.")]
+    NotInitialized,
+    #[error("Issue {0} not found")]
+    IssueNotFound(String),
+    #[error("Issue with display number {0} not found")]
+    IssueDisplayNumberNotFound(u32),
+    #[error("Issue {0} is not soft-deleted")]
+    IssueNotDeleted(String),
+    #[error("Issue {0} is already soft-deleted")]
+    IssueAlreadyDeleted(String),
+    #[error("Invalid issue format: {0}")]
+    InvalidIssueFormat(String),
+    #[error("Invalid priority: {0}")]
+    InvalidPriority(#[from] PriorityError),
+    #[error("Invalid status: {0}")]
+    InvalidStatus(#[from] StatusError),
+    #[error("Reconcile error: {0}")]
+    ReconcileError(#[from] ReconcileError),
+    #[error("Target project not initialized")]
+    TargetNotInitialized,
+    #[error("Priority {0} exceeds target project's priority_levels")]
+    InvalidPriorityInTarget(u32),
+    #[error("Cannot move issue to same project")]
+    SameProject,
 }
 
 #[derive(Debug, Clone)]

@@ -1,9 +1,12 @@
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ReconcileError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("JSON error: {0}")] JsonError(#[from] serde_json::Error),
-    #[error("YAML frontmatter error: {0}")] FrontmatterError(#[from] mdstore::FrontmatterError),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
+    #[error("YAML frontmatter error: {0}")]
+    FrontmatterError(#[from] mdstore::FrontmatterError),
 }
 /// Information about an issue needed for reconciliation
 #[derive(Debug, Clone)]

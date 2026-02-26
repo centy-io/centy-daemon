@@ -41,11 +41,13 @@ fn test_validate_user_id_error_messages() {
 #[test]
 fn test_user_serialization() {
     let user = User {
-        id: "john-doe".to_string(), name: "John Doe".to_string(),
+        id: "john-doe".to_string(),
+        name: "John Doe".to_string(),
         email: Some("john@example.com".to_string()),
         git_usernames: vec!["johndoe".to_string()],
         created_at: "2024-01-01T00:00:00Z".to_string(),
-        updated_at: "2024-06-15T12:00:00Z".to_string(), deleted_at: None,
+        updated_at: "2024-06-15T12:00:00Z".to_string(),
+        deleted_at: None,
     };
     let json = serde_json::to_string(&user).expect("Should serialize");
     let deserialized: User = serde_json::from_str(&json).expect("Should deserialize");
@@ -57,25 +59,34 @@ fn test_user_serialization() {
 #[test]
 fn test_user_serialization_camel_case() {
     let user = User {
-        id: "test".to_string(), name: "Test".to_string(), email: None,
+        id: "test".to_string(),
+        name: "Test".to_string(),
+        email: None,
         git_usernames: vec!["gh-user".to_string()],
-        created_at: "2024-01-01".to_string(), updated_at: "2024-01-01".to_string(),
+        created_at: "2024-01-01".to_string(),
+        updated_at: "2024-01-01".to_string(),
         deleted_at: None,
     };
     let json = serde_json::to_string(&user).expect("Should serialize");
-    assert!(json.contains("createdAt")); assert!(json.contains("updatedAt"));
-    assert!(json.contains("gitUsernames")); assert!(!json.contains("created_at"));
+    assert!(json.contains("createdAt"));
+    assert!(json.contains("updatedAt"));
+    assert!(json.contains("gitUsernames"));
+    assert!(!json.contains("created_at"));
     assert!(!json.contains("git_usernames"));
 }
 #[test]
 fn test_user_skip_serializing_empty_fields() {
     let user = User {
-        id: "test".to_string(), name: "Test".to_string(), email: None,
+        id: "test".to_string(),
+        name: "Test".to_string(),
+        email: None,
         git_usernames: vec![],
-        created_at: "2024-01-01".to_string(), updated_at: "2024-01-01".to_string(),
+        created_at: "2024-01-01".to_string(),
+        updated_at: "2024-01-01".to_string(),
         deleted_at: None,
     };
     let json = serde_json::to_string(&user).expect("Should serialize");
-    assert!(!json.contains("email")); assert!(!json.contains("gitUsernames"));
+    assert!(!json.contains("email"));
+    assert!(!json.contains("gitUsernames"));
     assert!(!json.contains("deletedAt"));
 }

@@ -23,8 +23,8 @@ pub fn split_into_chunks(lines: &[&str], max_size: usize) -> Vec<Vec<String>> {
         }
         if brace_depth == 0 {
             let trimmed = line.trim();
-            let flush = (trimmed == "}" && current_chunk.len() >= max_size)
-                || trimmed.ends_with(';');
+            let flush =
+                (trimmed == "}" && current_chunk.len() >= max_size) || trimmed.ends_with(';');
             if flush {
                 chunks.push(current_chunk.clone());
                 current_chunk = Vec::new();

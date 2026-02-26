@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
-fn default_timeout() -> u64 { 30 }
-fn default_enabled() -> bool { true }
+fn default_timeout() -> u64 {
+    30
+}
+fn default_enabled() -> bool {
+    true
+}
 /// Hook definition from config.json
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,15 +20,29 @@ pub struct HookDefinition {
 }
 /// Phase of hook execution
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Phase { Pre, Post }
+pub enum Phase {
+    Pre,
+    Post,
+}
 impl Phase {
     pub fn as_str(&self) -> &'static str {
-        match self { Phase::Pre => "pre", Phase::Post => "post" }
+        match self {
+            Phase::Pre => "pre",
+            Phase::Post => "post",
+        }
     }
 }
 /// Operations that hooks can target
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HookOperation { Create, Update, Delete, SoftDelete, Restore, Move, Duplicate }
+pub enum HookOperation {
+    Create,
+    Update,
+    Delete,
+    SoftDelete,
+    Restore,
+    Move,
+    Duplicate,
+}
 impl HookOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -40,4 +58,7 @@ impl HookOperation {
 }
 /// A segment of a parsed pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PatternSegment { Exact(String), Wildcard }
+pub enum PatternSegment {
+    Exact(String),
+    Wildcard,
+}

@@ -19,33 +19,56 @@ fn test_is_valid_plural() {
 #[test]
 fn test_config_to_proto_roundtrip() {
     let config = ItemTypeConfig {
-        name: "Bug".to_string(), icon: Some("bug".to_string()),
+        name: "Bug".to_string(),
+        icon: Some("bug".to_string()),
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures {
-            display_number: true, status: true, priority: true, soft_delete: true,
-            assets: false, org_sync: false, move_item: true, duplicate: true,
+            display_number: true,
+            status: true,
+            priority: true,
+            soft_delete: true,
+            assets: false,
+            org_sync: false,
+            move_item: true,
+            duplicate: true,
         },
         statuses: vec!["open".to_string(), "closed".to_string()],
-        default_status: Some("open".to_string()), priority_levels: Some(3),
-        custom_fields: vec![], template: Some("bug.md".to_string()),
+        default_status: Some("open".to_string()),
+        priority_levels: Some(3),
+        custom_fields: vec![],
+        template: Some("bug.md".to_string()),
     };
     let proto = config_to_proto("bugs", &config);
-    assert_eq!(proto.name, "Bug"); assert_eq!(proto.plural, "bugs");
+    assert_eq!(proto.name, "Bug");
+    assert_eq!(proto.plural, "bugs");
     assert_eq!(proto.identifier, "uuid");
     assert_eq!(proto.statuses, vec!["open", "closed"]);
-    assert_eq!(proto.default_status, "open"); assert_eq!(proto.priority_levels, 3);
-    assert_eq!(proto.icon, "bug"); assert_eq!(proto.template, "bug.md");
+    assert_eq!(proto.default_status, "open");
+    assert_eq!(proto.priority_levels, 3);
+    assert_eq!(proto.icon, "bug");
+    assert_eq!(proto.template, "bug.md");
     let f = proto.features.unwrap();
-    assert!(f.display_number); assert!(f.status); assert!(f.priority);
-    assert!(f.soft_delete); assert!(!f.assets); assert!(f.r#move); assert!(f.duplicate);
+    assert!(f.display_number);
+    assert!(f.status);
+    assert!(f.priority);
+    assert!(f.soft_delete);
+    assert!(!f.assets);
+    assert!(f.r#move);
+    assert!(f.duplicate);
 }
 #[allow(clippy::unwrap_used)]
 #[test]
 fn test_build_config_basic() {
     let req = CreateItemTypeRequest {
-        project_path: String::new(), name: "Task".into(), plural: "tasks".into(),
-        identifier: "uuid".into(), features: None, statuses: vec![],
-        default_status: String::new(), priority_levels: 0, custom_fields: vec![],
+        project_path: String::new(),
+        name: "Task".into(),
+        plural: "tasks".into(),
+        identifier: "uuid".into(),
+        features: None,
+        statuses: vec![],
+        default_status: String::new(),
+        priority_levels: 0,
+        custom_fields: vec![],
     };
     let config = build_config(req);
     assert_eq!(config.name, "Task");

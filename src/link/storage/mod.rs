@@ -1,10 +1,10 @@
-mod links_file;
 mod io;
-#[allow(unused_imports)]
-pub use links_file::{LinksFile, LINKS_FILENAME};
-pub use io::{read_links, write_links};
+mod links_file;
 #[allow(unused_imports)]
 pub use crate::link::Link;
+pub use io::{read_links, write_links};
+#[allow(unused_imports)]
+pub use links_file::{LinksFile, LINKS_FILENAME};
 #[allow(unused_imports)]
 pub use tokio::fs;
 #[cfg(test)]

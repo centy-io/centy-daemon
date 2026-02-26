@@ -1,6 +1,6 @@
-use super::types::{Issue, IssueMetadataFlat};
 use super::super::metadata::IssueMetadata;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
+use super::types::{Issue, IssueMetadataFlat};
 use crate::utils::now_iso;
 use std::collections::HashMap;
 

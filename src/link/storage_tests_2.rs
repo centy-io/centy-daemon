@@ -84,4 +84,3 @@ async fn test_write_and_read_links() {
     assert_eq!(read_back.links[0].target_id, "uuid-2");
     assert_eq!(read_back.links[0].link_type, "blocks");
 }
-

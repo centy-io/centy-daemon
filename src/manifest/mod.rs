@@ -1,9 +1,9 @@
 mod types;
-pub use types::{CentyManifest, ManagedFileType};
 use crate::utils::{get_manifest_path, now_iso, CENTY_VERSION};
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
+pub use types::{CentyManifest, ManagedFileType};
 
 #[derive(Error, Debug)]
 pub enum ManifestError {
@@ -16,14 +16,19 @@ pub enum ManifestError {
 /// Read the manifest from the project path
 pub async fn read_manifest(project_path: &Path) -> Result<Option<CentyManifest>, ManifestError> {
     let manifest_path = get_manifest_path(project_path);
-    if !manifest_path.exists() { return Ok(None); }
+    if !manifest_path.exists() {
+        return Ok(None);
+    }
     let content = fs::read_to_string(&manifest_path).await?;
     let manifest: CentyManifest = serde_json::from_str(&content)?;
     Ok(Some(manifest))
 }
 
 /// Write the manifest to the project path
-pub async fn write_manifest(project_path: &Path, manifest: &CentyManifest) -> Result<(), ManifestError> {
+pub async fn write_manifest(
+    project_path: &Path,
+    manifest: &CentyManifest,
+) -> Result<(), ManifestError> {
     let manifest_path = get_manifest_path(project_path);
     let content = serde_json::to_string_pretty(manifest)?;
     fs::write(&manifest_path, content).await?;
@@ -34,7 +39,12 @@ pub async fn write_manifest(project_path: &Path, manifest: &CentyManifest) -> Re
 #[must_use]
 pub fn create_manifest() -> CentyManifest {
     let now = now_iso();
-    CentyManifest { schema_version: 1, centy_version: CENTY_VERSION.to_string(), created_at: now.clone(), updated_at: now }
+    CentyManifest {
+        schema_version: 1,
+        centy_version: CENTY_VERSION.to_string(),
+        created_at: now.clone(),
+        updated_at: now,
+    }
 }
 
 /// Update the manifest timestamp and version

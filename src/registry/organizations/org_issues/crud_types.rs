@@ -6,13 +6,20 @@ use std::collections::HashMap;
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum OrgIssueError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("JSON error: {0}")] JsonError(#[from] serde_json::Error),
-    #[error("YAML frontmatter error: {0}")] FrontmatterError(#[from] FrontmatterError),
-    #[error("Path error: {0}")] PathError(#[from] PathError),
-    #[error("Org registry error: {0}")] OrgRegistryError(#[from] OrgIssueRegistryError),
-    #[error("Org issue not found: {0}")] NotFound(String),
-    #[error("Title is required")] TitleRequired,
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
+    #[error("YAML frontmatter error: {0}")]
+    FrontmatterError(#[from] FrontmatterError),
+    #[error("Path error: {0}")]
+    PathError(#[from] PathError),
+    #[error("Org registry error: {0}")]
+    OrgRegistryError(#[from] OrgIssueRegistryError),
+    #[error("Org issue not found: {0}")]
+    NotFound(String),
+    #[error("Title is required")]
+    TitleRequired,
 }
 /// Frontmatter for org issue markdown files
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

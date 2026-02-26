@@ -77,4 +77,3 @@ fn test_default_archived_config() {
     assert!(archived.features.move_item);
     assert!(!archived.features.duplicate);
 }
-

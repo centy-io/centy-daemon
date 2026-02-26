@@ -1,10 +1,10 @@
-use super::parse::parse_issue_md;
-use super::types::{Issue, IssueCrudError, IssueMetadataFlat};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::super::planning::remove_planning_note;
+use super::parse::parse_issue_md;
+use super::types::{Issue, IssueCrudError, IssueMetadataFlat};
+use mdstore::parse_frontmatter;
 use std::collections::HashMap;
 use std::path::Path;
-use mdstore::parse_frontmatter;
 use tokio::fs;
 
 pub async fn read_issue_from_frontmatter(

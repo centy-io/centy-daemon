@@ -1,5 +1,5 @@
+use super::super::managed_files::{merge_json_content, ManagedFileTemplate, MergeStrategy};
 use super::types::ExecuteError;
-use super::super::managed_files::{merge_json_content, MergeStrategy, ManagedFileTemplate};
 use crate::manifest::ManagedFileType;
 use std::collections::HashMap;
 use std::path::Path;
@@ -15,9 +15,13 @@ pub async fn create_file(
         .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Template not found"))?;
     let full_path = centy_path.join(relative_path.trim_end_matches('/'));
     match &template.file_type {
-        ManagedFileType::Directory => { fs::create_dir_all(&full_path).await?; }
+        ManagedFileType::Directory => {
+            fs::create_dir_all(&full_path).await?;
+        }
         ManagedFileType::File => {
-            if let Some(parent) = full_path.parent() { fs::create_dir_all(parent).await?; }
+            if let Some(parent) = full_path.parent() {
+                fs::create_dir_all(parent).await?;
+            }
             let content = template.content.as_deref().unwrap_or("");
             fs::write(&full_path, content).await?;
         }
@@ -42,7 +46,9 @@ pub async fn merge_file(
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
             fs::write(&full_path, merged).await?;
         }
-        None => { fs::write(&full_path, template_content).await?; }
+        None => {
+            fs::write(&full_path, template_content).await?;
+        }
     }
     Ok(())
 }

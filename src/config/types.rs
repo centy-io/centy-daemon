@@ -3,10 +3,17 @@ use crate::link::CustomLinkTypeDefinition;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 /// Default priority levels (3 = high/medium/low)
-pub fn default_priority_levels() -> u32 { 3 }
+pub fn default_priority_levels() -> u32 {
+    3
+}
 /// Default allowed states for issues (used only during migration to per-item-type config.yaml)
 pub fn default_allowed_states() -> Vec<String> {
-    vec!["open".to_string(), "planning".to_string(), "in-progress".to_string(), "closed".to_string()]
+    vec![
+        "open".to_string(),
+        "planning".to_string(),
+        "in-progress".to_string(),
+        "closed".to_string(),
+    ]
 }
 /// Workspace configuration section
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -57,16 +64,24 @@ impl CentyConfig {
     /// Get the effective version (config version or daemon default).
     #[must_use]
     pub fn effective_version(&self) -> String {
-        self.version.clone().unwrap_or_else(|| crate::utils::CENTY_VERSION.to_string())
+        self.version
+            .clone()
+            .unwrap_or_else(|| crate::utils::CENTY_VERSION.to_string())
     }
 }
 impl Default for CentyConfig {
     fn default() -> Self {
         Self {
-            version: None, priority_levels: default_priority_levels(), custom_fields: Vec::new(),
-            defaults: HashMap::new(), allowed_states: default_allowed_states(),
-            state_colors: HashMap::new(), priority_colors: HashMap::new(),
-            custom_link_types: Vec::new(), default_editor: None, hooks: Vec::new(),
+            version: None,
+            priority_levels: default_priority_levels(),
+            custom_fields: Vec::new(),
+            defaults: HashMap::new(),
+            allowed_states: default_allowed_states(),
+            state_colors: HashMap::new(),
+            priority_colors: HashMap::new(),
+            custom_link_types: Vec::new(),
+            default_editor: None,
+            hooks: Vec::new(),
             workspace: WorkspaceConfig::default(),
         }
     }

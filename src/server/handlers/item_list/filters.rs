@@ -2,15 +2,29 @@ use mdstore::Filters;
 /// Build a `Filters` from a JSON-encoded MQL query string and pagination params.
 pub(super) fn build_filters_from_mql(filter_json: &str, limit: u32, offset: u32) -> Filters {
     let mut filters = Filters::new();
-    if limit > 0 { filters = filters.with_limit(limit as usize); }
-    if offset > 0 { filters = filters.with_offset(offset as usize); }
-    if filter_json.is_empty() { return filters; }
-    let Ok(doc) = serde_json::from_str::<serde_json::Value>(filter_json) else { return filters; };
-    let Some(obj) = doc.as_object() else { return filters; };
+    if limit > 0 {
+        filters = filters.with_limit(limit as usize);
+    }
+    if offset > 0 {
+        filters = filters.with_offset(offset as usize);
+    }
+    if filter_json.is_empty() {
+        return filters;
+    }
+    let Ok(doc) = serde_json::from_str::<serde_json::Value>(filter_json) else {
+        return filters;
+    };
+    let Some(obj) = doc.as_object() else {
+        return filters;
+    };
     for (field, condition) in obj {
         match field.as_str() {
-            "status" => { filters = apply_status_condition(filters, condition); }
-            "priority" => { filters = apply_priority_condition(filters, condition); }
+            "status" => {
+                filters = apply_status_condition(filters, condition);
+            }
+            "priority" => {
+                filters = apply_priority_condition(filters, condition);
+            }
             "deletedAt" => {
                 if let Some(ops) = condition.as_object() {
                     if ops.get("$exists").and_then(serde_json::Value::as_bool) == Some(true) {
@@ -31,9 +45,13 @@ fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Fi
                 return filters.with_statuses(vec![v.to_string()]);
             }
             if let Some(arr) = ops.get("$in").and_then(|v| v.as_array()) {
-                let statuses: Vec<String> = arr.iter()
-                    .filter_map(|v| v.as_str().map(str::to_string)).collect();
-                if !statuses.is_empty() { return filters.with_statuses(statuses); }
+                let statuses: Vec<String> = arr
+                    .iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect();
+                if !statuses.is_empty() {
+                    return filters.with_statuses(statuses);
+                }
             }
             filters
         }
@@ -43,7 +61,11 @@ fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Fi
 fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> Filters {
     match condition {
         serde_json::Value::Number(n) => {
-            if let Some(p) = n.as_u64() { filters.with_priority(p as u32) } else { filters }
+            if let Some(p) = n.as_u64() {
+                filters.with_priority(p as u32)
+            } else {
+                filters
+            }
         }
         serde_json::Value::Object(ops) => {
             let mut f = filters;

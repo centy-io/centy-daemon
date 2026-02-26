@@ -13,7 +13,10 @@ pub struct CentyManifest {
 /// Used for reconciliation and file type distinction
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum ManagedFileType { File, Directory }
+pub enum ManagedFileType {
+    File,
+    Directory,
+}
 
 #[cfg(test)]
 #[path = "types_tests.rs"]

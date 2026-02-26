@@ -15,12 +15,24 @@ pub async fn run_pre_hooks(
 ) -> Result<(), HookError> {
     let hooks = load_hooks_config(project_path).await;
     let matching = find_matching_hooks(&hooks, Phase::Pre, item_type, operation);
-    if matching.is_empty() { return Ok(()); }
-    debug!("Running {} pre-hooks for {}:{}", matching.len(), item_type, operation.as_str());
+    if matching.is_empty() {
+        return Ok(());
+    }
+    debug!(
+        "Running {} pre-hooks for {}:{}",
+        matching.len(),
+        item_type,
+        operation.as_str()
+    );
     for hook in matching {
         let result = execute_hook(
-            &hook.command, context, project_path, hook.timeout, &hook.pattern,
-        ).await?;
+            &hook.command,
+            context,
+            project_path,
+            hook.timeout,
+            &hook.pattern,
+        )
+        .await?;
         if result.exit_code != 0 {
             return Err(HookError::PreHookFailed {
                 pattern: hook.pattern.clone(),

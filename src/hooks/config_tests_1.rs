@@ -80,4 +80,3 @@ fn test_matches_all_wildcards() {
     assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
     assert!(p.matches(Phase::Post, "doc", HookOperation::Delete));
 }
-

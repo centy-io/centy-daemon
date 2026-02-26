@@ -29,7 +29,9 @@ pub fn get_manifest_path(project_path: &Path) -> std::path::PathBuf {
 
 /// Get current timestamp in ISO 8601 format
 #[must_use]
-pub fn now_iso() -> String { chrono::Utc::now().to_rfc3339() }
+pub fn now_iso() -> String {
+    chrono::Utc::now().to_rfc3339()
+}
 
 /// Format a path for display, replacing home directory with ~/
 #[must_use]

@@ -12,7 +12,9 @@ async fn test_registry_resolve_by_folder() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 
@@ -30,7 +32,9 @@ async fn test_registry_resolve_by_name() {
     fs::create_dir_all(&issues_dir).await.unwrap();
     let issue_config = default_issue_config(&CentyConfig::default());
     let yaml = serde_yaml::to_string(&issue_config).unwrap();
-    fs::write(issues_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(issues_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 
@@ -63,7 +67,9 @@ async fn test_registry_resolve_by_folder_case_insensitive() {
         template: None,
     };
     let yaml = serde_yaml::to_string(&epic_config).unwrap();
-    fs::write(epics_dir.join("config.yaml"), &yaml).await.unwrap();
+    fs::write(epics_dir.join("config.yaml"), &yaml)
+        .await
+        .unwrap();
 
     let registry = ItemTypeRegistry::build(temp.path()).await.unwrap();
 

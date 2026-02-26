@@ -68,4 +68,3 @@ async fn test_migrate_skips_existing_configs() {
         .expect("read");
     assert!(content.contains("name: CustomIssue"));
 }
-

@@ -12,18 +12,28 @@ pub const PLANNING_NOTE: &str = r#"> **Planning Mode**: Do not implement code ch
 pub const PLANNING_STATUS: &str = "planning";
 
 /// Check if a status is the planning status
-pub fn is_planning_status(status: &str) -> bool { status == PLANNING_STATUS }
+pub fn is_planning_status(status: &str) -> bool {
+    status == PLANNING_STATUS
+}
 
 /// Check if issue content has the planning note (handles both original and markdown-formatted versions)
 pub fn has_planning_note(content: &str) -> bool {
-    if content.starts_with(PLANNING_NOTE) || content.contains(PLANNING_NOTE) { return true; }
+    if content.starts_with(PLANNING_NOTE) || content.contains(PLANNING_NOTE) {
+        return true;
+    }
     content.contains("> **Planning Mode**")
-        || content.lines().any(|line| line.trim().starts_with("> **Planning Mode**"))
+        || content
+            .lines()
+            .any(|line| line.trim().starts_with("> **Planning Mode**"))
 }
 
 /// Add planning note to issue content (at the top). Returns content unchanged if note already exists.
 pub fn add_planning_note(content: &str) -> String {
-    if has_planning_note(content) { content.to_string() } else { format!("{PLANNING_NOTE}{content}") }
+    if has_planning_note(content) {
+        content.to_string()
+    } else {
+        format!("{PLANNING_NOTE}{content}")
+    }
 }
 
 /// Remove planning note from issue content.
@@ -53,7 +63,9 @@ pub fn remove_planning_note(content: &str) -> String {
                 continue;
             }
             if in_planning_blockquote {
-                if is_blockquote_line || (trimmed.is_empty() && found_planning_line) { continue; }
+                if is_blockquote_line || (trimmed.is_empty() && found_planning_line) {
+                    continue;
+                }
                 in_planning_blockquote = false;
             }
             result_lines.push(line);

@@ -1,9 +1,9 @@
 mod options;
-pub use options::{
-    CreateDocOptions, CreateDocResult, DocWithProject, GetDocsBySlugResult,
-    MoveDocOptions, MoveDocResult, OrgDocSyncResult, UpdateDocOptions, UpdateDocResult,
-};
 use crate::utils::now_iso;
+pub use options::{
+    CreateDocOptions, CreateDocResult, DocWithProject, GetDocsBySlugResult, MoveDocOptions,
+    MoveDocResult, OrgDocSyncResult, UpdateDocOptions, UpdateDocResult,
+};
 /// Full doc data
 #[derive(Debug, Clone)]
 pub struct Doc {
@@ -29,12 +29,28 @@ impl DocMetadata {
     #[must_use]
     pub fn new() -> Self {
         let now = now_iso();
-        Self { created_at: now.clone(), updated_at: now, deleted_at: None, is_org_doc: false, org_slug: None }
+        Self {
+            created_at: now.clone(),
+            updated_at: now,
+            deleted_at: None,
+            is_org_doc: false,
+            org_slug: None,
+        }
     }
     #[must_use]
     pub fn new_org_doc(org_slug: &str) -> Self {
         let now = now_iso();
-        Self { created_at: now.clone(), updated_at: now, deleted_at: None, is_org_doc: true, org_slug: Some(org_slug.to_string()) }
+        Self {
+            created_at: now.clone(),
+            updated_at: now,
+            deleted_at: None,
+            is_org_doc: true,
+            org_slug: Some(org_slug.to_string()),
+        }
     }
 }
-impl Default for DocMetadata { fn default() -> Self { Self::new() } }
+impl Default for DocMetadata {
+    fn default() -> Self {
+        Self::new()
+    }
+}

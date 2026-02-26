@@ -72,8 +72,7 @@ fn test_managed_file_type_deserialization() {
     let ft: ManagedFileType = serde_json::from_str("\"file\"").expect("Should deserialize");
     assert_eq!(ft, ManagedFileType::File);
 
-    let ft: ManagedFileType =
-        serde_json::from_str("\"directory\"").expect("Should deserialize");
+    let ft: ManagedFileType = serde_json::from_str("\"directory\"").expect("Should deserialize");
     assert_eq!(ft, ManagedFileType::Directory);
 }
 

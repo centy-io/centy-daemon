@@ -81,4 +81,3 @@ fn test_link_serialization() {
     assert!(json.contains("\"targetType\":\"issue\""));
     assert!(json.contains("\"linkType\":\"blocks\""));
 }
-

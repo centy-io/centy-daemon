@@ -28,7 +28,10 @@ pub async fn infer_organization_from_remote(
     }
     let remote_url = match get_remote_origin_url(project_path) {
         Ok(url) => url,
-        Err(_) => { result.message = Some("No origin remote found".to_string()); return result; }
+        Err(_) => {
+            result.message = Some("No origin remote found".to_string());
+            return result;
+        }
     };
     let parsed = match parse_remote_url(&remote_url) {
         Some(p) => p,
@@ -51,20 +54,20 @@ pub async fn infer_organization_from_remote(
         }
     }
     match get_organization(&inferred_slug).await {
-        Ok(Some(_)) => { result.message = Some(format!("Using existing organization: {inferred_slug}")); }
-        Ok(None) => {
-            match create_organization(Some(&inferred_slug), &parsed.org, None).await {
-                Ok(_) => {
-                    result.org_created = true;
-                    result.message = Some(format!("Created organization: {inferred_slug}"));
-                }
-                Err(e) => {
-                    result.message = Some(format!("Failed to create organization: {e}"));
-                    result.inferred_org_slug = None;
-                    result.inferred_org_name = None;
-                }
-            }
+        Ok(Some(_)) => {
+            result.message = Some(format!("Using existing organization: {inferred_slug}"));
         }
+        Ok(None) => match create_organization(Some(&inferred_slug), &parsed.org, None).await {
+            Ok(_) => {
+                result.org_created = true;
+                result.message = Some(format!("Created organization: {inferred_slug}"));
+            }
+            Err(e) => {
+                result.message = Some(format!("Failed to create organization: {e}"));
+                result.inferred_org_slug = None;
+                result.inferred_org_name = None;
+            }
+        },
         Err(e) => {
             result.message = Some(format!("Error checking organization: {e}"));
             result.inferred_org_slug = None;

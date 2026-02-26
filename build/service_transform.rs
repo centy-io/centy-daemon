@@ -27,9 +27,7 @@ inner: Arc<T>, ace: EnabledCompressionEncodings, sce: EnabledCompressionEncoding
 mdms: Option<usize>, mems: Option<usize>, req: http::Request<B>,\
 ) -> BoxFuture<http::Response<tonic::body::BoxBody>, std::convert::Infallible>"
     ));
-    lines.push(
-        "where B::Error: Into<StdError> + std::marker::Send + 'static {".to_string(),
-    );
+    lines.push("where B::Error: Into<StdError> + std::marker::Send + 'static {".to_string());
     for raw in &arm_body[1..arm_body.len().saturating_sub(1)] {
         let t = raw.trim();
         if is_self_binding(t) {
@@ -49,9 +47,7 @@ pub fn build_default_fn(fn_name: &str, arm_body: &[String]) -> Vec<String> {
 req: http::Request<B>,\
 ) -> BoxFuture<http::Response<tonic::body::BoxBody>, std::convert::Infallible>"
     ));
-    lines.push(
-        "where B::Error: Into<StdError> + std::marker::Send + 'static {".to_string(),
-    );
+    lines.push("where B::Error: Into<StdError> + std::marker::Send + 'static {".to_string());
     for raw in &arm_body[1..arm_body.len().saturating_sub(1)] {
         lines.push(raw.clone());
     }

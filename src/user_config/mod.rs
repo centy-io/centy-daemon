@@ -21,7 +21,11 @@ pub struct RegistryConfig {
     pub ignore_paths: Vec<String>,
 }
 impl Default for RegistryConfig {
-    fn default() -> Self { Self { ignore_paths: default_ignore_paths() } }
+    fn default() -> Self {
+        Self {
+            ignore_paths: default_ignore_paths(),
+        }
+    }
 }
 /// Top-level user configuration, deserialized from `~/.centy/config.toml`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]

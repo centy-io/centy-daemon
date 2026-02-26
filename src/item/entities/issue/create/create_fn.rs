@@ -2,10 +2,14 @@ use super::super::id::generate_issue_id;
 use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;
 use super::super::status::validate_status_for_project;
-use super::helpers::{build_custom_fields, build_issue_for_sync, resolve_org_info, resolve_priority};
+use super::helpers::{
+    build_custom_fields, build_issue_for_sync, resolve_org_info, resolve_priority,
+};
 use super::render::render_title_and_description;
 use super::types::{CreateIssueOptions, CreateIssueResult, IssueError};
-use super::write_issue::{build_frontmatter, build_issue_metadata, persist_manifest, write_issue_file};
+use super::write_issue::{
+    build_frontmatter, build_issue_metadata, persist_manifest, write_issue_file,
+};
 use crate::common::sync_to_org_projects;
 use crate::config::item_type_config::read_item_type_config;
 use crate::config::read_config;
@@ -35,7 +39,9 @@ pub async fn create_issue(
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
     let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
     let item_type_config = read_item_type_config(project_path, "issues")
-        .await.ok().flatten();
+        .await
+        .ok()
+        .flatten();
     let status = options.status.clone().unwrap_or_else(|| {
         item_type_config
             .as_ref()
@@ -47,12 +53,24 @@ pub async fn create_issue(
     let draft = options.draft.unwrap_or(false);
     let now = now_iso();
     let frontmatter = build_frontmatter(
-        display_number, &status, priority, &now, draft,
-        org_slug.clone(), org_display_number, options.custom_fields.clone(),
+        display_number,
+        &status,
+        priority,
+        &now,
+        draft,
+        org_slug.clone(),
+        org_display_number,
+        options.custom_fields.clone(),
     );
     let (display_title, description) = render_title_and_description(
-        project_path, &options, priority, priority_levels, &status, &frontmatter,
-    ).await?;
+        project_path,
+        &options,
+        priority,
+        priority_levels,
+        &status,
+        &frontmatter,
+    )
+    .await?;
     let body = if is_planning_status(&status) {
         add_planning_note(&description)
     } else {
@@ -63,8 +81,13 @@ pub async fn create_issue(
     persist_manifest(project_path, &mut manifest).await?;
     let created_files = vec![format!(".centy/issues/{issue_id}.md")];
     let metadata = build_issue_metadata(
-        display_number, &org_slug, org_display_number,
-        status, priority, custom_field_values, draft,
+        display_number,
+        &org_slug,
+        org_display_number,
+        status,
+        priority,
+        custom_field_values,
+        draft,
     );
     let sync_results = if options.is_org_issue {
         let issue = build_issue_for_sync(&issue_id, &options, display_number, &metadata);

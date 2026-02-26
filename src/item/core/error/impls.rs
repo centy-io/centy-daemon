@@ -36,9 +36,15 @@ impl From<mdstore::ConfigError> for ItemError {
 }
 impl ItemError {
     /// Create a custom error with a message
-    pub fn custom(msg: impl Into<String>) -> Self { ItemError::Custom(msg.into()) }
+    pub fn custom(msg: impl Into<String>) -> Self {
+        ItemError::Custom(msg.into())
+    }
     /// Create a not found error
-    pub fn not_found(id: impl Into<String>) -> Self { ItemError::NotFound(id.into()) }
+    pub fn not_found(id: impl Into<String>) -> Self {
+        ItemError::NotFound(id.into())
+    }
     /// Create a validation error
-    pub fn validation(msg: impl Into<String>) -> Self { ItemError::ValidationError(msg.into()) }
+    pub fn validation(msg: impl Into<String>) -> Self {
+        ItemError::ValidationError(msg.into())
+    }
 }

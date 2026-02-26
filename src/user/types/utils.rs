@@ -15,7 +15,10 @@ pub fn validate_user_id(id: &str) -> Result<(), UserError> {
     if id.is_empty() {
         return Err(UserError::InvalidUserId("ID cannot be empty".to_string()));
     }
-    if !id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+    if !id
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    {
         return Err(UserError::InvalidUserId(
             "ID must contain only lowercase letters, numbers, and hyphens".to_string(),
         ));

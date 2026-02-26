@@ -78,4 +78,3 @@ fn test_validate_item_type_config_zero_priority_levels() {
         .unwrap_err()
         .contains("priorityLevels must be greater than 0"));
 }
-

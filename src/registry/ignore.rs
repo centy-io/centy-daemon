@@ -30,7 +30,10 @@ pub fn is_ignored_path(path: &Path) -> bool {
 
 /// Expand and normalise a single pattern string into a prefix `PathBuf`.
 fn resolve_pattern(pattern: &str) -> Option<PathBuf> {
-    let stripped = pattern.trim_end_matches("/**").trim_end_matches("/*").trim_end_matches('/');
+    let stripped = pattern
+        .trim_end_matches("/**")
+        .trim_end_matches("/*")
+        .trim_end_matches('/');
     let after_vars = expand_vars(stripped);
     let after_tilde = expand_tilde(&after_vars)?;
     let path = PathBuf::from(&after_tilde);
@@ -46,7 +49,11 @@ fn expand_vars(s: &str) -> String {
     if let Some(rest) = s.strip_prefix('$') {
         let (var_name, tail) = rest.split_once('/').unwrap_or((rest, ""));
         if let Ok(val) = std::env::var(var_name) {
-            return if tail.is_empty() { val } else { format!("{val}/{tail}") };
+            return if tail.is_empty() {
+                val
+            } else {
+                format!("{val}/{tail}")
+            };
         }
     }
     s.to_string()
@@ -54,7 +61,9 @@ fn expand_vars(s: &str) -> String {
 
 /// Expand a leading `~` to the home directory path.
 fn expand_tilde(s: &str) -> Option<String> {
-    if s == "~" { return dirs::home_dir().map(|h| h.to_string_lossy().into_owned()); }
+    if s == "~" {
+        return dirs::home_dir().map(|h| h.to_string_lossy().into_owned());
+    }
     if let Some(rest) = s.strip_prefix("~/") {
         let home = dirs::home_dir()?;
         return Some(format!("{}/{rest}", home.to_string_lossy()));

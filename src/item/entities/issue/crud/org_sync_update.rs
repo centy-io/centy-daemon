@@ -1,9 +1,9 @@
 #![allow(unknown_lints, max_nesting_depth)]
+use super::super::assets::copy_assets_folder;
+use super::super::metadata::IssueFrontmatter;
 use super::org_sync::create_issue_in_project;
 use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::IssueMetadataFlat;
-use super::super::assets::copy_assets_folder;
-use super::super::metadata::IssueFrontmatter;
 use crate::common::OrgSyncError;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{format_markdown, get_centy_path, now_iso};
@@ -35,14 +35,33 @@ pub async fn update_or_create_issue_in_project(
             Err(_) => (false, None),
         }
     } else {
-        return create_issue_in_project(project_path, issue_id, title, description, source_metadata, org_slug).await;
+        return create_issue_in_project(
+            project_path,
+            issue_id,
+            title,
+            description,
+            source_metadata,
+            org_slug,
+        )
+        .await;
     };
     let existing = match existing_issue {
         Some(issue) => issue,
-        None => return create_issue_in_project(project_path, issue_id, title, description, source_metadata, org_slug).await,
+        None => {
+            return create_issue_in_project(
+                project_path,
+                issue_id,
+                title,
+                description,
+                source_metadata,
+                org_slug,
+            )
+            .await
+        }
     };
     let mut manifest = read_manifest(project_path)
-        .await.map_err(|e| OrgSyncError::ManifestError(e.to_string()))?
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?
         .ok_or_else(|| OrgSyncError::SyncFailed("Target project not initialized".to_string()))?;
     let frontmatter = IssueFrontmatter {
         display_number: existing.metadata.display_number,
@@ -70,6 +89,7 @@ pub async fn update_or_create_issue_in_project(
     }
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)
-        .await.map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;
+        .await
+        .map_err(|e| OrgSyncError::ManifestError(e.to_string()))?;
     Ok(())
 }

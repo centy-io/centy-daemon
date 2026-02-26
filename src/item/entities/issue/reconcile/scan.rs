@@ -1,8 +1,8 @@
 #![allow(unknown_lints, max_nesting_depth)]
-use super::types::{IssueInfo, ReconcileError};
 use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
-use mdstore::{parse_frontmatter};
+use super::types::{IssueInfo, ReconcileError};
+use mdstore::parse_frontmatter;
 use std::path::Path;
 use tokio::fs;
 /// Scan the issues directory and collect issue info from both formats.
@@ -34,7 +34,9 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             });
         } else if file_type.is_dir() && is_valid_issue_folder(&name) {
             let metadata_path = entry.path().join("metadata.json");
-            if !metadata_path.exists() { continue; }
+            if !metadata_path.exists() {
+                continue;
+            }
             let content = match fs::read_to_string(&metadata_path).await {
                 Ok(c) => c,
                 Err(_) => continue,
@@ -57,7 +59,9 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
 ///
 /// Scans all existing issues (both formats) and returns max + 1.
 pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, ReconcileError> {
-    if !issues_path.exists() { return Ok(1); }
+    if !issues_path.exists() {
+        return Ok(1);
+    }
     let mut max_number: u32 = 0;
     let mut entries = fs::read_dir(issues_path).await?;
     while let Some(entry) = entries.next_entry().await? {
@@ -74,7 +78,9 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
             }
         } else if file_type.is_dir() && is_valid_issue_folder(&name) {
             let metadata_path = entry.path().join("metadata.json");
-            if !metadata_path.exists() { continue; }
+            if !metadata_path.exists() {
+                continue;
+            }
             if let Ok(content) = fs::read_to_string(&metadata_path).await {
                 if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
                     max_number = max_number.max(metadata.common.display_number);

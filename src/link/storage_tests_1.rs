@@ -93,4 +93,3 @@ fn test_links_file_serialization() {
     let parsed: LinksFile = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed.links.len(), 1);
 }
-
