@@ -174,6 +174,15 @@ slug: "{{slug}}"
 ```
 "#;
 
+/// Hooks YAML template content
+const HOOKS_YAML_CONTENT: &str = r#"# Centy Hooks — https://docs.centy.io/hooks
+#
+# Example hook:
+# hooks:
+#   - event: issue.created
+#     run: echo "Issue created: $CENTY_ITEM_TITLE"
+"#;
+
 /// CSpell configuration content
 const CSPELL_JSON_CONTENT: &str = r#"{
   "version": "0.2",
@@ -300,6 +309,15 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         },
     );
 
+    files.insert(
+        "hooks.yaml".to_string(),
+        ManagedFileTemplate {
+            file_type: ManagedFileType::File,
+            content: Some(HOOKS_YAML_CONTENT.to_string()),
+            merge_strategy: None,
+        },
+    );
+
     files
 }
 
@@ -391,6 +409,7 @@ mod tests {
         assert!(files.contains_key("issues/README.md"));
         assert!(files.contains_key("templates/README.md"));
         assert!(files.contains_key("cspell.json"));
+        assert!(files.contains_key("hooks.yaml"));
     }
 
     #[test]
@@ -433,6 +452,7 @@ mod tests {
             "issues/README.md",
             "templates/README.md",
             "cspell.json",
+            "hooks.yaml",
         ];
         for file in regular_files {
             let template = files
@@ -511,8 +531,8 @@ mod tests {
     fn test_get_managed_files_count() {
         let files = get_managed_files();
 
-        // 7 directories + 4 files = 11 total
-        assert_eq!(files.len(), 11);
+        // 7 directories + 5 files = 12 total
+        assert_eq!(files.len(), 12);
     }
 
     #[test]
@@ -553,6 +573,20 @@ mod tests {
         assert!(debug_str.contains("ManagedFileTemplate"));
         assert!(debug_str.contains("File"));
         assert!(debug_str.contains("test"));
+    }
+
+    #[test]
+    fn test_managed_file_template_hooks_yaml_content() {
+        let files = get_managed_files();
+        let hooks = files.get("hooks.yaml").expect("Should have hooks.yaml");
+
+        let content = hooks
+            .content
+            .as_ref()
+            .expect("hooks.yaml should have content");
+        assert!(content.contains("https://docs.centy.io/hooks"));
+        assert!(content.contains("issue.created"));
+        assert!(content.contains("$CENTY_ITEM_TITLE"));
     }
 
     #[test]

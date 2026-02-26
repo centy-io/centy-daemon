@@ -828,6 +828,74 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
 }
 
 #[tokio::test]
+async fn test_init_creates_hooks_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    let hooks_path = project_path.join(".centy").join("hooks.yaml");
+    assert!(hooks_path.exists(), "hooks.yaml should be created on init");
+    assert!(
+        result.created.contains(&"hooks.yaml".to_string()),
+        "Should report hooks.yaml as created"
+    );
+
+    let content = fs::read_to_string(&hooks_path)
+        .await
+        .expect("Should read hooks.yaml");
+    assert!(
+        content.contains("https://docs.centy.io/hooks"),
+        "hooks.yaml should contain docs link"
+    );
+    assert!(
+        content.contains("issue.created"),
+        "hooks.yaml should contain example hook event"
+    );
+    assert!(
+        content.contains("$CENTY_ITEM_TITLE"),
+        "hooks.yaml should contain example env variable"
+    );
+}
+
+#[tokio::test]
+async fn test_init_does_not_overwrite_existing_hooks_yaml() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    let centy_path = project_path.join(".centy");
+    fs::create_dir_all(&centy_path)
+        .await
+        .expect("Should create .centy dir");
+    let custom_hooks =
+        "# My custom hooks\nhooks:\n  - event: issue.updated\n    run: echo updated\n";
+    fs::write(centy_path.join("hooks.yaml"), custom_hooks)
+        .await
+        .expect("Should write hooks.yaml");
+
+    let decisions = ReconciliationDecisions::default();
+    let result = execute_reconciliation(project_path, decisions, false)
+        .await
+        .expect("Should execute reconciliation");
+
+    assert!(
+        !result.created.contains(&"hooks.yaml".to_string()),
+        "Should not re-create existing hooks.yaml"
+    );
+
+    let content = fs::read_to_string(centy_path.join("hooks.yaml"))
+        .await
+        .expect("Should read hooks.yaml");
+    assert_eq!(
+        content, custom_hooks,
+        "Existing hooks.yaml should not be overwritten"
+    );
+}
+
+#[tokio::test]
 async fn test_init_config_yaml_idempotent() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
