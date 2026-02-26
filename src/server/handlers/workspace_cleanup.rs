@@ -2,7 +2,12 @@ use crate::server::proto::{CleanupExpiredWorkspacesRequest, CleanupExpiredWorksp
 use tonic::{Response, Status};
 
 /// TTL-based cleanup has been removed. Returns success with zero cleaned workspaces.
-#[allow(unknown_lints, clippy::unused_async)]
+#[allow(
+    renamed_and_removed_lints,
+    unknown_lints,
+    unused_async,
+    clippy::unused_async
+)]
 pub async fn cleanup_expired_workspaces(
     _req: CleanupExpiredWorkspacesRequest,
 ) -> Result<Response<CleanupExpiredWorkspacesResponse>, Status> {

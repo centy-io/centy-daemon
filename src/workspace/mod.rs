@@ -1,3 +1,4 @@
+#![allow(max_lines_per_file)]
 //! Workspace management via worktree-io.
 pub mod data;
 

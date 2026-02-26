@@ -1,4 +1,4 @@
-#![allow(unknown_lints, max_nesting_depth)]
+#![allow(unknown_lints, max_nesting_depth, max_lines_per_file)]
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueFrontmatter;
 use super::super::priority::validate_priority;

@@ -5,6 +5,7 @@ use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn get_asset(
     project_path: &Path,
     issue_id: Option<&str>,

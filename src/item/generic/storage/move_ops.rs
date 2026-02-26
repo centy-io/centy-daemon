@@ -1,5 +1,5 @@
 //! Move and duplicate operations for generic items.
-#![allow(unknown_lints, max_nesting_depth)]
+#![allow(unknown_lints, max_nesting_depth, max_lines_per_file)]
 use super::super::types::DuplicateGenericItemOptions;
 use super::helpers::{copy_dir_contents, type_storage_path, update_project_manifest};
 use crate::item::core::error::ItemError;

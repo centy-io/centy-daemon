@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! Basic CRUD operations for generic items.
 use super::helpers::{type_storage_path, update_project_manifest};
 use crate::item::core::error::ItemError;

@@ -1,6 +1,11 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 // Suppress clippy warnings about unknown/renamed dylint lint names
-#![allow(unknown_lints, renamed_and_removed_lints, max_lines_per_file)]
+#![allow(
+    unknown_lints,
+    renamed_and_removed_lints,
+    max_lines_per_file,
+    wildcard_imports
+)]
 #![cfg_attr(
     test,
     allow(

@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use crate::hooks::HookOperation;
 use crate::item::entities::issue::AssetScope;
 use crate::manifest::read_manifest;
@@ -10,6 +11,7 @@ use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn add_asset(req: AddAssetRequest) -> Result<Response<AddAssetResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

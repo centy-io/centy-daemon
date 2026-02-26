@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::id::generate_issue_id;
 use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;

@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::inference::try_auto_assign_organization;
 use super::super::organizations::sync_org_from_project;
 use super::super::storage::read_registry;

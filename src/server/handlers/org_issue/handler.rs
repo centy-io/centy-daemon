@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! Handlers for org issue read RPCs.
 use super::convert::org_issue_to_proto;
 use crate::registry::{

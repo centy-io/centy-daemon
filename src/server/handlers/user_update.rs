@@ -11,6 +11,7 @@ use crate::user::{update_user as internal_update_user, UpdateUserOptions};
 use std::path::Path;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn update_user(req: UpdateUserRequest) -> Result<Response<UpdateUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

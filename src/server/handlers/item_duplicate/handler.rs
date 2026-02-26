@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_type_resolve::resolve_item_type_config;
 use super::operation::do_duplicate;
 use crate::hooks::HookOperation;

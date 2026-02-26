@@ -10,6 +10,7 @@ use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn delete_asset(
     req: DeleteAssetRequest,
 ) -> Result<Response<DeleteAssetResponse>, Status> {

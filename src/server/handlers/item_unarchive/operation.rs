@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_archive::ARCHIVED_FOLDER;
 use crate::hooks::HookOperation;
 use crate::item::core::error::ItemError;

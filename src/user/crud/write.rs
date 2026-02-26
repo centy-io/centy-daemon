@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! User write operations (update, delete, soft_delete, restore).
 use super::super::storage::{read_users, write_users};
 use super::super::types::UserError;

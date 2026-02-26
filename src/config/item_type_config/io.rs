@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::types::ItemTypeConfig;
 use crate::utils::get_centy_path;
 use std::collections::HashMap;

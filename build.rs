@@ -4,6 +4,8 @@ mod attrs;
 mod mod_split;
 #[path = "build/service_extract.rs"]
 mod service_extract;
+#[path = "build/service_extract_helpers.rs"]
+mod service_extract_helpers;
 #[path = "build/service_transform.rs"]
 mod service_transform;
 #[path = "build/split.rs"]

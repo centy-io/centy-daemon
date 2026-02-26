@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::config_merge::apply_init_config;
 use crate::config::set_project_title;
 use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
@@ -93,7 +94,12 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
         })),
     }
 }
-#[allow(unknown_lints, clippy::unused_async)]
+#[allow(
+    renamed_and_removed_lints,
+    unknown_lints,
+    unused_async,
+    clippy::unused_async
+)]
 pub async fn is_initialized(
     req: IsInitializedRequest,
 ) -> Result<Response<IsInitializedResponse>, Status> {

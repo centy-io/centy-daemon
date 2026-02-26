@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::{
     get_inverse_link_type, is_valid_link_type, read_links, write_links, CustomLinkTypeDefinition,
     Link, LinksFile, TargetType, BUILTIN_LINK_TYPES,

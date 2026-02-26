@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 

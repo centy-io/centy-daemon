@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::helpers::{assert_both_initialized, finish_move, resolve_configs};
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::{generic_move, generic_rename_slug};

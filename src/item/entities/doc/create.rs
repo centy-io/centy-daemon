@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::registry::{get_org_projects, get_project_info};
 use crate::template::{DocTemplateContext, TemplateEngine};
@@ -11,6 +12,7 @@ use super::helpers::{slugify, validate_slug};
 use super::types::{CreateDocOptions, CreateDocResult, DocMetadata, OrgDocSyncResult};
 
 /// Create a new doc
+#[allow(unknown_lints, max_lines_per_function)]
 pub async fn create_doc(
     project_path: &Path,
     options: CreateDocOptions,

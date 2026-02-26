@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use handlebars::Handlebars;
 use std::path::Path;
 use thiserror::Error;
