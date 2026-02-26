@@ -870,7 +870,8 @@ async fn test_init_does_not_overwrite_existing_hooks_yaml() {
     fs::create_dir_all(&centy_path)
         .await
         .expect("Should create .centy dir");
-    let custom_hooks = "# My custom hooks\nhooks:\n  - event: issue.updated\n    run: echo updated\n";
+    let custom_hooks =
+        "# My custom hooks\nhooks:\n  - event: issue.updated\n    run: echo updated\n";
     fs::write(centy_path.join("hooks.yaml"), custom_hooks)
         .await
         .expect("Should write hooks.yaml");
