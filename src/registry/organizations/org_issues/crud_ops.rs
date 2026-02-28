@@ -1,9 +1,8 @@
-#![allow(unknown_lints, max_lines_per_file)]
 //! Create/read/list operations for org issues.
 use super::crud_types::{ListOrgIssuesOptions, OrgIssue, OrgIssueError, OrgIssueFrontmatter};
 use super::paths::get_org_issues_dir;
 use crate::item::entities::issue::org_registry::get_next_org_display_number;
-use crate::utils::now_iso;
+use crate::utils::{now_iso, strip_centy_md_header};
 use mdstore::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
@@ -18,7 +17,8 @@ pub async fn read_org_issue_file(
         return Err(OrgIssueError::NotFound(issue_id.to_string()));
     }
     let content = fs::read_to_string(&file_path).await?;
-    let (frontmatter, title, description) = parse_frontmatter::<OrgIssueFrontmatter>(&content)?;
+    let (frontmatter, title, description) =
+        parse_frontmatter::<OrgIssueFrontmatter>(strip_centy_md_header(&content))?;
     Ok(OrgIssue {
         id: issue_id.to_string(),
         display_number: frontmatter.display_number,

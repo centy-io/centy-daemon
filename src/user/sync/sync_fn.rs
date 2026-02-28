@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::crud::{create_user, CreateUserOptions};
 use super::super::git::{get_git_contributors, is_git_repository};
 use super::super::storage::{find_user_by_email, read_users};
@@ -12,12 +11,6 @@ pub struct SyncUsersFullResult {
     pub manifest: CentyManifest,
 }
 /// Sync users from git history.
-#[allow(
-    unknown_lints,
-    max_lines_per_function,
-    clippy::too_many_lines,
-    max_nesting_depth
-)]
 pub async fn sync_users(
     project_path: &Path,
     dry_run: bool,

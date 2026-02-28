@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::editor::open_editor_with_hooks;
 use crate::config::read_config;
 use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
@@ -29,7 +28,6 @@ fn err_response(
         original_created_at: String::new(),
     })
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn open_in_temp_workspace(
     req: OpenInTempWorkspaceWithEditorRequest,
 ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {

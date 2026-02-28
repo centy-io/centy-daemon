@@ -1,10 +1,9 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use handlebars::Handlebars;
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
 
-use super::types::{DocTemplateContext, IssueTemplateContext, TemplateType};
+use super::types::{IssueTemplateContext, TemplateType};
 use crate::utils::get_centy_path;
 
 #[derive(Error, Debug)]
@@ -72,21 +71,6 @@ impl TemplateEngine {
     ) -> Result<String, TemplateError> {
         let template_content = self
             .load_template(project_path, TemplateType::Issue, template_name)
-            .await?;
-        self.handlebars
-            .render_template(&template_content, context)
-            .map_err(TemplateError::from)
-    }
-
-    /// Render a doc using a template
-    pub async fn render_doc(
-        &self,
-        project_path: &Path,
-        template_name: &str,
-        context: &DocTemplateContext,
-    ) -> Result<String, TemplateError> {
-        let template_content = self
-            .load_template(project_path, TemplateType::Doc, template_name)
             .await?;
         self.handlebars
             .render_template(&template_content, context)
