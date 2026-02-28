@@ -3,9 +3,18 @@ use std::str::FromStr;
 
 #[test]
 fn test_target_type_from_str() {
-    assert_eq!(TargetType::from_str("issue").ok(), Some(TargetType::issue()));
-    assert_eq!(TargetType::from_str("doc").ok(), Some(TargetType::new("doc")));
-    assert_eq!(TargetType::from_str("ISSUE").ok(), Some(TargetType::issue()));
+    assert_eq!(
+        TargetType::from_str("issue").ok(),
+        Some(TargetType::issue())
+    );
+    assert_eq!(
+        TargetType::from_str("doc").ok(),
+        Some(TargetType::new("doc"))
+    );
+    assert_eq!(
+        TargetType::from_str("ISSUE").ok(),
+        Some(TargetType::issue())
+    );
 }
 
 #[test]

@@ -238,7 +238,6 @@ async fn test_project_info_counts_issues() {
     assert_eq!(info.issue_count, 3, "Should have 3 issues");
 }
 
-
 #[tokio::test]
 async fn test_list_projects_sorted_by_last_accessed() {
     let temp_dir1 = create_test_dir();
