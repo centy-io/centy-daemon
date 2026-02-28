@@ -14,8 +14,15 @@ pub fn get_lock() -> &'static Mutex<()> {
     REGISTRY_LOCK.get_or_init(|| Mutex::new(()))
 }
 
-/// Get the path to the global centy config directory (~/.centy)
+/// Get the path to the global centy config directory (~/.centy).
+///
+/// If `CENTY_HOME` is set, that directory is used instead of `~/.centy`.
+/// This allows tests and CI to use an isolated registry without touching
+/// the user's real `~/.centy` data.
 pub fn get_centy_config_dir() -> Result<PathBuf, RegistryError> {
+    if let Ok(centy_home) = std::env::var("CENTY_HOME") {
+        return Ok(PathBuf::from(centy_home));
+    }
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .map_err(|_| RegistryError::HomeDirNotFound)?;
