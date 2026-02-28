@@ -76,7 +76,6 @@ pub(super) async fn build_ok_response(
     }
 }
 /// Run post-hooks and return the move response.
-#[allow(clippy::too_many_arguments)]
 pub(super) async fn finish_move(
     move_result: Result<mdstore::MoveResult, ItemError>,
     source_path: &Path,
