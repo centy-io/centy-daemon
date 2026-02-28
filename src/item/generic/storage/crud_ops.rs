@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 //! Basic CRUD operations for generic items.
 use super::helpers::{type_storage_path, update_project_manifest};
 use crate::item::core::error::ItemError;
@@ -72,8 +71,18 @@ pub async fn generic_update(
     update_project_manifest(project_path).await?;
     Ok(item)
 }
+/// Delete item assets directory if it exists.
+async fn delete_item_assets(project_path: &Path, folder: &str, id: &str) -> Result<(), ItemError> {
+    let assets_path = get_centy_path(project_path)
+        .join("assets")
+        .join(folder)
+        .join(id);
+    if assets_path.exists() {
+        fs::remove_dir_all(&assets_path).await?;
+    }
+    Ok(())
+}
 /// Delete an item (hard or soft delete).
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn generic_delete(
     project_path: &Path,
     folder: &str,
@@ -84,13 +93,7 @@ pub async fn generic_delete(
     let type_dir = type_storage_path(project_path, folder);
     mdstore::delete(&type_dir, id, force).await?;
     if force && config.features.assets {
-        let assets_path = get_centy_path(project_path)
-            .join("assets")
-            .join(folder)
-            .join(id);
-        if assets_path.exists() {
-            fs::remove_dir_all(&assets_path).await?;
-        }
+        delete_item_assets(project_path, folder, id).await?;
     }
     update_project_manifest(project_path).await?;
     Ok(())

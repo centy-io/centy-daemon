@@ -770,14 +770,6 @@ message RestartResponse {
 
 // ============ Temp Workspace Messages ============
 
-// Action types for workspace operations
-enum LlmAction {
-  LLM_ACTION_UNSPECIFIED = 0;
-  LLM_ACTION_PLAN = 1;
-  LLM_ACTION_IMPLEMENT = 2;
-  LLM_ACTION_DEEPDIVE = 3;
-}
-
 // Editor type for opening workspaces
 enum EditorType {
   EDITOR_TYPE_UNSPECIFIED = 0;
@@ -807,8 +799,7 @@ message GetSupportedEditorsResponse {
 message OpenInTempWorkspaceWithEditorRequest {
   string project_path = 1;              // Source project path
   string issue_id = 2;                  // Issue UUID or display number
-  LlmAction action = 3;                 // Plan or Implement
-  string agent_name = 4;                // Agent to use (empty = default)
+  reserved 3, 4;                        // Removed: action (LlmAction), agent_name
   uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
   string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
 }
@@ -819,7 +810,7 @@ message OpenStandaloneWorkspaceWithEditorRequest {
   string name = 2;                      // Optional custom name for the workspace
   string description = 3;               // Optional description/goals for this workspace
   uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
-  string agent_name = 5;                // Agent to use (empty = default)
+  reserved 5;                           // Removed: agent_name
   string editor_id = 6;                 // Editor ID (e.g., "vscode", "terminal", "zed"). Empty = use project/user default.
 }
 
@@ -827,8 +818,7 @@ message OpenStandaloneWorkspaceWithEditorRequest {
 message OpenInTempWorkspaceRequest {
   string project_path = 1;              // Source project path
   string issue_id = 2;                  // Issue UUID or display number
-  LlmAction action = 3;                 // Plan or Implement
-  string agent_name = 4;                // Agent to use (empty = default)
+  reserved 3, 4;                        // Removed: action (LlmAction), agent_name
   uint32 ttl_hours = 5;                 // Custom TTL in hours (0 = use default 12h)
 }
 
@@ -852,7 +842,7 @@ message OpenStandaloneWorkspaceRequest {
   string name = 2;                      // Optional custom name for the workspace
   string description = 3;               // Optional description/goals for this workspace
   uint32 ttl_hours = 4;                 // Custom TTL in hours (0 = use default 12h)
-  string agent_name = 5;                // Agent to use (empty = default)
+  reserved 5;                           // Removed: agent_name
 }
 
 // Response for opening a standalone workspace
@@ -875,8 +865,7 @@ message TempWorkspace {
   string issue_id = 3;                  // Issue UUID (empty for standalone workspaces)
   uint32 issue_display_number = 4;      // Issue display number (0 for standalone)
   string issue_title = 5;               // Issue title (empty for standalone)
-  string agent_name = 6;                // Agent being used
-  LlmAction action = 7;                 // Plan or Implement
+  reserved 6, 7;                        // Removed: agent_name, action (LlmAction)
   string created_at = 8;                // ISO timestamp
   string expires_at = 9;                // ISO timestamp when workspace expires
   bool is_standalone = 10;              // True if this is a standalone workspace (not tied to an issue)
