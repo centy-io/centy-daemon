@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::content::{generate_doc_content, read_doc_from_disk};
 use super::error::DocError;
 use super::helpers::{slugify, validate_slug};
@@ -9,7 +8,6 @@ use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
 /// Update an existing doc
-#[allow(unknown_lints, max_lines_per_function)]
 pub async fn update_doc(
     project_path: &Path,
     slug: &str,
@@ -126,7 +124,6 @@ pub async fn sync_org_doc_update_to_projects(
     results
 }
 /// Update or create a doc in a specific project (used for org doc sync on update)
-#[allow(unknown_lints, max_nesting_depth, max_lines_per_function)]
 pub async fn update_or_create_doc_in_project(
     project_path: &Path,
     slug: &str,
@@ -164,7 +161,6 @@ pub async fn update_or_create_doc_in_project(
     } else {
         let old_created_at = if let Some(old) = old_slug {
             let old_doc_path = docs_path.join(format!("{old}.md"));
-            #[allow(unknown_lints, max_nesting_depth)]
             if old_doc_path.exists() {
                 read_doc_from_disk(&old_doc_path, old)
                     .await
