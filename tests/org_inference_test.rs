@@ -1,5 +1,6 @@
 #![allow(clippy::indexing_slicing)]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::await_holding_lock)] // Intentional: serialize tests via std::sync::Mutex
 
 //! Integration tests for organization inference from git remotes.
 
@@ -7,7 +8,28 @@ use centy_daemon::registry::{
     delete_organization, get_organization, infer_organization_from_remote,
 };
 use std::process::Command;
+use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
+
+// Serialize tests to avoid concurrent registry writes on ~/.centy/projects.json.
+static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
+
+// Per-binary isolated temp directory so different test binaries don't race
+// on the real ~/.centy/projects.json registry file.
+static TEST_HOME: OnceLock<TempDir> = OnceLock::new();
+
+/// Acquire the registry lock and ensure an isolated per-binary registry is set up.
+/// Recovers from mutex poison caused by test panics to prevent cascade failures.
+fn acquire_lock() -> std::sync::MutexGuard<'static, ()> {
+    TEST_HOME.get_or_init(|| {
+        let dir = TempDir::new().expect("Failed to create test home dir");
+        std::env::set_var("CENTY_HOME", dir.path());
+        dir
+    });
+    REGISTRY_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 fn create_test_dir() -> TempDir {
     tempfile::tempdir().expect("Failed to create temp directory")
@@ -56,6 +78,7 @@ fn setup_git_repo_with_remote(temp_dir: &TempDir, remote_url: &str) {
 
 #[tokio::test]
 async fn test_infer_org_from_github_https() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "https://github.com/acme-corp/my-repo.git");
 
@@ -72,6 +95,7 @@ async fn test_infer_org_from_github_https() {
 
 #[tokio::test]
 async fn test_infer_org_from_github_ssh() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "git@github.com:my-startup/api-service.git");
 
@@ -87,6 +111,7 @@ async fn test_infer_org_from_github_ssh() {
 
 #[tokio::test]
 async fn test_infer_org_from_gitlab_url() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "https://gitlab.com/engineering-team/backend.git");
 
@@ -108,6 +133,7 @@ async fn test_infer_org_from_gitlab_url() {
 
 #[tokio::test]
 async fn test_infer_org_from_self_hosted() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(
         &temp_dir,
@@ -126,6 +152,7 @@ async fn test_infer_org_from_self_hosted() {
 
 #[tokio::test]
 async fn test_infer_org_mismatch_detection() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "git@github.com:new-org/repo.git");
 
@@ -143,6 +170,7 @@ async fn test_infer_org_mismatch_detection() {
 
 #[tokio::test]
 async fn test_infer_org_no_mismatch_when_same() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "git@github.com:same-org/repo.git");
 
@@ -159,6 +187,7 @@ async fn test_infer_org_no_mismatch_when_same() {
 
 #[tokio::test]
 async fn test_infer_org_non_git_directory() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     // Don't init git - just a plain directory
 
@@ -172,6 +201,7 @@ async fn test_infer_org_non_git_directory() {
 
 #[tokio::test]
 async fn test_infer_org_git_no_remote() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
 
     // Initialize git repo but don't add a remote
@@ -194,6 +224,7 @@ async fn test_infer_org_git_no_remote() {
 
 #[tokio::test]
 async fn test_infer_org_creates_organization() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "https://github.com/auto-create-test/repo.git");
 
@@ -222,6 +253,7 @@ async fn test_infer_org_creates_organization() {
 
 #[tokio::test]
 async fn test_infer_org_uses_existing_organization() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     setup_git_repo_with_remote(&temp_dir, "https://github.com/existing-org-test/repo.git");
 
@@ -255,6 +287,7 @@ async fn test_infer_org_uses_existing_organization() {
 
 #[tokio::test]
 async fn test_infer_org_slugifies_name() {
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     // Use an org name that needs slugification
     setup_git_repo_with_remote(&temp_dir, "https://github.com/My-ORG_Name/repo.git");

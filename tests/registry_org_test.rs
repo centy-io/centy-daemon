@@ -8,12 +8,29 @@ use centy_daemon::registry::{
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
 
-// Tests share a global ~/.centy/ registry file. Serialize access to avoid
-// concurrent read/write races that corrupt state.
+// Tests share a global registry file. Serialize access to avoid concurrent
+// read/write races that corrupt state.
 static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
+
+// Per-binary isolated temp directory so different test binaries don't race
+// on the real ~/.centy/projects.json registry file.
+static TEST_HOME: OnceLock<TempDir> = OnceLock::new();
+
+/// Acquire the registry lock and ensure an isolated per-binary registry is set up.
+/// Recovers from mutex poison caused by test panics to prevent cascade failures.
+fn acquire_lock() -> std::sync::MutexGuard<'static, ()> {
+    TEST_HOME.get_or_init(|| {
+        let dir = TempDir::new().expect("Failed to create test home dir");
+        std::env::set_var("CENTY_HOME", dir.path());
+        dir
+    });
+    REGISTRY_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 static TEST_COUNTER: AtomicU32 = AtomicU32::new(0);
 
@@ -42,7 +59,7 @@ async fn init_project(project_path: &Path) {
 
 #[tokio::test]
 async fn test_create_organization_success() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("test-org");
     let result = create_organization(Some(&slug), "Test Organization", Some("A test org"))
         .await
@@ -60,7 +77,7 @@ async fn test_create_organization_success() {
 
 #[tokio::test]
 async fn test_create_organization_auto_slug() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let suffix = unique_slug("auto");
     let name = format!("My Awesome {suffix}");
     let result = create_organization(None, &name, None)
@@ -76,7 +93,7 @@ async fn test_create_organization_auto_slug() {
 
 #[tokio::test]
 async fn test_create_organization_already_exists() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("dup-test");
     // Create first
     create_organization(Some(&slug), "Dup Test", None)
@@ -93,7 +110,7 @@ async fn test_create_organization_already_exists() {
 
 #[tokio::test]
 async fn test_create_organization_invalid_slug() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     // Empty slug will trigger slugify from name, so we need to test invalid chars
     let result = create_organization(Some("INVALID"), "Test", None).await;
     assert!(result.is_err());
@@ -107,7 +124,7 @@ async fn test_create_organization_invalid_slug() {
 
 #[tokio::test]
 async fn test_list_organizations_empty() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let orgs = list_organizations().await.expect("Should list orgs");
     // Just verify it returns without error - orgs is a valid vec
     let _ = orgs.len();
@@ -115,7 +132,7 @@ async fn test_list_organizations_empty() {
 
 #[tokio::test]
 async fn test_list_organizations_with_orgs() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     // Create some orgs
     let slug_a = unique_slug("list-test-a");
     let slug_b = unique_slug("list-test-b");
@@ -141,7 +158,7 @@ async fn test_list_organizations_with_orgs() {
 
 #[tokio::test]
 async fn test_get_organization_success() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("get-test");
     create_organization(Some(&slug), "Get Test", Some("Description"))
         .await
@@ -162,7 +179,7 @@ async fn test_get_organization_success() {
 
 #[tokio::test]
 async fn test_get_organization_not_found() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let result = get_organization("nonexistent-org-xyz")
         .await
         .expect("Should complete");
@@ -172,7 +189,7 @@ async fn test_get_organization_not_found() {
 
 #[tokio::test]
 async fn test_update_organization_name() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("update-name-test");
     create_organization(Some(&slug), "Original Name", None)
         .await
@@ -190,7 +207,7 @@ async fn test_update_organization_name() {
 
 #[tokio::test]
 async fn test_update_organization_description() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("update-desc-test");
     create_organization(Some(&slug), "Test", Some("Original"))
         .await
@@ -215,7 +232,7 @@ async fn test_update_organization_description() {
 
 #[tokio::test]
 async fn test_update_organization_slug() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let old_slug = unique_slug("old-slug");
     let new_slug = unique_slug("new-slug");
     create_organization(Some(&old_slug), "Test", None)
@@ -245,14 +262,14 @@ async fn test_update_organization_slug() {
 
 #[tokio::test]
 async fn test_update_organization_not_found() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let result = update_organization("nonexistent-org", Some("New Name"), None, None).await;
     assert!(result.is_err());
 }
 
 #[tokio::test]
 async fn test_delete_organization_success() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let slug = unique_slug("delete-test");
     create_organization(Some(&slug), "Delete Test", None)
         .await
@@ -268,14 +285,14 @@ async fn test_delete_organization_success() {
 
 #[tokio::test]
 async fn test_delete_organization_not_found() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let result = delete_organization("nonexistent-delete-test", false).await;
     assert!(result.is_err());
 }
 
 #[tokio::test]
 async fn test_delete_organization_with_projects_fails() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -308,7 +325,7 @@ async fn test_delete_organization_with_projects_fails() {
 
 #[tokio::test]
 async fn test_set_project_organization() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -341,7 +358,7 @@ async fn test_set_project_organization() {
 
 #[tokio::test]
 async fn test_remove_project_from_organization() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -379,7 +396,7 @@ async fn test_remove_project_from_organization() {
 
 #[tokio::test]
 async fn test_slug_validation_lowercase() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     // Uppercase should fail
     let result = create_organization(Some("UpperCase"), "Test", None).await;
     assert!(result.is_err());
@@ -387,7 +404,7 @@ async fn test_slug_validation_lowercase() {
 
 #[tokio::test]
 async fn test_slug_validation_special_chars() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     // Special characters should fail
     let result = create_organization(Some("with_underscore"), "Test", None).await;
     assert!(result.is_err());
@@ -401,7 +418,7 @@ async fn test_slug_validation_special_chars() {
 
 #[tokio::test]
 async fn test_slug_auto_generation() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     // Test that auto-generated slugs are properly formatted
     let suffix = unique_slug("slug");
     let name = format!("Test With {suffix}");
@@ -417,7 +434,7 @@ async fn test_slug_auto_generation() {
 
 #[tokio::test]
 async fn test_slug_auto_generation_special_chars() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let suffix = unique_slug("sc");
     let name = format!("Test! With @Special# {suffix}$");
     let result = create_organization(None, &name, None)
@@ -440,7 +457,7 @@ async fn test_slug_auto_generation_special_chars() {
 
 #[tokio::test]
 async fn test_duplicate_project_name_in_same_org() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
@@ -492,7 +509,7 @@ async fn test_duplicate_project_name_in_same_org() {
 
 #[tokio::test]
 async fn test_duplicate_project_name_case_insensitive() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
@@ -535,7 +552,7 @@ async fn test_duplicate_project_name_case_insensitive() {
 
 #[tokio::test]
 async fn test_reassign_same_project_idempotent() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -569,7 +586,7 @@ async fn test_reassign_same_project_idempotent() {
 
 #[tokio::test]
 async fn test_same_name_in_different_orgs() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
@@ -618,7 +635,7 @@ async fn test_same_name_in_different_orgs() {
 
 #[tokio::test]
 async fn test_move_project_to_org_with_duplicate() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
@@ -674,7 +691,7 @@ async fn test_move_project_to_org_with_duplicate() {
 
 #[tokio::test]
 async fn test_unorganized_projects_allow_duplicates() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
@@ -705,7 +722,7 @@ async fn test_unorganized_projects_allow_duplicates() {
 
 #[tokio::test]
 async fn test_remove_from_org_with_duplicate_elsewhere() {
-    let _lock = REGISTRY_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let _lock = acquire_lock();
     let temp_dir1 = create_test_dir();
     let temp_dir2 = create_test_dir();
 
