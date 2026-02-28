@@ -10,9 +10,11 @@
 
 mod common;
 
-use centy_daemon::server::handlers::item_type_list::list_item_types;
 use centy_daemon::server::handlers::item_type_create::create_item_type;
-use centy_daemon::server::proto::{ListItemTypesRequest, CreateItemTypeRequest, ItemTypeFeatures as ProtoFeatures};
+use centy_daemon::server::handlers::item_type_list::list_item_types;
+use centy_daemon::server::proto::{
+    CreateItemTypeRequest, ItemTypeFeatures as ProtoFeatures, ListItemTypesRequest,
+};
 use common::{create_test_dir, init_centy_project};
 
 // ─── Success: initialized project returns built-in item types ────────────────
@@ -32,7 +34,11 @@ async fn test_list_item_types_initialized_project() {
     .into_inner();
 
     assert!(resp.success, "list failed: {}", resp.error);
-    assert!(resp.total_count >= 2, "expected at least 2 built-in types, got {}", resp.total_count);
+    assert!(
+        resp.total_count >= 2,
+        "expected at least 2 built-in types, got {}",
+        resp.total_count
+    );
     assert_eq!(resp.item_types.len() as i32, resp.total_count);
 
     let plurals: Vec<&str> = resp.item_types.iter().map(|t| t.plural.as_str()).collect();
@@ -105,7 +111,10 @@ async fn test_list_item_types_includes_custom_type() {
     assert!(resp.success, "list failed: {}", resp.error);
 
     let bug_type = resp.item_types.iter().find(|t| t.plural == "bugs");
-    assert!(bug_type.is_some(), "custom 'bugs' type should appear in list");
+    assert!(
+        bug_type.is_some(),
+        "custom 'bugs' type should appear in list"
+    );
     let bug = bug_type.unwrap();
     assert_eq!(bug.name, "Bug");
     assert_eq!(bug.plural, "bugs");
@@ -120,7 +129,9 @@ async fn test_list_item_types_empty_project() {
     let path = temp.path();
 
     // Only create .centy dir without any item type sub-directories
-    tokio::fs::create_dir_all(path.join(".centy")).await.unwrap();
+    tokio::fs::create_dir_all(path.join(".centy"))
+        .await
+        .unwrap();
 
     let pp = path.to_str().unwrap();
 
@@ -153,9 +164,16 @@ async fn test_list_item_types_config_fields_populated() {
     .into_inner();
 
     assert!(resp.success);
-    let issues = resp.item_types.iter().find(|t| t.plural == "issues").unwrap();
+    let issues = resp
+        .item_types
+        .iter()
+        .find(|t| t.plural == "issues")
+        .unwrap();
     assert!(!issues.name.is_empty(), "name should be populated");
     assert!(!issues.plural.is_empty(), "plural should be populated");
-    assert!(!issues.identifier.is_empty(), "identifier should be populated");
+    assert!(
+        !issues.identifier.is_empty(),
+        "identifier should be populated"
+    );
     assert!(issues.features.is_some(), "features should be populated");
 }
