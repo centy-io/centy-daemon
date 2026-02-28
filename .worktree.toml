@@ -1,0 +1,19 @@
+# .worktree.toml — per-repo worktree configuration
+# Commit this file to version-control to share settings with your team.
+
+[hooks]
+# Configure lifecycle hooks that run when a worktree for this repo is opened.
+# Each hook is a shell command (string) executed in the worktree directory.
+# Mustache templating is supported (same variables as global hooks).
+#
+# Hook ordering controls how a per-repo hook interacts with the global hook
+# configured in the runner's main config. Allowed values:
+#   "before"  — run the per-repo hook first, then the global hook
+#   "after"   — run the global hook first, then the per-repo hook
+#   "replace" — skip the global hook entirely, run only the per-repo hook
+#
+# "pre:open" = "cargo build"
+# "pre:open:order" = "before"   # default: "before"
+#
+"post:open" = "cargo build"
+"post:open:order" = "before" # default: "before"

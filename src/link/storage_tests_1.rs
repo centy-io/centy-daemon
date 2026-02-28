@@ -12,7 +12,7 @@ fn test_links_file_add_link() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
     assert_eq!(file.links.len(), 1);
@@ -23,12 +23,12 @@ fn test_links_file_remove_link() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "parent-of".to_string(),
     ));
 
@@ -43,17 +43,17 @@ fn test_links_file_remove_all_links_to_target() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "parent-of".to_string(),
     ));
     file.add_link(Link::new(
         "uuid-2".to_string(),
-        TargetType::Doc,
+        TargetType::new("doc"),
         "relates-to".to_string(),
     ));
 
@@ -68,7 +68,7 @@ fn test_links_file_has_link() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
 
@@ -82,7 +82,7 @@ fn test_links_file_serialization() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
 

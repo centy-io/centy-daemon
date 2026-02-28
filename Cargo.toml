@@ -8,7 +8,7 @@ license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
 
 [dependencies]
 # Git worktree workspace management
-worktree-io = "0.13.0"
+worktree-io = "0.14.0"
 
 # Storage engine
 mdstore = "0.4.0"

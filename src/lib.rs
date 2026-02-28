@@ -43,10 +43,6 @@ pub use config::item_type_config::{
 };
 pub use config::CentyConfig;
 pub use hooks::{HookContext, HookDefinition, HookError};
-pub use item::entities::doc::{
-    create_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult, Doc, DocError,
-    DocMetadata, UpdateDocOptions, UpdateDocResult,
-};
 pub use item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, CreateIssueResult,
     Issue, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
@@ -70,9 +66,7 @@ pub use registry::{
     ProjectInfo, ProjectRegistry, RegistryError, TrackedProject,
 };
 pub use server::CentyDaemonService;
-pub use template::{
-    DocTemplateContext, IssueTemplateContext, TemplateEngine, TemplateError, TemplateType,
-};
+pub use template::{IssueTemplateContext, TemplateEngine, TemplateError, TemplateType};
 pub use user::{
     create_user, delete_user, get_user, list_users, sync_users, update_user, CreateUserOptions,
     CreateUserResult, DeleteUserResult, GitContributor, SyncUsersFullResult, SyncUsersResult,

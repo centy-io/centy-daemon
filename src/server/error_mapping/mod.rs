@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 /// Trait for mapping domain errors to structured error codes and optional tips.
 pub trait ToStructuredError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>);

@@ -35,7 +35,6 @@ pub(super) fn resolve_target_folder(
     }
 }
 /// Execute the move from `archived/` to `target_type`, run surrounding hooks.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub(super) async fn move_and_respond(
     project_path: &Path,
     project_path_str: &str,

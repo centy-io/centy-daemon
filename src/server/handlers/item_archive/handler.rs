@@ -11,7 +11,6 @@ use std::path::Path;
 use tonic::{Response, Status};
 /// Archive an item by moving it to the `archived/` folder and recording
 /// its original item type in the `original_item_type` custom field.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn archive_item(
     req: ArchiveItemRequest,
 ) -> Result<Response<ArchiveItemResponse>, Status> {

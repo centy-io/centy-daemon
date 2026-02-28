@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::inference::try_auto_assign_organization;
 use super::super::organizations::sync_org_from_project;
 use super::super::storage::read_registry;
@@ -7,12 +6,6 @@ use super::super::RegistryError;
 use super::enrich_fn::enrich_project;
 use std::path::Path;
 /// List all tracked projects, enriched with live data
-#[allow(
-    unknown_lints,
-    max_lines_per_function,
-    clippy::too_many_lines,
-    max_nesting_depth
-)]
 pub async fn list_projects(
     opts: ListProjectsOptions<'_>,
 ) -> Result<Vec<ProjectInfo>, RegistryError> {
@@ -34,10 +27,11 @@ pub async fn list_projects(
         if tracked.organization_slug.is_none() && path_exists {
             ungrouped_paths.push(path.clone());
         }
-        if let Some(org_slug) = opts.organization_slug {
-            if tracked.organization_slug.as_deref() != Some(org_slug) {
-                continue;
-            }
+        if opts
+            .organization_slug
+            .is_some_and(|s| tracked.organization_slug.as_deref() != Some(s))
+        {
+            continue;
         }
         if opts.ungrouped_only && tracked.organization_slug.is_some() {
             continue;
@@ -48,8 +42,7 @@ pub async fn list_projects(
             .and_then(|slug| registry.organizations.get(slug))
             .map(|org| org.name.clone());
         if tracked.organization_slug.is_some() && org_name.is_none() {
-            let project_path = Path::new(path);
-            if let Ok(Some(_synced_slug)) = sync_org_from_project(project_path).await {}
+            let _ = sync_org_from_project(Path::new(path)).await;
         }
         let info = enrich_project(path, tracked, org_name).await;
         if !opts.include_uninitialized && !info.initialized {
@@ -59,39 +52,9 @@ pub async fn list_projects(
     }
     projects.sort_by(|a, b| b.last_accessed.cmp(&a.last_accessed));
     if !ungrouped_paths.is_empty() {
-        tokio::spawn(async move {
-            for path in ungrouped_paths {
-                let _ = try_auto_assign_organization(&path, None).await;
-            }
-        });
+        spawn_auto_assign(ungrouped_paths);
     }
     Ok(projects)
-}
-/// Get info for a specific project
-pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>, RegistryError> {
-    let path = Path::new(project_path);
-    let canonical_path = path.canonicalize().map_or_else(
-        |_| project_path.to_string(),
-        |p| p.to_string_lossy().to_string(),
-    );
-    let registry = read_registry().await?;
-    let tracked = registry
-        .projects
-        .get(&canonical_path)
-        .or_else(|| registry.projects.get(project_path));
-    match tracked {
-        Some(tracked) => {
-            let org_name = tracked
-                .organization_slug
-                .as_ref()
-                .and_then(|slug| registry.organizations.get(slug))
-                .map(|org| org.name.clone());
-            Ok(Some(
-                enrich_project(&canonical_path, tracked, org_name).await,
-            ))
-        }
-        None => Ok(None),
-    }
 }
 /// Get all projects belonging to an organization, optionally excluding a specific project.
 pub async fn get_org_projects(
@@ -112,4 +75,11 @@ pub async fn get_org_projects(
     }
     projects.retain(|p| p.initialized);
     Ok(projects)
+}
+fn spawn_auto_assign(paths: Vec<String>) {
+    tokio::spawn(async move {
+        for path in paths {
+            let _ = try_auto_assign_organization(&path, None).await;
+        }
+    });
 }
