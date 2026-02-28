@@ -3,6 +3,7 @@ mod create;
 mod error;
 mod helpers;
 mod move_doc;
+mod parse;
 mod read;
 #[cfg(test)]
 mod tests;
