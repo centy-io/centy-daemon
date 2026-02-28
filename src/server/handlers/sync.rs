@@ -2,12 +2,6 @@ use crate::server::proto;
 use crate::server::structured_error::StructuredError;
 use tonic::{Response, Status};
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn list_sync_conflicts(
     _req: proto::ListSyncConflictsRequest,
 ) -> Result<Response<proto::ListSyncConflictsResponse>, Status> {
@@ -19,12 +13,6 @@ pub async fn list_sync_conflicts(
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn get_sync_conflict(
     req: proto::GetSyncConflictRequest,
 ) -> Result<Response<proto::GetSyncConflictResponse>, Status> {
@@ -44,12 +32,6 @@ pub async fn get_sync_conflict(
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn resolve_sync_conflict(
     _req: proto::ResolveSyncConflictRequest,
 ) -> Result<Response<proto::ResolveSyncConflictResponse>, Status> {
@@ -61,12 +43,6 @@ pub async fn resolve_sync_conflict(
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn get_sync_status(
     _req: proto::GetSyncStatusRequest,
 ) -> Result<Response<proto::GetSyncStatusResponse>, Status> {
@@ -82,12 +58,6 @@ pub async fn get_sync_status(
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn sync_pull(
     _req: proto::SyncPullRequest,
 ) -> Result<Response<proto::SyncPullResponse>, Status> {
@@ -100,12 +70,6 @@ pub async fn sync_pull(
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
 pub async fn sync_push(
     _req: proto::SyncPushRequest,
 ) -> Result<Response<proto::SyncPushResponse>, Status> {
