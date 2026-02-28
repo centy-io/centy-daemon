@@ -1,7 +1,7 @@
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::types::IssueError;
 use crate::manifest::{update_manifest, write_manifest, CentyManifest};
-use crate::utils::format_markdown;
+use crate::utils::format_issue_file;
 use mdstore::generate_frontmatter;
 use std::collections::HashMap;
 use std::path::Path;
@@ -66,7 +66,7 @@ pub async fn write_issue_file(
 ) -> Result<(), IssueError> {
     let issue_content = generate_frontmatter(frontmatter, display_title, body);
     let issue_file = issues_path.join(format!("{issue_id}.md"));
-    fs::write(&issue_file, format_markdown(&issue_content)).await?;
+    fs::write(&issue_file, format_issue_file(&issue_content)).await?;
     Ok(())
 }
 

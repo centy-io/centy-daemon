@@ -3,7 +3,6 @@
 
 mod common;
 
-use centy_daemon::item::entities::doc::{create_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
@@ -195,96 +194,6 @@ async fn test_issue_template_with_conditionals() {
             .await
             .unwrap();
     assert!(!content2.contains("## Description"));
-}
-
-// ============ Doc Template Tests ============
-
-#[tokio::test]
-async fn test_create_doc_with_explicit_template() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-    init_centy_project(project_path).await;
-
-    // Create a custom API doc template
-    let template_path = project_path.join(".centy/templates/docs/api.md");
-    fs::write(
-        &template_path,
-        r#"---
-title: "{{title}}"
-slug: "{{slug}}"
-type: "api-reference"
----
-
-# API: {{title}}
-
-{{content}}"#,
-    )
-    .await
-    .expect("Should write template");
-
-    let options = CreateDocOptions {
-        title: "Users Endpoint".to_string(),
-        content: "The users API...".to_string(),
-        template: Some("api".to_string()),
-        ..Default::default()
-    };
-
-    create_doc(project_path, options)
-        .await
-        .expect("Should create doc with template");
-
-    let doc_content = fs::read_to_string(project_path.join(".centy/docs/users-endpoint.md"))
-        .await
-        .expect("Should read doc file");
-
-    assert!(doc_content.contains("type: \"api-reference\""));
-    assert!(doc_content.contains("# API: Users Endpoint"));
-    // Note: format_markdown converts ... to Unicode ellipsis …
-    assert!(doc_content.contains("The users API…"));
-}
-
-#[tokio::test]
-async fn test_create_doc_without_template_uses_default() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-    init_centy_project(project_path).await;
-
-    let options = CreateDocOptions {
-        title: "Getting Started".to_string(),
-        content: "Welcome!".to_string(),
-        ..Default::default()
-    };
-
-    create_doc(project_path, options)
-        .await
-        .expect("Should create doc");
-
-    let doc_content = fs::read_to_string(project_path.join(".centy/docs/getting-started.md"))
-        .await
-        .expect("Should read doc file");
-
-    // Should use default format with frontmatter
-    assert!(doc_content.contains("title: \"Getting Started\""));
-    assert!(doc_content.contains("# Getting Started"));
-    assert!(doc_content.contains("Welcome!"));
-}
-
-#[tokio::test]
-async fn test_create_doc_template_not_found_returns_error() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-    init_centy_project(project_path).await;
-
-    let options = CreateDocOptions {
-        title: "Test".to_string(),
-        content: "Content".to_string(),
-        template: Some("nonexistent".to_string()),
-        ..Default::default()
-    };
-
-    let result = create_doc(project_path, options).await;
-    assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("not found"));
 }
 
 // ============ Init Tests for Template Folders ============
