@@ -1,5 +1,6 @@
 /// Default README content
-pub const README_CONTENT: &str = r"# Centy Project
+pub const README_CONTENT: &str = r"<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
+# Centy Project
 
 This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
 
@@ -34,7 +35,8 @@ View all issues in the `issues/` folder.
 ";
 
 /// Issues README content
-pub const ISSUES_README_CONTENT: &str = r#"# Issues
+pub const ISSUES_README_CONTENT: &str = r#"<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
+# Issues
 
 This folder contains project issues managed by [Centy](https://github.com/centy-io/centy-cli).
 
