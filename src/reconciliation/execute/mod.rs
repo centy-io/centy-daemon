@@ -85,3 +85,7 @@ mod tests2;
 #[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_3.rs"]
 mod tests3;
+#[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
+#[path = "../execute_tests_4.rs"]
+mod tests4;
