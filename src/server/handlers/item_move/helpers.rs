@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_type_resolve::resolve_item_type_config;
 use crate::hooks::HookOperation;
 use crate::item::core::error::ItemError;

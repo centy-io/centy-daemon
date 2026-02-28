@@ -7,8 +7,23 @@ use centy_daemon::registry::{
     get_project_info, list_projects, track_project, untrack_project, ListProjectsOptions,
     RegistryError,
 };
-use common::{create_test_dir, init_centy_project};
+use common::init_centy_project;
 use std::path::Path;
+use std::sync::LazyLock;
+use tempfile::TempDir;
+
+// Each integration test binary uses its own isolated registry directory to
+// prevent concurrent test binaries from corrupting each other's registry state.
+static REGISTRY_ISOLATION: LazyLock<()> = LazyLock::new(|| {
+    let dir = tempfile::tempdir().expect("Failed to create temp registry dir");
+    std::env::set_var("CENTY_HOME", dir.path());
+    std::mem::forget(dir); // Keep dir alive for the process lifetime
+});
+
+fn create_test_dir() -> TempDir {
+    let () = *REGISTRY_ISOLATION;
+    common::create_test_dir()
+}
 
 /// Helper to get canonical path for comparison
 fn canonical_path(path: &str) -> String {
@@ -111,6 +126,7 @@ async fn test_untrack_project_removes_entry() {
 
 #[tokio::test]
 async fn test_untrack_nonexistent_project_returns_error() {
+    let () = *REGISTRY_ISOLATION;
     let result = untrack_project("/nonexistent/path/12345").await;
     assert!(result.is_err());
     assert!(matches!(

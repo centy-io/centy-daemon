@@ -1,6 +1,7 @@
 use super::super::item_archive::ARCHIVED_FOLDER;
 use super::super::item_type_resolve::resolve_item_type_config;
-use super::operation::{move_and_respond, resolve_target_folder};
+use super::helpers::resolve_target_folder;
+use super::operation::move_and_respond;
 use crate::item::generic::storage::generic_get;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
