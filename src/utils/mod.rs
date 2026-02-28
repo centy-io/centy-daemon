@@ -1,7 +1,7 @@
 mod format;
 mod hash;
 
-pub use format::format_markdown;
+pub use format::{format_issue_file, format_markdown, strip_centy_md_header, with_yaml_header};
 pub use hash::{compute_file_hash, compute_hash};
 
 use std::path::Path;

@@ -6,7 +6,7 @@ use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::IssueMetadataFlat;
 use crate::common::OrgSyncError;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{format_markdown, get_centy_path, now_iso};
+use crate::utils::{format_issue_file, get_centy_path, now_iso};
 use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
@@ -77,7 +77,7 @@ pub async fn update_or_create_issue_in_project(
         custom_fields: source_metadata.custom_fields.clone(),
     };
     let issue_content = generate_frontmatter(&frontmatter, title, description);
-    fs::write(&issue_file_path, format_markdown(&issue_content)).await?;
+    fs::write(&issue_file_path, format_issue_file(&issue_content)).await?;
     if !is_new_format {
         let old_assets_path = issue_folder_path.join("assets");
         let new_assets_path = issues_path.join("assets").join(issue_id);

@@ -326,8 +326,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::workspace_temp::open_in_temp_workspace(OpenInTempWorkspaceWithEditorRequest {
             project_path: r.project_path,
             issue_id: r.issue_id,
-            action: r.action,
-            agent_name: r.agent_name,
             ttl_hours: r.ttl_hours,
             editor_id: "vscode".to_string(),
         })
@@ -341,8 +339,6 @@ impl CentyDaemon for CentyDaemonService {
         handlers::workspace_temp::open_in_temp_workspace(OpenInTempWorkspaceWithEditorRequest {
             project_path: r.project_path,
             issue_id: r.issue_id,
-            action: r.action,
-            agent_name: r.agent_name,
             ttl_hours: r.ttl_hours,
             editor_id: "terminal".to_string(),
         })
@@ -383,7 +379,6 @@ impl CentyDaemon for CentyDaemonService {
                 name: r.name,
                 description: r.description,
                 ttl_hours: r.ttl_hours,
-                agent_name: r.agent_name,
                 editor_id: String::new(),
             },
         )
@@ -400,7 +395,6 @@ impl CentyDaemon for CentyDaemonService {
                 name: r.name,
                 description: r.description,
                 ttl_hours: r.ttl_hours,
-                agent_name: r.agent_name,
                 editor_id: String::new(),
             },
         )

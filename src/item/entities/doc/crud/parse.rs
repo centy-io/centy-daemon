@@ -1,10 +1,11 @@
-use crate::utils::now_iso;
+use crate::utils::{now_iso, strip_centy_md_header};
 
 use super::parse_helpers::parse_with_frontmatter;
 use super::types::DocMetadata;
 
 /// Parse doc content extracting title, body, and metadata from frontmatter
 pub fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
+    let content = strip_centy_md_header(content);
     let lines: Vec<&str> = content.lines().collect();
 
     if lines.first() == Some(&"---") {

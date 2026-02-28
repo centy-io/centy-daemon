@@ -1,5 +1,5 @@
 use super::types::ItemTypeConfig;
-use crate::utils::get_centy_path;
+use crate::utils::{get_centy_path, with_yaml_header};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
@@ -100,7 +100,7 @@ pub async fn write_item_type_config(
     let type_dir = get_centy_path(project_path).join(folder);
     fs::create_dir_all(&type_dir).await?;
     let config_path = type_dir.join("config.yaml");
-    let content = serde_yaml::to_string(config)?;
+    let content = with_yaml_header(&serde_yaml::to_string(config)?);
     fs::write(&config_path, content).await?;
     Ok(())
 }
