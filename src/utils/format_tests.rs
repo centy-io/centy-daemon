@@ -44,27 +44,31 @@ fn test_format_markdown_preserves_blockquote_content() {
 }
 
 #[test]
-fn test_format_issue_file_prepends_centy_header() {
-    let input = "# Hello\n\nWorld";
+fn test_format_issue_file_inserts_yaml_comment_in_frontmatter() {
+    // Input is a full issue file with frontmatter
+    let input = "---\ndisplay_number: 1\n---\n\n# Title\n\nBody\n";
     let output = format_issue_file(input);
+    // The file must still start with --- (frontmatter parsers require this)
+    assert!(output.starts_with("---\n"), "Must start with ---");
+    // The YAML comment must be the first line inside the frontmatter
     assert!(
-        output.starts_with(CENTY_HEADER_MD),
-        "Should prepend the managed-by header"
+        output.starts_with(&format!("---\n{CENTY_HEADER_YAML}\n")),
+        "YAML comment should be first line inside frontmatter"
     );
 }
 
 #[test]
 fn test_format_issue_file_header_idempotent() {
-    let input = "# Hello\n\nWorld";
+    let input = "---\ndisplay_number: 1\n---\n\n# Title\n\nBody\n";
     let once = format_issue_file(input);
     let twice = format_issue_file(&once);
     assert_eq!(
-        once.matches(CENTY_HEADER_MD).count(),
+        once.matches(CENTY_HEADER_YAML).count(),
         1,
         "Header should appear exactly once after first call"
     );
     assert_eq!(
-        twice.matches(CENTY_HEADER_MD).count(),
+        twice.matches(CENTY_HEADER_YAML).count(),
         1,
         "Header should not be duplicated after second call"
     );

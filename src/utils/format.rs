@@ -20,14 +20,33 @@ pub fn format_markdown(input: &str) -> String {
     output
 }
 
-/// Format an issue file: normalize markdown and prepend the managed-by
-/// header comment if not already present.
+/// Format an issue file: normalize markdown and insert the managed-by comment
+/// as the first line inside the YAML frontmatter block if not already present.
+/// This keeps `---` at position 0, allowing frontmatter parsers to work normally.
+///
+/// Note: pulldown-cmark-to-cmark escapes `#` to `\#` inside YAML metadata
+/// blocks.  We detect both the plain and escaped forms of the header and
+/// normalise back to the plain form so the function is idempotent.
 pub fn format_issue_file(content: &str) -> String {
     let formatted = format_markdown(content);
-    if formatted.starts_with(CENTY_HEADER_MD) {
-        formatted
+    if let Some(after_dashes) = formatted.strip_prefix("---\n") {
+        // pulldown-cmark-to-cmark escapes '#' inside YAML blocks → "\# ..."
+        let escaped = format!("\\{CENTY_HEADER_YAML}");
+        if after_dashes.starts_with(CENTY_HEADER_YAML) {
+            // Already has the comment in plain form – nothing to do.
+            formatted
+        } else if after_dashes.starts_with(escaped.as_str()) {
+            // Comment is present but was escaped by format_markdown. Un-escape it.
+            format!(
+                "---\n{CENTY_HEADER_YAML}\n{}",
+                &after_dashes[escaped.len()..]
+            )
+        } else {
+            // Comment not present – insert it.
+            format!("---\n{CENTY_HEADER_YAML}\n{after_dashes}")
+        }
     } else {
-        format!("{CENTY_HEADER_MD}\n{formatted}")
+        formatted
     }
 }
 
