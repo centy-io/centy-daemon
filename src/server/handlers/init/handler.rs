@@ -1,6 +1,8 @@
 use super::config_merge::apply_init_config;
 use crate::config::set_project_title;
-use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions, ReconciliationResult};
+use crate::reconciliation::{
+    execute_reconciliation, ReconciliationDecisions, ReconciliationResult,
+};
 use crate::registry::{
     get_project_info, infer_organization_from_remote, set_project_organization, track_project_async,
 };
@@ -22,8 +24,7 @@ async fn post_reconcile(
         .ok()
         .flatten()
         .and_then(|info| info.organization_slug);
-    let inference =
-        infer_organization_from_remote(project_path, existing_org.as_deref()).await;
+    let inference = infer_organization_from_remote(project_path, existing_org.as_deref()).await;
     if existing_org.is_none() && !inference.has_mismatch {
         if let Some(ref slug) = inference.inferred_org_slug {
             let _ = set_project_organization(&req.project_path, Some(slug)).await;
