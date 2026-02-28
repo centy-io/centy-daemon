@@ -21,8 +21,14 @@ async fn execute_move(
         && !req.new_id.is_empty()
         && source_config.identifier == IdStrategy::Slug;
     let result = if is_slug_rename {
-        generic_rename_slug(source_path, source_type, source_config, &req.item_id, &req.new_id)
-            .await
+        generic_rename_slug(
+            source_path,
+            source_type,
+            source_config,
+            &req.item_id,
+            &req.new_id,
+        )
+        .await
     } else {
         let new_id = (!req.new_id.is_empty()).then_some(req.new_id.as_str());
         generic_move(
@@ -67,5 +73,13 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
         Ok(ctx) => ctx,
         Err(resp) => return Ok(resp),
     };
-    execute_move(&req, &source_type, &target_type, &source_config, &target_config, ctx).await
+    execute_move(
+        &req,
+        &source_type,
+        &target_type,
+        &source_config,
+        &target_config,
+        ctx,
+    )
+    .await
 }

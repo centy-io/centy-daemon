@@ -50,7 +50,12 @@ pub(super) async fn prepare_move_hooks(
             ..Default::default()
         }));
     }
-    Ok(MoveHookContext { hook_type, hook_project_path, hook_item_id, hook_request_data })
+    Ok(MoveHookContext {
+        hook_type,
+        hook_project_path,
+        hook_item_id,
+        hook_request_data,
+    })
 }
 /// Build a successful `MoveItemResponse` from a move/rename result.
 pub(super) async fn build_ok_response(
