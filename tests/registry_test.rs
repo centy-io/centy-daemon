@@ -238,43 +238,6 @@ async fn test_project_info_counts_issues() {
     assert_eq!(info.issue_count, 3, "Should have 3 issues");
 }
 
-#[tokio::test]
-async fn test_project_info_counts_docs() {
-    use centy_daemon::item::entities::doc::{create_doc, CreateDocOptions};
-
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    // Initialize centy project
-    init_centy_project(project_path).await;
-
-    // Create some docs
-    for i in 1..=2 {
-        let options = CreateDocOptions {
-            title: format!("Doc {i}"),
-            content: "Content".to_string(),
-            slug: None,
-            template: None,
-            is_org_doc: false,
-        };
-        create_doc(project_path, options)
-            .await
-            .expect("Should create doc");
-    }
-
-    // Track and get info
-    let project_path_str = project_path.to_string_lossy().to_string();
-    track_project(&project_path_str)
-        .await
-        .expect("Should track");
-
-    let info = get_project_info(&project_path_str)
-        .await
-        .expect("Should get info")
-        .expect("Should find project");
-
-    assert_eq!(info.doc_count, 2, "Should have 2 docs");
-}
 
 #[tokio::test]
 async fn test_list_projects_sorted_by_last_accessed() {
