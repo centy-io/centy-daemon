@@ -8,8 +8,7 @@ pub const CENTY_HEADER_YAML: &str =
     "# This file is managed by Centy. Use the Centy CLI to modify it.";
 
 /// Format markdown content using pulldown-cmark for consistent formatting.
-/// Ensures the output ends with a trailing newline, and prepends the
-/// Centy-managed header comment if not already present.
+/// Ensures the output ends with a trailing newline.
 pub fn format_markdown(input: &str) -> String {
     let options = Options::all();
     let parser = Parser::new_ext(input, options);
@@ -18,10 +17,17 @@ pub fn format_markdown(input: &str) -> String {
     if !output.ends_with('\n') {
         output.push('\n');
     }
-    if output.starts_with(CENTY_HEADER_MD) {
-        output
+    output
+}
+
+/// Format an issue file: normalize markdown and prepend the managed-by
+/// header comment if not already present.
+pub fn format_issue_file(content: &str) -> String {
+    let formatted = format_markdown(content);
+    if formatted.starts_with(CENTY_HEADER_MD) {
+        formatted
     } else {
-        format!("{CENTY_HEADER_MD}\n{output}")
+        format!("{CENTY_HEADER_MD}\n{formatted}")
     }
 }
 

@@ -44,9 +44,9 @@ fn test_format_markdown_preserves_blockquote_content() {
 }
 
 #[test]
-fn test_format_markdown_prepends_centy_header() {
+fn test_format_issue_file_prepends_centy_header() {
     let input = "# Hello\n\nWorld";
-    let output = format_markdown(input);
+    let output = format_issue_file(input);
     assert!(
         output.starts_with(CENTY_HEADER_MD),
         "Should prepend the managed-by header"
@@ -54,10 +54,10 @@ fn test_format_markdown_prepends_centy_header() {
 }
 
 #[test]
-fn test_format_markdown_header_idempotent() {
+fn test_format_issue_file_header_idempotent() {
     let input = "# Hello\n\nWorld";
-    let once = format_markdown(input);
-    let twice = format_markdown(&once);
+    let once = format_issue_file(input);
+    let twice = format_issue_file(&once);
     assert_eq!(
         once.matches(CENTY_HEADER_MD).count(),
         1,

@@ -7,7 +7,7 @@ use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::{IssueCrudError, MoveIssueOptions, MoveIssueResult};
 use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{format_markdown, get_centy_path, now_iso};
+use crate::utils::{format_issue_file, get_centy_path, now_iso};
 use mdstore::generate_frontmatter;
 use tokio::fs;
 
@@ -75,7 +75,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     let target_issue_file = target_issues_path.join(format!("{}.md", &options.issue_id));
     let issue_content =
         generate_frontmatter(&frontmatter, &source_issue.title, &source_issue.description);
-    fs::write(&target_issue_file, format_markdown(&issue_content)).await?;
+    fs::write(&target_issue_file, format_issue_file(&issue_content)).await?;
     let source_assets_path = if source_is_new_format {
         source_issues_path.join("assets").join(&options.issue_id)
     } else {

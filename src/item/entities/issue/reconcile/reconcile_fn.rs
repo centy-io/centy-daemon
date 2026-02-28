@@ -2,7 +2,7 @@
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::scan::scan_issues;
 use super::types::{IssueInfo, ReconcileError};
-use crate::utils::{format_markdown, strip_centy_md_header};
+use crate::utils::{format_issue_file, strip_centy_md_header};
 use mdstore::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
@@ -62,7 +62,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
             frontmatter.display_number = new_display_number;
             frontmatter.updated_at = crate::utils::now_iso();
             let new_content = generate_frontmatter(&frontmatter, &title, &body);
-            fs::write(&file_path, format_markdown(&new_content)).await?;
+            fs::write(&file_path, format_issue_file(&new_content)).await?;
         } else {
             let metadata_path = issues_path.join(&issue_info.id).join("metadata.json");
             let content = fs::read_to_string(&metadata_path).await?;
