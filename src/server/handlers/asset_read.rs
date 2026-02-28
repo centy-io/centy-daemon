@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
 use crate::server::convert_infra::asset_info_to_proto;
