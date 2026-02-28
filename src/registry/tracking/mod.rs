@@ -1,8 +1,10 @@
 mod counts;
 mod enrich;
 mod enrich_fn;
+mod enrich_lookups;
 mod ops;
-pub use enrich::{get_org_projects, get_project_info, list_projects};
+pub use enrich::{get_org_projects, list_projects};
+pub use enrich_lookups::get_project_info;
 #[allow(unused_imports)]
 pub use enrich_fn::is_version_behind;
 pub use ops::{
