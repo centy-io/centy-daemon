@@ -1,5 +1,5 @@
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
 
@@ -58,7 +58,7 @@ pub async fn move_doc(options: MoveDocOptions) -> Result<MoveDocResult, DocError
         let content = fs::read_to_string(&target_doc_path).await?;
         let (title, body, mut metadata) = parse_doc_content(&content);
         metadata.updated_at = now_iso();
-        let new_content = generate_doc_content(&title, &body, &metadata);
+        let new_content = format_markdown(&generate_doc_content(&title, &body, &metadata));
         fs::write(&target_doc_path, new_content).await?;
     }
 
