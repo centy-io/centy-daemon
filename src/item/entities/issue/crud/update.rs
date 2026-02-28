@@ -7,7 +7,7 @@ use super::update_helpers::{
 };
 use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::get_centy_path;
+use crate::utils::{format_markdown, get_centy_path};
 use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
@@ -51,7 +51,7 @@ pub async fn update_issue(
         &current_content,
     );
     let issue_content = generate_frontmatter(&frontmatter, &updates.title, &body);
-    fs::write(&issue_file_path, &issue_content).await?;
+    fs::write(&issue_file_path, format_markdown(&issue_content)).await?;
     if is_old_format && !is_new_format {
         migrate_legacy_format(&issue_folder_path, &issues_path, issue_number).await?;
     }

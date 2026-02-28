@@ -3,7 +3,7 @@ use std::path::Path;
 use tokio::fs;
 
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{get_centy_path, now_iso};
+use crate::utils::{format_markdown, get_centy_path, now_iso};
 
 use super::format::generate_doc_content;
 use super::io::read_doc_from_disk;
@@ -48,7 +48,8 @@ pub async fn update_doc(
         is_org_doc: current.metadata.is_org_doc,
         org_slug: current.metadata.org_slug.clone(),
     };
-    let doc_content = generate_doc_content(&new_title, &new_content, &updated_metadata);
+    let doc_content =
+        format_markdown(&generate_doc_content(&new_title, &new_content, &updated_metadata));
     let final_slug = if let Some(ref new_slug) = new_slug {
         fs::remove_file(&doc_path).await?;
         fs::write(&docs_path.join(format!("{new_slug}.md")), &doc_content).await?;

@@ -1,5 +1,5 @@
 /// Hooks YAML template content
-pub const HOOKS_YAML_CONTENT: &str = "# Centy Hooks \u{2014} https://docs.centy.io/hooks\n#\n# Example hook:\n# hooks:\n#   - event: issue.created\n#     run: echo \"Issue created: $CENTY_ITEM_TITLE\"\n";
+pub const HOOKS_YAML_CONTENT: &str = "# This file is managed by Centy. Use the Centy CLI to modify it.\n# Centy Hooks \u{2014} https://docs.centy.io/hooks\n#\n# Example hook:\n# hooks:\n#   - event: issue.created\n#     run: echo \"Issue created: $CENTY_ITEM_TITLE\"\n";
 
 /// CSpell configuration content
 pub const CSPELL_JSON_CONTENT: &str = r#"{
@@ -24,6 +24,7 @@ pub const CSPELL_JSON_CONTENT: &str = r#"{
 "#;
 /// Templates README content (part 1 - header and placeholders)
 pub const TEMPLATES_README_CONTENT: &str = concat!(
+    "<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->\n",
     "# Templates\n\n",
     "This folder contains templates for creating issues and docs using ",
     "[Handlebars](https://handlebarsjs.com/) syntax.\n\n",

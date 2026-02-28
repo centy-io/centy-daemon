@@ -2,6 +2,7 @@
 use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::types::{IssueInfo, ReconcileError};
+use crate::utils::strip_centy_md_header;
 use mdstore::parse_frontmatter;
 use std::path::Path;
 use tokio::fs;
@@ -21,7 +22,7 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
                 Err(_) => continue,
             };
             let frontmatter: IssueFrontmatter =
-                match parse_frontmatter::<IssueFrontmatter>(&content) {
+                match parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content)) {
                     Ok((fm, _, _)) => fm,
                     Err(_) => continue,
                 };
@@ -72,7 +73,9 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
         };
         if file_type.is_file() && is_valid_issue_file(&name) {
             if let Ok(content) = fs::read_to_string(entry.path()).await {
-                if let Ok((frontmatter, _, _)) = parse_frontmatter::<IssueFrontmatter>(&content) {
+                if let Ok((frontmatter, _, _)) =
+                    parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
+                {
                     max_number = max_number.max(frontmatter.display_number);
                 }
             }
