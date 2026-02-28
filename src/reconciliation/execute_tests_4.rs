@@ -54,9 +54,7 @@ async fn test_execute_reconciliation_does_not_overwrite_existing_hooks_yaml() {
     let result = execute_reconciliation(temp_dir.path(), ReconciliationDecisions::default(), false)
         .await
         .expect("Should execute second init");
-    let content = fs::read_to_string(&hooks_path)
-        .await
-        .expect("Should read");
+    let content = fs::read_to_string(&hooks_path).await.expect("Should read");
     assert_eq!(
         content, "hooks:\n  - event: custom\n    run: echo hi\n",
         "Existing hooks.yaml should not be overwritten"
