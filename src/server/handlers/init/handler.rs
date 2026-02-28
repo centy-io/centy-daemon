@@ -4,7 +4,8 @@ use crate::reconciliation::{
     execute_reconciliation, ReconciliationDecisions, ReconciliationResult,
 };
 use crate::registry::{
-    get_project_info, infer_organization_from_remote, set_project_organization, track_project_async,
+    get_project_info, infer_organization_from_remote, set_project_organization, track_project,
+    track_project_async,
 };
 use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
 use crate::server::proto::{
@@ -70,7 +71,7 @@ async fn post_reconcile(
     }))
 }
 pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
-    track_project_async(req.project_path.clone());
+    let _ = track_project(&req.project_path).await;
     let mut req = req;
     let project_path_str = req.project_path.clone();
     let project_path = Path::new(&project_path_str);
