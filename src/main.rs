@@ -1,11 +1,4 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
-// Suppress clippy warnings about unknown/renamed dylint lint names
-#![allow(
-    unknown_lints,
-    renamed_and_removed_lints,
-    max_lines_per_file,
-    wildcard_imports
-)]
 #![cfg_attr(
     test,
     allow(
@@ -115,7 +108,6 @@ fn report_server_error(
     eprintln!();
 }
 
-#[allow(unknown_lints, max_lines_per_function, max_nesting_depth, no_expect)]
 #[tokio::main]
 async fn main() -> Result<()> {
     // Install color-eyre error hooks for colored error output
