@@ -189,7 +189,7 @@ async fn test_list_projects_excludes_stale_by_default() {
     .expect("Should list");
     assert!(
         projects.iter().any(|p| p.path == canonical),
-        "Stale project should be included when requested"
+        "Stale project should be included when requested",
     );
 }
 
