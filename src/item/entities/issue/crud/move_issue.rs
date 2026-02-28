@@ -11,7 +11,6 @@ use crate::utils::{get_centy_path, now_iso};
 use mdstore::generate_frontmatter;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
     if options.source_project_path == options.target_project_path {
         return Err(IssueCrudError::SameProject);
