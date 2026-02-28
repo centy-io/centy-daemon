@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn test_get_registry_path() {
-    // This test will work if HOME or USERPROFILE is set
     let result = get_registry_path();
-    if std::env::var("HOME").is_ok() || std::env::var("USERPROFILE").is_ok() {
-        assert!(result.is_ok());
-        let path = result.unwrap();
-        assert!(path.ends_with("projects.json"));
+    assert!(result.is_ok());
+    let path = result.unwrap();
+    assert!(path.ends_with("projects.json"));
+    // When CENTY_HOME is set (e.g. in tests), the path won't contain ".centy"
+    if std::env::var("CENTY_HOME").is_err() {
         assert!(path.to_string_lossy().contains(".centy"));
     }
 }
