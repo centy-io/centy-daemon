@@ -421,37 +421,37 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<ListSyncConflictsRequest>,
     ) -> Result<Response<ListSyncConflictsResponse>, Status> {
-        handlers::sync::list_sync_conflicts(request.into_inner())
+        handlers::sync::list_sync_conflicts(request.into_inner()).await
     }
     async fn get_sync_conflict(
         &self,
         request: Request<GetSyncConflictRequest>,
     ) -> Result<Response<GetSyncConflictResponse>, Status> {
-        handlers::sync::get_sync_conflict(request.into_inner())
+        handlers::sync::get_sync_conflict(request.into_inner()).await
     }
     async fn resolve_sync_conflict(
         &self,
         request: Request<ResolveSyncConflictRequest>,
     ) -> Result<Response<ResolveSyncConflictResponse>, Status> {
-        handlers::sync::resolve_sync_conflict(request.into_inner())
+        handlers::sync::resolve_sync_conflict(request.into_inner()).await
     }
     async fn get_sync_status(
         &self,
         request: Request<GetSyncStatusRequest>,
     ) -> Result<Response<GetSyncStatusResponse>, Status> {
-        handlers::sync::get_sync_status(request.into_inner())
+        handlers::sync::get_sync_status(request.into_inner()).await
     }
     async fn sync_pull(
         &self,
         request: Request<SyncPullRequest>,
     ) -> Result<Response<SyncPullResponse>, Status> {
-        handlers::sync::sync_pull(request.into_inner())
+        handlers::sync::sync_pull(request.into_inner()).await
     }
     async fn sync_push(
         &self,
         request: Request<SyncPushRequest>,
     ) -> Result<Response<SyncPushResponse>, Status> {
-        handlers::sync::sync_push(request.into_inner())
+        handlers::sync::sync_push(request.into_inner()).await
     }
     async fn create_item_type(
         &self,
