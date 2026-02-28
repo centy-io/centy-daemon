@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth, max_lines_per_file)]
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueFrontmatter;
 use super::super::priority::validate_priority;
@@ -15,7 +14,6 @@ use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn update_issue(
     project_path: &Path,
     issue_number: &str,
