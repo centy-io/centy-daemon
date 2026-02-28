@@ -2,15 +2,24 @@ use serde::{Deserialize, Serialize};
 /// Target entity type for links
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum TargetType { Issue, Doc }
+pub enum TargetType {
+    Issue,
+    Doc,
+}
 impl TargetType {
     #[must_use]
     pub fn as_str(&self) -> &'static str {
-        match self { Self::Issue => "issue", Self::Doc => "doc" }
+        match self {
+            Self::Issue => "issue",
+            Self::Doc => "doc",
+        }
     }
     #[must_use]
     pub fn folder_name(&self) -> &'static str {
-        match self { Self::Issue => "issues", Self::Doc => "docs" }
+        match self {
+            Self::Issue => "issues",
+            Self::Doc => "docs",
+        }
     }
 }
 impl std::str::FromStr for TargetType {
@@ -40,7 +49,12 @@ pub struct Link {
 impl Link {
     #[must_use]
     pub fn new(target_id: String, target_type: TargetType, link_type: String) -> Self {
-        Self { target_id, target_type, link_type, created_at: crate::utils::now_iso() }
+        Self {
+            target_id,
+            target_type,
+            link_type,
+            created_at: crate::utils::now_iso(),
+        }
     }
 }
 /// Custom link type definition (for config.json)
