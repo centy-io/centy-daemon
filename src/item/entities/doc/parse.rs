@@ -1,7 +1,9 @@
-use crate::utils::now_iso;
 use super::types::DocMetadata;
+use crate::utils::now_iso;
 /// Parse frontmatter from a doc's lines into metadata fields.
-fn parse_frontmatter(frontmatter: &[&str]) -> (String, String, String, Option<String>, bool, Option<String>) {
+fn parse_frontmatter(
+    frontmatter: &[&str],
+) -> (String, String, String, Option<String>, bool, Option<String>) {
     let mut title = String::new();
     let mut created_at = String::new();
     let mut updated_at = String::new();
@@ -17,15 +19,21 @@ fn parse_frontmatter(frontmatter: &[&str]) -> (String, String, String, Option<St
             updated_at = value.trim().trim_matches('"').to_string();
         } else if let Some(value) = line.strip_prefix("deletedAt:") {
             let v = value.trim().trim_matches('"').to_string();
-            if !v.is_empty() { deleted_at = Some(v); }
+            if !v.is_empty() {
+                deleted_at = Some(v);
+            }
         } else if let Some(value) = line.strip_prefix("isOrgDoc:") {
             is_org_doc = value.trim() == "true";
         } else if let Some(value) = line.strip_prefix("orgSlug:") {
             let v = value.trim().trim_matches('"').to_string();
-            if !v.is_empty() { org_slug = Some(v); }
+            if !v.is_empty() {
+                org_slug = Some(v);
+            }
         }
     }
-    (title, created_at, updated_at, deleted_at, is_org_doc, org_slug)
+    (
+        title, created_at, updated_at, deleted_at, is_org_doc, org_slug,
+    )
 }
 /// Parse doc content with frontmatter present.
 fn parse_with_frontmatter(lines: &[&str], end_idx: usize) -> (String, String, DocMetadata) {
@@ -41,15 +49,28 @@ fn parse_with_frontmatter(lines: &[&str], end_idx: usize) -> (String, String, Do
         .copied()
         .collect();
     let body = if body_lines.first().is_some_and(|l| l.starts_with("# ")) {
-        body_lines.get(1..).unwrap_or(&[]).iter()
+        body_lines
+            .get(1..)
+            .unwrap_or(&[])
+            .iter()
             .skip_while(|line| line.is_empty())
-            .copied().collect::<Vec<_>>().join("\n")
+            .copied()
+            .collect::<Vec<_>>()
+            .join("\n")
     } else {
         body_lines.join("\n")
     };
     let metadata = DocMetadata {
-        created_at: if created_at.is_empty() { now_iso() } else { created_at },
-        updated_at: if updated_at.is_empty() { now_iso() } else { updated_at },
+        created_at: if created_at.is_empty() {
+            now_iso()
+        } else {
+            created_at
+        },
+        updated_at: if updated_at.is_empty() {
+            now_iso()
+        } else {
+            updated_at
+        },
         deleted_at,
         is_org_doc,
         org_slug,
@@ -67,14 +88,27 @@ fn parse_without_frontmatter(lines: &[&str]) -> (String, String, DocMetadata) {
             break;
         }
     }
-    let body = lines.get(body_start..).unwrap_or(&[]).iter()
+    let body = lines
+        .get(body_start..)
+        .unwrap_or(&[])
+        .iter()
         .skip_while(|line| line.is_empty())
-        .copied().collect::<Vec<_>>().join("\n")
-        .trim_end().to_string();
-    (title, body, DocMetadata {
-        created_at: now_iso(), updated_at: now_iso(),
-        deleted_at: None, is_org_doc: false, org_slug: None,
-    })
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_end()
+        .to_string();
+    (
+        title,
+        body,
+        DocMetadata {
+            created_at: now_iso(),
+            updated_at: now_iso(),
+            deleted_at: None,
+            is_org_doc: false,
+            org_slug: None,
+        },
+    )
 }
 /// Parse doc content extracting title, body, and metadata from frontmatter.
 pub fn parse_doc_content(content: &str) -> (String, String, DocMetadata) {
