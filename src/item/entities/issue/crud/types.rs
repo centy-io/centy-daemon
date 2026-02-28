@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::priority::PriorityError;
 use super::super::reconcile::ReconcileError;
 use super::super::status::StatusError;
