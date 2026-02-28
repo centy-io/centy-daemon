@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::{
     get_inverse_link_type, is_valid_link_type, read_links, write_links, CustomLinkTypeDefinition,
     Link, LinksFile, TargetType, BUILTIN_LINK_TYPES,
@@ -58,13 +57,13 @@ pub struct LinkTypeInfo {
 fn get_entity_path(
     project_path: &Path,
     entity_id: &str,
-    entity_type: TargetType,
+    entity_type: &TargetType,
 ) -> std::path::PathBuf {
     get_centy_path(project_path)
         .join(entity_type.folder_name())
         .join(entity_id)
 }
-fn entity_exists(project_path: &Path, entity_id: &str, entity_type: TargetType) -> bool {
+fn entity_exists(project_path: &Path, entity_id: &str, entity_type: &TargetType) -> bool {
     let base = get_centy_path(project_path).join(entity_type.folder_name());
     base.join(format!("{entity_id}.md")).exists() || base.join(entity_id).exists()
 }
@@ -79,22 +78,22 @@ pub async fn create_link(
     if options.source_id == options.target_id && options.source_type == options.target_type {
         return Err(LinkError::SelfLink);
     }
-    if !entity_exists(project_path, &options.source_id, options.source_type) {
+    if !entity_exists(project_path, &options.source_id, &options.source_type) {
         return Err(LinkError::SourceNotFound(
             options.source_id.clone(),
-            options.source_type,
+            options.source_type.clone(),
         ));
     }
-    if !entity_exists(project_path, &options.target_id, options.target_type) {
+    if !entity_exists(project_path, &options.target_id, &options.target_type) {
         return Err(LinkError::TargetNotFound(
             options.target_id.clone(),
-            options.target_type,
+            options.target_type.clone(),
         ));
     }
     let inverse_type = get_inverse_link_type(&options.link_type, custom_types)
         .ok_or_else(|| LinkError::InvalidLinkType(options.link_type.clone()))?;
-    let source_path = get_entity_path(project_path, &options.source_id, options.source_type);
-    let target_path = get_entity_path(project_path, &options.target_id, options.target_type);
+    let source_path = get_entity_path(project_path, &options.source_id, &options.source_type);
+    let target_path = get_entity_path(project_path, &options.target_id, &options.target_type);
     let mut source_links = read_links(&source_path).await?;
     let mut target_links = read_links(&target_path).await?;
     if source_links.has_link(&options.target_id, &options.link_type) {
@@ -120,8 +119,8 @@ pub async fn delete_link(
     options: DeleteLinkOptions,
     custom_types: &[CustomLinkTypeDefinition],
 ) -> Result<DeleteLinkResult, LinkError> {
-    let source_path = get_entity_path(project_path, &options.source_id, options.source_type);
-    let target_path = get_entity_path(project_path, &options.target_id, options.target_type);
+    let source_path = get_entity_path(project_path, &options.source_id, &options.source_type);
+    let target_path = get_entity_path(project_path, &options.target_id, &options.target_type);
     let mut source_links = read_links(&source_path).await?;
     let mut target_links = read_links(&target_path).await?;
     let mut deleted_count = 0u32;
@@ -164,13 +163,13 @@ pub async fn list_links(
     entity_id: &str,
     entity_type: TargetType,
 ) -> Result<LinksFile, LinkError> {
-    if !entity_exists(project_path, entity_id, entity_type) {
+    if !entity_exists(project_path, entity_id, &entity_type) {
         return Err(LinkError::SourceNotFound(
             entity_id.to_string(),
             entity_type,
         ));
     }
-    Ok(read_links(&get_entity_path(project_path, entity_id, entity_type)).await?)
+    Ok(read_links(&get_entity_path(project_path, entity_id, &entity_type)).await?)
 }
 pub fn get_available_link_types(custom_types: &[CustomLinkTypeDefinition]) -> Vec<LinkTypeInfo> {
     let mut types = Vec::new();

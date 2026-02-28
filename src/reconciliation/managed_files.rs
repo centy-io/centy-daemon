@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use crate::manifest::ManagedFileType;
 use std::collections::{BTreeSet, HashMap};
 #[path = "managed_files_content.rs"]

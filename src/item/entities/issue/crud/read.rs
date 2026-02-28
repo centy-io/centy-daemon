@@ -2,6 +2,7 @@ use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::super::planning::remove_planning_note;
 use super::parse::parse_issue_md;
 use super::types::{Issue, IssueCrudError, IssueMetadataFlat};
+use crate::utils::strip_centy_md_header;
 use mdstore::parse_frontmatter;
 use std::collections::HashMap;
 use std::path::Path;
@@ -13,7 +14,7 @@ pub async fn read_issue_from_frontmatter(
 ) -> Result<Issue, IssueCrudError> {
     let content = fs::read_to_string(issue_file_path).await?;
     let (frontmatter, title, body): (IssueFrontmatter, String, String) =
-        parse_frontmatter(&content)?;
+        parse_frontmatter(strip_centy_md_header(&content))?;
     let description = remove_planning_note(&body);
     #[allow(deprecated)]
     Ok(Issue {

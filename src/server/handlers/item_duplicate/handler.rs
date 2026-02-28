@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_type_resolve::resolve_item_type_config;
 use super::operation::do_duplicate;
 use crate::hooks::HookOperation;
@@ -42,7 +41,6 @@ async fn assert_both_initialized(
     }
     Ok(())
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn duplicate_item(
     req: DuplicateItemRequest,
 ) -> Result<Response<DuplicateItemResponse>, Status> {

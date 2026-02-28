@@ -3135,9 +3135,9 @@ dependencies = [
 
 [[package]]
 name = "worktree-io"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "471e76fb6c696c86bfb9412a8e0b8311dac64dbf488912e6f32e82f7a1388724"
+checksum = "51f102497258f28e9eec5f75be1090ed3d957a30d624f277fc451c3b52aaf1c1"
 dependencies = [
  "anyhow",
  "clap",

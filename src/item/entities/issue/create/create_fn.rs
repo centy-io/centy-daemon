@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::id::generate_issue_id;
 use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;
@@ -19,7 +18,6 @@ use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn create_issue(
     project_path: &Path,
     options: CreateIssueOptions,
