@@ -167,7 +167,8 @@
       "Bash(gh pr diff:*)",
       "Bash(npm root:*)",
       "Bash(cargo dylint:*)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(centy item-type:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
