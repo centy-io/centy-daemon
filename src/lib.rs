@@ -53,8 +53,8 @@ pub use item::generic::{
 };
 pub use link::{
     create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
-    CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,
-    DeleteLinkResult, Link, LinkError, LinkTypeInfo, LinksFile, TargetType,
+    CreateLinkOptions, CustomLinkTypeDefinition, DeleteLinkOptions, Link, LinkError, LinksFile,
+    TargetType,
 };
 pub use manifest::{CentyManifest, ManagedFileType};
 pub use reconciliation::{
