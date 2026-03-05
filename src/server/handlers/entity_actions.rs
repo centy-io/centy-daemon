@@ -72,8 +72,12 @@ fn unknown_entity_err_resp(cwd: &str) -> Response<GetEntityActionsResponse> {
     Response::new(GetEntityActionsResponse {
         actions: vec![],
         success: false,
-        error: StructuredError::new(cwd, "UNKNOWN_ENTITY_TYPE", "Unknown entity type".to_string())
-            .to_json(),
+        error: StructuredError::new(
+            cwd,
+            "UNKNOWN_ENTITY_TYPE",
+            "Unknown entity type".to_string(),
+        )
+        .to_json(),
     })
 }
 
