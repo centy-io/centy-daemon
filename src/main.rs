@@ -11,6 +11,7 @@
         clippy::indexing_slicing
     )
 )]
+#![allow(unknown_lints, max_lines_per_file)]
 
 mod cleanup;
 mod common;
