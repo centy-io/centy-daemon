@@ -35,6 +35,7 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
         })),
     }
 }
+#[allow(unnecessary_async)]
 pub async fn is_initialized(
     req: IsInitializedRequest,
 ) -> Result<Response<IsInitializedResponse>, Status> {

@@ -47,6 +47,7 @@ impl fmt::Display for AssertError {
 /// # Errors
 ///
 /// Returns [`AssertError::NotInitialized`] if the manifest file does not exist.
+#[allow(unnecessary_async)]
 pub async fn assert_initialized(project_path: &Path) -> Result<(), AssertError> {
     if get_manifest_path(project_path).exists() {
         Ok(())

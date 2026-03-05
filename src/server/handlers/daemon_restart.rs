@@ -31,7 +31,7 @@ async fn perform_restart(
     }
 }
 
-pub async fn restart(
+pub fn restart(
     req: RestartRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,
     exe_path: Option<&PathBuf>,

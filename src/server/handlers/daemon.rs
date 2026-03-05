@@ -7,7 +7,7 @@ use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
 
-pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<DaemonInfo>, Status> {
+pub fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<DaemonInfo>, Status> {
     let binary_path = std::env::current_exe()
         .map(|p| format_display_path(&p.to_string_lossy()))
         .unwrap_or_default();
@@ -19,7 +19,7 @@ pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<Daem
     }))
 }
 
-pub async fn shutdown(
+pub fn shutdown(
     req: ShutdownRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,
 ) -> Result<Response<ShutdownResponse>, Status> {

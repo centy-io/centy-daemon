@@ -81,8 +81,7 @@ pub async fn delete_link(
             .map(|l| l.kind.clone())
             .collect();
         if source_links.remove_link(&options.target_id, None) {
-            deleted_count =
-                deleted_count.saturating_add(link_types.len().try_into().unwrap_or(u32::MAX));
+            deleted_count = deleted_count.saturating_add(link_types.len().try_into().unwrap_or(u32::MAX));
         }
         for link_type in &link_types {
             if let Some(inverse_type) = get_inverse_link_type(link_type, custom_types) {

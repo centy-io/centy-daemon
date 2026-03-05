@@ -2,7 +2,7 @@ use crate::server::proto::{CleanupExpiredWorkspacesRequest, CleanupExpiredWorksp
 use tonic::{Response, Status};
 
 /// TTL-based cleanup has been removed. Returns success with zero cleaned workspaces.
-pub async fn cleanup_expired_workspaces(
+pub fn cleanup_expired_workspaces(
     _req: CleanupExpiredWorkspacesRequest,
 ) -> Result<Response<CleanupExpiredWorkspacesResponse>, Status> {
     Ok(Response::new(CleanupExpiredWorkspacesResponse {

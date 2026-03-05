@@ -144,6 +144,8 @@ map_unwrap_or = "deny"
 
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
+result_large_err = "allow"
+unnecessary_wraps = "allow"
 must_use_candidate = "allow"
 doc_markdown = "allow"
 similar_names = "allow"
@@ -168,7 +170,7 @@ missing_panics_doc = "allow"
 default_trait_access = "deny"
 const_is_empty = "deny"
 manual_let_else = "deny"
-unused_async = "allow"
+unused_async = "deny"
 struct_field_names = "deny"
 trivially_copy_pass_by_ref = "deny"
 
