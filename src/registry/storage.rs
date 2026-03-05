@@ -68,7 +68,7 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
     let temp_name = format!("projects.{unique_id}.json.tmp");
     let temp_path = path
         .parent()
-        .unwrap_or(std::path::Path::new("."))
+        .unwrap_or_else(|| std::path::Path::new("."))
         .join(temp_name);
     let content = serde_json::to_string_pretty(registry)?;
     fs::write(&temp_path, &content).await?;

@@ -173,6 +173,12 @@ manual_let_else = "deny"
 unused_async = "deny"
 struct_field_names = "deny"
 trivially_copy_pass_by_ref = "deny"
+if_then_some_else_none = "deny"
+or_fun_call = "deny"
+redundant_closure_for_method_calls = "deny"
+map_flatten = "deny"
+needless_bitwise_bool = "deny"
+filter_map_next = "deny"
 
 [[bin]]
 name = "centy-daemon"
