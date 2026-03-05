@@ -4,6 +4,17 @@ use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
 
+fn metadata_created_at(metadata: &std::fs::Metadata) -> String {
+    metadata
+        .created()
+        .map(|t| {
+            chrono::DateTime::<chrono::Utc>::from(t)
+                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
+                .to_string()
+        })
+        .unwrap_or_else(|_| now_iso())
+}
+
 pub async fn get_asset(
     project_path: &Path,
     issue_id: Option<&str>,
@@ -47,14 +58,7 @@ pub async fn get_asset(
     let mime_type = get_mime_type(&sanitized_filename)
         .unwrap_or_else(|| "application/octet-stream".to_string());
     let metadata = fs::metadata(&asset_path).await?;
-    let created_at = metadata
-        .created()
-        .map(|t| {
-            chrono::DateTime::<chrono::Utc>::from(t)
-                .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
-                .to_string()
-        })
-        .unwrap_or_else(|_| now_iso());
+    let created_at = metadata_created_at(&metadata);
     let asset_info = AssetInfo {
         filename: sanitized_filename,
         hash,
