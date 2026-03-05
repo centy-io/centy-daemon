@@ -54,8 +54,7 @@ pub async fn get_available_link_types(
     // Get custom link types from config
     let custom_types = match read_config(project_path).await {
         Ok(Some(config)) => config.custom_link_types,
-        Ok(None) => vec![],
-        Err(_) => vec![],
+        Ok(None) | Err(_) => vec![],
     };
 
     let types = crate::link::get_available_link_types(&custom_types);

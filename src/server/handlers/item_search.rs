@@ -63,11 +63,11 @@ pub async fn search_items(
                     display_path: format_display_path(&project.path),
                 });
             }
-            Err(crate::item::core::error::ItemError::NotFound(_)) => {
-                // Item not found in this project, skip
-            }
-            Err(crate::item::core::error::ItemError::NotInitialized) => {
-                // Project not initialized, skip
+            Err(
+                crate::item::core::error::ItemError::NotFound(_)
+                | crate::item::core::error::ItemError::NotInitialized,
+            ) => {
+                // Item not found or project not initialized, skip
             }
             Err(e) => {
                 // Non-fatal error: record and continue

@@ -11,8 +11,9 @@ impl ToStructuredError for crate::item::entities::issue::IssueCrudError {
                 "NOT_INITIALIZED",
                 Some("Run 'centy init' to initialize the project"),
             ),
-            IssueCrudError::IssueNotFound(_) => ("ISSUE_NOT_FOUND", None),
-            IssueCrudError::IssueDisplayNumberNotFound(_) => ("ISSUE_NOT_FOUND", None),
+            IssueCrudError::IssueNotFound(_) | IssueCrudError::IssueDisplayNumberNotFound(_) => {
+                ("ISSUE_NOT_FOUND", None)
+            }
             IssueCrudError::IssueNotDeleted(_) => ("ISSUE_NOT_DELETED", None),
             IssueCrudError::IssueAlreadyDeleted(_) => ("ISSUE_ALREADY_DELETED", None),
             IssueCrudError::InvalidIssueFormat(_) => ("INVALID_ISSUE_FORMAT", None),
