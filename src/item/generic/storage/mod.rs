@@ -1,6 +1,7 @@
 //! Generic CRUD operations for config-driven item types.
 mod crud_ops;
 mod helpers;
+mod move_item;
 mod move_ops;
 #[cfg(test)]
 use crate::item::core::error::ItemError;
@@ -14,7 +15,8 @@ pub use crud_ops::{
 };
 #[cfg(test)]
 use mdstore::{CreateOptions, Filters, TypeConfig, UpdateOptions};
-pub use move_ops::{generic_duplicate, generic_move, generic_rename_slug};
+pub use move_item::generic_move;
+pub use move_ops::{generic_duplicate, generic_rename_slug};
 #[cfg(test)]
 use tokio::fs;
 #[cfg(test)]
