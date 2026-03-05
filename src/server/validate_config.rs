@@ -1,13 +1,11 @@
-use std::sync::LazyLock;
-
 use crate::config::CentyConfig;
 
-/// Static regex for validating hex colors (compiled once on first use)
-#[allow(clippy::expect_used)]
-pub static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
-        .expect("HEX_COLOR_REGEX is a valid regex literal")
-});
+fn is_valid_hex_color(color: &str) -> bool {
+    let Ok(re) = regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$") else {
+        return false;
+    };
+    re.is_match(color)
+}
 
 /// Validate the config and return an error message if invalid.
 pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
@@ -29,14 +27,14 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
     }
 
     for (state, color) in &config.state_colors {
-        if !HEX_COLOR_REGEX.is_match(color) {
+        if !is_valid_hex_color(color) {
             return Err(format!(
                 "invalid color '{color}' for state '{state}': must be hex format (#RGB or #RRGGBB)"
             ));
         }
     }
     for (priority, color) in &config.priority_colors {
-        if !HEX_COLOR_REGEX.is_match(color) {
+        if !is_valid_hex_color(color) {
             return Err(format!(
                 "invalid color '{color}' for priority '{priority}': must be hex format (#RGB or #RRGGBB)"
             ));
