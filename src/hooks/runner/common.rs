@@ -10,7 +10,7 @@ pub async fn load_hooks_config(project_path: &Path) -> Vec<HookDefinition> {
 }
 /// Find matching hooks for the given phase, `item_type`, and operation.
 /// Returns enabled hooks sorted by specificity descending (most-specific-first).
-#[must_use] 
+#[must_use]
 pub fn find_matching_hooks<'a>(
     hooks: &'a [HookDefinition],
     phase: Phase,

@@ -20,14 +20,14 @@ pub const VIDEO_MIME_TYPES: &[(&str, &str)] = &[
     ("mkv", "video/x-matroska"),
 ];
 
-#[must_use] 
+#[must_use]
 pub fn compute_binary_hash(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
     hex::encode(hasher.finalize())
 }
 
-#[must_use] 
+#[must_use]
 pub fn get_mime_type(filename: &str) -> Option<String> {
     let extension = filename.rsplit('.').next()?.to_lowercase();
     for (ext, mime) in IMAGE_MIME_TYPES {

@@ -68,7 +68,7 @@ impl ParsedPattern {
         }
         Ok(PatternSegment::Exact(value.to_string()))
     }
-    #[must_use] 
+    #[must_use]
     pub fn matches(&self, phase: Phase, item_type: &str, operation: HookOperation) -> bool {
         Self::segment_matches(&self.phase, phase.as_str())
             && Self::segment_matches(&self.item_type, item_type)
@@ -80,7 +80,7 @@ impl ParsedPattern {
             PatternSegment::Exact(s) => s == value,
         }
     }
-    #[must_use] 
+    #[must_use]
     pub fn specificity(&self) -> u8 {
         let mut count: u8 = 0;
         if self.phase != PatternSegment::Wildcard {

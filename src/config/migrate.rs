@@ -12,7 +12,7 @@ use std::collections::HashMap;
 const SECTION_KEYS: &[&str] = &["workspace"];
 
 /// Check if the raw JSON config uses the deprecated nested format for any section key.
-#[must_use] 
+#[must_use]
 pub fn needs_migration(raw: &Value) -> bool {
     let Some(obj) = raw.as_object() else {
         return false;
@@ -23,7 +23,7 @@ pub fn needs_migration(raw: &Value) -> bool {
 }
 
 /// Flatten a nested config Value to use dot-separated keys for section objects.
-#[must_use] 
+#[must_use]
 pub fn flatten_config(value: Value) -> Value {
     let Value::Object(obj) = value else {
         return value;
@@ -46,7 +46,7 @@ pub fn flatten_config(value: Value) -> Value {
 }
 
 /// Unflatten a flat config Value back to nested objects for serde deserialization.
-#[must_use] 
+#[must_use]
 pub fn unflatten_config(value: Value) -> Value {
     let Value::Object(obj) = value else {
         return value;

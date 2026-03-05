@@ -25,7 +25,7 @@ pub enum Phase {
     Post,
 }
 impl Phase {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Phase::Pre => "pre",
@@ -45,7 +45,7 @@ pub enum HookOperation {
     Duplicate,
 }
 impl HookOperation {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             HookOperation::Create => "create",

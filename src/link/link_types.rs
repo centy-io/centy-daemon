@@ -12,7 +12,7 @@ pub const BUILTIN_LINK_TYPES: &[(&str, &str)] = &[
 ];
 /// Get the inverse of a link type.
 /// Returns `None` if the link type is not found.
-#[must_use] 
+#[must_use]
 pub fn get_inverse_link_type(
     link_type: &str,
     custom_types: &[CustomLinkTypeDefinition],
@@ -33,7 +33,7 @@ pub fn get_inverse_link_type(
     None
 }
 /// Check if a link type is valid (either built-in or custom)
-#[must_use] 
+#[must_use]
 pub fn is_valid_link_type(link_type: &str, custom_types: &[CustomLinkTypeDefinition]) -> bool {
     for (name, _) in BUILTIN_LINK_TYPES {
         if *name == link_type {
