@@ -1,47 +1,14 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_type_resolve::resolve_item_type_config;
-use super::operation::do_duplicate;
+use super::operation::{assert_both_initialized, do_duplicate, err_resp};
 use crate::hooks::HookOperation;
 use crate::item::generic::types::DuplicateGenericItemOptions;
 use crate::registry::track_project_async;
-use crate::server::assert_service::assert_initialized;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
 use crate::server::structured_error::to_error_json;
 use std::path::{Path, PathBuf};
 use tonic::{Response, Status};
-fn err_resp(
-    cwd: &str,
-    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
-) -> Response<DuplicateItemResponse> {
-    Response::new(DuplicateItemResponse {
-        success: false,
-        error: to_error_json(cwd, &e),
-        ..Default::default()
-    })
-}
-async fn assert_both_initialized(
-    req: &DuplicateItemRequest,
-    source_path: &Path,
-    target_path: &Path,
-) -> Result<(), Response<DuplicateItemResponse>> {
-    if let Err(e) = assert_initialized(source_path).await {
-        return Err(Response::new(DuplicateItemResponse {
-            success: false,
-            error: to_error_json(&req.source_project_path, &e),
-            ..Default::default()
-        }));
-    }
-    if let Err(e) = assert_initialized(target_path).await {
-        return Err(Response::new(DuplicateItemResponse {
-            success: false,
-            error: to_error_json(&req.target_project_path, &e),
-            ..Default::default()
-        }));
-    }
-    Ok(())
-}
 pub async fn duplicate_item(
     req: DuplicateItemRequest,
 ) -> Result<Response<DuplicateItemResponse>, Status> {
