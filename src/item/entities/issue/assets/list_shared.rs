@@ -19,8 +19,8 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
         if !entry.file_type().await?.is_file() {
             continue;
         }
-        let file_name = entry.file_name();
-        let Some(filename) = file_name.to_str() else {
+        let os_name = entry.file_name();
+        let Some(filename) = os_name.to_str() else {
             continue;
         };
         let asset_path = entry.path();

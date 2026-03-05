@@ -47,8 +47,8 @@ pub async fn read_issue_from_legacy_folder(
             "Issue {issue_id} is missing required files"
         )));
     }
-    let issue_md = fs::read_to_string(&issue_md_path).await?;
-    let (title, description) = parse_issue_md(&issue_md);
+    let md_content = fs::read_to_string(&issue_md_path).await?;
+    let (title, description) = parse_issue_md(&md_content);
     let metadata_content = fs::read_to_string(&metadata_path).await?;
     let metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
     let custom_fields: HashMap<String, String> = metadata
