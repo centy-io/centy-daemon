@@ -1,4 +1,5 @@
-pub use super::crud_fns::{create_link, delete_link, get_available_link_types, list_links};
+pub use super::crud_fns::{create_link, delete_link};
+pub use super::crud_read::{get_available_link_types, list_links};
 #[cfg(test)]
 pub use super::crud_types::LinkTypeInfo;
 pub use super::crud_types::{CreateLinkOptions, DeleteLinkOptions, LinkError};
