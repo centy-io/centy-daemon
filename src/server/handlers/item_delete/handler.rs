@@ -9,7 +9,6 @@ use crate::server::structured_error::to_error_json;
 use crate::user::delete_user;
 use std::path::Path;
 use tonic::{Response, Status};
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

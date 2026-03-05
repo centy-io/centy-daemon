@@ -10,7 +10,6 @@ use crate::user::{create_user as internal_create_user, CreateUserOptions};
 use std::path::Path;
 use tonic::{Response, Status};
 
-#[allow(unknown_lints, max_lines_per_function)]
 pub async fn create_user(req: CreateUserRequest) -> Result<Response<CreateUserResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

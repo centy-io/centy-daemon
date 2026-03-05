@@ -69,7 +69,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
         identifier: config.identifier.to_string(),
         features: Some(super::proto::ItemTypeFeatures {
             display_number: config.features.display_number,
-            status: config.features.status,
+            status: !config.statuses.is_empty(),
             priority: config.features.priority,
             soft_delete: config.features.soft_delete,
             assets: config.features.assets,
@@ -78,7 +78,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
             duplicate: config.features.duplicate,
         }),
         statuses: config.statuses.clone(),
-        default_status: config.default_status.clone().unwrap_or_default(),
+        default_status: config.statuses.first().cloned().unwrap_or_default(),
         priority_levels: config.priority_levels.unwrap_or(0),
         custom_fields: config
             .custom_fields

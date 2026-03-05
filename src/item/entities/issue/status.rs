@@ -39,6 +39,26 @@ pub async fn validate_status_for_project(
     Ok(())
 }
 
+/// Resolve the status for a new issue: use the requested status if given, otherwise
+/// fall back to the first configured status, or "open" if none is configured.
+/// Validates the resolved status against the project's issue config.
+pub async fn resolve_issue_status(
+    project_path: &Path,
+    requested_status: Option<String>,
+) -> Result<String, StatusError> {
+    let item_type_config = read_item_type_config(project_path, "issues")
+        .await
+        .ok()
+        .flatten();
+    let default = item_type_config
+        .as_ref()
+        .and_then(|c| c.statuses.first().cloned())
+        .unwrap_or_else(|| "open".to_string());
+    let status = requested_status.unwrap_or(default);
+    validate_status_for_project(project_path, "issues", &status).await?;
+    Ok(status)
+}
+
 #[cfg(test)]
 #[path = "status_tests.rs"]
 mod tests;

@@ -4,7 +4,6 @@
 mod common;
 
 use centy_daemon::config::{CentyConfig, WorkspaceConfig};
-use centy_daemon::item::entities::doc::{create_doc, get_doc, CreateDocOptions};
 use centy_daemon::item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, UpdateIssueOptions,
 };
@@ -124,35 +123,6 @@ async fn test_issue_update_fields() {
     assert_eq!(updated.issue.description, "Updated desc");
     assert_eq!(updated.issue.metadata.priority, 1);
     assert_eq!(updated.issue.metadata.status, "closed");
-}
-
-// Test doc operations
-
-#[tokio::test]
-async fn test_doc_create_get_roundtrip() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let options = CreateDocOptions {
-        slug: Some("test-doc".to_string()),
-        title: "Test Document".to_string(),
-        content: "# Test Document\n\nContent here".to_string(),
-        template: None,
-        ..Default::default()
-    };
-
-    let result = create_doc(project_path, options)
-        .await
-        .expect("Should create doc");
-    let doc = get_doc(project_path, &result.slug)
-        .await
-        .expect("Should get doc");
-
-    assert_eq!(doc.slug, "test-doc");
-    assert_eq!(doc.title, "Test Document");
-    assert!(doc.content.contains("Content here"));
 }
 
 // Test config validation logic

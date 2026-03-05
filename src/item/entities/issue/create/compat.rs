@@ -5,7 +5,6 @@ use tokio::fs;
 /// Get the next issue number (zero-padded to 4 digits).
 /// DEPRECATED: Use UUID-based folders with display_number in metadata.
 #[deprecated(note = "Use UUID-based folders with display_number in metadata")]
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn get_next_issue_number(issues_path: &Path) -> Result<String, std::io::Error> {
     if !issues_path.exists() {
         return Ok("0001".to_string());

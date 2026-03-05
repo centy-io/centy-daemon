@@ -1,0 +1,12 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
+name: Microtask
+identifier: uuid
+features:
+  displayNumber: true
+  priority: true
+  softDelete: false
+  assets: false
+  orgSync: false
+  move: true
+  duplicate: true
+priorityLevels: 2

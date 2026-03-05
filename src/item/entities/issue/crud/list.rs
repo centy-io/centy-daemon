@@ -1,17 +1,17 @@
 #![allow(unknown_lints, max_nesting_depth)]
 use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
 use super::super::reconcile::reconcile_display_numbers;
+use super::extra_types::{GetIssuesByUuidResult, IssueWithProject};
 use super::get::get_issue;
 use super::migrate::migrate_issue_to_new_format;
 use super::read::read_issue_from_frontmatter;
-use super::types::{GetIssuesByUuidResult, Issue, IssueCrudError, IssueWithProject};
+use super::types::{Issue, IssueCrudError};
 use crate::manifest::read_manifest;
 use crate::registry::ProjectInfo;
 use crate::utils::get_centy_path;
 use std::path::Path;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn list_issues(
     project_path: &Path,
     status_filter: Option<&str>,

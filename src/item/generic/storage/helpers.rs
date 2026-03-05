@@ -9,7 +9,6 @@ pub fn type_storage_path(project_path: &Path, folder: &str) -> std::path::PathBu
     get_centy_path(project_path).join(folder)
 }
 /// Recursively copy the contents of one directory to another.
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn copy_dir_contents(src: &Path, dst: &Path) -> Result<(), ItemError> {
     let mut entries = fs::read_dir(src).await?;
     while let Some(entry) = entries.next_entry().await? {

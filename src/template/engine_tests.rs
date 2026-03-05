@@ -3,7 +3,6 @@ use super::*;
 #[test]
 fn test_template_type_folder_name() {
     assert_eq!(TemplateType::Issue.folder_name(), "issues");
-    assert_eq!(TemplateType::Doc.folder_name(), "docs");
 }
 
 #[test]
@@ -29,7 +28,4 @@ fn test_get_template_type_path() {
         issues_path,
         Path::new("/test/project/.centy/templates/issues")
     );
-
-    let docs_path = TemplateEngine::get_template_type_path(project_path, TemplateType::Doc);
-    assert_eq!(docs_path, Path::new("/test/project/.centy/templates/docs"));
 }

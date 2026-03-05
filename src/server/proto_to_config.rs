@@ -4,7 +4,6 @@ use mdstore::CustomFieldDef as InternalCustomFieldDef;
 
 use super::proto::Config;
 
-#[allow(unknown_lints, max_lines_per_function)]
 pub fn proto_to_config(proto: &Config) -> CentyConfig {
     CentyConfig {
         version: if proto.version.is_empty() {
@@ -67,5 +66,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
                 update_status_on_open: w.update_status_on_open,
             })
             .unwrap_or_default(),
+        cleanup: crate::config::CleanupConfig::default(),
     }
 }

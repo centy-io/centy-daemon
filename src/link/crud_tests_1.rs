@@ -32,14 +32,14 @@ fn test_link_error_invalid_link_type() {
 }
 #[test]
 fn test_link_error_source_not_found() {
-    let err = LinkError::SourceNotFound("issue-123".to_string(), TargetType::Issue);
+    let err = LinkError::SourceNotFound("issue-123".to_string(), TargetType::issue());
     let display = format!("{err}");
     assert!(display.contains("Source entity not found"));
     assert!(display.contains("issue-123"));
 }
 #[test]
 fn test_link_error_target_not_found() {
-    let err = LinkError::TargetNotFound("doc-slug".to_string(), TargetType::Doc);
+    let err = LinkError::TargetNotFound("doc-slug".to_string(), TargetType::new("doc"));
     let display = format!("{err}");
     assert!(display.contains("Target entity not found"));
     assert!(display.contains("doc-slug"));

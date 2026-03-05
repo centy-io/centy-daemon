@@ -1,39 +1,13 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::item_archive::ARCHIVED_FOLDER;
 use crate::hooks::HookOperation;
-use crate::item::core::error::ItemError;
 use crate::item::generic::storage::generic_move;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::UnarchiveItemResponse;
 use crate::server::structured_error::to_error_json;
-use mdstore::{Item, TypeConfig};
+use mdstore::TypeConfig;
 use std::path::Path;
 use tonic::{Response, Status};
-/// Determine the destination folder for an unarchive operation.
-pub(super) fn resolve_target_folder(
-    project_path_str: &str,
-    archived_item: &Item,
-    requested: &str,
-) -> Result<String, String> {
-    if !requested.is_empty() {
-        return Ok(requested.to_string());
-    }
-    match archived_item
-        .frontmatter
-        .custom_fields
-        .get("original_item_type")
-    {
-        Some(serde_json::Value::String(s)) if !s.is_empty() => Ok(s.clone()),
-        _ => {
-            let err = ItemError::custom(
-                "original_item_type not set on archived item; \
-                 provide target_item_type to override",
-            );
-            Err(to_error_json(project_path_str, &err))
-        }
-    }
-}
 /// Execute the move from `archived/` to `target_type`, run surrounding hooks.
 pub(super) async fn move_and_respond(
     project_path: &Path,

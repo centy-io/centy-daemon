@@ -1,40 +1,35 @@
 use serde::{Deserialize, Serialize};
-/// Target entity type for links
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum TargetType {
-    Issue,
-    Doc,
-}
+/// Target entity type for links — stored as a plain string so any configured item type can be linked.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct TargetType(String);
 impl TargetType {
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Issue => "issue",
-            Self::Doc => "doc",
-        }
+    pub fn new(s: impl Into<String>) -> Self {
+        Self(s.into())
     }
     #[must_use]
-    pub fn folder_name(&self) -> &'static str {
-        match self {
-            Self::Issue => "issues",
-            Self::Doc => "docs",
-        }
+    pub fn issue() -> Self {
+        Self::new("issue")
+    }
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    #[must_use]
+    pub fn folder_name(&self) -> String {
+        format!("{}s", self.0)
     }
 }
 impl std::str::FromStr for TargetType {
-    type Err = String;
+    type Err = std::convert::Infallible;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "issue" => Ok(Self::Issue),
-            "doc" => Ok(Self::Doc),
-            _ => Err(format!("Invalid target type: {s}")),
-        }
+        Ok(Self(s.to_lowercase()))
     }
 }
 impl std::fmt::Display for TargetType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.0)
     }
 }
 /// A link between two entities

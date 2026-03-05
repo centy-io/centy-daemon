@@ -1,7 +1,7 @@
 use super::super::id::generate_issue_id;
 use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;
-use super::super::status::validate_status_for_project;
+use super::super::status::resolve_issue_status;
 use super::helpers::{
     build_custom_fields, build_issue_for_sync, resolve_org_info, resolve_priority,
 };
@@ -11,7 +11,6 @@ use super::write_issue::{
     build_frontmatter, build_issue_metadata, persist_manifest, write_issue_file,
 };
 use crate::common::sync_to_org_projects;
-use crate::config::item_type_config::read_item_type_config;
 use crate::config::read_config;
 use crate::manifest::read_manifest;
 use crate::utils::{get_centy_path, now_iso};
@@ -25,7 +24,7 @@ pub async fn create_issue(
     if options.title.trim().is_empty() {
         return Err(IssueError::TitleRequired);
     }
-    let manifest = read_manifest(project_path)
+    let mut manifest = read_manifest(project_path)
         .await?
         .ok_or(IssueError::NotInitialized)?;
     let issues_path = get_centy_path(project_path).join("issues");
@@ -37,17 +36,7 @@ pub async fn create_issue(
     let config = read_config(project_path).await.ok().flatten();
     let priority_levels = config.as_ref().map_or(3, |c| c.priority_levels);
     let priority = resolve_priority(options.priority, config.as_ref(), priority_levels)?;
-    let item_type_config = read_item_type_config(project_path, "issues")
-        .await
-        .ok()
-        .flatten();
-    let status = options.status.clone().unwrap_or_else(|| {
-        item_type_config
-            .as_ref()
-            .and_then(|c| c.default_status.clone())
-            .unwrap_or_else(|| "open".to_string())
-    });
-    validate_status_for_project(project_path, "issues", &status).await?;
+    let status = resolve_issue_status(project_path, options.status.clone()).await?;
     let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
     let draft = options.draft.unwrap_or(false);
     let now = now_iso();
@@ -76,7 +65,6 @@ pub async fn create_issue(
         description
     };
     write_issue_file(&issues_path, &issue_id, &frontmatter, &display_title, &body).await?;
-    let mut manifest = manifest;
     persist_manifest(project_path, &mut manifest).await?;
     let created_files = vec![format!(".centy/issues/{issue_id}.md")];
     let metadata = build_issue_metadata(

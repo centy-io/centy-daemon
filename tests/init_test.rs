@@ -300,8 +300,8 @@ async fn test_init_creates_item_type_config_yaml() {
         "issues/config.yaml should have displayNumber: true"
     );
     assert!(
-        issues_content.contains("status: true"),
-        "issues/config.yaml should have status: true"
+        !issues_content.contains("status:"),
+        "issues/config.yaml should not have status feature flag"
     );
     assert!(
         issues_content.contains("priority: true"),
@@ -317,8 +317,8 @@ async fn test_init_creates_item_type_config_yaml() {
         "docs/config.yaml should have displayNumber: false"
     );
     assert!(
-        docs_content.contains("status: false"),
-        "docs/config.yaml should have status: false"
+        !docs_content.contains("status:"),
+        "docs/config.yaml should not have status feature flag"
     );
     assert!(
         docs_content.contains("priority: false"),
@@ -358,7 +358,6 @@ async fn test_init_creates_archived_config_yaml() {
     assert_eq!(config.name, "Archived");
     assert_eq!(config.identifier, IdStrategy::Uuid);
     assert!(!config.features.display_number);
-    assert!(!config.features.status);
     assert!(!config.features.priority);
     assert!(config.features.assets);
     assert!(config.features.org_sync);
@@ -750,7 +749,6 @@ async fn test_init_creates_issues_config_yaml() {
     assert_eq!(config.name, "Issue");
     assert_eq!(config.identifier, IdStrategy::Uuid);
     assert!(config.features.display_number);
-    assert!(config.features.status);
     assert!(config.features.priority);
 }
 
@@ -783,10 +781,8 @@ async fn test_init_creates_docs_config_yaml() {
     assert_eq!(config.name, "Doc");
     assert_eq!(config.identifier, IdStrategy::Slug);
     assert!(!config.features.display_number);
-    assert!(!config.features.status);
     assert!(!config.features.priority);
     assert!(config.statuses.is_empty());
-    assert!(config.default_status.is_none());
     assert!(config.priority_levels.is_none());
 }
 
@@ -804,6 +800,7 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
     fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
         .await
         .expect("Should write custom config.yaml");
+    // Note: migration will re-write this file stripping the legacy status field
 
     // Run init
     let decisions = ReconciliationDecisions::default();
@@ -817,13 +814,26 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
         "Should not overwrite existing issues/config.yaml"
     );
 
-    // Existing content should be preserved
+    // Existing content is preserved (migration re-writes to strip legacy fields,
+    // but all meaningful fields are kept)
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("Should read");
-    assert_eq!(
-        content, custom_yaml,
-        "Custom config.yaml should be preserved"
+    assert!(
+        content.contains("name: CustomIssue"),
+        "name should be preserved"
+    );
+    assert!(
+        content.contains("displayNumber: true"),
+        "displayNumber should be preserved"
+    );
+    assert!(
+        !content.contains("status:"),
+        "legacy status field should be stripped"
+    );
+    assert!(
+        content.contains("priority: true"),
+        "priority should be preserved"
     );
 }
 

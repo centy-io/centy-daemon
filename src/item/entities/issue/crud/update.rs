@@ -1,13 +1,11 @@
 use super::super::metadata::IssueFrontmatter;
 use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::{IssueCrudError, UpdateIssueOptions, UpdateIssueResult};
-use super::update_helpers::{
-    build_issue_struct, build_update_body, build_updated_metadata, compute_sync_results,
-    migrate_legacy_format, resolve_update_options,
-};
+use super::update_builders::{build_issue_struct, build_update_body, build_updated_metadata};
+use super::update_helpers::{compute_sync_results, migrate_legacy_format, resolve_update_options};
 use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{format_issue_file, get_centy_path};
+use crate::utils::{get_centy_path, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
@@ -50,8 +48,9 @@ pub async fn update_issue(
         &updates.description,
         &current_content,
     );
-    let issue_content = generate_frontmatter(&frontmatter, &updates.title, &body);
-    fs::write(&issue_file_path, format_issue_file(&issue_content)).await?;
+    let issue_content =
+        generate_frontmatter(&frontmatter, &updates.title, &body, Some(CENTY_HEADER_YAML));
+    fs::write(&issue_file_path, &issue_content).await?;
     if is_old_format && !is_new_format {
         migrate_legacy_format(&issue_folder_path, &issues_path, issue_number).await?;
     }

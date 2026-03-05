@@ -16,7 +16,7 @@ async fn test_write_empty_links_removes_file() {
     let mut links_file = LinksFile::new();
     links_file.add_link(Link::new(
         "uuid-2".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
     write_links(&entity_path, &links_file)

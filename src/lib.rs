@@ -1,10 +1,5 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
-#![allow(
-    unknown_lints,
-    renamed_and_removed_lints,
-    max_lines_per_file,
-    wildcard_imports
-)]
+#![allow(unknown_lints, renamed_and_removed_lints, wildcard_imports)]
 #![cfg_attr(
     test,
     allow(
@@ -43,10 +38,6 @@ pub use config::item_type_config::{
 };
 pub use config::CentyConfig;
 pub use hooks::{HookContext, HookDefinition, HookError};
-pub use item::entities::doc::{
-    create_doc, get_doc, list_docs, update_doc, CreateDocOptions, CreateDocResult, Doc, DocError,
-    DocMetadata, UpdateDocOptions, UpdateDocResult,
-};
 pub use item::entities::issue::{
     create_issue, get_issue, list_issues, update_issue, CreateIssueOptions, CreateIssueResult,
     Issue, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult,
@@ -57,8 +48,8 @@ pub use item::generic::{
 };
 pub use link::{
     create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
-    CreateLinkOptions, CreateLinkResult, CustomLinkTypeDefinition, DeleteLinkOptions,
-    DeleteLinkResult, Link, LinkError, LinkTypeInfo, LinksFile, TargetType,
+    CreateLinkOptions, CustomLinkTypeDefinition, DeleteLinkOptions, Link, LinkError, LinksFile,
+    TargetType,
 };
 pub use manifest::{CentyManifest, ManagedFileType};
 pub use reconciliation::{
@@ -70,9 +61,7 @@ pub use registry::{
     ProjectInfo, ProjectRegistry, RegistryError, TrackedProject,
 };
 pub use server::CentyDaemonService;
-pub use template::{
-    DocTemplateContext, IssueTemplateContext, TemplateEngine, TemplateError, TemplateType,
-};
+pub use template::{IssueTemplateContext, TemplateEngine, TemplateError, TemplateType};
 pub use user::{
     create_user, delete_user, get_user, list_users, sync_users, update_user, CreateUserOptions,
     CreateUserResult, DeleteUserResult, GitContributor, SyncUsersFullResult, SyncUsersResult,

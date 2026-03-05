@@ -10,7 +10,6 @@ pub static HEX_COLOR_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
 });
 
 /// Validate the config and return an error message if invalid.
-#[allow(unknown_lints, max_lines_per_function)]
 pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
     if config.priority_levels < 1 || config.priority_levels > 10 {
         return Err("priority_levels must be between 1 and 10".to_string());

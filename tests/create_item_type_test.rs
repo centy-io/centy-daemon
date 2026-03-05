@@ -180,23 +180,6 @@ async fn test_create_item_type_invalid_identifier() {
     assert!(resp.error.contains("VALIDATION_ERROR"));
 }
 
-// ─── Validation: default_status not in statuses ──────────────────────────────
-
-#[tokio::test]
-async fn test_create_item_type_invalid_default_status() {
-    let temp = create_test_dir();
-    let path = temp.path();
-    init_project(path).await;
-    let pp = path.to_str().unwrap();
-
-    let mut req = make_request(pp);
-    req.default_status = "nonexistent".to_string();
-
-    let resp = create_item_type(req).await.unwrap().into_inner();
-    assert!(!resp.success);
-    assert!(resp.error.contains("VALIDATION_ERROR"));
-}
-
 // ─── Duplicate: same plural ──────────────────────────────────────────────────
 
 #[tokio::test]

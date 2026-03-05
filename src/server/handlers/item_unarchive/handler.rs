@@ -1,6 +1,7 @@
 use super::super::item_archive::ARCHIVED_FOLDER;
 use super::super::item_type_resolve::resolve_item_type_config;
-use super::operation::{move_and_respond, resolve_target_folder};
+use super::helpers::resolve_target_folder;
+use super::operation::move_and_respond;
 use crate::item::generic::storage::generic_get;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
@@ -9,7 +10,6 @@ use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 /// Unarchive an item by moving it from `archived/` back to its original folder.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn unarchive_item(
     req: UnarchiveItemRequest,
 ) -> Result<Response<UnarchiveItemResponse>, Status> {

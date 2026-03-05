@@ -2,32 +2,32 @@ use super::*;
 
 #[test]
 fn test_target_type_as_str() {
-    assert_eq!(TargetType::Issue.as_str(), "issue");
-    assert_eq!(TargetType::Doc.as_str(), "doc");
+    assert_eq!(TargetType::issue().as_str(), "issue");
+    assert_eq!(TargetType::new("doc").as_str(), "doc");
 }
 
 #[test]
 fn test_target_type_display() {
-    assert_eq!(format!("{}", TargetType::Issue), "issue");
-    assert_eq!(format!("{}", TargetType::Doc), "doc");
+    assert_eq!(format!("{}", TargetType::issue()), "issue");
+    assert_eq!(format!("{}", TargetType::new("doc")), "doc");
 }
 
 #[test]
 fn test_target_type_serialization() {
-    let json = serde_json::to_string(&TargetType::Issue).unwrap();
+    let json = serde_json::to_string(&TargetType::issue()).unwrap();
     assert_eq!(json, "\"issue\"");
 
-    let json = serde_json::to_string(&TargetType::Doc).unwrap();
+    let json = serde_json::to_string(&TargetType::new("doc")).unwrap();
     assert_eq!(json, "\"doc\"");
 }
 
 #[test]
 fn test_target_type_deserialization() {
     let tt: TargetType = serde_json::from_str("\"issue\"").unwrap();
-    assert_eq!(tt, TargetType::Issue);
+    assert_eq!(tt, TargetType::issue());
 
     let tt: TargetType = serde_json::from_str("\"doc\"").unwrap();
-    assert_eq!(tt, TargetType::Doc);
+    assert_eq!(tt, TargetType::new("doc"));
 }
 
 #[test]

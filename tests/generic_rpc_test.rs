@@ -17,7 +17,7 @@ use centy_daemon::server::handlers::item_read::get_item;
 use centy_daemon::server::handlers::item_restore::restore_item;
 use centy_daemon::server::handlers::item_soft_delete::soft_delete_item;
 use centy_daemon::server::handlers::item_update::update_item;
-use common::create_test_dir;
+use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 use tokio::fs;
 
@@ -110,7 +110,7 @@ async fn test_create_and_get_issue_type() {
 async fn test_create_and_get_doc_type() {
     let temp = create_test_dir();
     let path = temp.path();
-    init_project(path).await;
+    init_centy_project(path).await;
     let pp = path.to_str().unwrap();
 
     let resp = create_item(create_req(

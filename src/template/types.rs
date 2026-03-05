@@ -5,7 +5,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Copy)]
 pub enum TemplateType {
     Issue,
-    Doc,
 }
 
 impl TemplateType {
@@ -13,7 +12,6 @@ impl TemplateType {
     pub fn folder_name(&self) -> &'static str {
         match self {
             TemplateType::Issue => "issues",
-            TemplateType::Doc => "docs",
         }
     }
 }
@@ -31,20 +29,6 @@ pub struct IssueTemplateContext {
     pub custom_fields: HashMap<String, String>,
 }
 
-/// Context for doc templates
-/// Placeholders: {{title}}, {{content}}, {{slug}}, {{created_at}}, {{updated_at}}
-#[derive(Debug, Clone, Serialize)]
-pub struct DocTemplateContext {
-    pub title: String,
-    pub content: String,
-    pub slug: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
 #[cfg(test)]
 #[path = "types_tests_1.rs"]
 mod tests_1;
-#[cfg(test)]
-#[path = "types_tests_2.rs"]
-mod tests_2;

@@ -1,0 +1,19 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
+name: idea
+identifier: slug
+features:
+  displayNumber: false
+  status: true
+  priority: true
+  softDelete: false
+  assets: false
+  orgSync: false
+  move: true
+  duplicate: true
+statuses:
+- raw
+- exploring
+- ready
+- rejected
+defaultStatus: raw
+priorityLevels: 3

@@ -3,9 +3,9 @@ use super::*;
 fn test_create_link_options_debug() {
     let opts = CreateLinkOptions {
         source_id: "abc".to_string(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: "def".to_string(),
-        target_type: TargetType::Doc,
+        target_type: TargetType::new("doc"),
         link_type: "blocks".to_string(),
     };
     let debug = format!("{opts:?}");
@@ -17,9 +17,9 @@ fn test_create_link_options_debug() {
 fn test_delete_link_options_debug() {
     let opts = DeleteLinkOptions {
         source_id: "abc".to_string(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: "def".to_string(),
-        target_type: TargetType::Doc,
+        target_type: TargetType::new("doc"),
         link_type: Some("blocks".to_string()),
     };
     let debug = format!("{opts:?}");
@@ -29,9 +29,9 @@ fn test_delete_link_options_debug() {
 fn test_delete_link_options_without_type() {
     let opts = DeleteLinkOptions {
         source_id: "abc".to_string(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: "def".to_string(),
-        target_type: TargetType::Doc,
+        target_type: TargetType::new("doc"),
         link_type: None,
     };
     assert!(opts.link_type.is_none());

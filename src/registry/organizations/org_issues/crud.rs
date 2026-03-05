@@ -2,7 +2,7 @@
 use super::crud_ops::read_org_issue_file;
 use super::crud_types::{OrgIssue, OrgIssueError, OrgIssueFrontmatter};
 use super::paths::get_org_issues_dir;
-use crate::utils::now_iso;
+use crate::utils::{now_iso, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use std::collections::HashMap;
 use tokio::fs;
@@ -60,7 +60,12 @@ pub async fn update_org_issue(
     };
     fs::write(
         issues_dir.join(format!("{issue_id}.md")),
-        generate_frontmatter(&frontmatter, &issue.title, &issue.description),
+        generate_frontmatter(
+            &frontmatter,
+            &issue.title,
+            &issue.description,
+            Some(CENTY_HEADER_YAML),
+        ),
     )
     .await?;
     Ok(issue)

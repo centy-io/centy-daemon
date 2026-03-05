@@ -34,6 +34,7 @@ async fn test_cannot_update_deleted_item() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
@@ -68,6 +69,7 @@ async fn test_already_exists() {
         status: None,
         priority: None,
         custom_fields: HashMap::new(),
+        comment: None,
     };
     generic_create(temp.path(), "notes", &config, options.clone())
         .await
@@ -105,6 +107,7 @@ async fn test_get_by_display_number_success() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created1 = generic_create(temp.path(), "issues", &config, options1)
         .await
@@ -117,6 +120,7 @@ async fn test_get_by_display_number_success() {
         status: Some("open".to_string()),
         priority: Some(1),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created2 = generic_create(temp.path(), "issues", &config, options2)
         .await
@@ -140,6 +144,7 @@ async fn test_get_by_display_number_not_found() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     generic_create(temp.path(), "issues", &config, options)
         .await

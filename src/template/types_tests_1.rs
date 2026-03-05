@@ -6,16 +6,9 @@ fn test_template_type_issue_folder_name() {
 }
 
 #[test]
-fn test_template_type_doc_folder_name() {
-    assert_eq!(TemplateType::Doc.folder_name(), "docs");
-}
-
-#[test]
 fn test_template_type_debug() {
     let debug = format!("{:?}", TemplateType::Issue);
     assert!(debug.contains("Issue"));
-    let debug = format!("{:?}", TemplateType::Doc);
-    assert!(debug.contains("Doc"));
 }
 
 #[test]

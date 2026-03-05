@@ -43,7 +43,6 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should exist");
     assert_eq!(issue_config.name, "Issue");
     assert_eq!(issue_config.identifier, IdStrategy::Uuid);
-    assert!(issue_config.features.status);
     assert!(issue_config.features.priority);
 
     // Verify docs config content
@@ -53,7 +52,6 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should exist");
     assert_eq!(doc_config.name, "Doc");
     assert_eq!(doc_config.identifier, IdStrategy::Slug);
-    assert!(!doc_config.features.status);
     assert!(!doc_config.features.priority);
 }
 
@@ -112,7 +110,10 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         issue_config.statuses,
         vec!["open", "in-progress", "closed", "testing"]
     );
-    assert_eq!(issue_config.default_status, Some("open".to_string()));
+    assert_eq!(
+        issue_config.statuses.first().map(String::as_str),
+        Some("open")
+    );
     assert_eq!(issue_config.priority_levels, Some(5));
     assert_eq!(issue_config.custom_fields.len(), 1);
     assert_eq!(issue_config.custom_fields[0].name, "env");
@@ -123,7 +124,7 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         .expect("Should read")
         .expect("Should exist");
     assert!(doc_config.statuses.is_empty());
-    assert!(doc_config.default_status.is_none());
+    assert!(doc_config.statuses.is_empty());
     assert!(doc_config.priority_levels.is_none());
 }
 
@@ -173,7 +174,7 @@ async fn test_preserves_existing_config_yaml() {
         .await
         .expect("create docs/");
 
-    // Pre-create a custom issues/config.yaml
+    // Pre-create a custom issues/config.yaml (with legacy status field that migration will strip)
     let custom_yaml = "name: CustomIssue\nplural: custom-issues\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  status: true\n  priority: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\n";
     fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
         .await
@@ -194,14 +195,19 @@ async fn test_preserves_existing_config_yaml() {
     // docs/config.yaml should be created
     assert!(result.created.contains(&"docs/config.yaml".to_string()));
 
-    // Verify custom content is preserved
-    let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
+    // Verify custom content is preserved (migration re-writes to strip legacy fields,
+    // but all meaningful fields are kept)
+    let preserved = read_item_type_config(project_path, "issues")
         .await
-        .expect("read");
-    assert_eq!(
-        content, custom_yaml,
-        "Custom config.yaml should be preserved"
-    );
+        .expect("read")
+        .expect("exists");
+    assert_eq!(preserved.name, "CustomIssue");
+    assert!(preserved.features.display_number);
+    assert!(preserved.features.priority);
+    assert!(preserved.features.assets);
+    assert!(preserved.features.org_sync);
+    assert!(preserved.features.move_item);
+    assert!(preserved.features.duplicate);
 }
 
 /// Pre-existing project: simulate a real project (issues/, docs/, config.json
@@ -306,7 +312,6 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
     // Build an issue config with custom statuses directly (allowed_states removed from CentyConfig)
     let mut issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
     issue_config.statuses = vec!["open".to_string(), "done".to_string()];
-    issue_config.default_status = Some("open".to_string());
 
     write_item_type_config(project_path, "issues", &issue_config)
         .await
@@ -320,5 +325,5 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
     assert_eq!(read.name, "Issue");
     assert_eq!(read.priority_levels, Some(7));
     assert_eq!(read.statuses, vec!["open", "done"]);
-    assert_eq!(read.default_status, Some("open".to_string()));
+    assert_eq!(read.statuses.first().map(String::as_str), Some("open"));
 }

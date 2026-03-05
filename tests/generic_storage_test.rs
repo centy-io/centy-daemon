@@ -81,6 +81,7 @@ async fn test_full_crud_roundtrip() {
             status: Some("open".to_string()),
             priority: Some(1),
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
+            comment: None,
         },
     )
     .await
@@ -114,6 +115,7 @@ async fn test_full_crud_roundtrip() {
             status: Some("closed".to_string()),
             priority: Some(3),
             custom_fields: HashMap::from([("team".to_string(), serde_json::json!("backend"))]),
+            comment: None,
         },
     )
     .await
@@ -169,6 +171,7 @@ async fn test_crud_minimal_features() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -208,6 +211,7 @@ async fn test_display_number_auto_increment() {
                 status: Some("open".to_string()),
                 priority: Some(2),
                 custom_fields: HashMap::new(),
+                comment: None,
             },
         )
         .await
@@ -245,6 +249,7 @@ async fn test_status_validation_on_create() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -262,6 +267,7 @@ async fn test_status_validation_on_create() {
             status: Some("invalid-status".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -287,6 +293,7 @@ async fn test_status_validation_on_update() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -344,6 +351,7 @@ async fn test_priority_validation() {
                 status: Some("open".to_string()),
                 priority: Some(p),
                 custom_fields: HashMap::new(),
+                comment: None,
             },
         )
         .await;
@@ -362,6 +370,7 @@ async fn test_priority_validation() {
             status: Some("open".to_string()),
             priority: Some(99),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -379,6 +388,7 @@ async fn test_priority_validation() {
             status: Some("open".to_string()),
             priority: Some(0),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -406,6 +416,7 @@ async fn test_soft_delete_restore_hard_delete() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -494,6 +505,7 @@ async fn test_list_filters() {
                 status: Some(status.to_string()),
                 priority: Some(priority),
                 custom_fields: HashMap::new(),
+                comment: None,
             },
         )
         .await
@@ -567,6 +579,7 @@ async fn test_uuid_id_strategy() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -598,6 +611,7 @@ async fn test_slug_id_strategy() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -632,6 +646,7 @@ async fn test_slug_strategy_duplicate_id() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -649,6 +664,7 @@ async fn test_slug_strategy_duplicate_id() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -674,6 +690,7 @@ async fn test_explicit_id() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -791,6 +808,7 @@ async fn test_reconcile_display_numbers_no_conflicts() {
                 status: Some("open".to_string()),
                 priority: Some(2),
                 custom_fields: HashMap::new(),
+                comment: None,
             },
         )
         .await
@@ -820,7 +838,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content1 = mdstore::generate_frontmatter(&fm1, "Item A", "");
+    let content1 = mdstore::generate_frontmatter(&fm1, "Item A", "", None);
     fs::write(storage_path.join("item-a.md"), &content1)
         .await
         .unwrap();
@@ -835,7 +853,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content2 = mdstore::generate_frontmatter(&fm2, "Item B", "");
+    let content2 = mdstore::generate_frontmatter(&fm2, "Item B", "", None);
     fs::write(storage_path.join("item-b.md"), &content2)
         .await
         .unwrap();
@@ -849,7 +867,7 @@ async fn test_reconcile_display_numbers_with_conflicts() {
         deleted_at: None,
         custom_fields: HashMap::new(),
     };
-    let content3 = mdstore::generate_frontmatter(&fm3, "Item C", "");
+    let content3 = mdstore::generate_frontmatter(&fm3, "Item C", "", None);
     fs::write(storage_path.join("item-c.md"), &content3)
         .await
         .unwrap();
@@ -895,6 +913,7 @@ async fn test_default_status_when_not_provided() {
             status: None, // Should use default
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -922,6 +941,7 @@ async fn test_default_priority_when_not_provided() {
             status: Some("open".to_string()),
             priority: None, // Should use default (middle = 2 for 3 levels)
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -971,6 +991,7 @@ async fn test_custom_epic_type() {
             status: Some("active".to_string()),
             priority: None, // Priority disabled
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1011,6 +1032,7 @@ async fn test_list_ordered_by_display_number() {
                 status: Some("open".to_string()),
                 priority: Some(2),
                 custom_fields: HashMap::new(),
+                comment: None,
             },
         )
         .await
@@ -1048,6 +1070,7 @@ async fn test_delete_without_force_soft_deletes_first() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1085,6 +1108,7 @@ async fn test_slug_from_empty_title_fails() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await;
@@ -1113,6 +1137,7 @@ async fn test_generic_move_uuid_item() {
             status: Some("open".to_string()),
             priority: Some(1),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1165,6 +1190,7 @@ async fn test_generic_move_slug_item() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1209,6 +1235,7 @@ async fn test_generic_move_slug_rename() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1257,6 +1284,7 @@ async fn test_generic_move_same_project_fails() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1322,6 +1350,7 @@ async fn test_generic_move_feature_disabled() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1363,6 +1392,7 @@ async fn test_generic_move_slug_conflict_fails() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1379,6 +1409,7 @@ async fn test_generic_move_slug_conflict_fails() {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await
@@ -1422,6 +1453,7 @@ async fn test_generic_move_preserves_custom_fields() {
                 ("env".to_string(), serde_json::json!("production")),
                 ("team".to_string(), serde_json::json!("backend")),
             ]),
+            comment: None,
         },
     )
     .await

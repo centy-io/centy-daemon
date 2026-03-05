@@ -12,7 +12,7 @@ fn test_links_file_remove_nonexistent() {
     let mut file = LinksFile::new();
     file.add_link(Link::new(
         "uuid-1".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     ));
 

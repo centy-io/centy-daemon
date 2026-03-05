@@ -13,7 +13,6 @@ pub struct OrgInferenceResult {
     pub message: Option<String>,
 }
 /// Infer organization from git remote URL.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn infer_organization_from_remote(
     project_path: &Path,
     existing_org_slug: Option<&str>,

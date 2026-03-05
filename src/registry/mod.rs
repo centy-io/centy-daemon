@@ -1,5 +1,6 @@
 mod ignore;
 mod inference;
+mod migrations;
 mod organizations;
 mod storage;
 mod tracking;

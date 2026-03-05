@@ -18,7 +18,6 @@ fn error_response(cwd: &str, code: &str, message: String) -> Response<CreateItem
         config: None,
     })
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn create_item_type(
     req: CreateItemTypeRequest,
 ) -> Result<Response<CreateItemTypeResponse>, Status> {

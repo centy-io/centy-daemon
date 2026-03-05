@@ -3,17 +3,24 @@ use std::str::FromStr;
 
 #[test]
 fn test_target_type_from_str() {
-    assert_eq!(TargetType::from_str("issue").ok(), Some(TargetType::Issue));
-    assert_eq!(TargetType::from_str("doc").ok(), Some(TargetType::Doc));
-    assert_eq!(TargetType::from_str("ISSUE").ok(), Some(TargetType::Issue));
-    assert!(TargetType::from_str("pr").is_err());
-    assert!(TargetType::from_str("unknown").is_err());
+    assert_eq!(
+        TargetType::from_str("issue").ok(),
+        Some(TargetType::issue())
+    );
+    assert_eq!(
+        TargetType::from_str("doc").ok(),
+        Some(TargetType::new("doc"))
+    );
+    assert_eq!(
+        TargetType::from_str("ISSUE").ok(),
+        Some(TargetType::issue())
+    );
 }
 
 #[test]
 fn test_target_type_folder_name() {
-    assert_eq!(TargetType::Issue.folder_name(), "issues");
-    assert_eq!(TargetType::Doc.folder_name(), "docs");
+    assert_eq!(TargetType::issue().folder_name(), "issues");
+    assert_eq!(TargetType::new("doc").folder_name(), "docs");
 }
 
 #[test]
@@ -73,7 +80,7 @@ fn test_is_valid_link_type() {
 fn test_link_serialization() {
     let link = Link::new(
         "uuid-123".to_string(),
-        TargetType::Issue,
+        TargetType::issue(),
         "blocks".to_string(),
     );
     let json = serde_json::to_string(&link).unwrap();

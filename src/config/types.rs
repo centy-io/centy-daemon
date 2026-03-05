@@ -6,6 +6,18 @@ use std::collections::HashMap;
 pub fn default_priority_levels() -> u32 {
     3
 }
+/// Cleanup / retention configuration section
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupConfig {
+    /// How long to keep soft-deleted artifacts before hard-deleting them.
+    ///
+    /// Accepted formats: `"30d"`, `"24h"`, `"7d"`.
+    /// Set to `"0"` or omit to use the default (30 days).
+    /// Set to `null` to disable auto-cleanup entirely.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retention_period: Option<String>,
+}
 /// Workspace configuration section
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +59,9 @@ pub struct CentyConfig {
     /// Workspace settings (e.g. auto-update issue status on open)
     #[serde(default)]
     pub workspace: WorkspaceConfig,
+    /// Cleanup / retention settings for soft-deleted artifacts
+    #[serde(default)]
+    pub cleanup: CleanupConfig,
 }
 impl CentyConfig {
     /// Get the effective version (config version or daemon default).
@@ -70,6 +85,7 @@ impl Default for CentyConfig {
             default_editor: None,
             hooks: Vec::new(),
             workspace: WorkspaceConfig::default(),
+            cleanup: CleanupConfig::default(),
         }
     }
 }

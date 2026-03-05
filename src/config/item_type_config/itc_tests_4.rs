@@ -1,4 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 use super::*;
+use crate::config::CentyConfig;
 use mdstore::{CustomFieldDef, IdStrategy};
 use tempfile::tempdir;
 use tokio::fs;
@@ -14,7 +20,10 @@ fn test_type_config_from_item_type_config() {
     assert_eq!(type_config.name, "Issue");
     assert_eq!(type_config.identifier, IdStrategy::Uuid);
     assert_eq!(type_config.statuses, item_config.statuses);
-    assert_eq!(type_config.default_status, item_config.default_status);
+    assert_eq!(
+        type_config.default_status,
+        item_config.statuses.first().cloned()
+    );
     assert_eq!(type_config.priority_levels, item_config.priority_levels);
     assert!(type_config.features.display_number);
     assert!(type_config.features.status);
@@ -37,7 +46,6 @@ fn test_type_config_conversion_drops_new_fields() {
             ..ItemTypeFeatures::default()
         },
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: Some("task.md".to_string()),

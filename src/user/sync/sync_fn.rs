@@ -1,7 +1,7 @@
-use super::super::crud::{create_user, CreateUserOptions};
 use super::super::git::{get_git_contributors, is_git_repository};
 use super::super::storage::{find_user_by_email, read_users};
-use super::super::types::{slugify, SyncUsersResult, UserError};
+use super::super::types::{SyncUsersResult, UserError};
+use super::helpers::create_user_from_contributor;
 use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use std::path::Path;
 use tracing::info;
@@ -37,55 +37,7 @@ pub async fn sync_users(
         if dry_run {
             result.would_create.push(contributor);
         } else {
-            let id = slugify(&contributor.name);
-            match create_user(
-                project_path,
-                CreateUserOptions {
-                    id: id.clone(),
-                    name: contributor.name.clone(),
-                    email: Some(contributor.email.clone()),
-                    git_usernames: vec![contributor.name.clone()],
-                },
-            )
-            .await
-            {
-                Ok(_) => {
-                    result.created.push(id);
-                }
-                Err(e) => {
-                    if matches!(e, UserError::UserAlreadyExists(_)) {
-                        let email_slug =
-                            slugify(contributor.email.split('@').next().unwrap_or("user"));
-                        let fallback_id = format!("{id}-{email_slug}");
-                        match create_user(
-                            project_path,
-                            CreateUserOptions {
-                                id: fallback_id.clone(),
-                                name: contributor.name.clone(),
-                                email: Some(contributor.email.clone()),
-                                git_usernames: vec![contributor.name.clone()],
-                            },
-                        )
-                        .await
-                        {
-                            Ok(_) => {
-                                result.created.push(fallback_id);
-                            }
-                            Err(e2) => {
-                                result.errors.push(format!(
-                                    "Failed to create user for {}: {}",
-                                    contributor.email, e2
-                                ));
-                            }
-                        }
-                    } else {
-                        result.errors.push(format!(
-                            "Failed to create user for {}: {}",
-                            contributor.email, e
-                        ));
-                    }
-                }
-            }
+            create_user_from_contributor(project_path, &contributor, &mut result).await;
         }
     }
     if !dry_run && !result.created.is_empty() {

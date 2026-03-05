@@ -1,3 +1,8 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 use super::*;
 use mdstore::IdStrategy;
 
@@ -16,7 +21,6 @@ fn test_validate_item_type_config_valid() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: vec!["open".to_string(), "closed".to_string()],
-        default_status: Some("open".to_string()),
         priority_levels: Some(3),
         custom_fields: Vec::new(),
         template: None,
@@ -32,7 +36,6 @@ fn test_validate_item_type_config_empty_name() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
@@ -50,7 +53,6 @@ fn test_validate_item_type_config_whitespace_name() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
@@ -67,7 +69,6 @@ fn test_validate_item_type_config_zero_priority_levels() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: Some(0),
         custom_fields: Vec::new(),
         template: None,

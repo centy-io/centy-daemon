@@ -15,7 +15,6 @@ pub(super) fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
         identifier,
         features: ItemTypeFeatures {
             display_number: features.display_number,
-            status: features.status,
             priority: features.priority,
             soft_delete: features.soft_delete,
             assets: features.assets,
@@ -24,11 +23,6 @@ pub(super) fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
             duplicate: features.duplicate,
         },
         statuses: req.statuses,
-        default_status: if req.default_status.is_empty() {
-            None
-        } else {
-            Some(req.default_status)
-        },
         priority_levels: if req.priority_levels == 0 {
             None
         } else {

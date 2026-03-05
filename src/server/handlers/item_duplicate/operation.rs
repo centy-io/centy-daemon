@@ -2,13 +2,46 @@ use crate::hooks::HookOperation;
 use crate::item::generic::storage::generic_duplicate;
 use crate::item::generic::types::DuplicateGenericItemOptions;
 use crate::manifest::read_manifest;
+use crate::server::assert_service::assert_initialized;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::convert_infra::manifest_to_proto;
 use crate::server::hooks_helper::maybe_run_post_hooks;
-use crate::server::proto::DuplicateItemResponse;
+use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
 use crate::server::structured_error::to_error_json;
 use mdstore::TypeConfig;
 use std::path::Path;
+use tonic::Response;
+pub(super) fn err_resp(
+    cwd: &str,
+    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+) -> Response<DuplicateItemResponse> {
+    Response::new(DuplicateItemResponse {
+        success: false,
+        error: to_error_json(cwd, &e),
+        ..Default::default()
+    })
+}
+pub(super) async fn assert_both_initialized(
+    req: &DuplicateItemRequest,
+    source_path: &Path,
+    target_path: &Path,
+) -> Result<(), Response<DuplicateItemResponse>> {
+    if let Err(e) = assert_initialized(source_path).await {
+        return Err(Response::new(DuplicateItemResponse {
+            success: false,
+            error: to_error_json(&req.source_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    if let Err(e) = assert_initialized(target_path).await {
+        return Err(Response::new(DuplicateItemResponse {
+            success: false,
+            error: to_error_json(&req.target_project_path, &e),
+            ..Default::default()
+        }));
+    }
+    Ok(())
+}
 pub(super) async fn do_duplicate(
     item_type: &str,
     config: &TypeConfig,

@@ -41,9 +41,9 @@ async fn test_create_link_between_issues() {
     // Create a link
     let options = CreateLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
 
@@ -86,16 +86,16 @@ async fn test_create_link_inverse_created() {
 
     let options = CreateLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "parent-of".to_string(),
     };
 
     create_link(project_path, options, &[]).await.unwrap();
 
     // Verify inverse link exists on target
-    let target_links = list_links(project_path, &issue2.id, TargetType::Issue)
+    let target_links = list_links(project_path, &issue2.id, TargetType::issue())
         .await
         .unwrap();
 
@@ -123,9 +123,9 @@ async fn test_create_link_self_link_error() {
 
     let options = CreateLinkOptions {
         source_id: issue.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
 
@@ -162,9 +162,9 @@ async fn test_create_link_invalid_type() {
 
     let options = CreateLinkOptions {
         source_id: issue1.id,
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id,
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "invalid-link-type".to_string(),
     };
 
@@ -191,9 +191,9 @@ async fn test_create_link_source_not_found() {
 
     let options = CreateLinkOptions {
         source_id: "nonexistent-uuid".to_string(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue.id,
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
 
@@ -223,9 +223,9 @@ async fn test_create_link_target_not_found() {
 
     let options = CreateLinkOptions {
         source_id: issue.id,
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: "nonexistent-uuid".to_string(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
 
@@ -265,9 +265,9 @@ async fn test_create_link_already_exists() {
 
     let options = CreateLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
 
@@ -311,9 +311,9 @@ async fn test_delete_link_success() {
     // Create link
     let create_options = CreateLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "blocks".to_string(),
     };
     create_link(project_path, create_options, &[])
@@ -323,9 +323,9 @@ async fn test_delete_link_success() {
     // Delete link
     let delete_options = DeleteLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: Some("blocks".to_string()),
     };
     let result = delete_link(project_path, delete_options, &[])
@@ -335,12 +335,12 @@ async fn test_delete_link_success() {
     assert_eq!(result.deleted_count, 2); // forward + inverse
 
     // Verify links are gone
-    let source_links = list_links(project_path, &issue1.id, TargetType::Issue)
+    let source_links = list_links(project_path, &issue1.id, TargetType::issue())
         .await
         .unwrap();
     assert!(source_links.links.is_empty());
 
-    let target_links = list_links(project_path, &issue2.id, TargetType::Issue)
+    let target_links = list_links(project_path, &issue2.id, TargetType::issue())
         .await
         .unwrap();
     assert!(target_links.links.is_empty());
@@ -375,9 +375,9 @@ async fn test_delete_link_not_found() {
 
     let delete_options = DeleteLinkOptions {
         source_id: issue1.id,
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id,
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: Some("blocks".to_string()),
     };
 
@@ -417,9 +417,9 @@ async fn test_delete_all_links_between_entities() {
         project_path,
         CreateLinkOptions {
             source_id: issue1.id.clone(),
-            source_type: TargetType::Issue,
+            source_type: TargetType::issue(),
             target_id: issue2.id.clone(),
-            target_type: TargetType::Issue,
+            target_type: TargetType::issue(),
             link_type: "blocks".to_string(),
         },
         &[],
@@ -431,9 +431,9 @@ async fn test_delete_all_links_between_entities() {
         project_path,
         CreateLinkOptions {
             source_id: issue1.id.clone(),
-            source_type: TargetType::Issue,
+            source_type: TargetType::issue(),
             target_id: issue2.id.clone(),
-            target_type: TargetType::Issue,
+            target_type: TargetType::issue(),
             link_type: "relates-to".to_string(),
         },
         &[],
@@ -444,9 +444,9 @@ async fn test_delete_all_links_between_entities() {
     // Delete all links (no link_type specified)
     let delete_options = DeleteLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: None,
     };
 
@@ -474,7 +474,7 @@ async fn test_list_links_empty() {
     .await
     .unwrap();
 
-    let links = list_links(project_path, &issue.id, TargetType::Issue)
+    let links = list_links(project_path, &issue.id, TargetType::issue())
         .await
         .expect("Should list links");
 
@@ -523,9 +523,9 @@ async fn test_list_links_multiple() {
         project_path,
         CreateLinkOptions {
             source_id: main_issue.id.clone(),
-            source_type: TargetType::Issue,
+            source_type: TargetType::issue(),
             target_id: related1.id.clone(),
-            target_type: TargetType::Issue,
+            target_type: TargetType::issue(),
             link_type: "blocks".to_string(),
         },
         &[],
@@ -537,9 +537,9 @@ async fn test_list_links_multiple() {
         project_path,
         CreateLinkOptions {
             source_id: main_issue.id.clone(),
-            source_type: TargetType::Issue,
+            source_type: TargetType::issue(),
             target_id: related2.id.clone(),
-            target_type: TargetType::Issue,
+            target_type: TargetType::issue(),
             link_type: "parent-of".to_string(),
         },
         &[],
@@ -547,7 +547,7 @@ async fn test_list_links_multiple() {
     .await
     .unwrap();
 
-    let links = list_links(project_path, &main_issue.id, TargetType::Issue)
+    let links = list_links(project_path, &main_issue.id, TargetType::issue())
         .await
         .expect("Should list links");
 
@@ -561,7 +561,7 @@ async fn test_list_links_entity_not_found() {
 
     init_centy_project(project_path).await;
 
-    let result = list_links(project_path, "nonexistent-uuid", TargetType::Issue).await;
+    let result = list_links(project_path, "nonexistent-uuid", TargetType::issue()).await;
     assert!(matches!(
         result.unwrap_err(),
         LinkError::SourceNotFound(_, _)
@@ -635,9 +635,9 @@ async fn test_create_link_with_custom_type() {
 
     let options = CreateLinkOptions {
         source_id: issue1.id.clone(),
-        source_type: TargetType::Issue,
+        source_type: TargetType::issue(),
         target_id: issue2.id.clone(),
-        target_type: TargetType::Issue,
+        target_type: TargetType::issue(),
         link_type: "depends-on".to_string(),
     };
 
@@ -682,9 +682,9 @@ async fn test_all_builtin_link_types() {
 
         let options = CreateLinkOptions {
             source_id: issue1.id.clone(),
-            source_type: TargetType::Issue,
+            source_type: TargetType::issue(),
             target_id: issue2.id.clone(),
-            target_type: TargetType::Issue,
+            target_type: TargetType::issue(),
             link_type: (*link_type).to_string(),
         };
 
@@ -699,20 +699,21 @@ async fn test_all_builtin_link_types() {
 
 #[tokio::test]
 async fn test_target_type_variants() {
-    assert_eq!(TargetType::Issue.as_str(), "issue");
-    assert_eq!(TargetType::Doc.as_str(), "doc");
+    assert_eq!(TargetType::issue().as_str(), "issue");
+    assert_eq!(TargetType::new("doc").as_str(), "doc");
 
-    assert_eq!(TargetType::Issue.folder_name(), "issues");
-    assert_eq!(TargetType::Doc.folder_name(), "docs");
+    assert_eq!(TargetType::issue().folder_name(), "issues");
+    assert_eq!(TargetType::new("doc").folder_name(), "docs");
 }
 
 #[tokio::test]
 async fn test_target_type_from_str() {
     use std::str::FromStr;
 
-    assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::Issue);
-    assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::Doc);
-    assert_eq!(TargetType::from_str("ISSUE").unwrap(), TargetType::Issue);
-    assert!(TargetType::from_str("pr").is_err());
-    assert!(TargetType::from_str("invalid").is_err());
+    assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::issue());
+    assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::new("doc"));
+    assert_eq!(TargetType::from_str("ISSUE").unwrap(), TargetType::issue());
+    // String-based TargetType accepts any value
+    assert_eq!(TargetType::from_str("pr").unwrap().as_str(), "pr");
+    assert_eq!(TargetType::from_str("invalid").unwrap().as_str(), "invalid");
 }

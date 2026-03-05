@@ -7,7 +7,6 @@ use crate::server::proto::{ExecuteReconciliationRequest, InitResponse};
 use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn execute_reconciliation_handler(
     req: ExecuteReconciliationRequest,
 ) -> Result<Response<InitResponse>, Status> {

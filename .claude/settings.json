@@ -166,7 +166,10 @@
       "Bash(npx centy:*)",
       "Bash(gh pr diff:*)",
       "Bash(npm root:*)",
-      "Bash(cargo dylint:*)"
+      "Bash(cargo dylint:*)",
+      "Bash(head:*)",
+      "Bash(centy item-type:*)",
+      "Bash(do grep:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },

@@ -3,14 +3,12 @@ use std::path::Path;
 use crate::config::item_type_config::read_item_type_config;
 use crate::registry::track_project_async;
 use crate::server::action_builders::build_issue_actions;
-use crate::server::action_builders_extra::build_doc_actions;
 use crate::server::assert_service::assert_initialized;
 use crate::server::proto::{EntityType, GetEntityActionsRequest, GetEntityActionsResponse};
 use crate::server::resolve::resolve_issue;
 use crate::server::structured_error::{to_error_json, StructuredError};
 use tonic::{Response, Status};
 
-#[allow(unknown_lints, max_lines_per_function)]
 pub async fn get_entity_actions(
     req: GetEntityActionsRequest,
 ) -> Result<Response<GetEntityActionsResponse>, Status> {
@@ -60,7 +58,6 @@ pub async fn get_entity_actions(
                 has_entity_id,
             )
         }
-        t if t == EntityType::Doc as i32 => build_doc_actions(has_entity_id),
         _ => {
             return Ok(Response::new(GetEntityActionsResponse {
                 actions: vec![],

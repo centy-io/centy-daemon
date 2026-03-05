@@ -1,4 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 use super::*;
+use crate::config::CentyConfig;
 use mdstore::IdStrategy;
 use tempfile::tempdir;
 use tokio::fs;
@@ -45,7 +51,6 @@ async fn test_registry_build_detects_duplicate_type_names() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
@@ -61,7 +66,6 @@ async fn test_registry_build_detects_duplicate_type_names() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,

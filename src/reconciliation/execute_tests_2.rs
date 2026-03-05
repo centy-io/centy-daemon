@@ -27,6 +27,7 @@ async fn test_execute_reconciliation_creates_managed_files() {
     assert!(centy_path.join("templates").is_dir());
     assert!(centy_path.join("README.md").is_file());
     assert!(centy_path.join("cspell.json").is_file());
+    assert!(centy_path.join("hooks.yaml").is_file());
 }
 
 #[tokio::test]

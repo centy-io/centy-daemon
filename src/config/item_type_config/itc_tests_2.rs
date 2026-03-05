@@ -1,4 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::field_reassign_with_default
+)]
 use super::*;
+use crate::config::CentyConfig;
 
 #[test]
 fn test_archived_config_yaml_serialization() {
@@ -8,7 +14,6 @@ fn test_archived_config_yaml_serialization() {
     assert!(yaml.contains("name: Archived"));
     assert!(yaml.contains("identifier: uuid"));
     assert!(yaml.contains("displayNumber: false"));
-    assert!(yaml.contains("status: false"));
     assert!(yaml.contains("priority: false"));
     assert!(yaml.contains("softDelete: false"));
     assert!(yaml.contains("assets: true"));
@@ -34,7 +39,7 @@ fn test_issue_config_yaml_serialization() {
     assert!(yaml.contains("displayNumber: true"));
     assert!(yaml.contains("softDelete: true"));
     assert!(yaml.contains("move: true"));
-    assert!(yaml.contains("defaultStatus: open"));
+    assert!(!yaml.contains("defaultStatus:"));
     assert!(yaml.contains("template: template.md"));
 }
 
@@ -62,8 +67,7 @@ fn test_item_type_config_yaml_roundtrip() {
 
     assert_eq!(deserialized.name, "Issue");
     assert_eq!(deserialized.icon, Some("clipboard".to_string()));
-    assert_eq!(deserialized.statuses.len(), config.statuses.len());
-    assert_eq!(deserialized.default_status, config.default_status);
+    assert_eq!(deserialized.statuses, config.statuses);
     assert_eq!(deserialized.priority_levels, config.priority_levels);
     assert_eq!(
         deserialized.features.soft_delete,

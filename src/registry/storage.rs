@@ -1,11 +1,10 @@
+use super::migrations::apply_migrations;
 use super::types::{ProjectRegistry, CURRENT_SCHEMA_VERSION};
 use super::RegistryError;
-use crate::utils::now_iso;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::fs;
 use tokio::sync::Mutex;
-use tracing::info;
 
 /// Global mutex for registry file access
 static REGISTRY_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -14,8 +13,15 @@ pub fn get_lock() -> &'static Mutex<()> {
     REGISTRY_LOCK.get_or_init(|| Mutex::new(()))
 }
 
-/// Get the path to the global centy config directory (~/.centy)
+/// Get the path to the global centy config directory (~/.centy).
+///
+/// If `CENTY_HOME` is set, that directory is used instead of `~/.centy`.
+/// This allows tests and CI to use an isolated registry without touching
+/// the user's real `~/.centy` data.
 pub fn get_centy_config_dir() -> Result<PathBuf, RegistryError> {
+    if let Ok(centy_home) = std::env::var("CENTY_HOME") {
+        return Ok(PathBuf::from(centy_home));
+    }
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .map_err(|_| RegistryError::HomeDirNotFound)?;
@@ -27,23 +33,7 @@ pub fn get_registry_path() -> Result<PathBuf, RegistryError> {
     Ok(get_centy_config_dir()?.join("projects.json"))
 }
 
-fn migrate_v1_to_v2(registry: &mut ProjectRegistry) {
-    registry.schema_version = 2;
-    registry.updated_at = now_iso();
-    info!("Migrated registry from v1 to v2 (added organizations support)");
-}
-
-fn apply_migrations(registry: &mut ProjectRegistry) -> bool {
-    let mut migrated = false;
-    if registry.schema_version < 2 {
-        migrate_v1_to_v2(registry);
-        migrated = true;
-    }
-    migrated
-}
-
 /// Read the registry from disk, applying any necessary migrations
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
     let path = get_registry_path()?;
     if !path.exists() {

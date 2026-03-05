@@ -3,10 +3,24 @@
 //! Common test utilities
 
 use std::path::Path;
+use std::sync::LazyLock;
 use tempfile::TempDir;
 
-/// Create a temporary directory for testing
+// Redirect CENTY_HOME to an isolated temp directory for this binary so that
+// concurrent integration-test binaries don't race on the shared ~/.centy/
+// registry file.  Initialized the first time any helper in this module runs.
+static ISOLATED_HOME: LazyLock<()> = LazyLock::new(|| {
+    let dir = tempfile::tempdir().expect("Failed to create isolated centy home");
+    std::env::set_var("CENTY_HOME", dir.path());
+    // Leak the TempDir so it lives for the entire process lifetime.
+    Box::leak(Box::new(dir));
+});
+
+/// Create a temporary directory for testing.
+///
+/// Also ensures the per-binary `CENTY_HOME` isolation is active.
 pub fn create_test_dir() -> TempDir {
+    LazyLock::force(&ISOLATED_HOME);
     tempfile::tempdir().expect("Failed to create temp directory")
 }
 
