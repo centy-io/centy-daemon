@@ -1,11 +1,22 @@
+use crate::item::core::error::ItemError;
 use crate::item::generic::storage::{generic_move, generic_update};
 use crate::server::convert_entity::generic_item_to_proto;
+use crate::server::handlers::item_type_resolve::resolve_item_type_config;
 use crate::server::proto::ArchiveItemResponse;
 use crate::server::structured_error::to_error_json;
 use mdstore::{TypeConfig, UpdateOptions};
 use std::collections::HashMap;
 use std::path::Path;
 use tonic::{Response, Status};
+
+pub(super) async fn resolve_both_types(
+    project_path: &Path,
+    item_type: &str,
+) -> Result<((String, TypeConfig), (String, TypeConfig)), ItemError> {
+    let source = resolve_item_type_config(project_path, item_type).await?;
+    let archived = resolve_item_type_config(project_path, ARCHIVED_FOLDER).await?;
+    Ok((source, archived))
+}
 /// The folder name used for archived items.
 pub const ARCHIVED_FOLDER: &str = "archived";
 /// After a successful move, stamp `original_item_type` on the archived item
