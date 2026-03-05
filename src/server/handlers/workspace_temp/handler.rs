@@ -1,7 +1,6 @@
-#![allow(unknown_lints, max_lines_per_file)]
-use super::editor::open_editor_with_hooks;
+use super::editor::{open_editor_with_hooks, try_update_status_on_open};
+use super::response::err_response;
 use crate::config::read_config;
-use crate::item::entities::issue::{update_issue, UpdateIssueOptions};
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
 use crate::server::proto::{OpenInTempWorkspaceResponse, OpenInTempWorkspaceWithEditorRequest};
@@ -10,25 +9,7 @@ use crate::server::structured_error::{to_error_json, StructuredError};
 use crate::workspace::{create_temp_workspace, CreateWorkspaceOptions};
 use std::path::Path;
 use tonic::{Response, Status};
-fn err_response(
-    error: String,
-    issue_id: String,
-    dn: u32,
-    req_cfg: bool,
-) -> Response<OpenInTempWorkspaceResponse> {
-    Response::new(OpenInTempWorkspaceResponse {
-        success: false,
-        error,
-        workspace_path: String::new(),
-        issue_id,
-        display_number: dn,
-        expires_at: String::new(),
-        editor_opened: false,
-        requires_status_config: req_cfg,
-        workspace_reused: false,
-        original_created_at: String::new(),
-    })
-}
+
 pub async fn open_in_temp_workspace(
     req: OpenInTempWorkspaceWithEditorRequest,
 ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
@@ -67,22 +48,8 @@ pub async fn open_in_temp_workspace(
             issue.id.clone(), issue.metadata.display_number, true,
         ));
     }
-    if let Some(ref cfg) = config {
-        if cfg.workspace.update_status_on_open == Some(true)
-            && issue.metadata.status != "in-progress"
-            && issue.metadata.status != "closed"
-        {
-            let _ = update_issue(
-                project_path,
-                &issue.id,
-                UpdateIssueOptions {
-                    status: Some("in-progress".to_string()),
-                    ..Default::default()
-                },
-            )
-            .await;
-        }
-    }
+    try_update_status_on_open(config.as_ref(), project_path, &issue.id, &issue.metadata.status)
+        .await;
     match create_temp_workspace(CreateWorkspaceOptions {
         source_project_path: project_path.to_path_buf(),
         issue: issue.clone(),
