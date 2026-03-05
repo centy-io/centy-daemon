@@ -47,10 +47,10 @@ async fn execute_move(
         source_path,
         target_path,
         target_type,
-        &ctx.hook_type,
-        &ctx.hook_project_path,
-        &ctx.hook_item_id,
-        ctx.hook_request_data,
+        &ctx.item_type,
+        &ctx.project_path,
+        &ctx.item_id,
+        ctx.request_data,
         &req.source_project_path,
     )
     .await
