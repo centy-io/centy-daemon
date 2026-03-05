@@ -17,9 +17,7 @@ pub async fn create_standalone_workspace(
         |n| n.to_string_lossy().into_owned(),
     );
     let workspace_path = dirs::home_dir()
-        .ok_or_else(|| {
-            WorkspaceError::GitError("Could not determine home directory".to_string())
-        })?
+        .ok_or_else(|| WorkspaceError::GitError("Could not determine home directory".to_string()))?
         .join("worktrees")
         .join("local")
         .join(&project_name)
