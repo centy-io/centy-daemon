@@ -11,7 +11,6 @@ fn entity_exists(project_path: &Path, entity_id: &str, entity_type: &TargetType)
     if base_path.join(format!("{entity_id}.md")).exists() { return true; }
     base_path.join(entity_id).exists()
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn create_link(project_path: &Path, options: CreateLinkOptions, custom_types: &[CustomLinkTypeDefinition]) -> Result<CreateLinkResult, LinkError> {
     if !is_valid_link_type(&options.link_type, custom_types) { return Err(LinkError::InvalidLinkType(options.link_type)); }
     if options.source_id == options.target_id && options.source_type == options.target_type { return Err(LinkError::SelfLink); }
@@ -31,7 +30,6 @@ pub async fn create_link(project_path: &Path, options: CreateLinkOptions, custom
     write_links(&target_path, &target_links).await?;
     Ok(CreateLinkResult { created_link: forward_link, inverse_link })
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn delete_link(project_path: &Path, options: DeleteLinkOptions, custom_types: &[CustomLinkTypeDefinition]) -> Result<DeleteLinkResult, LinkError> {
     let source_path = get_entity_path(project_path, &options.source_id, &options.source_type);
     let target_path = get_entity_path(project_path, &options.target_id, &options.target_type);

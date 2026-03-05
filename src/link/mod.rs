@@ -1,4 +1,6 @@
 mod crud;
+mod crud_fns;
+mod crud_types;
 mod link_types;
 mod storage;
 mod types;
