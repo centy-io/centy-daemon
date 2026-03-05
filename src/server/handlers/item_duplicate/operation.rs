@@ -26,14 +26,14 @@ pub(super) async fn assert_both_initialized(
     source_path: &Path,
     target_path: &Path,
 ) -> Result<(), Response<DuplicateItemResponse>> {
-    if let Err(e) = assert_initialized(source_path).await {
+    if let Err(e) = assert_initialized(source_path) {
         return Err(Response::new(DuplicateItemResponse {
             success: false,
             error: to_error_json(&req.source_project_path, &e),
             ..Default::default()
         }));
     }
-    if let Err(e) = assert_initialized(target_path).await {
+    if let Err(e) = assert_initialized(target_path) {
         return Err(Response::new(DuplicateItemResponse {
             success: false,
             error: to_error_json(&req.target_project_path, &e),

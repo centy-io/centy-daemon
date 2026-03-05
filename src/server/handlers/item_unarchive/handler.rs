@@ -14,7 +14,7 @@ pub async fn unarchive_item(
 ) -> Result<Response<UnarchiveItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(err_resp(&req.project_path, &e)));
     }
     let (archived_type, archived_config) =

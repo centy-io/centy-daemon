@@ -17,7 +17,7 @@ pub async fn set_project_title(
         Some(req.title)
     };
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(SetProjectTitleResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),

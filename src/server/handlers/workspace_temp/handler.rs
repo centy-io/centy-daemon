@@ -15,7 +15,7 @@ pub async fn open_in_temp_workspace(
 ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(err_response(
             to_error_json(&req.project_path, &e),
             String::new(),

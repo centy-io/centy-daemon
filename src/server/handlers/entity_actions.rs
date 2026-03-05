@@ -14,7 +14,7 @@ pub async fn get_entity_actions(
 ) -> Result<Response<GetEntityActionsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(GetEntityActionsResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),

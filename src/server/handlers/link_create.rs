@@ -13,7 +13,7 @@ use tonic::{Response, Status};
 pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(CreateLinkResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),
