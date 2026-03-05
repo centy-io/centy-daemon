@@ -6,11 +6,11 @@ use super::{
 pub async fn create_standalone_workspace(
     options: CreateStandaloneWorkspaceOptions,
 ) -> Result<CreateStandaloneWorkspaceResult, WorkspaceError> {
-    let workspace_id = uuid::Uuid::new_v4().to_string();
-    let workspace_name = options
+    let id = uuid::Uuid::new_v4().to_string();
+    let name = options
         .name
         .clone()
-        .unwrap_or_else(|| format!("standalone-{workspace_id}"));
+        .unwrap_or_else(|| format!("standalone-{id}"));
     let project_path = &options.source_project_path;
     let project_name = project_path.file_name().map_or_else(
         || "project".to_string(),
@@ -23,29 +23,29 @@ pub async fn create_standalone_workspace(
         .join("worktrees")
         .join("local")
         .join(&project_name)
-        .join(&workspace_name);
+        .join(&name);
     if workspace_path.exists() {
         data::copy_project_config_to_workspace(project_path, &workspace_path).await?;
         return Ok(CreateStandaloneWorkspaceResult {
-            workspace_path,
-            workspace_id,
-            workspace_name,
-            workspace_reused: true,
+            path: workspace_path,
+            id,
+            name,
+            reused: true,
         });
     }
     if let Some(parent) = workspace_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let branch = format!("standalone-{workspace_id}");
+    let branch = format!("standalone-{id}");
     let branch_exists = worktree_io::git::branch_exists_local(project_path, &branch);
     worktree_io::git::create_local_worktree(project_path, &workspace_path, &branch, branch_exists)
         .map_err(|e| WorkspaceError::GitError(e.to_string()))?;
     data::copy_project_config_to_workspace(project_path, &workspace_path).await?;
     Ok(CreateStandaloneWorkspaceResult {
-        workspace_path,
-        workspace_id,
-        workspace_name,
-        workspace_reused: false,
+        path: workspace_path,
+        id,
+        name,
+        reused: false,
     })
 }
 /// Remove a git worktree by path. Returns `(worktree_removed, directory_removed)`.

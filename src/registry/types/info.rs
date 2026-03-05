@@ -1,4 +1,5 @@
 /// Returned by API (enriched with live data from disk)
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct ProjectInfo {
     pub path: String,
@@ -28,6 +29,7 @@ pub struct OrganizationInfo {
     pub project_count: u32,
 }
 /// Options for listing projects
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Default)]
 pub struct ListProjectsOptions<'a> {
     pub include_stale: bool,

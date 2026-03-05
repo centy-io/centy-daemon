@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::fs;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Error, Debug)]
 pub enum OrgConfigError {
     #[error("IO error: {0}")]

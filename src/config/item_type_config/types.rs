@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 /// Features that can be toggled per item type.
 ///
 /// Stored as a nested object inside `config.yaml` under the `features` key.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemTypeFeatures {

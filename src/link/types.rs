@@ -33,6 +33,7 @@ impl std::fmt::Display for TargetType {
     }
 }
 /// A link between two entities
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
