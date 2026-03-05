@@ -16,9 +16,8 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             None => continue,
         };
         if file_type.is_file() && is_valid_issue_file(&name) {
-            let content = match fs::read_to_string(entry.path()).await {
-                Ok(c) => c,
-                Err(_) => continue,
+            let Ok(content) = fs::read_to_string(entry.path()).await else {
+                continue;
             };
             let frontmatter: IssueFrontmatter =
                 match parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content)) {
@@ -37,9 +36,8 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             if !metadata_path.exists() {
                 continue;
             }
-            let content = match fs::read_to_string(&metadata_path).await {
-                Ok(c) => c,
-                Err(_) => continue,
+            let Ok(content) = fs::read_to_string(&metadata_path).await else {
+                continue;
             };
             let metadata: IssueMetadata = match serde_json::from_str(&content) {
                 Ok(m) => m,

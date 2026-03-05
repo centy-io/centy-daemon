@@ -12,9 +12,8 @@ use tracing::info;
 pub async fn sync_org_from_project(
     project_path: &Path,
 ) -> Result<Option<Organization>, OrganizationError> {
-    let project_org = match read_project_org_file(project_path).await? {
-        Some(org) => org,
-        None => return Ok(None),
+    let Some(project_org) = read_project_org_file(project_path).await? else {
+        return Ok(None);
     };
 
     let _guard = get_lock().lock().await;

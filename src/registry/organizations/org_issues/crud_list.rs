@@ -44,9 +44,8 @@ pub async fn list_org_issues(
             continue;
         }
         let issue_id = name.trim_end_matches(".md");
-        let issue = match read_org_issue_file(&issues_dir, issue_id).await {
-            Ok(i) => i,
-            Err(_) => continue,
+        let Ok(issue) = read_org_issue_file(&issues_dir, issue_id).await else {
+            continue;
         };
         if let Some(ref status) = opts.status {
             if &issue.status != status {
