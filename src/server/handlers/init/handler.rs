@@ -1,7 +1,9 @@
 use super::post_init::post_reconcile;
 use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use crate::registry::{track_project, track_project_async};
-use crate::server::proto::{InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse};
+use crate::server::proto::{
+    InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse,
+};
 use crate::server::structured_error::to_error_json;
 use crate::utils::get_centy_path;
 use std::path::Path;
