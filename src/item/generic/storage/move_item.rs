@@ -1,8 +1,7 @@
 //! Move operation for generic items.
-use super::helpers::{copy_dir_contents, type_storage_path, update_project_manifest};
+use super::helpers::{copy_item_assets, type_storage_path, update_project_manifest};
 use crate::item::core::error::ItemError;
 use crate::manifest;
-use crate::utils::get_centy_path;
 use mdstore::TypeConfig;
 use std::path::Path;
 use tokio::fs;
@@ -25,36 +24,17 @@ pub async fn generic_move(
         .ok_or(ItemError::TargetNotInitialized)?;
     let source_dir = type_storage_path(source_project_path, source_folder);
     let target_dir = type_storage_path(target_project_path, target_folder);
-    let copied_assets = if source_config.features.assets {
-        let source_assets_new = get_centy_path(source_project_path)
-            .join("assets")
-            .join(source_folder)
-            .join(item_id);
-        let source_assets_legacy = source_dir.join("assets").join(item_id);
-        let source_assets = if source_assets_new.exists() {
-            Some(source_assets_new)
-        } else if source_assets_legacy.exists() {
-            Some(source_assets_legacy)
-        } else {
-            None
-        };
-        if let Some(ref src_assets) = source_assets {
-            let target_id = if source_config.identifier == mdstore::IdStrategy::Slug {
-                new_id.unwrap_or(item_id)
-            } else {
-                item_id
-            };
-            let target_assets = get_centy_path(target_project_path)
-                .join("assets")
-                .join(target_folder)
-                .join(target_id);
-            fs::create_dir_all(&target_assets).await?;
-            copy_dir_contents(src_assets, &target_assets).await?;
-        }
-        source_assets
-    } else {
-        None
-    };
+    let copied_assets = copy_item_assets(
+        source_project_path,
+        target_project_path,
+        &source_dir,
+        source_folder,
+        target_folder,
+        source_config,
+        item_id,
+        new_id,
+    )
+    .await?;
     let result = mdstore::move_item(
         &source_dir,
         &target_dir,
