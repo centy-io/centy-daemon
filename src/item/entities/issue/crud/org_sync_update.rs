@@ -43,19 +43,16 @@ pub async fn update_or_create_issue_in_project(
         )
         .await;
     };
-    let existing = match existing_issue {
-        Some(issue) => issue,
-        None => {
-            return create_issue_in_project(
-                project_path,
-                issue_id,
-                title,
-                description,
-                source_metadata,
-                org_slug,
-            )
-            .await
-        }
+    let Some(existing) = existing_issue else {
+        return create_issue_in_project(
+            project_path,
+            issue_id,
+            title,
+            description,
+            source_metadata,
+            org_slug,
+        )
+        .await;
     };
     let mut manifest = read_manifest(project_path)
         .await

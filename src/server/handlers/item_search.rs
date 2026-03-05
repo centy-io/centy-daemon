@@ -45,11 +45,10 @@ pub async fn search_items(
         let project_path = Path::new(&project.path);
 
         // Try to resolve the item type config for this project
-        let (item_type, _config) =
-            match resolve_item_type_config(project_path, &req.item_type).await {
-                Ok(pair) => pair,
-                Err(_) => continue, // Item type not configured in this project, skip
-            };
+        let Ok((item_type, _config)) = resolve_item_type_config(project_path, &req.item_type).await
+        else {
+            continue; // Item type not configured in this project, skip
+        };
 
         // Try to get the item by ID in this project
         match generic_get(project_path, &item_type, &req.item_id).await {

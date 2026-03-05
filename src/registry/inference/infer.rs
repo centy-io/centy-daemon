@@ -25,19 +25,13 @@ pub async fn infer_organization_from_remote(
         result.message = Some("Not a git repository".to_string());
         return result;
     }
-    let remote_url = match get_remote_origin_url(project_path) {
-        Ok(url) => url,
-        Err(_) => {
-            result.message = Some("No origin remote found".to_string());
-            return result;
-        }
+    let Ok(remote_url) = get_remote_origin_url(project_path) else {
+        result.message = Some("No origin remote found".to_string());
+        return result;
     };
-    let parsed = match parse_remote_url(&remote_url) {
-        Some(p) => p,
-        None => {
-            result.message = Some(format!("Could not parse remote URL: {remote_url}"));
-            return result;
-        }
+    let Some(parsed) = parse_remote_url(&remote_url) else {
+        result.message = Some(format!("Could not parse remote URL: {remote_url}"));
+        return result;
     };
     let inferred_slug = slugify(&parsed.org);
     result.inferred_org_slug = Some(inferred_slug.clone());

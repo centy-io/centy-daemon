@@ -7,9 +7,8 @@ pub async fn sync_to_org_projects<T: OrgSyncable>(
     item: &T,
     source_project_path: &Path,
 ) -> Vec<OrgSyncResult> {
-    let org_slug = match item.org_slug() {
-        Some(slug) => slug,
-        None => return Vec::new(),
+    let Some(org_slug) = item.org_slug() else {
+        return Vec::new();
     };
     let source_path_str = source_project_path.to_string_lossy().to_string();
     let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
@@ -40,9 +39,8 @@ pub async fn sync_update_to_org_projects<T: OrgSyncable>(
     source_project_path: &Path,
     old_id: Option<&str>,
 ) -> Vec<OrgSyncResult> {
-    let org_slug = match item.org_slug() {
-        Some(slug) => slug,
-        None => return Vec::new(),
+    let Some(org_slug) = item.org_slug() else {
+        return Vec::new();
     };
     let source_path_str = source_project_path.to_string_lossy().to_string();
     let org_projects = match get_org_projects(org_slug, Some(&source_path_str)).await {
