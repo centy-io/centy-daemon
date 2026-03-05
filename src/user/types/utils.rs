@@ -1,5 +1,6 @@
 use super::UserError;
 /// Convert a name to a URL-friendly slug (kebab-case)
+#[must_use]
 pub fn slugify(name: &str) -> String {
     name.to_lowercase()
         .chars()

@@ -18,6 +18,7 @@ pub async fn list_links(
     Ok(read_links(&entity_path).await?)
 }
 
+#[must_use]
 pub fn get_available_link_types(custom_types: &[CustomLinkTypeDefinition]) -> Vec<LinkTypeInfo> {
     let mut types = Vec::new();
     let mut seen = std::collections::HashSet::new();

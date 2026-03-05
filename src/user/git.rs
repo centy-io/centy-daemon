@@ -8,6 +8,7 @@ use std::path::Path;
 use std::process::Command;
 
 /// Check if a path is inside a git repository
+#[must_use]
 pub fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])

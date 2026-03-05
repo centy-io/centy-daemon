@@ -32,6 +32,7 @@ impl LinksFile {
         });
         self.links.len() < initial_len
     }
+    #[must_use]
     pub fn has_link(&self, target_id: &str, link_type: &str) -> bool {
         self.links
             .iter()

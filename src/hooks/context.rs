@@ -39,6 +39,7 @@ impl HookContext {
     }
 
     /// Convert to environment variables for the hook process
+    #[must_use]
     pub fn to_env_vars(&self) -> HashMap<String, String> {
         let mut vars = HashMap::new();
         vars.insert("CENTY_PHASE".to_string(), self.phase.clone());
