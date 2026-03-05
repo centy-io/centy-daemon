@@ -7,12 +7,6 @@ use tracing::{debug, warn};
 /// Run post-hooks for the given item_type and operation.
 /// Synchronous post-hooks run inline (failures logged as warnings).
 /// Async post-hooks are spawned in background (failures logged as debug).
-#[allow(
-    unknown_lints,
-    max_lines_per_function,
-    clippy::too_many_lines,
-    max_nesting_depth
-)]
 pub async fn run_post_hooks(
     project_path: &Path,
     item_type: &str,

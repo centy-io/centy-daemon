@@ -14,12 +14,6 @@ use tokio::fs;
 /// The oldest issue (by `created_at`) keeps its original number.
 ///
 /// Returns the number of issues that were reassigned.
-#[allow(
-    unknown_lints,
-    max_lines_per_function,
-    clippy::too_many_lines,
-    max_nesting_depth
-)]
 pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, ReconcileError> {
     if !issues_path.exists() {
         return Ok(0);
