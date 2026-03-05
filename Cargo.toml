@@ -355,7 +355,6 @@ option_env_unwrap = "deny"
 non_minimal_cfg = "deny"
 ignored_unit_patterns = "deny"
 missing_asserts_for_indexing = "deny"
-string_to_string = "deny"
 
 [[bin]]
 name = "centy-daemon"
