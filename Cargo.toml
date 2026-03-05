@@ -255,6 +255,8 @@ used_underscore_binding = "deny"
 from_str_radix_10 = "deny"
 missing_fields_in_debug = "deny"
 manual_next_back = "deny"
+separated_literal_suffix = "deny"
+large_include_file = "deny"
 
 [[bin]]
 name = "centy-daemon"
