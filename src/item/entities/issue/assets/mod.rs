@@ -2,6 +2,7 @@ mod add;
 mod copy;
 mod delete;
 mod get;
+mod helpers;
 mod list;
 mod list_shared;
 mod types;
