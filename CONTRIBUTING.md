@@ -147,6 +147,7 @@ src/
 - Follow [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
 - Use `thiserror` for custom error types
 - Prefer `async/await` for I/O operations
+- **Keep files under 100 lines** — enforced by the `max_lines_per_file` dylint lint. Extract helpers into sub-modules when a file grows too large. Files that currently exceed the limit carry a temporary `#![allow(unknown_lints, max_lines_per_file)]` attribute; remove it once the file is shortened.
 
 ### JSON Serialization
 

@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::types::{ProjectRegistry, CURRENT_SCHEMA_VERSION};
 use super::RegistryError;
 use crate::utils::now_iso;

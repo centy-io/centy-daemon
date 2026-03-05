@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueMetadata;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};

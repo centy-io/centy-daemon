@@ -19,7 +19,7 @@ echo "[5/6] Running tests..."
 CENTY_HOME="$(mktemp -d)" cargo test --all-targets
 
 echo "[6/6] Running dylint lints..."
-cargo dylint --all
+RUSTFLAGS="-D max_lines_per_file" cargo dylint --all
 
 echo "[7/7] Running e2e tests..."
 cd e2e && pnpm test && cd ..

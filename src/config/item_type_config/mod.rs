@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 mod convert;
 mod defaults;
 mod io;
