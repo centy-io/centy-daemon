@@ -17,7 +17,6 @@ mod cleanup;
 mod common;
 mod config;
 mod cors;
-mod grpc_logging;
 mod hooks;
 mod item;
 mod link;
