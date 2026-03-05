@@ -1,6 +1,5 @@
 use crate::app::{self, report_server_error};
 use crate::cors::build_cors_layer;
-use crate::grpc_logging::GrpcLoggingLayer;
 use crate::logging::{init_logging, parse_rotation, LogConfig, LOG_FILENAME};
 use crate::server::proto::centy_daemon_server::CentyDaemonServer;
 use crate::server::{CentyDaemonService, ShutdownSignal};
@@ -9,7 +8,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
-use tracing::{info, warn};
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+use tracing::{info, warn, Level};
 
 pub async fn run(args: app::Args) -> Result<()> {
     let log_dir = args.log_dir.map(PathBuf::from).unwrap_or_else(|| {
@@ -68,8 +68,8 @@ pub async fn run(args: app::Args) -> Result<()> {
     info!("Starting Centy daemon on {} (gRPC + gRPC-Web)", addr);
     let server_result = Server::builder()
         .accept_http1(true)
+        .layer(TraceLayer::new_for_http().make_span_with(DefaultMakeSpan::new().level(Level::INFO)))
         .layer(cors)
-        .layer(GrpcLoggingLayer)
         .layer(tonic_web::GrpcWebLayer::new())
         .add_service(reflection_service)
         .add_service(CentyDaemonServer::new(service))
