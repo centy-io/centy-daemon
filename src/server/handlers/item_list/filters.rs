@@ -69,19 +69,39 @@ fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> 
         }
         serde_json::Value::Object(ops) => {
             let mut f = filters;
-            if let Some(v) = ops.get("$eq").and_then(serde_json::Value::as_u64).and_then(|v| u32::try_from(v).ok()) {
+            if let Some(v) = ops
+                .get("$eq")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|v| u32::try_from(v).ok())
+            {
                 f = f.with_priority(v);
             }
-            if let Some(v) = ops.get("$lte").and_then(serde_json::Value::as_u64).and_then(|v| u32::try_from(v).ok()) {
+            if let Some(v) = ops
+                .get("$lte")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|v| u32::try_from(v).ok())
+            {
                 f = f.with_priority_lte(v);
             }
-            if let Some(v) = ops.get("$lt").and_then(serde_json::Value::as_u64).and_then(|v| u32::try_from(v).ok()) {
+            if let Some(v) = ops
+                .get("$lt")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|v| u32::try_from(v).ok())
+            {
                 f = f.with_priority_lte(v.saturating_sub(1));
             }
-            if let Some(v) = ops.get("$gte").and_then(serde_json::Value::as_u64).and_then(|v| u32::try_from(v).ok()) {
+            if let Some(v) = ops
+                .get("$gte")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|v| u32::try_from(v).ok())
+            {
                 f = f.with_priority_gte(v);
             }
-            if let Some(v) = ops.get("$gt").and_then(serde_json::Value::as_u64).and_then(|v| u32::try_from(v).ok()) {
+            if let Some(v) = ops
+                .get("$gt")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|v| u32::try_from(v).ok())
+            {
                 f = f.with_priority_gte(v.saturating_add(1));
             }
             f
