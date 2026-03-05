@@ -168,7 +168,8 @@
       "Bash(npm root:*)",
       "Bash(cargo dylint:*)",
       "Bash(head:*)",
-      "Bash(centy item-type:*)"
+      "Bash(centy item-type:*)",
+      "Bash(do grep:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
