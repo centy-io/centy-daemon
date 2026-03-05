@@ -40,6 +40,6 @@ fn test_compute_binary_hash() {
 
 #[test]
 fn test_asset_scope_default() {
-    let scope: AssetScope = Default::default();
+    let scope = AssetScope::default();
     assert_eq!(scope, AssetScope::IssueSpecific);
 }
