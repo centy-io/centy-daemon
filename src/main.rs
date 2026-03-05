@@ -1,3 +1,5 @@
+// Allow unknown/renamed lints (shared with lib.rs for consistency across targets)
+#![allow(unknown_lints, renamed_and_removed_lints, wildcard_imports)]
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 #![cfg_attr(
     test,

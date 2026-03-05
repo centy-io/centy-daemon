@@ -24,13 +24,7 @@ use tokio::sync::watch;
 pub mod proto {
     #![allow(clippy::pedantic)]
     #![allow(clippy::all)]
-    #![allow(
-        unknown_lints,
-        max_lines_per_file,
-        max_lines_per_function,
-        clippy::too_many_lines,
-        clippy::wildcard_imports
-    )]
+    #![allow(max_lines_per_file, max_lines_per_function, clippy::too_many_lines)]
     include!(concat!(env!("OUT_DIR"), "/centy.v1.include.rs"));
 }
 

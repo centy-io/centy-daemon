@@ -1,4 +1,4 @@
-#![allow(unknown_lints, max_lines_per_file)]
+#![allow(max_lines_per_file)]
 use super::proto::centy_daemon_server::CentyDaemon;
 use super::proto::*;
 use super::{handlers, CentyDaemonService};
