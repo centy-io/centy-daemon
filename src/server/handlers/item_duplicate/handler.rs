@@ -22,12 +22,12 @@ pub async fn duplicate_item(
     let (item_type, config) =
         match resolve_item_type_config(target_project_path, &req.item_type).await {
             Ok(pair) => pair,
-            Err(e) => return Ok(err_resp(&req.source_project_path, e)),
+            Err(e) => return Ok(err_resp(&req.source_project_path, &e)),
         };
     let hook_type = config.name.to_lowercase();
     if !config.features.duplicate {
         let e = crate::item::core::error::ItemError::FeatureNotEnabled("duplicate".to_string());
-        return Ok(err_resp(&req.source_project_path, e));
+        return Ok(err_resp(&req.source_project_path, &e));
     }
     let hook_project_path = req.source_project_path.clone();
     let hook_item_id = req.item_id.clone();
