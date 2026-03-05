@@ -3,6 +3,7 @@ use crate::link::CustomLinkTypeDefinition;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 /// Default priority levels (3 = high/medium/low)
+#[must_use] 
 pub fn default_priority_levels() -> u32 {
     3
 }

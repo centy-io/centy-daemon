@@ -1,5 +1,6 @@
 use super::super::planning::remove_planning_note;
 
+#[must_use] 
 pub fn parse_issue_md(content: &str) -> (String, String) {
     let content = remove_planning_note(content);
     let lines: Vec<&str> = content.lines().collect();

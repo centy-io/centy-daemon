@@ -65,6 +65,7 @@ pub fn init_logging(config: LogConfig) -> Result<()> {
     Ok(())
 }
 /// Parse rotation period from string.
+#[must_use] 
 pub fn parse_rotation(s: &str) -> Rotation {
     match s.to_lowercase().as_str() {
         "hourly" => Rotation::HOURLY,

@@ -20,6 +20,7 @@ pub struct ParsedRemote {
 ///
 /// Supports HTTPS, HTTP, and SSH formats, including self-hosted.
 /// Returns `None` if the URL format is not recognized.
+#[must_use] 
 pub fn parse_remote_url(url: &str) -> Option<ParsedRemote> {
     let url = url.trim();
     if let Some(ssh_part) = url.strip_prefix("git@") {

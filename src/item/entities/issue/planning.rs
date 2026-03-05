@@ -12,11 +12,13 @@ pub const PLANNING_NOTE: &str = r#"> **Planning Mode**: Do not implement code ch
 pub const PLANNING_STATUS: &str = "planning";
 
 /// Check if a status is the planning status
+#[must_use] 
 pub fn is_planning_status(status: &str) -> bool {
     status == PLANNING_STATUS
 }
 
 /// Check if issue content has the planning note (handles both original and markdown-formatted versions)
+#[must_use] 
 pub fn has_planning_note(content: &str) -> bool {
     if content.starts_with(PLANNING_NOTE) || content.contains(PLANNING_NOTE) {
         return true;
@@ -28,6 +30,7 @@ pub fn has_planning_note(content: &str) -> bool {
 }
 
 /// Add planning note to issue content (at the top). Returns content unchanged if note already exists.
+#[must_use] 
 pub fn add_planning_note(content: &str) -> String {
     if has_planning_note(content) {
         content.to_string()
@@ -37,6 +40,7 @@ pub fn add_planning_note(content: &str) -> String {
 }
 
 /// Remove planning note from issue content.
+#[must_use] 
 pub fn remove_planning_note(content: &str) -> String {
     if let Some(stripped) = content.strip_prefix(PLANNING_NOTE) {
         return stripped.trim_start().to_string();
