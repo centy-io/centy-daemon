@@ -21,9 +21,7 @@ use std::path::Path;
 /// feature flag is no longer present on disk.  The field is deserialized as
 /// an unknown key (silently ignored), so this is purely a cosmetic clean-up.
 /// Configs that cannot be parsed are skipped without error.
-pub async fn migrate_strip_status_feature(
-    project_path: &Path,
-) -> Result<(), mdstore::ConfigError> {
+pub async fn migrate_strip_status_feature(project_path: &Path) -> Result<(), mdstore::ConfigError> {
     let centy_path = crate::utils::get_centy_path(project_path);
     if !centy_path.exists() {
         return Ok(());

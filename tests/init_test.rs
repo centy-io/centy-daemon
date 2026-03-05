@@ -820,10 +820,22 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
     let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
         .await
         .expect("Should read");
-    assert!(content.contains("name: CustomIssue"), "name should be preserved");
-    assert!(content.contains("displayNumber: true"), "displayNumber should be preserved");
-    assert!(!content.contains("status:"), "legacy status field should be stripped");
-    assert!(content.contains("priority: true"), "priority should be preserved");
+    assert!(
+        content.contains("name: CustomIssue"),
+        "name should be preserved"
+    );
+    assert!(
+        content.contains("displayNumber: true"),
+        "displayNumber should be preserved"
+    );
+    assert!(
+        !content.contains("status:"),
+        "legacy status field should be stripped"
+    );
+    assert!(
+        content.contains("priority: true"),
+        "priority should be preserved"
+    );
 }
 
 #[tokio::test]
