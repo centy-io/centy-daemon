@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::types::{compute_binary_hash, get_mime_type, sanitize_filename, AssetError, AssetInfo};
 use crate::manifest::read_manifest;
 use crate::utils::{get_centy_path, now_iso};
