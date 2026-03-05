@@ -1,6 +1,7 @@
 use crate::item::entities::issue::priority::priority_label;
 use crate::registry::OrgIssue;
 use crate::server::proto::{OrgIssue as ProtoOrgIssue, OrgIssueMetadata};
+#[allow(clippy::cast_possible_wrap)] // priority is a small u32 bounded by priority_levels config
 pub(super) fn org_issue_to_proto(issue: &OrgIssue, priority_levels: u32) -> ProtoOrgIssue {
     ProtoOrgIssue {
         id: issue.id.clone(),

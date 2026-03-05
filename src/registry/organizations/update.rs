@@ -76,7 +76,8 @@ pub async fn update_organization(
         .projects
         .values()
         .filter(|p| p.organization_slug.as_deref() == Some(final_slug.as_str()))
-        .count() as u32;
+        .count();
+    let project_count = u32::try_from(project_count).unwrap_or(u32::MAX);
 
     let result = OrganizationInfo {
         slug: final_slug,

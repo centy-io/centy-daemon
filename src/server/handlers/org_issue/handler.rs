@@ -53,11 +53,7 @@ pub async fn list_org_issues_handler(
         } else {
             Some(req.status.clone())
         },
-        priority: if req.priority == 0 {
-            None
-        } else {
-            Some(req.priority as u32)
-        },
+        priority: u32::try_from(req.priority).ok().filter(|&p| p != 0),
         referenced_project: if req.referenced_project.is_empty() {
             None
         } else {
@@ -66,7 +62,7 @@ pub async fn list_org_issues_handler(
     };
     match list_org_issues(&req.organization_slug, opts).await {
         Ok(issues) => {
-            let total_count = issues.len() as i32;
+            let total_count = i32::try_from(issues.len()).unwrap_or(i32::MAX);
             let proto_issues = issues
                 .iter()
                 .map(|i| org_issue_to_proto(i, config.priority_levels))

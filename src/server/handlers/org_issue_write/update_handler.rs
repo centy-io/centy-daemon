@@ -28,11 +28,7 @@ pub async fn update_org_issue_handler(
         } else {
             Some(req.status.clone())
         },
-        priority: if req.priority == 0 {
-            None
-        } else {
-            Some(req.priority as u32)
-        },
+        priority: u32::try_from(req.priority).ok().filter(|&p| p != 0),
         custom_fields: if req.custom_fields.is_empty() {
             None
         } else {

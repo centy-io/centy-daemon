@@ -11,11 +11,10 @@ pub async fn create_org_issue_handler(
     let config = get_org_config(&req.organization_slug)
         .await
         .unwrap_or_default();
-    let priority = if req.priority == 0 {
-        default_priority(config.priority_levels)
-    } else {
-        req.priority as u32
-    };
+    let priority = u32::try_from(req.priority)
+        .ok()
+        .filter(|&p| p != 0)
+        .unwrap_or_else(|| default_priority(config.priority_levels));
     let status = if req.status.is_empty() {
         "open".to_string()
     } else {

@@ -22,7 +22,7 @@ pub async fn delete_organization(slug: &str, cascade: bool) -> Result<u32, Organ
         .map(|(path, _)| path.clone())
         .collect();
 
-    let project_count = org_projects.len() as u32;
+    let project_count = u32::try_from(org_projects.len()).unwrap_or(u32::MAX);
 
     if project_count > 0 && !cascade {
         return Err(OrganizationError::HasProjects(project_count));

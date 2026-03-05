@@ -20,7 +20,7 @@ pub async fn list_item_types(
                 .iter()
                 .map(|(folder, config)| config_to_proto(folder, config))
                 .collect();
-            let total_count = item_types.len() as i32;
+            let total_count = i32::try_from(item_types.len()).unwrap_or(i32::MAX);
             Ok(Response::new(ListItemTypesResponse {
                 success: true,
                 error: String::new(),

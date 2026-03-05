@@ -46,7 +46,7 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
             next_available = next_available.saturating_add(1);
         }
     }
-    let reassignment_count = reassignments.len() as u32;
+    let reassignment_count = u32::try_from(reassignments.len()).unwrap_or(u32::MAX);
     for (issue_info, new_display_number) in reassignments {
         if issue_info.is_new_format {
             let file_path = issues_path.join(format!("{}.md", issue_info.id));

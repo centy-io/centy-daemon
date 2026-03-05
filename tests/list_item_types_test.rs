@@ -39,7 +39,7 @@ async fn test_list_item_types_initialized_project() {
         "expected at least 2 built-in types, got {}",
         resp.total_count
     );
-    assert_eq!(resp.item_types.len() as i32, resp.total_count);
+    assert_eq!(i32::try_from(resp.item_types.len()).unwrap_or(i32::MAX), resp.total_count);
 
     let plurals: Vec<&str> = resp.item_types.iter().map(|t| t.plural.as_str()).collect();
     assert!(plurals.contains(&"issues"), "should include issues type");
@@ -63,7 +63,7 @@ async fn test_list_item_types_total_count_matches() {
     .into_inner();
 
     assert!(resp.success);
-    assert_eq!(resp.item_types.len() as i32, resp.total_count);
+    assert_eq!(i32::try_from(resp.item_types.len()).unwrap_or(i32::MAX), resp.total_count);
 }
 
 // ─── Success: custom type appears in list ────────────────────────────────────

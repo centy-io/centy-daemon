@@ -5,6 +5,7 @@ use super::proto::{
     WorkspaceConfig as ProtoWorkspaceConfig,
 };
 
+#[allow(clippy::cast_possible_wrap)] // priority_levels is validated 1-10
 pub fn config_to_proto(config: &CentyConfig) -> Config {
     Config {
         custom_fields: config

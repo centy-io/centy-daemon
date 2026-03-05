@@ -63,6 +63,7 @@ pub fn asset_info_to_proto(asset: &AssetInfo) -> Asset {
     }
 }
 
+#[allow(clippy::cast_possible_wrap)] // schema_version is a small non-negative u32
 pub fn manifest_to_proto(manifest: &InternalManifest) -> Manifest {
     Manifest {
         schema_version: manifest.schema_version as i32,

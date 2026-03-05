@@ -26,7 +26,7 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
     {
         Ok(assets) => Ok(Response::new(ListAssetsResponse {
             assets: assets.iter().map(asset_info_to_proto).collect(),
-            total_count: assets.len() as i32,
+            total_count: i32::try_from(assets.len()).unwrap_or(i32::MAX),
             success: true,
             error: String::new(),
         })),
