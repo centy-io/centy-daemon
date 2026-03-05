@@ -1,29 +1,9 @@
-#![allow(unknown_lints, max_lines_per_file)]
-use super::types::ItemTypeConfig;
-use crate::utils::{get_centy_path, with_yaml_header};
+use crate::config::item_type_config::ItemTypeConfig;
+use crate::utils::get_centy_path;
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 use tracing::error;
-
-/// Read legacy `allowedStates` from a raw `config.json` file, if present.
-/// Returns `None` when config.json is absent, malformed, or has no `allowedStates` key.
-/// Must be called **before** `read_config` so the key is still present on disk.
-pub async fn read_legacy_allowed_states(project_path: &Path) -> Option<Vec<String>> {
-    let config_path = get_centy_path(project_path).join("config.json");
-    let content = fs::read_to_string(&config_path).await.ok()?;
-    let raw: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let arr = raw.get("allowedStates")?.as_array()?;
-    let states: Vec<String> = arr
-        .iter()
-        .filter_map(|v| v.as_str().map(str::to_string))
-        .collect();
-    if states.is_empty() {
-        None
-    } else {
-        Some(states)
-    }
-}
 
 /// Try to load an `ItemTypeConfig` from a single directory entry.
 /// Returns `None` if the entry is not a directory, has no `config.yaml`, or is malformed.
@@ -70,40 +50,6 @@ pub async fn discover_item_types_map(
         }
     }
     Ok(configs)
-}
-
-/// Read an item-type config from `.centy/<folder>/config.yaml`.
-pub async fn read_item_type_config(
-    project_path: &Path,
-    folder: &str,
-) -> Result<Option<ItemTypeConfig>, mdstore::ConfigError> {
-    let config_path = get_centy_path(project_path)
-        .join(folder)
-        .join("config.yaml");
-
-    if !config_path.exists() {
-        return Ok(None);
-    }
-
-    let content = fs::read_to_string(&config_path).await?;
-    let config: ItemTypeConfig = serde_yaml::from_str(&content)?;
-    Ok(Some(config))
-}
-
-/// Write an item-type config to `.centy/<folder>/config.yaml`.
-///
-/// Creates the directory if it does not already exist.
-pub async fn write_item_type_config(
-    project_path: &Path,
-    folder: &str,
-    config: &ItemTypeConfig,
-) -> Result<(), mdstore::ConfigError> {
-    let type_dir = get_centy_path(project_path).join(folder);
-    fs::create_dir_all(&type_dir).await?;
-    let config_path = type_dir.join("config.yaml");
-    let content = with_yaml_header(&serde_yaml::to_string(config)?);
-    fs::write(&config_path, content).await?;
-    Ok(())
 }
 
 /// Discover all item types by scanning `.centy/*/config.yaml`.
