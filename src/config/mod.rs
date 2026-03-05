@@ -3,12 +3,10 @@ mod io;
 pub mod item_type_config;
 pub mod migrate;
 mod types;
-#[allow(unused_imports)]
 pub use io::{
     get_project_title, read_config, read_project_metadata, set_project_title, write_config,
     write_project_metadata,
 };
-#[allow(unused_imports)]
 pub use types::{
     default_priority_levels, CentyConfig, CleanupConfig, ProjectMetadata, WorkspaceConfig,
 };

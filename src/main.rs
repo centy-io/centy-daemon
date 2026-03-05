@@ -1,5 +1,7 @@
 // Allow unknown/renamed lints (shared with lib.rs for consistency across targets)
 #![allow(unknown_lints, renamed_and_removed_lints, wildcard_imports)]
+// Allow unused imports for pub use re-exports that form the lib's public API but aren't all used by the binary
+#![allow(unused_imports)]
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 #![cfg_attr(
     test,

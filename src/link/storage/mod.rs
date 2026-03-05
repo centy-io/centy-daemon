@@ -1,11 +1,12 @@
 mod io;
 mod links_file;
-#[allow(unused_imports)]
-pub use crate::link::Link;
 pub use io::{read_links, write_links};
-#[allow(unused_imports)]
-pub use links_file::{LinksFile, LINKS_FILENAME};
-#[allow(unused_imports)]
+pub use links_file::LinksFile;
+#[cfg(test)]
+pub use crate::link::Link;
+#[cfg(test)]
+pub use links_file::LINKS_FILENAME;
+#[cfg(test)]
 pub use tokio::fs;
 #[cfg(test)]
 #[path = "../storage_tests_1.rs"]
