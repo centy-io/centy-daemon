@@ -54,7 +54,6 @@ fn test_config_to_proto_roundtrip() {
     assert!(f.r#move);
     assert!(f.duplicate);
 }
-#[allow(clippy::unwrap_used)]
 #[test]
 fn test_build_config_basic() {
     let req = CreateItemTypeRequest {

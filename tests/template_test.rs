@@ -171,10 +171,9 @@ async fn test_issue_template_with_conditionals() {
         .await
         .expect("Should create issue");
 
-    let content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
-            .await
-            .unwrap();
+    let content = fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
+        .await
+        .unwrap();
     assert!(content.contains("## Description"));
     assert!(content.contains("Has description"));
 
