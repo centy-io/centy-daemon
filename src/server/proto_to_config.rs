@@ -67,5 +67,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
                 update_status_on_open: w.update_status_on_open,
             })
             .unwrap_or_default(),
+        cleanup: crate::config::CleanupConfig::default(),
     }
 }

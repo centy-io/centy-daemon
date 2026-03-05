@@ -12,6 +12,7 @@
     )
 )]
 
+mod cleanup;
 mod common;
 mod config;
 mod cors;
@@ -184,6 +185,9 @@ async fn main() -> Result<()> {
 
     // Get the current executable path for restart
     let exe_path = std::env::current_exe().ok();
+
+    // Spawn background cleanup task (runs at startup then every hour)
+    cleanup::spawn_cleanup_task();
 
     let service = CentyDaemonService::new(shutdown_tx.clone(), exe_path, user_cfg);
 

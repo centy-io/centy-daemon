@@ -19,6 +19,7 @@ fn test_all_config_fields_acknowledged_in_init() {
         default_editor: _,    // ✓ exposed via InitRequest.init_config (Config.default_editor)
         hooks: _,             // ✓ exposed via InitRequest.init_config (Config.hooks)
         workspace,            // ✓ exposed via InitRequest.init_config (Config.workspace)
+        cleanup: _,           // not exposed at init time; configured directly in config.json
     } = CentyConfig::default();
 
     let WorkspaceConfig {
