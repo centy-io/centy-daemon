@@ -170,7 +170,7 @@ const_is_empty = "allow"
 manual_let_else = "deny"
 unused_async = "allow"
 struct_field_names = "allow"
-trivially_copy_pass_by_ref = "allow"
+trivially_copy_pass_by_ref = "deny"
 
 [[bin]]
 name = "centy-daemon"

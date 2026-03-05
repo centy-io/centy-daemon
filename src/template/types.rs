@@ -9,7 +9,7 @@ pub enum TemplateType {
 
 impl TemplateType {
     #[must_use]
-    pub fn folder_name(&self) -> &'static str {
+    pub fn folder_name(self) -> &'static str {
         match self {
             TemplateType::Issue => "issues",
         }
