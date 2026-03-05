@@ -1,10 +1,24 @@
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::{generic_get, generic_soft_delete};
 use crate::server::convert_entity::generic_item_to_proto;
+use crate::server::error_mapping::ToStructuredError;
 use crate::server::hooks_helper::maybe_run_post_hooks;
 use crate::server::proto::SoftDeleteItemResponse;
 use crate::server::structured_error::to_error_json;
+use std::fmt::Display;
 use std::path::Path;
+
+pub(super) fn err_resp(
+    project_path_str: &str,
+    e: &(impl ToStructuredError + Display),
+) -> SoftDeleteItemResponse {
+    SoftDeleteItemResponse {
+        success: false,
+        error: to_error_json(project_path_str, e),
+        ..Default::default()
+    }
+}
+
 pub(super) async fn do_soft_delete(
     project_path: &Path,
     item_type: &str,

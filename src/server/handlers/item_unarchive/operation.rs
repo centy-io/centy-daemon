@@ -2,12 +2,33 @@ use super::super::item_archive::ARCHIVED_FOLDER;
 use crate::hooks::HookOperation;
 use crate::item::generic::storage::generic_move;
 use crate::server::convert_entity::generic_item_to_proto;
+use crate::server::error_mapping::ToStructuredError;
 use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::UnarchiveItemResponse;
 use crate::server::structured_error::to_error_json;
 use mdstore::TypeConfig;
+use std::fmt::Display;
 use std::path::Path;
 use tonic::{Response, Status};
+
+pub(super) fn err_resp(
+    project_path_str: &str,
+    e: &(impl ToStructuredError + Display),
+) -> UnarchiveItemResponse {
+    UnarchiveItemResponse {
+        success: false,
+        error: to_error_json(project_path_str, e),
+        ..Default::default()
+    }
+}
+
+pub(super) fn err_resp_str(error: String) -> UnarchiveItemResponse {
+    UnarchiveItemResponse {
+        success: false,
+        error,
+        ..Default::default()
+    }
+}
 /// Execute the move from `archived/` to `target_type`, run surrounding hooks.
 pub(super) async fn move_and_respond(
     project_path: &Path,
@@ -34,11 +55,7 @@ pub(super) async fn move_and_respond(
     )
     .await
     {
-        return Ok(Response::new(UnarchiveItemResponse {
-            success: false,
-            error: to_error_json(project_path_str, &e),
-            ..Default::default()
-        }));
+        return Ok(Response::new(err_resp(project_path_str, &e)));
     }
     let move_result = generic_move(
         project_path,
@@ -69,10 +86,6 @@ pub(super) async fn move_and_respond(
             item: Some(generic_item_to_proto(&result.item, target_type)),
             original_item_type: target_folder,
         })),
-        Err(e) => Ok(Response::new(UnarchiveItemResponse {
-            success: false,
-            error: to_error_json(project_path_str, &e),
-            ..Default::default()
-        })),
+        Err(e) => Ok(Response::new(err_resp(project_path_str, &e))),
     }
 }

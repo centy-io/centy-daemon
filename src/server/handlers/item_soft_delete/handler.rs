@@ -1,11 +1,10 @@
 use super::super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
-use super::operation::do_soft_delete;
+use super::operation::{do_soft_delete, err_resp};
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{SoftDeleteItemRequest, SoftDeleteItemResponse};
-use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 pub async fn soft_delete_item(
@@ -14,32 +13,16 @@ pub async fn soft_delete_item(
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path).await {
-        return Ok(Response::new(SoftDeleteItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
-        }));
+        return Ok(Response::new(err_resp(&req.project_path, &e)));
     }
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
-        Err(e) => {
-            return Ok(Response::new(SoftDeleteItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-                ..Default::default()
-            }))
-        }
+        Err(e) => return Ok(Response::new(err_resp(&req.project_path, &e))),
     };
     let hook_type = config.name.to_lowercase();
     let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
         Ok(id) => id,
-        Err(e) => {
-            return Ok(Response::new(SoftDeleteItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-                ..Default::default()
-            }))
-        }
+        Err(e) => return Ok(Response::new(err_resp(&req.project_path, &e))),
     };
     let hook_project_path = req.project_path.clone();
     let hook_item_id = item_id.clone();
@@ -54,11 +37,7 @@ pub async fn soft_delete_item(
     )
     .await
     {
-        return Ok(Response::new(SoftDeleteItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
-        }));
+        return Ok(Response::new(err_resp(&req.project_path, &e)));
     }
     Ok(Response::new(
         do_soft_delete(
