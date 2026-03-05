@@ -8,8 +8,6 @@ mod move_ops;
 use crate::item::core::error::ItemError;
 #[cfg(test)]
 use crate::manifest;
-#[cfg(test)]
-use crate::utils::get_centy_path;
 pub use crud_ops::{
     generic_create, generic_delete, generic_get, generic_list, generic_restore,
     generic_soft_delete, generic_update,

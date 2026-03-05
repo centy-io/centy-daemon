@@ -1,8 +1,6 @@
 use thiserror::Error;
 
-pub use super::helpers::{
-    compute_binary_hash, get_mime_type, sanitize_filename, IMAGE_MIME_TYPES, VIDEO_MIME_TYPES,
-};
+pub use super::helpers::{compute_binary_hash, get_mime_type, sanitize_filename};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AssetScope {

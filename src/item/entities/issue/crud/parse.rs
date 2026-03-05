@@ -30,11 +30,3 @@ pub fn parse_issue_md(content: &str) -> (String, String) {
         .to_string();
     (title, description)
 }
-
-pub fn generate_issue_md(title: &str, description: &str) -> String {
-    if description.is_empty() {
-        format!("# {title}\n")
-    } else {
-        format!("# {title}\n\n{description}\n")
-    }
-}
