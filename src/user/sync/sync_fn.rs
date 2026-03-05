@@ -1,7 +1,7 @@
-use super::helpers::create_user_from_contributor;
 use super::super::git::{get_git_contributors, is_git_repository};
 use super::super::storage::{find_user_by_email, read_users};
 use super::super::types::{SyncUsersResult, UserError};
+use super::helpers::create_user_from_contributor;
 use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use std::path::Path;
 use tracing::info;

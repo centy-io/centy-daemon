@@ -22,8 +22,7 @@ pub async fn create_user_from_contributor(
         Ok(_) => result.created.push(id),
         Err(e) => {
             if matches!(e, UserError::UserAlreadyExists(_)) {
-                let email_slug =
-                    slugify(contributor.email.split('@').next().unwrap_or("user"));
+                let email_slug = slugify(contributor.email.split('@').next().unwrap_or("user"));
                 let fallback_id = format!("{id}-{email_slug}");
                 match create_user(
                     project_path,
