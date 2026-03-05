@@ -8,7 +8,6 @@ fn test_archived_config_yaml_serialization() {
     assert!(yaml.contains("name: Archived"));
     assert!(yaml.contains("identifier: uuid"));
     assert!(yaml.contains("displayNumber: false"));
-    assert!(yaml.contains("status: false"));
     assert!(yaml.contains("priority: false"));
     assert!(yaml.contains("softDelete: false"));
     assert!(yaml.contains("assets: true"));

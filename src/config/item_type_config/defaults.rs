@@ -41,7 +41,6 @@ pub fn default_doc_config() -> ItemTypeConfig {
         identifier: IdStrategy::Slug,
         features: ItemTypeFeatures {
             display_number: false,
-            status: false,
             priority: false,
             soft_delete: false,
             assets: false,

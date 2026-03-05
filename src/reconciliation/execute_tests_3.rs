@@ -63,8 +63,8 @@ async fn test_execute_reconciliation_issues_config_yaml_content() {
         "Should have displayNumber enabled"
     );
     assert!(
-        content.contains("status: true"),
-        "Should have status enabled"
+        !content.contains("status:"),
+        "status feature flag should not be present"
     );
     assert!(
         content.contains("priority: true"),
@@ -101,8 +101,8 @@ async fn test_execute_reconciliation_docs_config_yaml_content() {
         "Docs should not have displayNumber"
     );
     assert!(
-        content.contains("status: false"),
-        "Docs should not have status"
+        !content.contains("status:"),
+        "status feature flag should not be present"
     );
     assert!(
         content.contains("priority: false"),

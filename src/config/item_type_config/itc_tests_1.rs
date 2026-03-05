@@ -21,7 +21,6 @@ fn test_default_issue_config_maps_fields() {
     assert_eq!(issue.priority_levels, Some(5));
     assert_eq!(issue.template, Some("template.md".to_string()));
     assert!(issue.features.display_number);
-    assert!(issue.features.status);
     assert!(issue.features.priority);
     assert!(issue.features.soft_delete);
     assert!(issue.features.assets);
@@ -43,7 +42,6 @@ fn test_default_doc_config() {
     assert!(doc.custom_fields.is_empty());
     assert!(doc.template.is_none());
     assert!(!doc.features.display_number);
-    assert!(!doc.features.status);
     assert!(!doc.features.priority);
     assert!(!doc.features.soft_delete);
     assert!(!doc.features.assets);
@@ -67,7 +65,6 @@ fn test_default_archived_config() {
     assert_eq!(archived.custom_fields[0].name, "original_item_type");
     assert_eq!(archived.custom_fields[0].field_type, "string");
     assert!(!archived.features.display_number);
-    assert!(!archived.features.status);
     assert!(!archived.features.priority);
     assert!(!archived.features.soft_delete);
     assert!(archived.features.assets);

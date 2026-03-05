@@ -24,7 +24,6 @@ fn test_config_to_proto_roundtrip() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures {
             display_number: true,
-            status: true,
             priority: true,
             soft_delete: true,
             assets: false,

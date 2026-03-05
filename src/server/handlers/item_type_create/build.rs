@@ -15,7 +15,6 @@ pub(super) fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
         identifier,
         features: ItemTypeFeatures {
             display_number: features.display_number,
-            status: features.status,
             priority: features.priority,
             soft_delete: features.soft_delete,
             assets: features.assets,

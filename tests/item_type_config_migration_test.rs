@@ -43,7 +43,6 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should exist");
     assert_eq!(issue_config.name, "Issue");
     assert_eq!(issue_config.identifier, IdStrategy::Uuid);
-    assert!(issue_config.features.status);
     assert!(issue_config.features.priority);
 
     // Verify docs config content
@@ -53,7 +52,6 @@ async fn test_fresh_project_creates_both_config_yaml() {
         .expect("Should exist");
     assert_eq!(doc_config.name, "Doc");
     assert_eq!(doc_config.identifier, IdStrategy::Slug);
-    assert!(!doc_config.features.status);
     assert!(!doc_config.features.priority);
 }
 
@@ -173,7 +171,7 @@ async fn test_preserves_existing_config_yaml() {
         .await
         .expect("create docs/");
 
-    // Pre-create a custom issues/config.yaml
+    // Pre-create a custom issues/config.yaml (with legacy status field that migration will strip)
     let custom_yaml = "name: CustomIssue\nplural: custom-issues\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  status: true\n  priority: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\n";
     fs::write(centy_path.join("issues").join("config.yaml"), custom_yaml)
         .await
@@ -194,14 +192,19 @@ async fn test_preserves_existing_config_yaml() {
     // docs/config.yaml should be created
     assert!(result.created.contains(&"docs/config.yaml".to_string()));
 
-    // Verify custom content is preserved
-    let content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
+    // Verify custom content is preserved (migration re-writes to strip legacy fields,
+    // but all meaningful fields are kept)
+    let preserved = read_item_type_config(project_path, "issues")
         .await
-        .expect("read");
-    assert_eq!(
-        content, custom_yaml,
-        "Custom config.yaml should be preserved"
-    );
+        .expect("read")
+        .expect("exists");
+    assert_eq!(preserved.name, "CustomIssue");
+    assert!(preserved.features.display_number);
+    assert!(preserved.features.priority);
+    assert!(preserved.features.assets);
+    assert!(preserved.features.org_sync);
+    assert!(preserved.features.move_item);
+    assert!(preserved.features.duplicate);
 }
 
 /// Pre-existing project: simulate a real project (issues/, docs/, config.json

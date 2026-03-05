@@ -10,9 +10,6 @@ pub struct ItemTypeFeatures {
     /// Enable display numbers (1, 2, 3…) for items.
     #[serde(default)]
     pub display_number: bool,
-    /// Enable status tracking (e.g. `open`, `in-progress`, `closed`).
-    #[serde(default)]
-    pub status: bool,
     /// Enable priority levels.
     #[serde(default)]
     pub priority: bool,
