@@ -26,7 +26,15 @@ fn spawn_async_hook(hook: &HookDefinition, context: &HookContext, project_path: 
 }
 
 async fn run_sync_hook(hook: &HookDefinition, context: &HookContext, project_path: &Path) {
-    match execute_hook(&hook.command, context, project_path, hook.timeout, &hook.pattern).await {
+    match execute_hook(
+        &hook.command,
+        context,
+        project_path,
+        hook.timeout,
+        &hook.pattern,
+    )
+    .await
+    {
         Ok(result) if result.exit_code != 0 => {
             warn!(
                 "Post-hook '{}' exited with code {}: {}",
