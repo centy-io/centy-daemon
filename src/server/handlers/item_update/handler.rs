@@ -50,11 +50,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
     )
     .await
     {
-        return Ok(Response::new(UpdateItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
-        }));
+        return Ok(err_response(&req.project_path, &e));
     }
     let options = build_update_options(
         req.title,
