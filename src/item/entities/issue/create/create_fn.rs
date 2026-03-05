@@ -69,7 +69,7 @@ pub async fn create_issue(
     let created_files = vec![format!(".centy/issues/{issue_id}.md")];
     let metadata = build_issue_metadata(
         display_number,
-        &org_slug,
+        org_slug.as_deref(),
         org_display_number,
         status,
         priority,
