@@ -15,7 +15,6 @@ pub struct HookExecResult {
 }
 
 /// Execute a single hook command
-#[allow(unknown_lints, max_lines_per_function)]
 pub async fn execute_hook(
     command: &str,
     context: &HookContext,

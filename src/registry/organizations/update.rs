@@ -6,7 +6,6 @@ use crate::utils::now_iso;
 use tracing::info;
 
 /// Update an existing organization
-#[allow(unknown_lints, max_lines_per_function)]
 pub async fn update_organization(
     slug: &str,
     name: Option<&str>,
