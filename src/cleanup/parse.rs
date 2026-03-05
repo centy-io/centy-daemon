@@ -9,19 +9,10 @@ pub fn parse_retention_duration(s: &str) -> Option<Duration> {
     if s.is_empty() || s == "0" {
         return None;
     }
-    if let Some(days) = s.strip_suffix('d') {
-        let n: i64 = days.trim().parse().ok()?;
-        if n <= 0 {
-            return None;
-        }
-        return Some(Duration::days(n));
+    let std_duration = humantime::parse_duration(s).ok()?;
+    let chrono_duration = Duration::from_std(std_duration).ok()?;
+    if chrono_duration <= Duration::zero() {
+        return None;
     }
-    if let Some(hours) = s.strip_suffix('h') {
-        let n: i64 = hours.trim().parse().ok()?;
-        if n <= 0 {
-            return None;
-        }
-        return Some(Duration::hours(n));
-    }
-    None
+    Some(chrono_duration)
 }
