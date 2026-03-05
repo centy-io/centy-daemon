@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install protoc
         uses: arduino/setup-protoc@v3
@@ -62,6 +64,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install protoc
         uses: arduino/setup-protoc@v3
@@ -102,6 +106,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Download daemon binary
         uses: actions/download-artifact@v4
