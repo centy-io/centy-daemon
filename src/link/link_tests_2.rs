@@ -15,7 +15,7 @@ fn test_link_new_creates_timestamp() {
     );
     assert_eq!(link.target_id, "target-1");
     assert_eq!(link.target_type, TargetType::new("doc"));
-    assert_eq!(link.link_type, "relates-to");
+    assert_eq!(link.kind, "relates-to");
     assert!(!link.created_at.is_empty());
 }
 
@@ -31,7 +31,7 @@ fn test_link_deserialization() {
     let link: Link = serde_json::from_str(json).unwrap();
     assert_eq!(link.target_id, "abc-123");
     assert_eq!(link.target_type, TargetType::issue());
-    assert_eq!(link.link_type, "blocks");
+    assert_eq!(link.kind, "blocks");
     assert_eq!(link.created_at, "2024-01-01T00:00:00Z");
 }
 

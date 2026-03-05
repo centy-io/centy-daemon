@@ -35,7 +35,7 @@ fn test_links_file_remove_link() {
     // Remove specific link type
     assert!(file.remove_link("uuid-1", Some("blocks")));
     assert_eq!(file.links.len(), 1);
-    assert_eq!(file.links[0].link_type, "parent-of");
+    assert_eq!(file.links[0].kind, "parent-of");
 }
 
 #[test]

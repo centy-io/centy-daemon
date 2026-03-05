@@ -2,6 +2,7 @@ use crate::manifest::CentyManifest;
 use std::collections::HashSet;
 use thiserror::Error;
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum ExecuteError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),

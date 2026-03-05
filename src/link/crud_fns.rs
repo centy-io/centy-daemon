@@ -78,7 +78,7 @@ pub async fn delete_link(
             .links
             .iter()
             .filter(|l| l.target_id == options.target_id)
-            .map(|l| l.link_type.clone())
+            .map(|l| l.kind.clone())
             .collect();
         if source_links.remove_link(&options.target_id, None) {
             deleted_count =

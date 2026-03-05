@@ -21,7 +21,7 @@ pub fn internal_link_to_proto(link: &crate::link::Link) -> ProtoLink {
     ProtoLink {
         target_id: link.target_id.clone(),
         target_type: internal_target_type_to_proto(&link.target_type),
-        link_type: link.link_type.clone(),
+        link_type: link.kind.clone(),
         created_at: link.created_at.clone(),
     }
 }

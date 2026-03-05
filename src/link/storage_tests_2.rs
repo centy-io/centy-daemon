@@ -82,5 +82,5 @@ async fn test_write_and_read_links() {
     let read_back = read_links(&entity_path).await.expect("Should read");
     assert_eq!(read_back.links.len(), 1);
     assert_eq!(read_back.links[0].target_id, "uuid-2");
-    assert_eq!(read_back.links[0].link_type, "blocks");
+    assert_eq!(read_back.links[0].kind, "blocks");
 }

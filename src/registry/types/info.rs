@@ -1,5 +1,6 @@
 /// Returned by API (enriched with live data from disk)
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ProjectInfo {
     pub path: String,
     pub first_accessed: String,
@@ -29,6 +30,7 @@ pub struct OrganizationInfo {
 }
 /// Options for listing projects
 #[derive(Debug, Clone, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ListProjectsOptions<'a> {
     pub include_stale: bool,
     pub include_uninitialized: bool,

@@ -38,7 +38,8 @@ impl std::fmt::Display for TargetType {
 pub struct Link {
     pub target_id: String,
     pub target_type: TargetType,
-    pub link_type: String,
+    #[serde(rename = "linkType")]
+    pub kind: String,
     pub created_at: String,
 }
 impl Link {
@@ -47,7 +48,7 @@ impl Link {
         Self {
             target_id,
             target_type,
-            link_type,
+            kind: link_type,
             created_at: crate::utils::now_iso(),
         }
     }
