@@ -1,59 +1,19 @@
-#![allow(unknown_lints, max_lines_per_file)]
 //! Organization-level issue display number registry.
 //!
 //! Manages central tracking of display numbers for org-level issues.
 //! Stored at ~/.centy/org-issues-registry.json
+mod types;
+pub use types::{OrgIssueRegistry, OrgIssueRegistryError};
 
 use crate::utils::now_iso;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use thiserror::Error;
 use tokio::fs;
 use tokio::sync::Mutex;
-
-/// Error types for org issue registry operations
-#[derive(Error, Debug)]
-pub enum OrgIssueRegistryError {
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
-    #[error("JSON error: {0}")]
-    JsonError(#[from] serde_json::Error),
-    #[error("Failed to determine home directory")]
-    HomeDirNotFound,
-}
 
 static ORG_ISSUE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 fn get_lock() -> &'static Mutex<()> {
     ORG_ISSUE_LOCK.get_or_init(|| Mutex::new(()))
-}
-
-/// Registry tracking org-level issue display numbers
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OrgIssueRegistry {
-    /// Next available display number for each organization (keyed by org_slug)
-    #[serde(default)]
-    pub next_display_number: HashMap<String, u32>,
-    /// ISO timestamp of last update
-    pub updated_at: String,
-}
-
-impl Default for OrgIssueRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl OrgIssueRegistry {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            next_display_number: HashMap::new(),
-            updated_at: now_iso(),
-        }
-    }
 }
 
 fn get_centy_config_dir() -> Result<PathBuf, OrgIssueRegistryError> {
@@ -67,7 +27,6 @@ fn get_registry_path() -> Result<PathBuf, OrgIssueRegistryError> {
     Ok(get_centy_config_dir()?.join("org-issues-registry.json"))
 }
 
-/// Read the org issue registry from disk
 pub async fn read_org_issue_registry() -> Result<OrgIssueRegistry, OrgIssueRegistryError> {
     let path = get_registry_path()?;
     if !path.exists() {
@@ -89,7 +48,6 @@ async fn write_registry_unlocked(registry: &OrgIssueRegistry) -> Result<(), OrgI
     Ok(())
 }
 
-/// Get the next org-level display number for an organization (atomically increments).
 pub async fn get_next_org_display_number(org_slug: &str) -> Result<u32, OrgIssueRegistryError> {
     let _guard = get_lock().lock().await;
     let mut registry = read_org_issue_registry().await?;
@@ -102,8 +60,6 @@ pub async fn get_next_org_display_number(org_slug: &str) -> Result<u32, OrgIssue
     Ok(next)
 }
 
-/// Get the current (last used) org display number for an organization.
-/// Returns 0 if no org issues have been created for this organization yet.
 pub async fn get_current_org_display_number(org_slug: &str) -> Result<u32, OrgIssueRegistryError> {
     let registry = read_org_issue_registry().await?;
     let next = *registry.next_display_number.get(org_slug).unwrap_or(&1);
@@ -111,5 +67,5 @@ pub async fn get_current_org_display_number(org_slug: &str) -> Result<u32, OrgIs
 }
 
 #[cfg(test)]
-#[path = "org_registry_tests.rs"]
+#[path = "../org_registry_tests.rs"]
 mod tests;
