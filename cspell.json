@@ -57,6 +57,7 @@
     "inotify",
     "INSTALLDIR",
     "INSTALLFOLDER",
+    "itertools",
     "janedoe",
     "johndoe",
     "jsons",
