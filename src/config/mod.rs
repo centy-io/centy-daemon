@@ -1,5 +1,4 @@
 mod io;
-#[allow(dead_code)]
 pub mod item_type_config;
 pub mod migrate;
 mod types;
