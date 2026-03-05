@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::links_file::{LinksFile, LINKS_FILENAME};
 use std::path::Path;
 use tokio::fs;

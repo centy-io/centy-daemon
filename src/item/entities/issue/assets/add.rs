@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::types::{
     compute_binary_hash, get_mime_type, sanitize_filename, AddAssetResult, AssetError, AssetInfo,
     AssetScope,

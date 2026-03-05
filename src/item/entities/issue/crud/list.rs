@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
 use super::super::reconcile::reconcile_display_numbers;
 use super::extra_types::{GetIssuesByUuidResult, IssueWithProject};

@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 mod file_ops;
 mod types;
 use super::managed_files::get_managed_files;

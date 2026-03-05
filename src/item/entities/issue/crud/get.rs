@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::super::reconcile::reconcile_display_numbers;

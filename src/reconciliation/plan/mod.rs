@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 pub(crate) mod helpers;
 mod types;
 use super::managed_files::get_managed_files;

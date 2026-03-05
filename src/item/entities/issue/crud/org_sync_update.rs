@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueFrontmatter;
 use super::org_sync::create_issue_in_project;
