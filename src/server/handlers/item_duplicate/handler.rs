@@ -6,9 +6,16 @@ use crate::registry::track_project_async;
 use crate::server::helpers::nonempty;
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{DuplicateItemRequest, DuplicateItemResponse};
-use crate::server::structured_error::to_error_json;
 use std::path::{Path, PathBuf};
 use tonic::{Response, Status};
+fn build_hook_data(req: &DuplicateItemRequest, item_type: &str) -> serde_json::Value {
+    serde_json::json!({
+        "item_type": item_type,
+        "source_project_path": &req.source_project_path,
+        "target_project_path": &req.target_project_path,
+        "item_id": &req.item_id,
+    })
+}
 pub async fn duplicate_item(
     req: DuplicateItemRequest,
 ) -> Result<Response<DuplicateItemResponse>, Status> {
@@ -31,12 +38,7 @@ pub async fn duplicate_item(
     }
     let hook_project_path = req.source_project_path.clone();
     let hook_item_id = req.item_id.clone();
-    let hook_request_data = serde_json::json!({
-        "item_type": &req.item_type,
-        "source_project_path": &req.source_project_path,
-        "target_project_path": &req.target_project_path,
-        "item_id": &req.item_id,
-    });
+    let hook_request_data = build_hook_data(&req, &item_type);
     if let Err(e) = maybe_run_pre_hooks(
         Path::new(&hook_project_path),
         &hook_type,
@@ -47,11 +49,7 @@ pub async fn duplicate_item(
     )
     .await
     {
-        return Ok(Response::new(DuplicateItemResponse {
-            success: false,
-            error: to_error_json(&req.source_project_path, &e),
-            ..Default::default()
-        }));
+        return Ok(err_resp(&req.source_project_path, &e));
     }
     let options = DuplicateGenericItemOptions {
         source_project_path: PathBuf::from(&req.source_project_path),
