@@ -139,6 +139,9 @@ string_slice = "deny"
 # Warn on long functions - enforces refactoring into smaller functions
 too_many_lines = "deny"
 
+# Prefer map_or/map_or_else/is_some_and/is_none_or over map().unwrap_or()
+map_unwrap_or = "deny"
+
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
@@ -149,7 +152,6 @@ cast_possible_truncation = "deny"
 cast_possible_wrap = "deny"
 cast_sign_loss = "deny"
 struct_excessive_bools = "allow"
-map_unwrap_or = "deny"
 single_match_else = "allow"
 unused_self = "allow"
 needless_pass_by_value = "allow"
