@@ -24,22 +24,5 @@ pub(super) fn validate_request(req: &CreateItemTypeRequest) -> Result<(), (Strin
             "identifier must be \"uuid\" or \"slug\"".into(),
         ));
     }
-    if !req.default_status.is_empty() {
-        if req.statuses.is_empty() {
-            return Err((
-                "VALIDATION_ERROR".into(),
-                "default_status provided but statuses list is empty".into(),
-            ));
-        }
-        if !req.statuses.contains(&req.default_status) {
-            return Err((
-                "VALIDATION_ERROR".into(),
-                format!(
-                    "default_status \"{}\" must be in statuses list {:?}",
-                    req.default_status, req.statuses
-                ),
-            ));
-        }
-    }
     Ok(())
 }

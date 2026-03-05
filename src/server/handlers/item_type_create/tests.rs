@@ -32,7 +32,6 @@ fn test_config_to_proto_roundtrip() {
             duplicate: true,
         },
         statuses: vec!["open".to_string(), "closed".to_string()],
-        default_status: Some("open".to_string()),
         priority_levels: Some(3),
         custom_fields: vec![],
         template: Some("bug.md".to_string()),

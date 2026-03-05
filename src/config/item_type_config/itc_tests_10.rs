@@ -61,7 +61,6 @@ async fn test_registry_resolve_by_folder_case_insensitive() {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
-        default_status: None,
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,

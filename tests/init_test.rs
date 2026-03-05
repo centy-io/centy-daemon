@@ -783,7 +783,6 @@ async fn test_init_creates_docs_config_yaml() {
     assert!(!config.features.display_number);
     assert!(!config.features.priority);
     assert!(config.statuses.is_empty());
-    assert!(config.default_status.is_none());
     assert!(config.priority_levels.is_none());
 }
 

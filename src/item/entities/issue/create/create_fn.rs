@@ -45,7 +45,7 @@ pub async fn create_issue(
     let status = options.status.clone().unwrap_or_else(|| {
         item_type_config
             .as_ref()
-            .and_then(|c| c.default_status.clone())
+            .and_then(|c| c.statuses.first().cloned())
             .unwrap_or_else(|| "open".to_string())
     });
     validate_status_for_project(project_path, "issues", &status).await?;

@@ -78,7 +78,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
             duplicate: config.features.duplicate,
         }),
         statuses: config.statuses.clone(),
-        default_status: config.default_status.clone().unwrap_or_default(),
+        default_status: config.statuses.first().cloned().unwrap_or_default(),
         priority_levels: config.priority_levels.unwrap_or(0),
         custom_fields: config
             .custom_fields

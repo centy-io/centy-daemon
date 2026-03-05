@@ -110,7 +110,7 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         issue_config.statuses,
         vec!["open", "in-progress", "closed", "testing"]
     );
-    assert_eq!(issue_config.default_status, Some("open".to_string()));
+    assert_eq!(issue_config.statuses.first().map(String::as_str), Some("open"));
     assert_eq!(issue_config.priority_levels, Some(5));
     assert_eq!(issue_config.custom_fields.len(), 1);
     assert_eq!(issue_config.custom_fields[0].name, "env");
@@ -121,7 +121,7 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         .expect("Should read")
         .expect("Should exist");
     assert!(doc_config.statuses.is_empty());
-    assert!(doc_config.default_status.is_none());
+    assert!(doc_config.statuses.is_empty());
     assert!(doc_config.priority_levels.is_none());
 }
 
@@ -309,7 +309,6 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
     // Build an issue config with custom statuses directly (allowed_states removed from CentyConfig)
     let mut issue_config = centy_daemon::config::item_type_config::default_issue_config(&config);
     issue_config.statuses = vec!["open".to_string(), "done".to_string()];
-    issue_config.default_status = Some("open".to_string());
 
     write_item_type_config(project_path, "issues", &issue_config)
         .await
@@ -323,5 +322,5 @@ async fn test_item_type_config_roundtrip_via_filesystem() {
     assert_eq!(read.name, "Issue");
     assert_eq!(read.priority_levels, Some(7));
     assert_eq!(read.statuses, vec!["open", "done"]);
-    assert_eq!(read.default_status, Some("open".to_string()));
+    assert_eq!(read.statuses.first().map(String::as_str), Some("open"));
 }

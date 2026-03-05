@@ -50,10 +50,6 @@ pub struct ItemTypeConfig {
     /// Omitted when empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub statuses: Vec<String>,
-    /// Default status for newly created items. Must appear in `statuses`.
-    /// Omitted when not set.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default_status: Option<String>,
     /// Number of priority levels (must be > 0 when present).
     /// Omitted when not set.
     #[serde(default, skip_serializing_if = "Option::is_none")]

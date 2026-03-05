@@ -59,7 +59,6 @@ pub async fn migrate_to_item_type_configs(
     if !issues_config_path.exists() {
         let mut issue_config = default_issue_config(config);
         if let Some(statuses) = legacy_statuses {
-            issue_config.default_status = statuses.first().cloned();
             issue_config.statuses = statuses;
         }
         write_item_type_config(project_path, "issues", &issue_config).await?;
