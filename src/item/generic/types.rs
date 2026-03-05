@@ -1,7 +1,7 @@
 //! Daemon-specific generic item types.
 //!
-//! Core types (Frontmatter, Item, CreateOptions, UpdateOptions, DuplicateResult,
-//! MoveResult) now live in mdstore. This module retains daemon-specific types
+//! Core types (`Frontmatter`, `Item`, `CreateOptions`, `UpdateOptions`, `DuplicateResult`,
+//! `MoveResult`) now live in mdstore. This module retains daemon-specific types
 //! that need project paths rather than type directories.
 
 use std::path::PathBuf;
