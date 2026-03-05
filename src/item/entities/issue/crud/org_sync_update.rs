@@ -16,9 +16,15 @@ async fn read_existing_issue(
     issue_id: &str,
 ) -> Option<(bool, Issue)> {
     if file_path.exists() {
-        read_issue_from_frontmatter(file_path, issue_id).await.ok().map(|i| (true, i))
+        read_issue_from_frontmatter(file_path, issue_id)
+            .await
+            .ok()
+            .map(|i| (true, i))
     } else if folder_path.exists() {
-        read_issue_from_legacy_folder(folder_path, issue_id).await.ok().map(|i| (false, i))
+        read_issue_from_legacy_folder(folder_path, issue_id)
+            .await
+            .ok()
+            .map(|i| (false, i))
     } else {
         None
     }

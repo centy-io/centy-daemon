@@ -321,6 +321,13 @@ sliced_string_as_bytes = "deny"
 unnecessary_clippy_cfg = "deny"
 manual_div_ceil = "deny"
 precedence_bits = "deny"
+manual_ok_err = "deny"
+large_stack_frames = "deny"
+host_endian_bytes = "deny"
+little_endian_bytes = "deny"
+big_endian_bytes = "deny"
+cfg_not_test = "deny"
+uninhabited_references = "deny"
 
 [[bin]]
 name = "centy-daemon"
