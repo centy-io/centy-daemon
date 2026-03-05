@@ -6,6 +6,24 @@ use mdstore::{TypeConfig, UpdateOptions};
 use std::collections::HashMap;
 use std::path::Path;
 use tonic::{Response, Status};
+
+use super::super::item_type_resolve::resolve_item_type_config;
+
+pub(super) async fn resolve_config_or_err(
+    project_path: &Path,
+    type_name: &str,
+    project_path_str: &str,
+) -> Result<(String, TypeConfig), Response<ArchiveItemResponse>> {
+    resolve_item_type_config(project_path, type_name)
+        .await
+        .map_err(|e| {
+            Response::new(ArchiveItemResponse {
+                success: false,
+                error: to_error_json(project_path_str, &e),
+                item: None,
+            })
+        })
+}
 /// The folder name used for archived items.
 pub const ARCHIVED_FOLDER: &str = "archived";
 /// After a successful move, stamp `original_item_type` on the archived item

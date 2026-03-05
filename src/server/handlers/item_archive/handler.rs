@@ -1,6 +1,6 @@
-#![allow(unknown_lints, max_lines_per_file)]
-use super::super::item_type_resolve::resolve_item_type_config;
-use super::operation::{do_move_to_archive, set_original_item_type_and_respond, ARCHIVED_FOLDER};
+use super::operation::{
+    do_move_to_archive, resolve_config_or_err, set_original_item_type_and_respond, ARCHIVED_FOLDER,
+};
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
@@ -24,26 +24,14 @@ pub async fn archive_item(
         }));
     }
     let (source_type, source_config) =
-        match resolve_item_type_config(project_path, &req.item_type).await {
+        match resolve_config_or_err(project_path, &req.item_type, &req.project_path).await {
             Ok(pair) => pair,
-            Err(e) => {
-                return Ok(Response::new(ArchiveItemResponse {
-                    success: false,
-                    error: to_error_json(&req.project_path, &e),
-                    item: None,
-                }))
-            }
+            Err(resp) => return Ok(resp),
         };
     let (archived_type, archived_config) =
-        match resolve_item_type_config(project_path, ARCHIVED_FOLDER).await {
+        match resolve_config_or_err(project_path, ARCHIVED_FOLDER, &req.project_path).await {
             Ok(pair) => pair,
-            Err(e) => {
-                return Ok(Response::new(ArchiveItemResponse {
-                    success: false,
-                    error: to_error_json(&req.project_path, &e),
-                    item: None,
-                }))
-            }
+            Err(resp) => return Ok(resp),
         };
     let hook_type = source_config.name.to_lowercase();
     let hook_project_path = req.project_path.clone();
