@@ -1,13 +1,26 @@
 use crate::item::core::error::ItemError;
 use crate::item::generic::storage::{generic_move, generic_update};
 use crate::server::convert_entity::generic_item_to_proto;
+use crate::server::error_mapping::ToStructuredError;
 use crate::server::handlers::item_type_resolve::resolve_item_type_config;
 use crate::server::proto::ArchiveItemResponse;
 use crate::server::structured_error::to_error_json;
 use mdstore::{TypeConfig, UpdateOptions};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::path::Path;
 use tonic::{Response, Status};
+
+pub(super) fn err_resp(
+    project_path_str: &str,
+    e: &(impl ToStructuredError + Display),
+) -> ArchiveItemResponse {
+    ArchiveItemResponse {
+        success: false,
+        error: to_error_json(project_path_str, e),
+        item: None,
+    }
+}
 
 pub(super) async fn resolve_both_types(
     project_path: &Path,

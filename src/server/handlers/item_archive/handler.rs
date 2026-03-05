@@ -1,12 +1,8 @@
-use super::operation::{
-    do_move_to_archive, resolve_both_types, set_original_item_type_and_respond, ARCHIVED_FOLDER,
-};
-use crate::hooks::HookOperation;
+use super::archive_move::run_archive_hooks_and_move;
+use super::operation::{err_resp, resolve_both_types, ARCHIVED_FOLDER};
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::hooks_helper::{maybe_run_post_hooks, maybe_run_pre_hooks};
 use crate::server::proto::{ArchiveItemRequest, ArchiveItemResponse};
-use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 /// Archive an item by moving it to the `archived/` folder and recording
@@ -17,82 +13,28 @@ pub async fn archive_item(
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path).await {
-        return Ok(Response::new(ArchiveItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            item: None,
-        }));
+        return Ok(Response::new(err_resp(&req.project_path, &e)));
     }
     let ((source_type, source_config), (archived_type, archived_config)) =
         match resolve_both_types(project_path, &req.item_type).await {
             Ok(pair) => pair,
-            Err(e) => {
-                return Ok(Response::new(ArchiveItemResponse {
-                    success: false,
-                    error: to_error_json(&req.project_path, &e),
-                    item: None,
-                }))
-            }
+            Err(e) => return Ok(Response::new(err_resp(&req.project_path, &e))),
         };
     let hook_type = source_config.name.to_lowercase();
-    let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.item_id.clone();
     let hook_request_data = serde_json::json!({
         "item_type": &req.item_type, "item_id": &req.item_id,
         "target_folder": ARCHIVED_FOLDER,
     });
-    if let Err(e) = maybe_run_pre_hooks(
+    run_archive_hooks_and_move(
         project_path,
-        &hook_type,
-        HookOperation::Move,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data.clone()),
-    )
-    .await
-    {
-        return Ok(Response::new(ArchiveItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            item: None,
-        }));
-    }
-    let move_result = do_move_to_archive(
-        project_path,
+        &req.project_path,
         &source_type,
         &archived_type,
         &source_config,
         &archived_config,
-        &req.item_id,
-    )
-    .await;
-    let success = move_result.is_ok();
-    maybe_run_post_hooks(
-        project_path,
         &hook_type,
-        HookOperation::Move,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data),
-        success,
+        &req.item_id,
+        hook_request_data,
     )
-    .await;
-    match move_result {
-        Ok(result) => {
-            set_original_item_type_and_respond(
-                project_path,
-                &req.project_path,
-                &archived_type,
-                &archived_config,
-                &source_type,
-                result.item,
-            )
-            .await
-        }
-        Err(e) => Ok(Response::new(ArchiveItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            item: None,
-        })),
-    }
+    .await
 }
