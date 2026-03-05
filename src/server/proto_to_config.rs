@@ -1,16 +1,13 @@
 use crate::config::{CentyConfig, WorkspaceConfig};
 use crate::hooks::HookDefinition as InternalHookDefinition;
+use crate::server::helpers::nonempty;
 use mdstore::CustomFieldDef as InternalCustomFieldDef;
 
 use super::proto::Config;
 
 pub fn proto_to_config(proto: &Config) -> CentyConfig {
     CentyConfig {
-        version: if proto.version.is_empty() {
-            None
-        } else {
-            Some(proto.version.clone())
-        },
+        version: nonempty(proto.version.clone()),
         priority_levels: u32::try_from(proto.priority_levels).unwrap_or(0),
         custom_fields: proto
             .custom_fields
@@ -19,11 +16,7 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
                 name: f.name.clone(),
                 field_type: f.field_type.clone(),
                 required: f.required,
-                default_value: if f.default_value.is_empty() {
-                    None
-                } else {
-                    Some(f.default_value.clone())
-                },
+                default_value: nonempty(f.default_value.clone()),
                 enum_values: f.enum_values.clone(),
             })
             .collect(),
@@ -36,18 +29,10 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             .map(|lt| crate::link::CustomLinkTypeDefinition {
                 name: lt.name.clone(),
                 inverse: lt.inverse.clone(),
-                description: if lt.description.is_empty() {
-                    None
-                } else {
-                    Some(lt.description.clone())
-                },
+                description: nonempty(lt.description.clone()),
             })
             .collect(),
-        default_editor: if proto.default_editor.is_empty() {
-            None
-        } else {
-            Some(proto.default_editor.clone())
-        },
+        default_editor: nonempty(proto.default_editor.clone()),
         hooks: proto
             .hooks
             .iter()
