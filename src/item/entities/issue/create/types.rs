@@ -73,9 +73,6 @@ pub struct CreateIssueResult {
     pub display_number: u32,
     /// Org-level display number (only for org issues)
     pub org_display_number: Option<u32>,
-    /// Legacy field for backward compatibility (same as id)
-    #[deprecated(note = "Use `id` instead")]
-    pub issue_number: String,
     pub created_files: Vec<String>,
     pub manifest: CentyManifest,
     /// Results from syncing to other org projects (empty for non-org issues)

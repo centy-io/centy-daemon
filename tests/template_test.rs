@@ -38,7 +38,7 @@ async fn test_create_issue_with_explicit_template() {
         .expect("Should create issue with template");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -66,7 +66,7 @@ async fn test_create_issue_without_template_uses_default() {
         .expect("Should create issue");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -130,7 +130,7 @@ async fn test_issue_template_with_custom_fields_loop() {
         .expect("Should create issue");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -172,7 +172,7 @@ async fn test_issue_template_with_conditionals() {
         .expect("Should create issue");
 
     let content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .unwrap();
     assert!(content.contains("## Description"));
@@ -190,7 +190,7 @@ async fn test_issue_template_with_conditionals() {
         .expect("Should create issue");
 
     let content2 =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result2.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result2.id)))
             .await
             .unwrap();
     assert!(!content2.contains("## Description"));

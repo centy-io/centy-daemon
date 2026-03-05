@@ -82,12 +82,10 @@ pub async fn create_issue(
     } else {
         Vec::new()
     };
-    #[allow(deprecated)]
     Ok(CreateIssueResult {
-        id: issue_id.clone(),
+        id: issue_id,
         display_number,
         org_display_number,
-        issue_number: issue_id,
         created_files,
         manifest,
         sync_results,

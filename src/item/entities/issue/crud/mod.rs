@@ -20,10 +20,8 @@ pub use list::{get_issues_by_uuid, list_issues};
 pub use move_issue::move_issue;
 pub use parse::parse_issue_md;
 pub use types::{IssueCrudError, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult};
-pub use update::update_issue;
-
-#[allow(deprecated)]
 pub use types::Issue;
+pub use update::update_issue;
 
 #[cfg(test)]
 #[path = "../crud_tests.rs"]

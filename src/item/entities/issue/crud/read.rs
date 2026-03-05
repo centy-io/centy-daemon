@@ -16,10 +16,8 @@ pub async fn read_issue_from_frontmatter(
     let (frontmatter, title, body): (IssueFrontmatter, String, String) =
         parse_frontmatter(strip_centy_md_header(&content))?;
     let description = remove_planning_note(&body);
-    #[allow(deprecated)]
     Ok(Issue {
         id: issue_id.to_string(),
-        issue_number: issue_id.to_string(),
         title,
         description,
         metadata: IssueMetadataFlat {
@@ -65,10 +63,8 @@ pub async fn read_issue_from_legacy_folder(
             (k, str_val)
         })
         .collect();
-    #[allow(deprecated)]
     Ok(Issue {
         id: issue_id.to_string(),
-        issue_number: issue_id.to_string(),
         title,
         description,
         metadata: IssueMetadataFlat {

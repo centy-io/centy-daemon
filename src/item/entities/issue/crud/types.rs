@@ -46,8 +46,6 @@ pub enum IssueCrudError {
 #[derive(Debug, Clone)]
 pub struct Issue {
     pub id: String,
-    #[deprecated(note = "Use `id` instead")]
-    pub issue_number: String,
     pub title: String,
     pub description: String,
     pub metadata: IssueMetadataFlat,

@@ -16,7 +16,6 @@ pub use assets::{
 };
 #[allow(unused_imports)]
 pub use create::IssueError;
-#[allow(deprecated)]
 #[allow(unused_imports)]
 pub use create::{create_issue, CreateIssueOptions, CreateIssueResult};
 #[allow(unused_imports)]

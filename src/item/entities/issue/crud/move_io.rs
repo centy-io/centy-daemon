@@ -8,7 +8,6 @@ use tokio::fs;
 
 /// Identify whether the issue is in new or legacy format and read it from disk.
 /// Returns (is_new_format, issue, file_path, folder_path).
-#[allow(deprecated)]
 pub(super) async fn load_source_issue(
     source_issues_path: &Path,
     issue_id: &str,
