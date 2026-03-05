@@ -1,10 +1,10 @@
-use super::move_io::{
-    load_source_issue, remove_source_issue, source_issues_path, validate_issue_move,
-};
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueFrontmatter;
 use super::super::reconcile::get_next_display_number;
 use super::extra_types::{MoveIssueOptions, MoveIssueResult};
+use super::move_io::{
+    load_source_issue, remove_source_issue, source_issues_path, validate_issue_move,
+};
 use super::read::read_issue_from_frontmatter;
 use super::types::IssueCrudError;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
