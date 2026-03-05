@@ -58,18 +58,7 @@ pub async fn get_entity_actions(
                 has_entity_id,
             )
         }
-        _ => {
-            return Ok(Response::new(GetEntityActionsResponse {
-                actions: vec![],
-                success: false,
-                error: StructuredError::new(
-                    &req.project_path,
-                    "UNKNOWN_ENTITY_TYPE",
-                    "Unknown entity type".to_string(),
-                )
-                .to_json(),
-            }))
-        }
+        _ => return Ok(unknown_entity_err_resp(&req.project_path)),
     };
 
     Ok(Response::new(GetEntityActionsResponse {
@@ -77,6 +66,15 @@ pub async fn get_entity_actions(
         success: true,
         error: String::new(),
     }))
+}
+
+fn unknown_entity_err_resp(cwd: &str) -> Response<GetEntityActionsResponse> {
+    Response::new(GetEntityActionsResponse {
+        actions: vec![],
+        success: false,
+        error: StructuredError::new(cwd, "UNKNOWN_ENTITY_TYPE", "Unknown entity type".to_string())
+            .to_json(),
+    })
 }
 
 fn terminal_available() -> bool {
