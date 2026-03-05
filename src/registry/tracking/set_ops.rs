@@ -1,7 +1,7 @@
-use super::enrich_fn::enrich_project;
 use super::super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::super::types::ProjectInfo;
 use super::super::RegistryError;
+use super::enrich_fn::enrich_project;
 use crate::utils::now_iso;
 use std::path::Path;
 
