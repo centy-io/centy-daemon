@@ -9,7 +9,8 @@ pub use convert::{default_archived_config, default_issue_config};
 pub use defaults::{default_doc_config, validate_item_type_config};
 #[allow(unused_imports)]
 pub use io::{
-    discover_item_types, read_item_type_config, read_legacy_allowed_states, write_item_type_config,
+    discover_item_types, discover_item_types_map, read_item_type_config, read_legacy_allowed_states,
+    write_item_type_config,
 };
 pub use registry::ItemTypeRegistry;
 pub use types::{ItemTypeConfig, ItemTypeFeatures};
