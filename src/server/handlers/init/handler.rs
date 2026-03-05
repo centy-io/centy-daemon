@@ -35,9 +35,8 @@ pub async fn init(req: InitRequest) -> Result<Response<InitResponse>, Status> {
         })),
     }
 }
-#[allow(unnecessary_async)]
-pub async fn is_initialized(
-    req: IsInitializedRequest,
+pub fn is_initialized(
+    req: &IsInitializedRequest,
 ) -> Result<Response<IsInitializedResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

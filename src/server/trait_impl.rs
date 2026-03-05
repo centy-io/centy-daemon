@@ -47,7 +47,7 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<IsInitializedRequest>,
     ) -> Result<Response<IsInitializedResponse>, Status> {
-        handlers::init::is_initialized(request.into_inner()).await
+        handlers::init::is_initialized(&request.into_inner())
     }
     async fn add_asset(
         &self,
