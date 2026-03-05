@@ -14,7 +14,7 @@ pub async fn list_organizations() -> Result<Vec<OrganizationInfo>, OrganizationE
                 .projects
                 .values()
                 .filter(|p| p.organization_slug.as_deref() == Some(slug.as_str()))
-                .count() as u32;
+                .count().try_into().unwrap_or(u32::MAX);
 
             OrganizationInfo {
                 slug: slug.clone(),
@@ -42,7 +42,7 @@ pub async fn get_organization(slug: &str) -> Result<Option<OrganizationInfo>, Or
             .projects
             .values()
             .filter(|p| p.organization_slug.as_deref() == Some(slug))
-            .count() as u32;
+            .count().try_into().unwrap_or(u32::MAX);
 
         Ok(Some(OrganizationInfo {
             slug: slug.to_string(),

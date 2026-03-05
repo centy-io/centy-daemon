@@ -14,7 +14,7 @@ pub async fn create_org_issue_handler(
     let priority = if req.priority == 0 {
         default_priority(config.priority_levels)
     } else {
-        req.priority as u32
+        u32::try_from(req.priority).unwrap_or(0)
     };
     let status = if req.status.is_empty() {
         "open".to_string()

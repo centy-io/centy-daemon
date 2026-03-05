@@ -11,7 +11,7 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
         } else {
             Some(proto.version.clone())
         },
-        priority_levels: proto.priority_levels as u32,
+        priority_levels: u32::try_from(proto.priority_levels).unwrap_or(0),
         custom_fields: proto
             .custom_fields
             .iter()

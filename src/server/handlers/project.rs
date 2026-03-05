@@ -25,7 +25,7 @@ pub async fn list_projects(
     };
     match crate::registry::list_projects(opts).await {
         Ok(projects) => {
-            let total_count = projects.len() as i32;
+            let total_count = projects.len().try_into().unwrap_or(i32::MAX);
             Ok(Response::new(ListProjectsResponse {
                 projects: projects
                     .into_iter()

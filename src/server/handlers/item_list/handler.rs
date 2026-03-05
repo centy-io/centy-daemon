@@ -32,7 +32,7 @@ pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsRespo
     let filters = build_filters_from_mql(&req.filter, req.limit, req.offset);
     match generic_list(project_path, &item_type, filters).await {
         Ok(items) => {
-            let total_count = items.len() as i32;
+            let total_count = items.len().try_into().unwrap_or(i32::MAX);
             Ok(Response::new(ListItemsResponse {
                 success: true,
                 error: String::new(),

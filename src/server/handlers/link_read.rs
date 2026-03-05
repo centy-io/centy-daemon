@@ -32,7 +32,7 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
                 .iter()
                 .map(internal_link_to_proto)
                 .collect(),
-            total_count: links_file.links.len() as i32,
+            total_count: links_file.links.len().try_into().unwrap_or(i32::MAX),
             success: true,
             error: String::new(),
         })),

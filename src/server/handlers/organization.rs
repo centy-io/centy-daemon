@@ -39,7 +39,7 @@ pub async fn list_organizations(
 ) -> Result<Response<ListOrganizationsResponse>, Status> {
     match crate::registry::list_organizations().await {
         Ok(orgs) => {
-            let total_count = orgs.len() as i32;
+            let total_count = orgs.len().try_into().unwrap_or(i32::MAX);
             Ok(Response::new(ListOrganizationsResponse {
                 organizations: orgs.into_iter().map(|o| org_info_to_proto(&o)).collect(),
                 total_count,

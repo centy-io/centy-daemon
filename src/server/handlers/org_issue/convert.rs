@@ -10,7 +10,7 @@ pub(super) fn org_issue_to_proto(issue: &OrgIssue, priority_levels: u32) -> Prot
         metadata: Some(OrgIssueMetadata {
             display_number: issue.display_number,
             status: issue.status.clone(),
-            priority: issue.priority as i32,
+            priority: i32::try_from(issue.priority).unwrap_or(i32::MAX),
             created_at: issue.created_at.clone(),
             updated_at: issue.updated_at.clone(),
             custom_fields: issue.custom_fields.clone(),
