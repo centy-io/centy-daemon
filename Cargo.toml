@@ -320,7 +320,7 @@ manual_abs_diff = "deny"
 sliced_string_as_bytes = "deny"
 unnecessary_clippy_cfg = "deny"
 manual_div_ceil = "deny"
-precedence_extra_parens = "deny"
+precedence_bits = "deny"
 
 [[bin]]
 name = "centy-daemon"
