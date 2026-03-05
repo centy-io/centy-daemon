@@ -69,7 +69,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
         identifier: config.identifier.to_string(),
         features: Some(super::proto::ItemTypeFeatures {
             display_number: config.features.display_number,
-            status: config.features.status,
+            status: !config.statuses.is_empty(),
             priority: config.features.priority,
             soft_delete: config.features.soft_delete,
             assets: config.features.assets,

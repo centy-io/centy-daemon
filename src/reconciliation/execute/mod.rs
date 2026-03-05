@@ -3,7 +3,9 @@ mod file_ops;
 mod types;
 use super::managed_files::get_managed_files;
 use super::plan::build_reconciliation_plan;
-use crate::config::item_type_config::{migrate_to_item_type_configs, read_legacy_allowed_states};
+use crate::config::item_type_config::{
+    migrate_strip_status_feature, migrate_to_item_type_configs, read_legacy_allowed_states,
+};
 use crate::config::{read_config, write_config, CentyConfig};
 use crate::manifest::{create_manifest, read_manifest, update_manifest, write_manifest};
 use crate::utils::get_centy_path;
@@ -68,6 +70,7 @@ pub async fn execute_reconciliation(
     for path in migrated {
         result.created.push(path);
     }
+    migrate_strip_status_feature(project_path).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
     result.manifest = manifest;

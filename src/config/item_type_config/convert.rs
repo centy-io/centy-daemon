@@ -13,7 +13,7 @@ impl From<&ItemTypeConfig> for TypeConfig {
             identifier: config.identifier,
             features: TypeFeatures {
                 display_number: config.features.display_number,
-                status: config.features.status,
+                status: !config.statuses.is_empty(),
                 priority: config.features.priority,
                 assets: config.features.assets,
                 org_sync: config.features.org_sync,
@@ -41,7 +41,6 @@ pub fn default_archived_config() -> ItemTypeConfig {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures {
             display_number: false,
-            status: false,
             priority: false,
             soft_delete: false,
             assets: true,
@@ -82,7 +81,6 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
         identifier: IdStrategy::Uuid,
         features: ItemTypeFeatures {
             display_number: true,
-            status: true,
             priority: true,
             soft_delete: true,
             assets: true,
