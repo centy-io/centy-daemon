@@ -7,11 +7,7 @@ pub fn nonempty(s: String) -> Option<String> {
     }
 }
 
-/// Convert a protobuf `int32` to `Option<u32>`: 0 means "not set".
+/// Convert a protobuf `int32` to `Option<u32>`: 0 or negative means "not set".
 pub fn nonzero_u32(v: i32) -> Option<u32> {
-    if v == 0 {
-        None
-    } else {
-        Some(v as u32)
-    }
+    u32::try_from(v).ok().filter(|&n| n != 0)
 }

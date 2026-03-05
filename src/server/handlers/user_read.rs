@@ -52,7 +52,7 @@ pub async fn list_users(req: ListUsersRequest) -> Result<Response<ListUsersRespo
 
     match internal_list_users(project_path, filter, false).await {
         Ok(users) => {
-            let total_count = users.len() as i32;
+            let total_count = users.len().try_into().unwrap_or(i32::MAX);
             Ok(Response::new(ListUsersResponse {
                 users: users.iter().map(user_to_proto).collect(),
                 total_count,

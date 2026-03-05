@@ -31,7 +31,7 @@ pub async fn update_org_issue_handler(
         priority: if req.priority == 0 {
             None
         } else {
-            Some(req.priority as u32)
+            Some(u32::try_from(req.priority).unwrap_or(0))
         },
         custom_fields: if req.custom_fields.is_empty() {
             None

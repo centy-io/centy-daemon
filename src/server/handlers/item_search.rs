@@ -76,7 +76,7 @@ pub async fn search_items(
         }
     }
 
-    let total_count = found_items.len() as i32;
+    let total_count = found_items.len().try_into().unwrap_or(i32::MAX);
 
     Ok(Response::new(SearchItemsResponse {
         items: found_items,

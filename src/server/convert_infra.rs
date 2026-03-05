@@ -65,7 +65,7 @@ pub fn asset_info_to_proto(asset: &AssetInfo) -> Asset {
 
 pub fn manifest_to_proto(manifest: &InternalManifest) -> Manifest {
     Manifest {
-        schema_version: manifest.schema_version as i32,
+        schema_version: i32::try_from(manifest.schema_version).unwrap_or(i32::MAX),
         centy_version: manifest.centy_version.clone(),
         created_at: manifest.created_at.clone(),
         updated_at: manifest.updated_at.clone(),

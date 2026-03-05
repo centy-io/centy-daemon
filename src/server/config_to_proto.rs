@@ -19,7 +19,7 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
             })
             .collect(),
         defaults: config.defaults.clone(),
-        priority_levels: config.priority_levels as i32,
+        priority_levels: i32::try_from(config.priority_levels).unwrap_or(i32::MAX),
         version: config.effective_version(),
         state_colors: config.state_colors.clone(),
         priority_colors: config.priority_colors.clone(),
