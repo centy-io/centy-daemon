@@ -2,13 +2,20 @@ use super::types::TargetType;
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum LinkError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("Invalid link type: {0}")] InvalidLinkType(String),
-    #[error("Source entity not found: {0} ({1})")] SourceNotFound(String, TargetType),
-    #[error("Target entity not found: {0} ({1})")] TargetNotFound(String, TargetType),
-    #[error("Link already exists")] LinkAlreadyExists,
-    #[error("Link not found")] LinkNotFound,
-    #[error("Cannot link entity to itself")] SelfLink,
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Invalid link type: {0}")]
+    InvalidLinkType(String),
+    #[error("Source entity not found: {0} ({1})")]
+    SourceNotFound(String, TargetType),
+    #[error("Target entity not found: {0} ({1})")]
+    TargetNotFound(String, TargetType),
+    #[error("Link already exists")]
+    LinkAlreadyExists,
+    #[error("Link not found")]
+    LinkNotFound,
+    #[error("Cannot link entity to itself")]
+    SelfLink,
 }
 /// Options for creating a link
 #[derive(Debug, Clone)]
