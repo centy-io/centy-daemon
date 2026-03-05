@@ -6,6 +6,19 @@ fn is_valid_hex_color(color: &str) -> bool {
     };
     re.is_match(color)
 }
+fn validate_colors<'a>(
+    colors: impl IntoIterator<Item = (&'a String, &'a String)>,
+    kind: &str,
+) -> Result<(), String> {
+    for (name, color) in colors {
+        if !is_valid_hex_color(color) {
+            return Err(format!(
+                "invalid color '{color}' for {kind} '{name}': must be hex format (#RGB or #RRGGBB)"
+            ));
+        }
+    }
+    Ok(())
+}
 
 /// Validate the config and return an error message if invalid.
 pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
@@ -26,20 +39,8 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
         }
     }
 
-    for (state, color) in &config.state_colors {
-        if !is_valid_hex_color(color) {
-            return Err(format!(
-                "invalid color '{color}' for state '{state}': must be hex format (#RGB or #RRGGBB)"
-            ));
-        }
-    }
-    for (priority, color) in &config.priority_colors {
-        if !is_valid_hex_color(color) {
-            return Err(format!(
-                "invalid color '{color}' for priority '{priority}': must be hex format (#RGB or #RRGGBB)"
-            ));
-        }
-    }
+    validate_colors(&config.state_colors, "state")?;
+    validate_colors(&config.priority_colors, "priority")?;
 
     for hook in &config.hooks {
         if hook.command.is_empty() {
