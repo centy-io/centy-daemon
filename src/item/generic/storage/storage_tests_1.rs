@@ -34,6 +34,7 @@ async fn test_create_and_get() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
@@ -61,6 +62,7 @@ async fn test_create_minimal_features() {
         status: None,
         priority: None,
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "notes", &config, options)
         .await
@@ -82,6 +84,7 @@ async fn test_create_slug_id_strategy() {
         status: None,
         priority: None,
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "docs", &config, options)
         .await
@@ -100,6 +103,7 @@ async fn test_create_invalid_status() {
         status: Some("nonexistent".to_string()),
         priority: None,
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let result = generic_create(temp.path(), "issues", &config, options).await;
     assert!(result.is_err());

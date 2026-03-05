@@ -4,7 +4,7 @@ use super::super::planning::{add_planning_note, has_planning_note, is_planning_s
 use super::read::read_issue_from_legacy_folder;
 use super::types::{Issue, IssueCrudError};
 use crate::link::{read_links, write_links};
-use crate::utils::format_issue_file;
+use crate::utils::CENTY_HEADER_YAML;
 use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
@@ -37,9 +37,9 @@ pub async fn migrate_issue_to_new_format(
         } else {
             issue.description.clone()
         };
-    let issue_content = generate_frontmatter(&frontmatter, &issue.title, &body);
+    let issue_content = generate_frontmatter(&frontmatter, &issue.title, &body, Some(CENTY_HEADER_YAML));
     let new_issue_file = issues_path.join(format!("{issue_id}.md"));
-    fs::write(&new_issue_file, format_issue_file(&issue_content)).await?;
+    fs::write(&new_issue_file, &issue_content).await?;
     let old_assets_path = issue_folder_path.join("assets");
     if old_assets_path.exists() && old_assets_path.is_dir() {
         let new_assets_path = issues_path.join("assets").join(issue_id);

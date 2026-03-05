@@ -23,6 +23,7 @@ async fn test_create_invalid_priority() {
         status: Some("open".to_string()),
         priority: Some(99),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let result = generic_create(temp.path(), "issues", &config, options).await;
     assert!(result.is_err());
@@ -45,6 +46,7 @@ async fn test_list_with_filters() {
             status: Some(status.to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+        comment: None,
         };
         generic_create(temp.path(), "issues", &config, options)
             .await
@@ -79,6 +81,7 @@ async fn test_update() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
@@ -89,6 +92,7 @@ async fn test_update() {
         status: Some("closed".to_string()),
         priority: Some(1),
         custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
+        comment: None,
     };
     let updated = generic_update(temp.path(), "issues", &config, &created.id, update_options)
         .await

@@ -4,7 +4,7 @@ use super::org_sync_update::update_or_create_issue_in_project;
 use super::types::{Issue, IssueMetadataFlat};
 use crate::common::{OrgSyncError, OrgSyncable};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{format_issue_file, get_centy_path, now_iso};
+use crate::utils::{get_centy_path, now_iso, CENTY_HEADER_YAML};
 use async_trait::async_trait;
 use mdstore::generate_frontmatter;
 use std::path::Path;
@@ -87,8 +87,8 @@ pub async fn create_issue_in_project(
         org_display_number: source_metadata.org_display_number,
         custom_fields: source_metadata.custom_fields.clone(),
     };
-    let issue_content = generate_frontmatter(&frontmatter, title, description);
-    fs::write(&issue_file_path, format_issue_file(&issue_content)).await?;
+    let issue_content = generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
+    fs::write(&issue_file_path, &issue_content).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)
         .await

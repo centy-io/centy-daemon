@@ -23,6 +23,7 @@ async fn test_soft_delete_and_restore() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
@@ -60,6 +61,7 @@ async fn test_hard_delete() {
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
@@ -83,6 +85,7 @@ async fn test_display_number_auto_increment() {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
         let created = generic_create(temp.path(), "issues", &config, options)
             .await
@@ -102,6 +105,7 @@ async fn test_update_preserves_fields() {
         status: Some("open".to_string()),
         priority: Some(1),
         custom_fields: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
+        comment: None,
     };
     let created = generic_create(temp.path(), "issues", &config, options)
         .await
