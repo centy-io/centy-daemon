@@ -1,9 +1,9 @@
 mod io;
 mod links_file;
-pub use io::{read_links, write_links};
-pub use links_file::LinksFile;
 #[cfg(test)]
 pub use crate::link::Link;
+pub use io::{read_links, write_links};
+pub use links_file::LinksFile;
 #[cfg(test)]
 pub use links_file::LINKS_FILENAME;
 #[cfg(test)]
