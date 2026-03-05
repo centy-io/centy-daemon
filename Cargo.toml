@@ -10,6 +10,9 @@ license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
 # Git worktree workspace management
 worktree-io = "0.15.0"
 
+# Git native bindings
+git2 = "0.19"
+
 # Storage engine
 mdstore = "1.0.0"
 
