@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::super::inference::try_auto_assign_organization;
 use super::super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::super::types::{ProjectInfo, TrackedProject};

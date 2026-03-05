@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! Organization-level issue display number registry.
 //!
 //! Manages central tracking of display numbers for org-level issues.

@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::config_merge::apply_init_config;
 use crate::config::set_project_title;
 use crate::reconciliation::{

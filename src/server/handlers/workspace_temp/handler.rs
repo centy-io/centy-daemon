@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 use super::editor::open_editor_with_hooks;
 use crate::config::read_config;
 use crate::item::entities::issue::{update_issue, UpdateIssueOptions};

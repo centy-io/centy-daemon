@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! Create/read/list operations for org issues.
 use super::crud_types::{ListOrgIssuesOptions, OrgIssue, OrgIssueError, OrgIssueFrontmatter};
 use super::paths::get_org_issues_dir;

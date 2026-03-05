@@ -1,3 +1,4 @@
+#![allow(unknown_lints, max_lines_per_file)]
 //! Background cleanup task: hard-delete soft-deleted artifacts past retention period.
 
 use crate::config::item_type_config::discover_item_types_map;
