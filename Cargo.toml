@@ -245,6 +245,7 @@ integer_division = "deny"
 fn_to_numeric_cast_any = "deny"
 missing_assert_message = "deny"
 multiple_unsafe_ops_per_block = "deny"
+print_stdout = "deny"
 
 [[bin]]
 name = "centy-daemon"
