@@ -1,9 +1,7 @@
 use super::config_merge::apply_init_config;
 use crate::config::set_project_title;
 use crate::reconciliation::ReconciliationResult;
-use crate::registry::{
-    get_project_info, infer_organization_from_remote, set_project_organization,
-};
+use crate::registry::{get_project_info, infer_organization_from_remote, set_project_organization};
 use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
 use crate::server::proto::{InitRequest, InitResponse};
 use std::path::Path;
