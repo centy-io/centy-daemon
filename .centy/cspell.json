@@ -9,6 +9,7 @@
     "displayNumber",
     "frontmatter",
     "Meili",
+    "Microtask",
     "priorityColors",
     "priorityLevels",
     "schemaVersion",
@@ -19,5 +20,7 @@
     "updatedAt",
     "updateStatusOnStart"
   ],
-  "ignorePaths": [".centy-manifest.json"]
+  "ignorePaths": [
+    ".centy-manifest.json"
+  ]
 }
