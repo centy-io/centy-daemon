@@ -3,9 +3,12 @@ use std::path::PathBuf;
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum WorkspaceError {
-    #[error("IO error: {0}")] IoError(#[from] std::io::Error),
-    #[error("Git error: {0}")] GitError(String),
-    #[error("Issue error: {0}")] IssueError(#[from] crate::item::entities::issue::IssueCrudError),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Git error: {0}")]
+    GitError(String),
+    #[error("Issue error: {0}")]
+    IssueError(#[from] crate::item::entities::issue::IssueCrudError),
 }
 pub struct CreateWorkspaceOptions {
     pub source_project_path: PathBuf,
