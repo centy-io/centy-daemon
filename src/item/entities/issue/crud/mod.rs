@@ -1,3 +1,4 @@
+mod extra_types;
 mod get;
 mod list;
 mod migrate;
@@ -10,14 +11,12 @@ mod types;
 mod update;
 mod update_helpers;
 
+pub use extra_types::{GetIssuesByUuidResult, IssueWithProject, MoveIssueOptions, MoveIssueResult};
 pub use get::{get_issue, get_issue_by_display_number};
 pub use list::{get_issues_by_uuid, list_issues};
 pub use move_issue::move_issue;
 pub use parse::parse_issue_md;
-pub use types::{
-    GetIssuesByUuidResult, IssueCrudError, IssueMetadataFlat, IssueWithProject, MoveIssueOptions,
-    MoveIssueResult, UpdateIssueOptions, UpdateIssueResult,
-};
+pub use types::{IssueCrudError, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult};
 pub use update::update_issue;
 
 #[allow(deprecated)]

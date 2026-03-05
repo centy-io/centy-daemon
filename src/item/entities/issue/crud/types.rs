@@ -1,11 +1,10 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::priority::PriorityError;
 use super::super::reconcile::ReconcileError;
 use super::super::status::StatusError;
+use crate::common::OrgSyncResult;
 use crate::manifest::CentyManifest;
 use mdstore::FrontmatterError;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -83,33 +82,5 @@ pub struct UpdateIssueOptions {
 pub struct UpdateIssueResult {
     pub issue: Issue,
     pub manifest: CentyManifest,
-    pub sync_results: Vec<crate::common::OrgSyncResult>,
-}
-
-#[derive(Debug, Clone)]
-pub struct IssueWithProject {
-    pub issue: Issue,
-    pub project_path: String,
-    pub project_name: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetIssuesByUuidResult {
-    pub issues: Vec<IssueWithProject>,
-    pub errors: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct MoveIssueOptions {
-    pub source_project_path: PathBuf,
-    pub target_project_path: PathBuf,
-    pub issue_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct MoveIssueResult {
-    pub issue: Issue,
-    pub old_display_number: u32,
-    pub source_manifest: CentyManifest,
-    pub target_manifest: CentyManifest,
+    pub sync_results: Vec<OrgSyncResult>,
 }
