@@ -67,6 +67,7 @@ async fn create_issue(project_path: &std::path::Path, title: &str) -> mdstore::I
         status: Some("open".to_string()),
         priority: Some(2),
         custom_fields: HashMap::new(),
+        comment: None,
     };
     generic_create(project_path, "issues", &issue_config(), options)
         .await

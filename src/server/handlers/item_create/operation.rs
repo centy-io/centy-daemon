@@ -4,6 +4,7 @@ use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::maybe_run_post_hooks;
 use crate::server::proto::CreateItemResponse;
 use crate::server::structured_error::to_error_json;
+use crate::utils::CENTY_HEADER_YAML;
 use mdstore::{CreateOptions, TypeConfig};
 use std::collections::HashMap;
 use std::path::Path;
@@ -75,5 +76,6 @@ pub(super) fn build_options(
         status,
         priority,
         custom_fields,
+        comment: Some(CENTY_HEADER_YAML.to_string()),
     }
 }

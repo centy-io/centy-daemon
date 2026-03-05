@@ -2,7 +2,7 @@
 use super::crud_types::{ListOrgIssuesOptions, OrgIssue, OrgIssueError, OrgIssueFrontmatter};
 use super::paths::get_org_issues_dir;
 use crate::item::entities::issue::org_registry::get_next_org_display_number;
-use crate::utils::{now_iso, strip_centy_md_header};
+use crate::utils::{now_iso, strip_centy_md_header, CENTY_HEADER_YAML};
 use mdstore::{generate_frontmatter, parse_frontmatter};
 use std::collections::HashMap;
 use std::path::Path;
@@ -59,7 +59,7 @@ pub async fn create_org_issue(
         custom_fields: custom_fields.clone(),
         referenced_projects: referenced_projects.clone(),
     };
-    let content = generate_frontmatter(&frontmatter, title, description);
+    let content = generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
     let file_path = issues_dir.join(format!("{issue_id}.md"));
     fs::write(&file_path, &content).await?;
     Ok(OrgIssue {

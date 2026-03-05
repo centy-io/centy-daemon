@@ -28,6 +28,7 @@ pub(super) fn build_update_options(
         status: nonempty(status),
         priority: nonzero_u32(priority),
         custom_fields,
+        comment: None,
     }
 }
 pub(super) async fn do_update(
