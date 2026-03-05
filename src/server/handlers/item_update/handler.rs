@@ -10,11 +10,11 @@ use std::path::Path;
 use tonic::{Response, Status};
 fn err_response(
     cwd: &str,
-    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+    e: &(impl std::fmt::Display + crate::server::error_mapping::ToStructuredError),
 ) -> Response<UpdateItemResponse> {
     Response::new(UpdateItemResponse {
         success: false,
-        error: to_error_json(cwd, &e),
+        error: to_error_json(cwd, e),
         ..Default::default()
     })
 }
@@ -22,16 +22,16 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path).await {
-        return Ok(err_response(&req.project_path, e));
+        return Ok(err_response(&req.project_path, &e));
     }
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
-        Err(e) => return Ok(err_response(&req.project_path, e)),
+        Err(e) => return Ok(err_response(&req.project_path, &e)),
     };
     let hook_type = config.name.to_lowercase();
     let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
         Ok(id) => id,
-        Err(e) => return Ok(err_response(&req.project_path, e)),
+        Err(e) => return Ok(err_response(&req.project_path, &e)),
     };
     let hook_project_path = req.project_path.clone();
     let hook_item_id = item_id.clone();

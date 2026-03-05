@@ -13,11 +13,11 @@ use std::path::Path;
 use tonic::Response;
 pub(super) fn err_resp(
     cwd: &str,
-    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+    e: &(impl std::fmt::Display + crate::server::error_mapping::ToStructuredError),
 ) -> Response<DuplicateItemResponse> {
     Response::new(DuplicateItemResponse {
         success: false,
-        error: to_error_json(cwd, &e),
+        error: to_error_json(cwd, e),
         ..Default::default()
     })
 }

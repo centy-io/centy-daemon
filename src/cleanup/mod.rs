@@ -64,13 +64,13 @@ pub async fn run_cleanup_all_projects() {
                 debug!(project = %project_path_str, "Cleanup disabled (retention_period = 0)");
                 continue;
             }
-            Some(s) => match parse_retention_duration(s) {
-                Some(d) => d,
-                None => {
+            Some(s) => {
+                let Some(d) = parse_retention_duration(s) else {
                     warn!(project = %project_path_str, value = %s, "Invalid retention_period, skipping cleanup");
                     continue;
-                }
-            },
+                };
+                d
+            }
             // None → use default
             None => Duration::days(DEFAULT_RETENTION_DAYS),
         };
