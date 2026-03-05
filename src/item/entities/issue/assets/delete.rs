@@ -1,9 +1,34 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::types::{sanitize_filename, AssetError, DeleteAssetResult};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::get_centy_path;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::fs;
+
+fn resolve_issue_asset_path(
+    centy_path: &Path,
+    issue_id: Option<&str>,
+    sanitized_filename: &str,
+) -> Result<PathBuf, AssetError> {
+    let id = issue_id.ok_or_else(|| {
+        AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
+    })?;
+    let issue_file_path = centy_path.join("issues").join(format!("{id}.md"));
+    let issue_folder_path = centy_path.join("issues").join(id);
+    if !issue_file_path.exists() && !issue_folder_path.exists() {
+        return Err(AssetError::IssueNotFound(id.to_string()));
+    }
+    let new_path = centy_path
+        .join("issues")
+        .join("assets")
+        .join(id)
+        .join(sanitized_filename);
+    let old_path = issue_folder_path.join("assets").join(sanitized_filename);
+    if new_path.exists() {
+        Ok(new_path)
+    } else {
+        Ok(old_path)
+    }
+}
 
 pub async fn delete_asset(
     project_path: &Path,
@@ -19,25 +44,7 @@ pub async fn delete_asset(
     let asset_path = if is_shared {
         centy_path.join("assets").join(&sanitized_filename)
     } else {
-        let id = issue_id.ok_or_else(|| {
-            AssetError::InvalidFilename("Issue ID required for issue-specific assets".into())
-        })?;
-        let issue_file_path = centy_path.join("issues").join(format!("{id}.md"));
-        let issue_folder_path = centy_path.join("issues").join(id);
-        if !issue_file_path.exists() && !issue_folder_path.exists() {
-            return Err(AssetError::IssueNotFound(id.to_string()));
-        }
-        let new_path = centy_path
-            .join("issues")
-            .join("assets")
-            .join(id)
-            .join(&sanitized_filename);
-        let old_path = issue_folder_path.join("assets").join(&sanitized_filename);
-        if new_path.exists() {
-            new_path
-        } else {
-            old_path
-        }
+        resolve_issue_asset_path(&centy_path, issue_id, &sanitized_filename)?
     };
     if !asset_path.exists() {
         return Err(AssetError::AssetNotFound(sanitized_filename));
