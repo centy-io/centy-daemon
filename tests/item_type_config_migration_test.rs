@@ -110,7 +110,10 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         issue_config.statuses,
         vec!["open", "in-progress", "closed", "testing"]
     );
-    assert_eq!(issue_config.statuses.first().map(String::as_str), Some("open"));
+    assert_eq!(
+        issue_config.statuses.first().map(String::as_str),
+        Some("open")
+    );
     assert_eq!(issue_config.priority_levels, Some(5));
     assert_eq!(issue_config.custom_fields.len(), 1);
     assert_eq!(issue_config.custom_fields[0].name, "env");
