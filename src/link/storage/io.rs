@@ -31,7 +31,7 @@ pub async fn read_links(entity_path: &Path) -> Result<LinksFile, std::io::Error>
     Ok(LinksFile::new())
 }
 /// Write links to an entity's links folder.
-/// Uses new format: parent/links/{entity_id}/links.json.
+/// Uses new format: parent/links/`{entity_id}`/links.json.
 /// If the links list is empty, deletes the file if it exists.
 pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(), std::io::Error> {
     let (Some(parent), Some(entity_id)) = (entity_path.parent(), entity_path.file_name()) else {

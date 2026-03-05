@@ -16,7 +16,7 @@ pub trait SoftDeletable: ItemCrud {
     /// Result type for soft delete operation
     type SoftDeleteResult;
 
-    /// Soft-delete an item by setting its deleted_at timestamp.
+    /// Soft-delete an item by setting its `deleted_at` timestamp.
     ///
     /// The item remains in storage but is excluded from normal queries
     /// unless explicitly requested.
@@ -32,6 +32,6 @@ pub trait Restorable: SoftDeletable {
     /// Result type for restore operation
     type RestoreResult;
 
-    /// Restore a soft-deleted item by clearing its deleted_at timestamp.
+    /// Restore a soft-deleted item by clearing its `deleted_at` timestamp.
     async fn restore(project_path: &Path, id: &ItemId) -> Result<Self::RestoreResult, ItemError>;
 }

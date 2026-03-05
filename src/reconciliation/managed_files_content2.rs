@@ -1,7 +1,7 @@
 /// Hooks YAML template content
 pub const HOOKS_YAML_CONTENT: &str = "# This file is managed by Centy. Use the Centy CLI to modify it.\n# Centy Hooks \u{2014} https://docs.centy.io/hooks\n#\n# Example hook:\n# hooks:\n#   - event: issue.created\n#     run: echo \"Issue created: $CENTY_ITEM_TITLE\"\n";
 
-/// CSpell configuration content
+/// `CSpell` configuration content
 pub const CSPELL_JSON_CONTENT: &str = r#"{
   "version": "0.2",
   "language": "en",

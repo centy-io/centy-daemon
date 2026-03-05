@@ -46,7 +46,7 @@ async fn run_sync_hook(hook: &HookDefinition, context: &HookContext, project_pat
     }
 }
 
-/// Run post-hooks for the given item_type and operation.
+/// Run post-hooks for the given `item_type` and operation.
 /// Synchronous post-hooks run inline (failures logged as warnings).
 /// Async post-hooks are spawned in background (failures logged as debug).
 pub async fn run_post_hooks(

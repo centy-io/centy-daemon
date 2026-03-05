@@ -8,7 +8,7 @@ pub async fn load_hooks_config(project_path: &Path) -> Vec<HookDefinition> {
         _ => Vec::new(),
     }
 }
-/// Find matching hooks for the given phase, item_type, and operation.
+/// Find matching hooks for the given phase, `item_type`, and operation.
 /// Returns enabled hooks sorted by specificity descending (most-specific-first).
 pub fn find_matching_hooks<'a>(
     hooks: &'a [HookDefinition],

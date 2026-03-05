@@ -32,7 +32,7 @@ async fn init_project(project_path: &std::path::Path) {
         .unwrap();
 }
 
-/// Helper to build a CreateItemRequest proto message.
+/// Helper to build a `CreateItemRequest` proto message.
 fn create_req(
     project_path: &str,
     item_type: &str,

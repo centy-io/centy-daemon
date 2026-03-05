@@ -27,7 +27,7 @@ pub async fn delete_user(
     info!("Deleted user: {}", user_id);
     Ok(DeleteUserResult { manifest })
 }
-/// Soft-delete a user (set deleted_at timestamp)
+/// Soft-delete a user (set `deleted_at` timestamp)
 pub async fn soft_delete_user(
     project_path: &Path,
     user_id: &str,
@@ -57,7 +57,7 @@ pub async fn soft_delete_user(
         manifest,
     })
 }
-/// Restore a soft-deleted user (clear deleted_at timestamp)
+/// Restore a soft-deleted user (clear `deleted_at` timestamp)
 pub async fn restore_user(
     project_path: &Path,
     user_id: &str,

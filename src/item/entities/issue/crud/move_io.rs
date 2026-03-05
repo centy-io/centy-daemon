@@ -1,4 +1,4 @@
-//! I/O helpers for move_issue: loading source and removing files.
+//! I/O helpers for `move_issue`: loading source and removing files.
 use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::{Issue, IssueCrudError};
 use crate::config::read_config;
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use tokio::fs;
 
 /// Identify whether the issue is in new or legacy format and read it from disk.
-/// Returns (is_new_format, issue, file_path, folder_path).
+/// Returns `(is_new_format, issue, file_path, folder_path)`.
 pub(super) async fn load_source_issue(
     source_issues_path: &Path,
     issue_id: &str,
