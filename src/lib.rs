@@ -1,10 +1,5 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
-#![allow(
-    unknown_lints,
-    renamed_and_removed_lints,
-    max_lines_per_file,
-    wildcard_imports
-)]
+#![allow(unknown_lints, renamed_and_removed_lints, wildcard_imports)]
 #![cfg_attr(
     test,
     allow(
