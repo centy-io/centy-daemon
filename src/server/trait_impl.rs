@@ -1,4 +1,9 @@
-#![allow(renamed_and_removed_lints, wildcard_imports, unknown_lints, max_lines_per_file)]
+#![allow(
+    renamed_and_removed_lints,
+    wildcard_imports,
+    unknown_lints,
+    max_lines_per_file
+)]
 use super::proto::centy_daemon_server::CentyDaemon;
 use super::proto::*;
 use super::{handlers, CentyDaemonService};
