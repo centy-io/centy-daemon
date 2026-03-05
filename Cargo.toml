@@ -133,6 +133,8 @@ arithmetic_side_effects = "deny"
 # Deny direct indexing/slicing to prevent index-out-of-bounds panics
 # Use safe alternatives like .get(), .first(), .split_at() which return Option
 indexing_slicing = "deny"
+# Deny string slicing to prevent panics on non-UTF-8 character boundaries
+string_slice = "deny"
 
 # Warn on long functions - enforces refactoring into smaller functions
 too_many_lines = "deny"
