@@ -3,17 +3,10 @@ name: Microtask
 identifier: uuid
 features:
   displayNumber: true
-  status: true
   priority: true
   softDelete: false
   assets: false
   orgSync: false
   move: true
   duplicate: true
-statuses:
-- todo
-- in-progress
-- done
-- skipped
-defaultStatus: todo
 priorityLevels: 2
