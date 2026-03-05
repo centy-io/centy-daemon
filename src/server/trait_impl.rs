@@ -1,5 +1,6 @@
 #![allow(max_lines_per_file)]
 use super::proto::centy_daemon_server::CentyDaemon;
+#[allow(clippy::wildcard_imports)]
 use super::proto::*;
 use super::{handlers, CentyDaemonService};
 use crate::metrics::{generate_request_id, OperationTimer};
