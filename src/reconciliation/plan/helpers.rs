@@ -1,5 +1,3 @@
-use super::types::{FileInfo, ReconciliationPlan};
-use crate::manifest::ManagedFileType;
 use std::collections::HashSet;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -27,32 +25,4 @@ pub fn scan_centy_folder(centy_path: &Path) -> HashSet<String> {
         }
     }
     files
-}
-/// Build a FileInfo from a disk path that is not a managed file
-#[allow(dead_code)]
-pub async fn build_user_file_info(disk_path: &str, centy_path: &Path) -> FileInfo {
-    use crate::utils::compute_file_hash;
-    let full_path = centy_path.join(disk_path.trim_end_matches('/'));
-    let is_dir = full_path.is_dir();
-    let hash = if is_dir {
-        String::new()
-    } else {
-        compute_file_hash(&full_path).await.unwrap_or_default()
-    };
-    FileInfo {
-        path: disk_path.to_string(),
-        file_type: if is_dir {
-            ManagedFileType::Directory
-        } else {
-            ManagedFileType::File
-        },
-        hash,
-        content_preview: None,
-    }
-}
-/// Build a ReconciliationPlan from its constituent parts
-#[allow(dead_code)]
-pub fn build_plan(mut plan: ReconciliationPlan) -> ReconciliationPlan {
-    plan.to_create.sort_by(|a, b| a.path.cmp(&b.path));
-    plan
 }

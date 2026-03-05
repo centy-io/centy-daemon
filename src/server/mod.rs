@@ -16,7 +16,6 @@ pub mod structured_error;
 mod trait_impl;
 mod validate_config;
 
-use crate::user_config::UserConfig;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -46,8 +45,6 @@ pub enum ShutdownSignal {
 pub struct CentyDaemonService {
     shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,
     exe_path: Option<PathBuf>,
-    #[allow(dead_code)]
-    user_config: UserConfig,
 }
 
 impl CentyDaemonService {
@@ -55,7 +52,7 @@ impl CentyDaemonService {
     pub fn new(
         shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,
         exe_path: Option<PathBuf>,
-        user_config: UserConfig,
+        _user_config: crate::user_config::UserConfig,
     ) -> Self {
         // Spawn background task to infer organizations for ungrouped projects on startup
         tokio::spawn(async {
@@ -65,7 +62,6 @@ impl CentyDaemonService {
         Self {
             shutdown_tx,
             exe_path,
-            user_config,
         }
     }
 }
