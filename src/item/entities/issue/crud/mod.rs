@@ -2,6 +2,7 @@ mod extra_types;
 mod get;
 mod list;
 mod migrate;
+mod move_io;
 mod move_issue;
 mod org_sync;
 mod org_sync_update;

@@ -1,33 +1,16 @@
-#![allow(unknown_lints, max_nesting_depth, max_lines_per_file)]
 use super::super::assets::copy_assets_folder;
 use super::super::metadata::IssueFrontmatter;
 use super::super::reconcile::get_next_display_number;
-use super::super::status::validate_status_for_project;
 use super::extra_types::{MoveIssueOptions, MoveIssueResult};
-use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
+use super::move_io::{
+    load_source_issue, remove_source_issue, source_issues_path, validate_issue_move,
+};
+use super::read::read_issue_from_frontmatter;
 use super::types::IssueCrudError;
-use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, now_iso, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use tokio::fs;
-
-async fn remove_source_issue(
-    is_new_format: bool,
-    file_path: &std::path::Path,
-    assets_path: &std::path::Path,
-    folder_path: &std::path::Path,
-) -> std::io::Result<()> {
-    if is_new_format {
-        fs::remove_file(file_path).await?;
-        if assets_path.exists() {
-            fs::remove_dir_all(assets_path).await?;
-        }
-    } else {
-        fs::remove_dir_all(folder_path).await?;
-    }
-    Ok(())
-}
 
 pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
     if options.source_project_path == options.target_project_path {
@@ -39,40 +22,11 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     let mut target_manifest = read_manifest(&options.target_project_path)
         .await?
         .ok_or(IssueCrudError::TargetNotInitialized)?;
-    let source_centy = get_centy_path(&options.source_project_path);
-    let source_issues_path = source_centy.join("issues");
-    let source_file_path = source_issues_path.join(format!("{}.md", &options.issue_id));
-    let source_folder_path = source_issues_path.join(&options.issue_id);
-    let (source_is_new_format, source_issue) = if source_file_path.exists() {
-        (
-            true,
-            read_issue_from_frontmatter(&source_file_path, &options.issue_id).await?,
-        )
-    } else if source_folder_path.exists() {
-        (
-            false,
-            read_issue_from_legacy_folder(&source_folder_path, &options.issue_id).await?,
-        )
-    } else {
-        return Err(IssueCrudError::IssueNotFound(options.issue_id.clone()));
-    };
+    let src_issues = source_issues_path(&options.source_project_path);
+    let (source_is_new_format, source_issue, source_file_path, source_folder_path) =
+        load_source_issue(&src_issues, &options.issue_id).await?;
     let old_display_number = source_issue.metadata.display_number;
-    let target_config = read_config(&options.target_project_path)
-        .await
-        .ok()
-        .flatten();
-    let target_priority_levels = target_config.as_ref().map_or(3, |c| c.priority_levels);
-    if source_issue.metadata.priority > target_priority_levels {
-        return Err(IssueCrudError::InvalidPriorityInTarget(
-            source_issue.metadata.priority,
-        ));
-    }
-    validate_status_for_project(
-        &options.target_project_path,
-        "issues",
-        &source_issue.metadata.status,
-    )
-    .await?;
+    validate_issue_move(&source_issue, &options.target_project_path).await?;
     let target_centy = get_centy_path(&options.target_project_path);
     let target_issues_path = target_centy.join("issues");
     fs::create_dir_all(&target_issues_path).await?;
@@ -99,7 +53,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     );
     fs::write(&target_issue_file, &issue_content).await?;
     let source_assets_path = if source_is_new_format {
-        source_issues_path.join("assets").join(&options.issue_id)
+        src_issues.join("assets").join(&options.issue_id)
     } else {
         source_folder_path.join("assets")
     };
