@@ -1,6 +1,5 @@
-#![allow(unknown_lints, max_lines_per_file)]
-//! Create/read/list operations for org issues.
-use super::crud_types::{ListOrgIssuesOptions, OrgIssue, OrgIssueError, OrgIssueFrontmatter};
+//! Create/read operations for org issues.
+use super::crud_types::{OrgIssue, OrgIssueError, OrgIssueFrontmatter};
 use super::paths::get_org_issues_dir;
 use crate::item::entities::issue::org_registry::get_next_org_display_number;
 use crate::utils::{now_iso, strip_centy_md_header, CENTY_HEADER_YAML};
@@ -9,7 +8,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 use uuid::Uuid;
-pub async fn read_org_issue_file(
+pub(super) async fn read_org_issue_file(
     issues_dir: &Path,
     issue_id: &str,
 ) -> Result<OrgIssue, OrgIssueError> {
@@ -78,69 +77,4 @@ pub async fn create_org_issue(
 }
 pub async fn get_org_issue(org_slug: &str, issue_id: &str) -> Result<OrgIssue, OrgIssueError> {
     read_org_issue_file(&get_org_issues_dir(org_slug)?, issue_id).await
-}
-pub async fn get_org_issue_by_display_number(
-    org_slug: &str,
-    display_number: u32,
-) -> Result<OrgIssue, OrgIssueError> {
-    let issues_dir = get_org_issues_dir(org_slug)?;
-    if !issues_dir.exists() {
-        return Err(OrgIssueError::NotFound(display_number.to_string()));
-    }
-    let mut entries = fs::read_dir(&issues_dir).await?;
-    while let Some(entry) = entries.next_entry().await? {
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
-        if !name.ends_with(".md") {
-            continue;
-        }
-        let issue_id = name.trim_end_matches(".md");
-        if let Ok(issue) = read_org_issue_file(&issues_dir, issue_id).await {
-            if issue.display_number == display_number {
-                return Ok(issue);
-            }
-        }
-    }
-    Err(OrgIssueError::NotFound(display_number.to_string()))
-}
-pub async fn list_org_issues(
-    org_slug: &str,
-    opts: ListOrgIssuesOptions,
-) -> Result<Vec<OrgIssue>, OrgIssueError> {
-    let issues_dir = get_org_issues_dir(org_slug)?;
-    if !issues_dir.exists() {
-        return Ok(Vec::new());
-    }
-    let mut issues = Vec::new();
-    let mut entries = fs::read_dir(&issues_dir).await?;
-    while let Some(entry) = entries.next_entry().await? {
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
-        if !name.ends_with(".md") {
-            continue;
-        }
-        let issue_id = name.trim_end_matches(".md");
-        let issue = match read_org_issue_file(&issues_dir, issue_id).await {
-            Ok(i) => i,
-            Err(_) => continue,
-        };
-        if let Some(ref status) = opts.status {
-            if &issue.status != status {
-                continue;
-            }
-        }
-        if let Some(priority) = opts.priority {
-            if issue.priority != priority {
-                continue;
-            }
-        }
-        if let Some(ref project) = opts.referenced_project {
-            if !issue.referenced_projects.contains(project) {
-                continue;
-            }
-        }
-        issues.push(issue);
-    }
-    issues.sort_by_key(|i| i.display_number);
-    Ok(issues)
 }
