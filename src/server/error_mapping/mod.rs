@@ -1,58 +1,12 @@
-#![allow(unknown_lints, max_lines_per_file)]
 /// Trait for mapping domain errors to structured error codes and optional tips.
 pub trait ToStructuredError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>);
 }
 
+mod impls_a;
 mod impls_b;
 mod impls_c;
 mod impls_d;
-
-impl ToStructuredError for crate::server::assert_service::AssertError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::server::assert_service::AssertError;
-        match self {
-            AssertError::NotInitialized => (
-                "NOT_INITIALIZED",
-                Some("Run 'centy init' to initialize the project"),
-            ),
-        }
-    }
-}
-
-impl ToStructuredError for crate::item::core::error::ItemError {
-    fn error_code_and_tip(&self) -> (&str, Option<&str>) {
-        use crate::item::core::error::ItemError;
-        match self {
-            ItemError::IoError(_) => ("IO_ERROR", None),
-            ItemError::NotFound(_) => ("ITEM_NOT_FOUND", None),
-            ItemError::NotInitialized => (
-                "NOT_INITIALIZED",
-                Some("Run 'centy init' to initialize the project"),
-            ),
-            ItemError::ValidationError(_) => ("VALIDATION_ERROR", None),
-            ItemError::ManifestError(_) => ("MANIFEST_ERROR", None),
-            ItemError::JsonError(_) => ("JSON_ERROR", None),
-            ItemError::InvalidStatus { .. } => ("INVALID_STATUS", None),
-            ItemError::InvalidPriority { .. } => ("INVALID_PRIORITY", None),
-            ItemError::AlreadyExists(_) => ("ALREADY_EXISTS", None),
-            ItemError::IsDeleted(_) => ("IS_DELETED", None),
-            ItemError::OrgSyncError(_) => ("ORG_SYNC_ERROR", None),
-            ItemError::YamlError(_) => ("YAML_ERROR", None),
-            ItemError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
-            ItemError::ItemTypeNotFound(_) => ("ITEM_TYPE_NOT_FOUND", None),
-            ItemError::FeatureNotEnabled(_) => ("FEATURE_NOT_ENABLED", None),
-            ItemError::AlreadyDeleted(_) => ("ALREADY_DELETED", None),
-            ItemError::NotDeleted(_) => ("NOT_DELETED", None),
-            ItemError::Custom(_) => ("CUSTOM_ERROR", None),
-            ItemError::SameProject => ("SAME_PROJECT", None),
-            ItemError::TargetNotInitialized => (
-                "TARGET_NOT_INITIALIZED",
-                Some("Run 'centy init' in the target project first"),
-            ),
-        }
-    }
-}
 
 impl ToStructuredError for crate::item::entities::issue::IssueError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
