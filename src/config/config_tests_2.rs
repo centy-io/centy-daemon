@@ -25,8 +25,9 @@ fn test_project_metadata_default() {
 
 #[test]
 fn test_project_metadata_serialization() {
-    let mut metadata = ProjectMetadata::default();
-    metadata.title = Some("My Project".to_string());
+    let metadata = ProjectMetadata {
+        title: Some("My Project".to_string()),
+    };
     let json = serde_json::to_string(&metadata).expect("Should serialize");
     let deserialized: ProjectMetadata = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.title, Some("My Project".to_string()));
@@ -50,9 +51,11 @@ async fn test_read_write_config_roundtrip() {
     fs::create_dir_all(&centy_dir)
         .await
         .expect("Should create .centy dir");
-    let mut config = CentyConfig::default();
-    config.version = Some("2.0.0".to_string());
-    config.priority_levels = 4;
+    let config = CentyConfig {
+        version: Some("2.0.0".to_string()),
+        priority_levels: 4,
+        ..CentyConfig::default()
+    };
     write_config(temp_dir.path(), &config)
         .await
         .expect("Should write");
@@ -82,8 +85,9 @@ async fn test_read_write_project_metadata_roundtrip() {
     fs::create_dir_all(&centy_dir)
         .await
         .expect("Should create .centy dir");
-    let mut metadata = ProjectMetadata::default();
-    metadata.title = Some("Test Project".to_string());
+    let metadata = ProjectMetadata {
+        title: Some("Test Project".to_string()),
+    };
     write_project_metadata(temp_dir.path(), &metadata)
         .await
         .expect("Should write");

@@ -21,8 +21,10 @@ fn test_centy_config_default() {
 
 #[test]
 fn test_centy_config_effective_version_with_version() {
-    let mut config = CentyConfig::default();
-    config.version = Some("1.0.0".to_string());
+    let config = CentyConfig {
+        version: Some("1.0.0".to_string()),
+        ..CentyConfig::default()
+    };
     assert_eq!(config.effective_version(), "1.0.0");
 }
 
@@ -34,9 +36,11 @@ fn test_centy_config_effective_version_without_version() {
 
 #[test]
 fn test_centy_config_serialization_deserialization() {
-    let mut config = CentyConfig::default();
-    config.version = Some("1.2.3".to_string());
-    config.priority_levels = 5;
+    let config = CentyConfig {
+        version: Some("1.2.3".to_string()),
+        priority_levels: 5,
+        ..CentyConfig::default()
+    };
     let json = serde_json::to_string(&config).expect("Should serialize");
     let deserialized: CentyConfig = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.version, Some("1.2.3".to_string()));
