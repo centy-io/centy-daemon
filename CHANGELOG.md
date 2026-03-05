@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 0.8.1
+## [0.8.1] — 2026-03-05
 
 ### Added
 - Auto hard-delete artifacts after configurable retention period (#257)
@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Remove custom doc item type logic (doc now treated as generic item type)
 - Lint suppression cleanup: removed all `#[allow]` directives across the codebase (#216–#253)
+- Remove `features.status` field from item type config; status is now derived from `statuses` list (#255)
 
 ### Fixed
 - Await `track_project` in init handler to prevent race with `getProjectInfo` (#171)
