@@ -60,7 +60,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
     track_project_async(req.target_project_path.clone());
     let source_path = Path::new(&req.source_project_path);
     let target_path = Path::new(&req.target_project_path);
-    if let Err(resp) = assert_both_initialized(&req, source_path, target_path).await {
+    if let Err(resp) = assert_both_initialized(&req, source_path, target_path) {
         return Ok(resp);
     }
     let ((source_type, source_config), (target_type, target_config)) =

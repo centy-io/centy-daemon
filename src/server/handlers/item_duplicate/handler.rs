@@ -16,7 +16,7 @@ pub async fn duplicate_item(
     track_project_async(req.target_project_path.clone());
     let source_path = Path::new(&req.source_project_path);
     let target_project_path = Path::new(&req.target_project_path);
-    if let Err(resp) = assert_both_initialized(&req, source_path, target_project_path).await {
+    if let Err(resp) = assert_both_initialized(&req, source_path, target_project_path) {
         return Ok(resp);
     }
     let (item_type, config) =

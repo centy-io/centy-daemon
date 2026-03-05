@@ -9,7 +9,7 @@ use mdstore::TypeConfig;
 use std::path::Path;
 use tonic::Response;
 /// Assert both source and target projects are initialized.
-pub(super) async fn assert_both_initialized(
+pub(super) fn assert_both_initialized(
     req: &MoveItemRequest,
     source_path: &Path,
     target_path: &Path,

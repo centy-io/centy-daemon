@@ -21,7 +21,7 @@ pub(super) fn err_resp(
         ..Default::default()
     })
 }
-pub(super) async fn assert_both_initialized(
+pub(super) fn assert_both_initialized(
     req: &DuplicateItemRequest,
     source_path: &Path,
     target_path: &Path,
