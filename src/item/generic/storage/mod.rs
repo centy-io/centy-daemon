@@ -1,5 +1,6 @@
 //! Generic CRUD operations for config-driven item types.
 mod crud_ops;
+mod delete_ops;
 mod helpers;
 mod move_item;
 mod move_ops;
@@ -10,9 +11,9 @@ use crate::manifest;
 #[cfg(test)]
 use crate::utils::get_centy_path;
 pub use crud_ops::{
-    generic_create, generic_delete, generic_get, generic_get_by_display_number, generic_list,
-    generic_restore, generic_soft_delete, generic_update,
+    generic_create, generic_get, generic_get_by_display_number, generic_list, generic_update,
 };
+pub use delete_ops::{generic_delete, generic_restore, generic_soft_delete};
 #[cfg(test)]
 use mdstore::{CreateOptions, Filters, TypeConfig, UpdateOptions};
 pub use move_item::generic_move;
