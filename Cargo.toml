@@ -252,3 +252,15 @@ assets = [
     { source = "packaging/linux/systemd/centy-daemon.service", dest = "/lib/systemd/system/centy-daemon.service", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/centy-daemon/README.md", mode = "644", doc = true },
 ]
+redundant_type_annotations = "deny"
+str_to_string = "deny"
+string_to_string = "deny"
+error_impl_error = "deny"
+needless_raw_strings = "deny"
+deref_by_slicing = "deny"
+format_collect = "deny"
+get_unwrap = "deny"
+if_not_else = "deny"
+redundant_else = "deny"
+map_err_ignore = "deny"
+shadow_unrelated = "deny"
