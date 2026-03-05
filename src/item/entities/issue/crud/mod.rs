@@ -9,6 +9,7 @@ mod parse;
 mod read;
 mod types;
 mod update;
+mod update_builders;
 mod update_helpers;
 
 pub use extra_types::{GetIssuesByUuidResult, IssueWithProject, MoveIssueOptions, MoveIssueResult};
