@@ -87,7 +87,8 @@ pub async fn create_issue_in_project(
         org_display_number: source_metadata.org_display_number,
         custom_fields: source_metadata.custom_fields.clone(),
     };
-    let issue_content = generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
+    let issue_content =
+        generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
     fs::write(&issue_file_path, &issue_content).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)

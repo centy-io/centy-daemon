@@ -50,7 +50,8 @@ pub async fn update_issue(
         &updates.description,
         &current_content,
     );
-    let issue_content = generate_frontmatter(&frontmatter, &updates.title, &body, Some(CENTY_HEADER_YAML));
+    let issue_content =
+        generate_frontmatter(&frontmatter, &updates.title, &body, Some(CENTY_HEADER_YAML));
     fs::write(&issue_file_path, &issue_content).await?;
     if is_old_format && !is_new_format {
         migrate_legacy_format(&issue_folder_path, &issues_path, issue_number).await?;

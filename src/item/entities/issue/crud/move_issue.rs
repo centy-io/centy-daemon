@@ -11,6 +11,23 @@ use crate::utils::{get_centy_path, now_iso, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use tokio::fs;
 
+async fn remove_source_issue(
+    is_new_format: bool,
+    file_path: &std::path::Path,
+    assets_path: &std::path::Path,
+    folder_path: &std::path::Path,
+) -> std::io::Result<()> {
+    if is_new_format {
+        fs::remove_file(file_path).await?;
+        if assets_path.exists() {
+            fs::remove_dir_all(assets_path).await?;
+        }
+    } else {
+        fs::remove_dir_all(folder_path).await?;
+    }
+    Ok(())
+}
+
 pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
     if options.source_project_path == options.target_project_path {
         return Err(IssueCrudError::SameProject);
@@ -73,8 +90,12 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         custom_fields: source_issue.metadata.custom_fields.clone(),
     };
     let target_issue_file = target_issues_path.join(format!("{}.md", &options.issue_id));
-    let issue_content =
-        generate_frontmatter(&frontmatter, &source_issue.title, &source_issue.description, Some(CENTY_HEADER_YAML));
+    let issue_content = generate_frontmatter(
+        &frontmatter,
+        &source_issue.title,
+        &source_issue.description,
+        Some(CENTY_HEADER_YAML),
+    );
     fs::write(&target_issue_file, &issue_content).await?;
     let source_assets_path = if source_is_new_format {
         source_issues_path.join("assets").join(&options.issue_id)
@@ -88,14 +109,13 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
             .await
             .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
     }
-    if source_is_new_format {
-        fs::remove_file(&source_file_path).await?;
-        if source_assets_path.exists() {
-            fs::remove_dir_all(&source_assets_path).await?;
-        }
-    } else {
-        fs::remove_dir_all(&source_folder_path).await?;
-    }
+    remove_source_issue(
+        source_is_new_format,
+        &source_file_path,
+        &source_assets_path,
+        &source_folder_path,
+    )
+    .await?;
     update_manifest(&mut source_manifest);
     update_manifest(&mut target_manifest);
     write_manifest(&options.source_project_path, &source_manifest).await?;

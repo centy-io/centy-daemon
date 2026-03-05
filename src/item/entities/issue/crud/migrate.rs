@@ -37,7 +37,8 @@ pub async fn migrate_issue_to_new_format(
         } else {
             issue.description.clone()
         };
-    let issue_content = generate_frontmatter(&frontmatter, &issue.title, &body, Some(CENTY_HEADER_YAML));
+    let issue_content =
+        generate_frontmatter(&frontmatter, &issue.title, &body, Some(CENTY_HEADER_YAML));
     let new_issue_file = issues_path.join(format!("{issue_id}.md"));
     fs::write(&new_issue_file, &issue_content).await?;
     let old_assets_path = issue_folder_path.join("assets");

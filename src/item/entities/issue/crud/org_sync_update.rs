@@ -76,7 +76,8 @@ pub async fn update_or_create_issue_in_project(
         org_display_number: source_metadata.org_display_number,
         custom_fields: source_metadata.custom_fields.clone(),
     };
-    let issue_content = generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
+    let issue_content =
+        generate_frontmatter(&frontmatter, title, description, Some(CENTY_HEADER_YAML));
     fs::write(&issue_file_path, &issue_content).await?;
     if !is_new_format {
         let old_assets_path = issue_folder_path.join("assets");

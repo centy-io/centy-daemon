@@ -46,7 +46,7 @@ async fn test_list_with_filters() {
             status: Some(status.to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
-        comment: None,
+            comment: None,
         };
         generic_create(temp.path(), "issues", &config, options)
             .await

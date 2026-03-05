@@ -64,7 +64,8 @@ pub async fn write_issue_file(
     display_title: &str,
     body: &str,
 ) -> Result<(), IssueError> {
-    let issue_content = generate_frontmatter(frontmatter, display_title, body, Some(CENTY_HEADER_YAML));
+    let issue_content =
+        generate_frontmatter(frontmatter, display_title, body, Some(CENTY_HEADER_YAML));
     let issue_file = issues_path.join(format!("{issue_id}.md"));
     fs::write(&issue_file, &issue_content).await?;
     Ok(())

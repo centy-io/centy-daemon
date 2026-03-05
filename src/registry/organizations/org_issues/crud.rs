@@ -60,7 +60,12 @@ pub async fn update_org_issue(
     };
     fs::write(
         issues_dir.join(format!("{issue_id}.md")),
-        generate_frontmatter(&frontmatter, &issue.title, &issue.description, Some(CENTY_HEADER_YAML)),
+        generate_frontmatter(
+            &frontmatter,
+            &issue.title,
+            &issue.description,
+            Some(CENTY_HEADER_YAML),
+        ),
     )
     .await?;
     Ok(issue)
