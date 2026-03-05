@@ -1,6 +1,8 @@
 use super::super::metadata::IssueFrontmatter;
+use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::priority::priority_label;
 use super::types::{CreateIssueOptions, IssueError};
+use crate::config::item_type_config::ItemTypeConfig;
 use crate::template::{IssueTemplateContext, TemplateEngine};
 use std::path::Path;
 
@@ -73,4 +75,25 @@ pub fn parse_templated_content(content: &str) -> (String, String) {
         .to_string();
 
     (title, description)
+}
+
+/// Wrap description with a planning note if the status is a planning status.
+pub fn apply_planning_body(description: String, status: &str) -> String {
+    if is_planning_status(status) {
+        add_planning_note(&description)
+    } else {
+        description
+    }
+}
+
+/// Resolve the issue status, falling back to the item type config default or "open".
+pub fn resolve_default_status(
+    status_opt: Option<String>,
+    item_type_config: Option<&ItemTypeConfig>,
+) -> String {
+    status_opt.unwrap_or_else(|| {
+        item_type_config
+            .and_then(|c| c.statuses.first().cloned())
+            .unwrap_or_else(|| "open".to_string())
+    })
 }

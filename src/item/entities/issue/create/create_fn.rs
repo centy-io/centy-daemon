@@ -1,12 +1,10 @@
-#![allow(unknown_lints, max_lines_per_file)]
 use super::super::id::generate_issue_id;
-use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;
 use super::super::status::validate_status_for_project;
 use super::helpers::{
     build_custom_fields, build_issue_for_sync, resolve_org_info, resolve_priority,
 };
-use super::render::render_title_and_description;
+use super::render::{apply_planning_body, render_title_and_description, resolve_default_status};
 use super::types::{CreateIssueOptions, CreateIssueResult, IssueError};
 use super::write_issue::{
     build_frontmatter, build_issue_metadata, persist_manifest, write_issue_file,
@@ -42,12 +40,7 @@ pub async fn create_issue(
         .await
         .ok()
         .flatten();
-    let status = options.status.clone().unwrap_or_else(|| {
-        item_type_config
-            .as_ref()
-            .and_then(|c| c.statuses.first().cloned())
-            .unwrap_or_else(|| "open".to_string())
-    });
+    let status = resolve_default_status(options.status.clone(), item_type_config.as_ref());
     validate_status_for_project(project_path, "issues", &status).await?;
     let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
     let draft = options.draft.unwrap_or(false);
@@ -71,11 +64,7 @@ pub async fn create_issue(
         &frontmatter,
     )
     .await?;
-    let body = if is_planning_status(&status) {
-        add_planning_note(&description)
-    } else {
-        description
-    };
+    let body = apply_planning_body(description, &status);
     write_issue_file(&issues_path, &issue_id, &frontmatter, &display_title, &body).await?;
     let mut manifest = manifest;
     persist_manifest(project_path, &mut manifest).await?;
