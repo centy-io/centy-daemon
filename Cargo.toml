@@ -290,6 +290,10 @@ fallible_impl_from = "deny"
 regex_creation_in_loops = "deny"
 debug_assert_with_mut_call = "deny"
 set_contains_or_insert = "deny"
+needless_borrowed_reference = "deny"
+expect_fun_call = "deny"
+extend_with_drain = "deny"
+collection_is_never_read = "deny"
 
 [[bin]]
 name = "centy-daemon"
