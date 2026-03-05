@@ -75,18 +75,14 @@ pub async fn execute_reconciliation(
     Ok(result)
 }
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests.rs"]
 mod tests;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_2.rs"]
 mod tests2;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_3.rs"]
 mod tests3;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_4.rs"]
 mod tests4;

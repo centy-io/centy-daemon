@@ -82,10 +82,8 @@ pub async fn build_reconciliation_plan(
     Ok(plan)
 }
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../plan_tests.rs"]
 mod tests;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../plan_tests_2.rs"]
 mod tests2;

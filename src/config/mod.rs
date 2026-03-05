@@ -13,18 +13,14 @@ pub use types::{
     default_priority_levels, CentyConfig, CleanupConfig, ProjectMetadata, WorkspaceConfig,
 };
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "config_tests_1.rs"]
 mod config_tests_1;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "config_tests_2.rs"]
 mod config_tests_2;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "config_tests_3.rs"]
 mod config_tests_3;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "config_tests_4.rs"]
 mod config_tests_4;
