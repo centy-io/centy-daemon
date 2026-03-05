@@ -9,6 +9,9 @@ use tracing::warn;
 /// Track a project access - called on any RPC operation
 pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     let path = Path::new(project_path);
+    if super::super::ignore::is_ignored_path(path) {
+        return Ok(());
+    }
     let canonical_path = path.canonicalize().map_or_else(
         |_| project_path.to_string(),
         |p| p.to_string_lossy().to_string(),

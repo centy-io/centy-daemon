@@ -14,6 +14,9 @@ static ISOLATED_HOME: LazyLock<()> = LazyLock::new(|| {
     std::env::set_var("CENTY_HOME", dir.path());
     // Leak the TempDir so it lives for the entire process lifetime.
     Box::leak(Box::new(dir));
+    // Tests use temp dirs as project paths; initialize with no ignore patterns
+    // so is_ignored_path does not fall back to is_in_temp_dir and filter them out.
+    centy_daemon::registry::init_ignore_paths(&[]);
 });
 
 /// Create a temporary directory for testing.
