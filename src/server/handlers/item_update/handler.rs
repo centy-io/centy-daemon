@@ -18,7 +18,6 @@ fn err_response(
         ..Default::default()
     })
 }
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);

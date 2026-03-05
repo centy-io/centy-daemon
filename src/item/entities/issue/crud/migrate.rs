@@ -10,7 +10,6 @@ use std::path::Path;
 use tokio::fs;
 use tracing::debug;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn migrate_issue_to_new_format(
     issues_path: &Path,
     issue_folder_path: &Path,

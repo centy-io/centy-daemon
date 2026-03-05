@@ -12,7 +12,6 @@ use crate::utils::get_centy_path;
 use std::path::Path;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn list_issues(
     project_path: &Path,
     status_filter: Option<&str>,

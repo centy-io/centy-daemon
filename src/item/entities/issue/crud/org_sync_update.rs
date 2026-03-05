@@ -11,7 +11,6 @@ use mdstore::generate_frontmatter;
 use std::path::Path;
 use tokio::fs;
 
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn update_or_create_issue_in_project(
     project_path: &Path,
     issue_id: &str,

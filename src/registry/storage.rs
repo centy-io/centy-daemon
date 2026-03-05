@@ -34,7 +34,6 @@ pub fn get_registry_path() -> Result<PathBuf, RegistryError> {
 }
 
 /// Read the registry from disk, applying any necessary migrations
-#[allow(unknown_lints, max_nesting_depth)]
 pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
     let path = get_registry_path()?;
     if !path.exists() {

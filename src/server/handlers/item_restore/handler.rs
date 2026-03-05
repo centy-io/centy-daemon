@@ -8,7 +8,6 @@ use crate::server::proto::{RestoreItemRequest, RestoreItemResponse};
 use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn restore_item(
     req: RestoreItemRequest,
 ) -> Result<Response<RestoreItemResponse>, Status> {

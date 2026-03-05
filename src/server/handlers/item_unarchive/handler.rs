@@ -10,7 +10,6 @@ use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 /// Unarchive an item by moving it from `archived/` back to its original folder.
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn unarchive_item(
     req: UnarchiveItemRequest,
 ) -> Result<Response<UnarchiveItemResponse>, Status> {

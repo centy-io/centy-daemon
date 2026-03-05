@@ -14,7 +14,6 @@ use std::path::Path;
 use tokio::fs;
 pub use types::{ExecuteError, ReconciliationDecisions, ReconciliationResult};
 /// Execute the reconciliation plan
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn execute_reconciliation(
     project_path: &Path,
     decisions: ReconciliationDecisions,

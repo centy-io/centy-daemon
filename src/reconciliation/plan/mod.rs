@@ -9,7 +9,6 @@ use std::collections::HashSet;
 use std::path::Path;
 pub use types::{FileInfo, PlanError, ReconciliationPlan};
 /// Build a reconciliation plan for the given project path
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn build_reconciliation_plan(
     project_path: &Path,
 ) -> Result<ReconciliationPlan, PlanError> {

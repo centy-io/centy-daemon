@@ -9,7 +9,6 @@ use crate::server::proto::{CreateItemRequest, CreateItemResponse};
 use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
-#[allow(unknown_lints, max_lines_per_function, clippy::too_many_lines)]
 pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
