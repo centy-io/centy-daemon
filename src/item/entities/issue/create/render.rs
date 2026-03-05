@@ -57,8 +57,7 @@ pub fn parse_templated_content(content: &str) -> (String, String) {
 
     let title = lines
         .get(title_idx)
-        .map(|line| line.strip_prefix('#').map_or(*line, str::trim))
-        .unwrap_or("")
+        .map_or("", |line| line.strip_prefix('#').map_or(*line, str::trim))
         .to_string();
 
     let description = lines

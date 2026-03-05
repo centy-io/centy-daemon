@@ -37,8 +37,7 @@ pub async fn open_in_temp_workspace(
     let config = read_config(project_path).await.ok().flatten();
     let requires_status_config = config
         .as_ref()
-        .map(|c| c.workspace.update_status_on_open.is_none())
-        .unwrap_or(true);
+        .is_none_or(|c| c.workspace.update_status_on_open.is_none());
     if requires_status_config {
         return Ok(err_response(
             StructuredError::new(
