@@ -1,12 +1,10 @@
-#![allow(unknown_lints, max_lines_per_file)]
+use super::migrations::apply_migrations;
 use super::types::{ProjectRegistry, CURRENT_SCHEMA_VERSION};
 use super::RegistryError;
-use crate::utils::now_iso;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::fs;
 use tokio::sync::Mutex;
-use tracing::info;
 
 /// Global mutex for registry file access
 static REGISTRY_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -33,21 +31,6 @@ pub fn get_centy_config_dir() -> Result<PathBuf, RegistryError> {
 /// Get the path to the global registry file (~/.centy/projects.json)
 pub fn get_registry_path() -> Result<PathBuf, RegistryError> {
     Ok(get_centy_config_dir()?.join("projects.json"))
-}
-
-fn migrate_v1_to_v2(registry: &mut ProjectRegistry) {
-    registry.schema_version = 2;
-    registry.updated_at = now_iso();
-    info!("Migrated registry from v1 to v2 (added organizations support)");
-}
-
-fn apply_migrations(registry: &mut ProjectRegistry) -> bool {
-    let mut migrated = false;
-    if registry.schema_version < 2 {
-        migrate_v1_to_v2(registry);
-        migrated = true;
-    }
-    migrated
 }
 
 /// Read the registry from disk, applying any necessary migrations
