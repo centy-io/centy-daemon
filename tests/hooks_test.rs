@@ -111,8 +111,8 @@ async fn test_hook_receives_env_vars() {
 
     assert!(result.is_ok());
 
-    let content = tokio::fs::read_to_string(&marker).await.unwrap();
-    assert_eq!(content.trim(), "pre issue update issue-abc");
+    let file_content = tokio::fs::read_to_string(&marker).await.unwrap();
+    assert_eq!(file_content.trim(), "pre issue update issue-abc");
 }
 
 #[tokio::test]
@@ -148,8 +148,8 @@ async fn test_hook_receives_stdin_json() {
 
     assert!(result.is_ok());
 
-    let content = tokio::fs::read_to_string(&marker).await.unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+    let file_content = tokio::fs::read_to_string(&marker).await.unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&file_content).unwrap();
     assert_eq!(parsed["phase"], "pre");
     assert_eq!(parsed["item_type"], "issue");
     assert_eq!(parsed["operation"], "create");
@@ -265,8 +265,8 @@ async fn test_specificity_ordering_verified_by_file() {
 
     assert!(result.is_ok());
 
-    let content = tokio::fs::read_to_string(&marker).await.unwrap();
-    let lines: Vec<&str> = content.trim().lines().collect();
+    let file_content = tokio::fs::read_to_string(&marker).await.unwrap();
+    let lines: Vec<&str> = file_content.trim().lines().collect();
     assert_eq!(lines.len(), 3);
     assert_eq!(lines[0], "specific"); // Most specific first (specificity 3)
     assert_eq!(lines[1], "mid"); // Mid specificity (specificity 2)
@@ -359,8 +359,8 @@ async fn test_post_hooks_run_after_success() {
 
     run_post_hooks(temp_dir.path(), "issue", HookOperation::Create, &context).await;
 
-    let content = tokio::fs::read_to_string(&marker).await.unwrap();
-    assert_eq!(content.trim(), "post_ran");
+    let file_content = tokio::fs::read_to_string(&marker).await.unwrap();
+    assert_eq!(file_content.trim(), "post_ran");
 }
 
 #[test]
