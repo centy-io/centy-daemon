@@ -1,6 +1,5 @@
-use super::helpers::{
-    assert_both_initialized, finish_move, prepare_move_hooks, resolve_configs, MoveHookContext,
-};
+use super::helpers::{assert_both_initialized, resolve_configs};
+use super::move_hooks::{finish_move, prepare_move_hooks, MoveHookContext};
 use crate::item::generic::storage::{generic_move, generic_rename_slug};
 use crate::registry::track_project_async;
 use crate::server::proto::{MoveItemRequest, MoveItemResponse};
