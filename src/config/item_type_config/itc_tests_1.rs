@@ -1,8 +1,4 @@
-#![allow(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::field_reassign_with_default
-)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 use super::*;
 use crate::config::CentyConfig;
 use mdstore::IdStrategy;
@@ -11,9 +7,10 @@ use mdstore::IdStrategy;
 
 #[test]
 fn test_default_issue_config_maps_fields() {
-    let mut config = CentyConfig::default();
-    config.priority_levels = 5;
-
+    let config = CentyConfig {
+        priority_levels: 5,
+        ..CentyConfig::default()
+    };
     let issue = default_issue_config(&config);
 
     assert_eq!(issue.name, "Issue");

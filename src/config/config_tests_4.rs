@@ -13,8 +13,12 @@ fn test_workspace_config_serialization_with_value() {
 
 #[test]
 fn test_centy_config_workspace_roundtrip() {
-    let mut config = CentyConfig::default();
-    config.workspace.update_status_on_open = Some(false);
+    let config = CentyConfig {
+        workspace: WorkspaceConfig {
+            update_status_on_open: Some(false),
+        },
+        ..CentyConfig::default()
+    };
     let json = serde_json::to_string(&config).expect("Should serialize");
     let deserialized: CentyConfig = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.workspace.update_status_on_open, Some(false));
