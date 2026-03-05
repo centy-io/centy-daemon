@@ -9,42 +9,25 @@ use crate::server::proto::{DeleteUserRequest, DeleteUserResponse};
 use crate::server::structured_error::to_error_json;
 use crate::user::delete_user as internal_delete_user;
 use tonic::{Response, Status};
-
-pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserResponse>, Status> {
-    track_project_async(req.project_path.clone());
-    let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path) {
-        return Ok(Response::new(DeleteUserResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
-        }));
-    }
-
-    // Pre-hook
-    let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.user_id.clone();
-    let hook_request_data = serde_json::json!({
-        "user_id": &req.user_id,
-    });
-    if let Err(e) = maybe_run_pre_hooks(
-        project_path,
-        "user",
-        HookOperation::Delete,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data.clone()),
-    )
-    .await
-    {
-        return Ok(Response::new(DeleteUserResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-            ..Default::default()
-        }));
-    }
-
-    match internal_delete_user(project_path, &req.user_id).await {
+fn err_resp(
+    cwd: &str,
+    e: &(impl std::fmt::Display + crate::server::error_mapping::ToStructuredError),
+) -> Response<DeleteUserResponse> {
+    Response::new(DeleteUserResponse {
+        success: false,
+        error: to_error_json(cwd, e),
+        ..Default::default()
+    })
+}
+async fn run_delete_user(
+    project_path: &Path,
+    user_id: &str,
+    hook_project_path: String,
+    hook_item_id: String,
+    hook_request_data: serde_json::Value,
+    cwd: &str,
+) -> Response<DeleteUserResponse> {
+    match internal_delete_user(project_path, user_id).await {
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
@@ -56,12 +39,11 @@ pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserRe
                 true,
             )
             .await;
-
-            Ok(Response::new(DeleteUserResponse {
+            Response::new(DeleteUserResponse {
                 success: true,
                 error: String::new(),
                 manifest: Some(manifest_to_proto(&result.manifest)),
-            }))
+            })
         }
         Err(e) => {
             maybe_run_post_hooks(
@@ -74,12 +56,42 @@ pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserRe
                 false,
             )
             .await;
-
-            Ok(Response::new(DeleteUserResponse {
+            Response::new(DeleteUserResponse {
                 success: false,
-                error: to_error_json(&req.project_path, &e),
+                error: to_error_json(cwd, &e),
                 manifest: None,
-            }))
+            })
         }
     }
+}
+pub async fn delete_user(req: DeleteUserRequest) -> Result<Response<DeleteUserResponse>, Status> {
+    track_project_async(req.project_path.clone());
+    let project_path = Path::new(&req.project_path);
+    if let Err(e) = assert_initialized(project_path) {
+        return Ok(err_resp(&req.project_path, &e));
+    }
+    let hook_project_path = req.project_path.clone();
+    let hook_item_id = req.user_id.clone();
+    let hook_request_data = serde_json::json!({ "user_id": &req.user_id });
+    if let Err(e) = maybe_run_pre_hooks(
+        project_path,
+        "user",
+        HookOperation::Delete,
+        &hook_project_path,
+        Some(&hook_item_id),
+        Some(hook_request_data.clone()),
+    )
+    .await
+    {
+        return Ok(err_resp(&req.project_path, &e));
+    }
+    Ok(run_delete_user(
+        project_path,
+        &req.user_id,
+        hook_project_path,
+        hook_item_id,
+        hook_request_data,
+        &req.project_path,
+    )
+    .await)
 }
