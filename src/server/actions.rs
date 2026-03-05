@@ -25,12 +25,10 @@ pub fn make_status_action(
     entity_status: Option<&String>,
     is_pr: bool,
 ) -> EntityAction {
-    let is_current = entity_status.map(|s| s == state).unwrap_or(false);
+    let is_current = entity_status.is_some_and(|s| s == state);
     let (enabled, reason) = if is_pr {
         let is_terminal = state == "merged" || state == "closed";
-        let current_is_terminal = entity_status
-            .map(|s| s == "merged" || s == "closed")
-            .unwrap_or(false);
+        let current_is_terminal = entity_status.is_some_and(|s| s == "merged" || s == "closed");
         if is_current {
             (false, "Already in this status".to_string())
         } else if current_is_terminal && !is_terminal {

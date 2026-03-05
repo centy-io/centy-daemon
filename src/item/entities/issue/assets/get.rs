@@ -5,14 +5,14 @@ use std::path::Path;
 use tokio::fs;
 
 fn metadata_created_at(metadata: &std::fs::Metadata) -> String {
-    metadata
-        .created()
-        .map(|t| {
+    metadata.created().map_or_else(
+        |_| now_iso(),
+        |t| {
             chrono::DateTime::<chrono::Utc>::from(t)
                 .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
                 .to_string()
-        })
-        .unwrap_or_else(|_| now_iso())
+        },
+    )
 }
 
 pub async fn get_asset(

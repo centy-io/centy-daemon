@@ -12,12 +12,15 @@ use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing::{info, warn, Level};
 
 pub async fn run(args: app::Args) -> Result<()> {
-    let log_dir = args.log_dir.map(PathBuf::from).unwrap_or_else(|| {
-        dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".centy")
-            .join("logs")
-    });
+    let log_dir = args.log_dir.map_or_else(
+        || {
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".centy")
+                .join("logs")
+        },
+        PathBuf::from,
+    );
     let log_file = log_dir.join(LOG_FILENAME);
     crate::logging::set_log_file_path(log_file.to_string_lossy().to_string());
     let log_config = LogConfig {

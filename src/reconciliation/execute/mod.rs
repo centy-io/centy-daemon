@@ -42,9 +42,7 @@ pub async fn execute_reconciliation(
     }
     for file_info in &plan.to_reset {
         let template = managed_templates.get(&file_info.path);
-        let has_merge = template
-            .map(|t| t.merge_strategy.is_some())
-            .unwrap_or(false);
+        let has_merge = template.is_some_and(|t| t.merge_strategy.is_some());
         if has_merge {
             merge_file(&centy_path, &file_info.path, &managed_templates).await?;
             result.reset.push(file_info.path.clone());

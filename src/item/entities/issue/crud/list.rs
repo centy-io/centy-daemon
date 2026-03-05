@@ -76,8 +76,7 @@ pub async fn get_issues_by_uuid(
                 let project_name = project.name.clone().unwrap_or_else(|| {
                     project_path
                         .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| project.path.clone())
+                        .map_or_else(|| project.path.clone(), |n| n.to_string_lossy().to_string())
                 });
                 found_issues.push(IssueWithProject {
                     issue,
