@@ -48,8 +48,13 @@ pub async fn open_in_temp_workspace(
             issue.id.clone(), issue.metadata.display_number, true,
         ));
     }
-    try_update_status_on_open(config.as_ref(), project_path, &issue.id, &issue.metadata.status)
-        .await;
+    try_update_status_on_open(
+        config.as_ref(),
+        project_path,
+        &issue.id,
+        &issue.metadata.status,
+    )
+    .await;
     match create_temp_workspace(CreateWorkspaceOptions {
         source_project_path: project_path.to_path_buf(),
         issue: issue.clone(),

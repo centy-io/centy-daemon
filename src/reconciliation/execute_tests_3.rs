@@ -71,8 +71,8 @@ async fn test_execute_reconciliation_issues_config_yaml_content() {
         "Should have priority enabled"
     );
     assert!(
-        content.contains("defaultStatus: open"),
-        "Should have defaultStatus: open"
+        !content.contains("defaultStatus:"),
+        "defaultStatus field should not be present"
     );
 }
 
