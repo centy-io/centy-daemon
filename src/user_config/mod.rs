@@ -14,7 +14,7 @@ fn default_ignore_paths() -> Vec<String> {
     vec!["$TMPDIR".to_string(), "~/worktrees/*".to_string()]
 }
 /// Registry-scoped settings (`[registry]` table in the TOML file).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct RegistryConfig {
     #[serde(default = "default_ignore_paths")]
@@ -28,7 +28,7 @@ impl Default for RegistryConfig {
     }
 }
 /// Top-level user configuration, deserialized from `~/.centy/config.toml`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserConfig {
     #[serde(default)]
     pub registry: RegistryConfig,

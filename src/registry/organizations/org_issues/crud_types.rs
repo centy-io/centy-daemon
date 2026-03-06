@@ -22,7 +22,7 @@ pub enum OrgIssueError {
     TitleRequired,
 }
 /// Frontmatter for org issue markdown files
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OrgIssueFrontmatter {
     pub display_number: u32,

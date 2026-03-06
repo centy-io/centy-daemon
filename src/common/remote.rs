@@ -6,7 +6,7 @@
 //! - Self-hosted: `https://git.company.com/org-name/repo.git`
 
 /// Result of parsing a git remote URL
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedRemote {
     /// The hosting platform (e.g., "github.com", "gitlab.com", "bitbucket.org")
     pub host: String,

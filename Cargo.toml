@@ -858,6 +858,7 @@ needless_range_loop = "deny"
 ptr_arg = "deny"
 many_single_char_names = "deny"
 needless_lifetimes = "deny"
+derive_partial_eq_without_eq = "deny"
 
 [[bin]]
 name = "centy-daemon"

@@ -3,7 +3,7 @@ use mdstore::CommonMetadata;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 /// Frontmatter metadata for the new YAML-based issue format.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueFrontmatter {
     pub display_number: u32,

@@ -26,6 +26,7 @@ pub mod proto {
     #![allow(clippy::all)]
     #![allow(max_lines_per_file, max_lines_per_function, clippy::too_many_lines)]
     #![allow(clippy::wildcard_imports)] // generated tonic code uses `use tonic::codegen::*`
+    #![allow(clippy::derive_partial_eq_without_eq)] // generated protobuf types can't implement Eq
     include!(concat!(env!("OUT_DIR"), "/centy.v1.include.rs"));
 }
 
