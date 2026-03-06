@@ -122,7 +122,9 @@ unsafe_code = "forbid"
 # Enable pedantic lints
 pedantic = { level = "warn", priority = -1 }
 # Deny correctness, style, and suspicious lint groups (individual overrides take precedence)
+complexity = { level = "deny", priority = -1 }
 correctness = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
 style = { level = "deny", priority = -1 }
 suspicious = { level = "deny", priority = -1 }
 
