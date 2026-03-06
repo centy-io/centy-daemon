@@ -867,6 +867,7 @@ clone_on_ref_ptr = "deny"
 redundant_closure = "deny"
 cognitive_complexity = "deny"
 unneeded_field_pattern = "deny"
+string_add = "deny"
 
 [[bin]]
 name = "centy-daemon"

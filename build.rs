@@ -52,7 +52,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let include_path = out_dir.join("centy.v1.include.rs");
-    std::fs::write(&include_path, include_lines.join("\n") + "\n")?;
+    let mut include_content = include_lines.join("\n");
+    include_content.push('\n');
+    std::fs::write(&include_path, include_content)?;
 
     Ok(())
 }
