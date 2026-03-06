@@ -203,6 +203,7 @@
     "doctest",
     "elidable",
     "metavars",
+    "memcpy",
     "misrefactored",
     "nomem",
     "overindented",
