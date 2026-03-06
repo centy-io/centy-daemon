@@ -8,7 +8,7 @@ impl ToStructuredError for crate::registry::OrganizationError {
             OrganizationError::NotFound(_) => ("ORG_NOT_FOUND", None),
             OrganizationError::HasProjects(_) => ("ORG_HAS_PROJECTS", None),
             OrganizationError::InvalidSlug(_) => ("ORG_INVALID_SLUG", None),
-            OrganizationError::DuplicateNameInOrganization { .. } => ("ORG_DUPLICATE_NAME", None),
+            OrganizationError::DuplicateSlugInOrganization { .. } => ("ORG_DUPLICATE_SLUG", None),
             OrganizationError::RegistryError(_) => ("REGISTRY_ERROR", None),
             OrganizationError::IoError(_) => ("IO_ERROR", None),
             OrganizationError::JsonError(_) => ("JSON_ERROR", None),

@@ -27,7 +27,7 @@ fn verify_org_and_name(
     let org_name = Some(org.name.clone());
     if let Some(project_name) = path.file_name() {
         let project_name_str = project_name.to_string_lossy();
-        ValidationService::validate_unique_project_name(
+        ValidationService::validate_unique_project_slug(
             registry,
             slug,
             canonical_path,

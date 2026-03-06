@@ -1,11 +1,11 @@
 use super::*;
+use crate::registry::organizations::slugify;
 
 #[test]
-fn test_normalize_name() {
-    assert_eq!(ValidationService::normalize_name("MyApp"), "myapp");
-    assert_eq!(ValidationService::normalize_name("  MyApp  "), "myapp");
-    assert_eq!(ValidationService::normalize_name("MYAPP"), "myapp");
-    assert_eq!(ValidationService::normalize_name("myapp"), "myapp");
+fn test_slugify_catches_underscore_vs_hyphen() {
+    // These two folder names produce the same slug
+    assert_eq!(slugify("my_app"), slugify("my-app"));
+    assert_eq!(slugify("my_app"), "my-app");
 }
 
 #[test]

@@ -771,3 +771,119 @@ async fn test_remove_from_org_with_duplicate_elsewhere() {
     drop(delete_organization(&slug1, false).await);
     drop(delete_organization(&slug2, false).await);
 }
+
+// Slug-based duplicate detection tests
+
+#[tokio::test]
+async fn test_duplicate_slug_different_folder_names() {
+    let _lock = acquire_lock();
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // "my_app" and "my-app" produce the same slug "my-app"
+    let project1_path = temp_dir1.path().join("my_app");
+    let project2_path = temp_dir2.path().join("my-app");
+
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    let slug = unique_slug("slug-dup-org");
+    create_organization(Some(&slug), "Slug Dup Org", None)
+        .await
+        .expect("Should create org");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign first project (my_app) - should succeed
+    set_project_organization(&path1_str, Some(&slug))
+        .await
+        .expect("Should set org for first project");
+
+    // Assign second project (my-app) - should fail: same slug
+    let result = set_project_organization(&path2_str, Some(&slug)).await;
+    assert!(result.is_err(), "Should fail due to duplicate slug");
+
+    let error_msg = result.unwrap_err().to_string();
+    assert!(
+        error_msg.contains("my-app"),
+        "Error should mention project name: {error_msg}"
+    );
+    assert!(
+        error_msg.contains(&slug),
+        "Error should mention org slug: {error_msg}"
+    );
+    assert!(
+        error_msg.contains("same slug"),
+        "Error should mention slug conflict: {error_msg}"
+    );
+
+    // Cleanup
+    drop(set_project_organization(&path1_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug, false).await);
+}
+
+#[tokio::test]
+async fn test_duplicate_slug_stale_project_detected() {
+    let _lock = acquire_lock();
+    let temp_dir1 = create_test_dir();
+    let temp_dir2 = create_test_dir();
+
+    // Create two projects with the same folder name
+    let project1_path = temp_dir1.path().join("publisher");
+    let project2_path = temp_dir2.path().join("publisher");
+
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
+
+    init_project(&project1_path).await;
+    init_project(&project2_path).await;
+
+    let slug = unique_slug("stale-org");
+    create_organization(Some(&slug), "Stale Org", None)
+        .await
+        .expect("Should create org");
+
+    let path1_str = project1_path.to_string_lossy().to_string();
+    let path2_str = project2_path.to_string_lossy().to_string();
+
+    track_project(&path1_str).await.expect("Should track 1");
+    track_project(&path2_str).await.expect("Should track 2");
+
+    // Assign first project
+    set_project_organization(&path1_str, Some(&slug))
+        .await
+        .expect("Should set org");
+
+    // Remove the .centy folder from project1 to make it "stale"
+    let centy_path = project1_path.join(".centy");
+    std::fs::remove_dir_all(&centy_path).expect("Should remove .centy folder");
+
+    // Now try to assign project2 - should fail and mention stale
+    let result = set_project_organization(&path2_str, Some(&slug)).await;
+    assert!(result.is_err(), "Should fail due to duplicate slug");
+
+    let error_msg = result.unwrap_err().to_string();
+    assert!(
+        error_msg.contains("stale"),
+        "Error should mention stale project: {error_msg}"
+    );
+    assert!(
+        error_msg.contains("centy untrack"),
+        "Error should suggest untrack command: {error_msg}"
+    );
+
+    // Cleanup
+    drop(set_project_organization(&path1_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug, false).await);
+}
