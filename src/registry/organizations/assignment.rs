@@ -14,9 +14,16 @@ fn verify_org_and_name(
     canonical_path: &str,
     path: &Path,
 ) -> Result<Option<String>, OrganizationError> {
-    let Some(slug) = org_slug else { return Ok(None); };
-    if slug.is_empty() { return Ok(None); }
-    let org = registry.organizations.get(slug).ok_or_else(|| OrganizationError::NotFound(slug.to_string()))?;
+    let Some(slug) = org_slug else {
+        return Ok(None);
+    };
+    if slug.is_empty() {
+        return Ok(None);
+    }
+    let org = registry
+        .organizations
+        .get(slug)
+        .ok_or_else(|| OrganizationError::NotFound(slug.to_string()))?;
     let org_name = Some(org.name.clone());
     if let Some(project_name) = path.file_name() {
         let project_name_str = project_name.to_string_lossy();
