@@ -59,8 +59,8 @@ async fn test_execute_reconciliation_issues_config_yaml_content() {
         "Should use uuid identifier"
     );
     assert!(
-        content.contains("displayNumber: true"),
-        "Should have displayNumber enabled"
+        content.contains("display_number: true"),
+        "Should have display_number enabled"
     );
     assert!(
         !content.contains("status:"),
@@ -71,8 +71,8 @@ async fn test_execute_reconciliation_issues_config_yaml_content() {
         "Should have priority enabled"
     );
     assert!(
-        !content.contains("defaultStatus:"),
-        "defaultStatus field should not be present"
+        !content.contains("default_status:"),
+        "default_status field should not be present"
     );
 }
 
@@ -97,8 +97,8 @@ async fn test_execute_reconciliation_docs_config_yaml_content() {
         "Should use slug identifier"
     );
     assert!(
-        content.contains("displayNumber: false"),
-        "Docs should not have displayNumber"
+        content.contains("display_number: false"),
+        "Docs should not have display_number"
     );
     assert!(
         !content.contains("status:"),
@@ -109,12 +109,12 @@ async fn test_execute_reconciliation_docs_config_yaml_content() {
         "Docs should not have priority"
     );
     assert!(
-        !content.contains("defaultStatus:"),
-        "Docs should not have defaultStatus"
+        !content.contains("default_status:"),
+        "Docs should not have default_status"
     );
     assert!(
-        !content.contains("priorityLevels:"),
-        "Docs should not have priorityLevels"
+        !content.contains("priority_levels:"),
+        "Docs should not have priority_levels"
     );
 }
 

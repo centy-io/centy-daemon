@@ -5,23 +5,23 @@ use serde::{Deserialize, Serialize};
 ///
 /// Stored as a nested object inside `config.yaml` under the `features` key.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ItemTypeFeatures {
     /// Enable display numbers (1, 2, 3…) for items.
-    #[serde(default)]
+    #[serde(default, alias = "displayNumber")]
     pub display_number: bool,
     /// Enable priority levels.
     #[serde(default)]
     pub priority: bool,
     /// Enable soft-deletion (items can be deleted and restored).
-    #[serde(default)]
+    #[serde(default, alias = "softDelete")]
     pub soft_delete: bool,
     /// Enable file attachments.
     #[serde(default)]
     pub assets: bool,
     /// Enable organization sync.
-    #[serde(default)]
+    #[serde(default, alias = "orgSync")]
     pub org_sync: bool,
     /// Enable moving items between projects.
     #[serde(rename = "move", default)]
@@ -36,7 +36,7 @@ pub struct ItemTypeFeatures {
 /// This is the canonical schema for item-type configuration in centy-daemon.
 /// Both built-in types (`issues`, `docs`) and custom types share this format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ItemTypeConfig {
     /// Human-readable singular name (e.g. `"Issue"`, `"Doc"`, `"Epic"`).
     pub name: String,
@@ -53,11 +53,11 @@ pub struct ItemTypeConfig {
     pub statuses: Vec<String>,
     /// Number of priority levels (must be > 0 when present).
     /// Omitted when not set.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "priorityLevels")]
     pub priority_levels: Option<u32>,
     /// Custom field definitions for this item type.
     /// Omitted when empty.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty", alias = "customFields")]
     pub custom_fields: Vec<CustomFieldDef>,
     /// Path to the Handlebars template file, relative to `.centy/<folder>/`.
     /// Omitted when not set.
