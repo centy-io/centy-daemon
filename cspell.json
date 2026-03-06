@@ -201,8 +201,12 @@
     "codegen",
     "crosspointer",
     "doctest",
+    "elidable",
     "metavars",
     "misrefactored",
+    "nomem",
+    "overindented",
+    "refdefs",
     "toplevel",
     "unseparated"
   ]
