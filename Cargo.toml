@@ -258,6 +258,9 @@ dangerous_implicit_autorefs = "deny"
 ambiguous_negative_literals = "deny"
 rust_2024_guarded_string_incompatible_syntax = "deny"
 rust_2024_prelude_collisions = "deny"
+rust_2021_prelude_collisions = "deny"
+ungated_async_fn_track_caller = "deny"
+forbidden_lint_groups = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
