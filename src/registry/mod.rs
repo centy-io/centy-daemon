@@ -19,8 +19,9 @@ pub use organizations::{
     OrgIssueError, OrganizationError, UpdateOrgIssueOptions,
 };
 pub use tracking::{
-    get_org_projects, get_project_info, list_projects, set_project_archived, set_project_favorite,
-    set_project_user_title, track_project, track_project_async, untrack_project,
+    find_duplicate_slugs, get_org_projects, get_project_info, list_projects, set_project_archived,
+    set_project_favorite, set_project_user_title, track_project, track_project_async,
+    untrack_project, DuplicateSlugGroup,
 };
 pub use types::{
     ListProjectsOptions, Organization, OrganizationInfo, ProjectInfo, ProjectOrganization,
