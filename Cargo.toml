@@ -243,6 +243,10 @@ unused_parens = "deny"
 useless_deprecated = "deny"
 unused_braces = "deny"
 unused_unsafe = "deny"
+let_underscore_lock = "deny"
+trivial_bounds = "deny"
+linker_messages = "deny"
+missing_unsafe_on_extern = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
