@@ -13,7 +13,7 @@ pub enum PathError {
 pub fn get_org_dir(org_slug: &str) -> Result<PathBuf, PathError> {
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| PathError::HomeDirNotFound)?;
+        .map_err(|_e| PathError::HomeDirNotFound)?;
     Ok(PathBuf::from(home)
         .join(".centy")
         .join("orgs")

@@ -22,10 +22,10 @@ pub fn init_ignore_paths(patterns: &[String]) {
 /// Falls back to `is_in_temp_dir` when [`init_ignore_paths`] has not yet been called.
 pub fn is_ignored_path(path: &Path) -> bool {
     let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    match IGNORE_PREFIXES.get() {
-        Some(prefixes) => prefixes.iter().any(|prefix| canonical.starts_with(prefix)),
-        None => crate::utils::is_in_temp_dir(&canonical),
-    }
+    IGNORE_PREFIXES.get().map_or_else(
+        || crate::utils::is_in_temp_dir(&canonical),
+        |prefixes| prefixes.iter().any(|prefix| canonical.starts_with(prefix)),
+    )
 }
 
 /// Expand and normalise a single pattern string into a prefix `PathBuf`.

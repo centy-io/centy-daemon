@@ -5,7 +5,7 @@ mod enrich_lookups;
 mod ops;
 mod set_ops;
 pub use enrich::{get_org_projects, list_projects};
-#[allow(unused_imports)]
+#[cfg(test)]
 pub use enrich_fn::is_version_behind;
 pub use enrich_lookups::get_project_info;
 pub use ops::{enrich_project, track_project, track_project_async, untrack_project};

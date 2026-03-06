@@ -32,17 +32,16 @@ pub fn build_frontmatter(
     }
 }
 
-#[allow(clippy::ref_option)]
 pub fn build_issue_metadata(
     display_number: u32,
-    org_slug: &Option<String>,
+    org_slug: Option<&str>,
     org_display_number: Option<u32>,
     status: String,
     priority: u32,
     custom_field_values: HashMap<String, serde_json::Value>,
     draft: bool,
 ) -> IssueMetadata {
-    if let Some(ref org) = org_slug {
+    if let Some(org) = org_slug {
         IssueMetadata::new_org_issue(
             display_number,
             org_display_number.unwrap_or(0),

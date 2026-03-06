@@ -18,6 +18,6 @@ pub fn get_remote_origin_url(project_path: &Path) -> Result<String, GitError> {
         return Err(GitError::RemoteNotFound("origin".to_string()));
     }
     String::from_utf8(output.stdout)
-        .map_err(|_| GitError::InvalidUtf8)
+        .map_err(|_e| GitError::InvalidUtf8)
         .map(|s| s.trim().to_string())
 }

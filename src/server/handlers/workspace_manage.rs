@@ -7,13 +7,7 @@ use crate::server::structured_error::StructuredError;
 use crate::workspace::remove_workspace;
 use tonic::{Response, Status};
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
-pub async fn get_supported_editors(
+pub fn get_supported_editors(
     _req: GetSupportedEditorsRequest,
 ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
     let vscode_available = which::which("code").is_ok();
@@ -50,13 +44,7 @@ fn terminal_available() -> bool {
 }
 
 /// Returns an empty list — workspace tracking is now handled by git worktree state.
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
-pub async fn list_temp_workspaces(
+pub fn list_temp_workspaces(
     _req: ListTempWorkspacesRequest,
 ) -> Result<Response<ListTempWorkspacesResponse>, Status> {
     Ok(Response::new(ListTempWorkspacesResponse {

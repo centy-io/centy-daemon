@@ -294,7 +294,7 @@ async fn test_pre_existing_project() {
     assert_eq!(issue_config.priority_levels, Some(4));
 }
 
-/// Verify that write_item_type_config + read_item_type_config roundtrips correctly
+/// Verify that `write_item_type_config` + `read_item_type_config` roundtrips correctly
 #[tokio::test]
 async fn test_item_type_config_roundtrip_via_filesystem() {
     let temp_dir = create_test_dir();

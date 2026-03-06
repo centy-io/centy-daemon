@@ -10,6 +10,7 @@ use tracing::{debug, error, warn};
 ///
 /// Iterates all item types with soft-delete enabled, finds items whose
 /// `deleted_at` timestamp is older than `retention`, and permanently removes them.
+#[allow(clippy::cognitive_complexity)]
 pub async fn run_cleanup_for_project(project_path: &Path, retention: Duration) {
     let centy_path = get_centy_path(project_path);
     let item_types = match discover_item_types_map(&centy_path).await {

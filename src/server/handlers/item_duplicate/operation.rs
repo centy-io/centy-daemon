@@ -13,27 +13,27 @@ use std::path::Path;
 use tonic::Response;
 pub(super) fn err_resp(
     cwd: &str,
-    e: impl std::fmt::Display + crate::server::error_mapping::ToStructuredError,
+    e: &(impl std::fmt::Display + crate::server::error_mapping::ToStructuredError),
 ) -> Response<DuplicateItemResponse> {
     Response::new(DuplicateItemResponse {
         success: false,
-        error: to_error_json(cwd, &e),
+        error: to_error_json(cwd, e),
         ..Default::default()
     })
 }
-pub(super) async fn assert_both_initialized(
+pub(super) fn assert_both_initialized(
     req: &DuplicateItemRequest,
     source_path: &Path,
     target_path: &Path,
 ) -> Result<(), Response<DuplicateItemResponse>> {
-    if let Err(e) = assert_initialized(source_path).await {
+    if let Err(e) = assert_initialized(source_path) {
         return Err(Response::new(DuplicateItemResponse {
             success: false,
             error: to_error_json(&req.source_project_path, &e),
             ..Default::default()
         }));
     }
-    if let Err(e) = assert_initialized(target_path).await {
+    if let Err(e) = assert_initialized(target_path) {
         return Err(Response::new(DuplicateItemResponse {
             success: false,
             error: to_error_json(&req.target_project_path, &e),

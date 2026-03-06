@@ -1,5 +1,6 @@
-use super::*;
+use super::is_git_repository;
 use std::env;
+use std::path::Path;
 
 #[test]
 fn test_is_git_repository() {

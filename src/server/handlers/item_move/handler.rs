@@ -47,10 +47,10 @@ async fn execute_move(
         source_path,
         target_path,
         target_type,
-        &ctx.hook_type,
-        &ctx.hook_project_path,
-        &ctx.hook_item_id,
-        ctx.hook_request_data,
+        &ctx.item_type,
+        &ctx.project_path,
+        &ctx.item_id,
+        ctx.request_data,
         &req.source_project_path,
     )
     .await
@@ -60,7 +60,7 @@ pub async fn move_item(req: MoveItemRequest) -> Result<Response<MoveItemResponse
     track_project_async(req.target_project_path.clone());
     let source_path = Path::new(&req.source_project_path);
     let target_path = Path::new(&req.target_project_path);
-    if let Err(resp) = assert_both_initialized(&req, source_path, target_path).await {
+    if let Err(resp) = assert_both_initialized(&req, source_path, target_path) {
         return Ok(resp);
     }
     let ((source_type, source_config), (target_type, target_config)) =

@@ -1,5 +1,5 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
-#![allow(unknown_lints, renamed_and_removed_lints, wildcard_imports)]
+#![allow(unknown_lints, renamed_and_removed_lints)]
 #![cfg_attr(
     test,
     allow(
@@ -9,7 +9,9 @@
         clippy::panic_in_result_fn,
         clippy::unwrap_in_result,
         clippy::arithmetic_side_effects,
-        clippy::indexing_slicing
+        clippy::indexing_slicing,
+        clippy::wildcard_imports,
+        clippy::field_reassign_with_default
     )
 )]
 

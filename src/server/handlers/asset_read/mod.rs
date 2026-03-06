@@ -14,7 +14,7 @@ use tonic::{Response, Status};
 pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(ListAssetsResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),
@@ -26,7 +26,7 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
     {
         Ok(assets) => Ok(Response::new(ListAssetsResponse {
             assets: assets.iter().map(asset_info_to_proto).collect(),
-            total_count: assets.len() as i32,
+            total_count: assets.len().try_into().unwrap_or(i32::MAX),
             success: true,
             error: String::new(),
         })),
@@ -42,7 +42,7 @@ pub async fn list_assets(req: ListAssetsRequest) -> Result<Response<ListAssetsRe
 pub async fn get_asset(req: GetAssetRequest) -> Result<Response<GetAssetResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(GetAssetResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),

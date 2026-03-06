@@ -4,10 +4,10 @@ use super::defaults::default_doc_config;
 use super::io::{read_item_type_config, write_item_type_config};
 use crate::config::CentyConfig;
 use std::path::Path;
-/// Re-write every existing `config.yaml` so that the now-removed `status`
-/// feature flag is no longer present on disk.  The field is deserialized as
-/// an unknown key (silently ignored), so this is purely a cosmetic clean-up.
-/// Configs that cannot be parsed are skipped without error.
+/// Re-write every existing `config.yaml` to remove the now-removed `status` feature flag.
+///
+/// The field is deserialized as an unknown key (silently ignored), so this is purely a
+/// cosmetic clean-up. Configs that cannot be parsed are skipped without error.
 pub async fn migrate_strip_status_feature(project_path: &Path) -> Result<(), mdstore::ConfigError> {
     let centy_path = crate::utils::get_centy_path(project_path);
     if !centy_path.exists() {
@@ -27,6 +27,7 @@ pub async fn migrate_strip_status_feature(project_path: &Path) -> Result<(), mds
     Ok(())
 }
 /// Create `config.yaml` for issues, docs, and archived if they don't already exist.
+///
 /// Returns the list of relative paths that were created.
 /// `legacy_statuses` is read from `allowedStates` in `config.json` before migration.
 pub async fn migrate_to_item_type_configs(

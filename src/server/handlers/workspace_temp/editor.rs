@@ -59,17 +59,16 @@ pub(super) fn open_editor_with_hooks(
     let cmd = opener::resolve_editor_command(editor_id);
     let path = Path::new(workspace_path);
     let post_script = config.as_ref().and_then(|c| c.hooks.post_open.as_ref());
-    match post_script {
-        Some(script) => {
+    post_script.map_or_else(
+        || opener::open_in_editor(path, &cmd).is_ok(),
+        |script| {
             let rendered = hook_ctx.render(script);
-            match opener::open_with_hook(path, &cmd, &rendered) {
-                Ok(true) => true,
-                Ok(false) | Err(_) => {
-                    let _ = run_hook(script, &hook_ctx);
-                    opener::open_in_editor(path, &cmd).is_ok()
-                }
+            if matches!(opener::open_with_hook(path, &cmd, &rendered), Ok(true)) {
+                true
+            } else {
+                let _ = run_hook(script, &hook_ctx);
+                opener::open_in_editor(path, &cmd).is_ok()
             }
-        }
-        None => opener::open_in_editor(path, &cmd).is_ok(),
-    }
+        },
+    )
 }

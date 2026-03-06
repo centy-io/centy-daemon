@@ -16,7 +16,6 @@ pub mod structured_error;
 mod trait_impl;
 mod validate_config;
 
-use crate::user_config::UserConfig;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -25,13 +24,11 @@ use tokio::sync::watch;
 pub mod proto {
     #![allow(clippy::pedantic)]
     #![allow(clippy::all)]
-    #![allow(
-        unknown_lints,
-        max_lines_per_file,
-        max_lines_per_function,
-        clippy::too_many_lines,
-        clippy::wildcard_imports
-    )]
+    #![allow(max_lines_per_file, max_lines_per_function, clippy::too_many_lines)]
+    #![allow(clippy::wildcard_imports)] // generated tonic code uses `use tonic::codegen::*`
+    #![allow(clippy::derive_partial_eq_without_eq)] // generated protobuf types can't implement Eq
+    #![allow(clippy::clone_on_ref_ptr)] // generated tonic code clones Arc pointers
+    #![allow(clippy::empty_structs_with_brackets)] // generated protobuf types use empty braces
     include!(concat!(env!("OUT_DIR"), "/centy.v1.include.rs"));
 }
 
@@ -46,8 +43,6 @@ pub enum ShutdownSignal {
 pub struct CentyDaemonService {
     shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,
     exe_path: Option<PathBuf>,
-    #[allow(dead_code)]
-    user_config: UserConfig,
 }
 
 impl CentyDaemonService {
@@ -55,7 +50,7 @@ impl CentyDaemonService {
     pub fn new(
         shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,
         exe_path: Option<PathBuf>,
-        user_config: UserConfig,
+        _user_config: crate::user_config::UserConfig,
     ) -> Self {
         // Spawn background task to infer organizations for ungrouped projects on startup
         tokio::spawn(async {
@@ -65,7 +60,6 @@ impl CentyDaemonService {
         Self {
             shutdown_tx,
             exe_path,
-            user_config,
         }
     }
 }

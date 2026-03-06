@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::types::{
     compute_binary_hash, get_mime_type, sanitize_filename, AddAssetResult, AssetError, AssetInfo,
     AssetScope,
@@ -18,7 +17,7 @@ pub async fn add_asset(
     let sanitized_filename = sanitize_filename(filename)?;
     let mime_type = get_mime_type(&sanitized_filename)
         .ok_or_else(|| AssetError::UnsupportedFileType(sanitized_filename.clone()))?;
-    let manifest = read_manifest(project_path)
+    let mut manifest = read_manifest(project_path)
         .await?
         .ok_or(AssetError::NotInitialized)?;
     let centy_path = get_centy_path(project_path);
@@ -51,7 +50,6 @@ pub async fn add_asset(
     let size = data.len() as u64;
     let created_at = now_iso();
     fs::write(&asset_path, &data).await?;
-    let mut manifest = manifest;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
     let asset_info = AssetInfo {

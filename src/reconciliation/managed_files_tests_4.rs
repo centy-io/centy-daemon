@@ -29,7 +29,7 @@ fn test_managed_file_template_clone() {
         merge_strategy: None,
     };
 
-    let cloned = template.clone();
+    let cloned = template;
     assert_eq!(cloned.file_type, ManagedFileType::Directory);
     assert!(cloned.content.is_none());
 }

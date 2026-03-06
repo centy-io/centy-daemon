@@ -1,5 +1,6 @@
 mod extra_types;
 mod get;
+mod get_matchers;
 mod list;
 mod migrate;
 mod move_io;
@@ -18,11 +19,9 @@ pub use get::{get_issue, get_issue_by_display_number};
 pub use list::{get_issues_by_uuid, list_issues};
 pub use move_issue::move_issue;
 pub use parse::parse_issue_md;
+pub use types::Issue;
 pub use types::{IssueCrudError, IssueMetadataFlat, UpdateIssueOptions, UpdateIssueResult};
 pub use update::update_issue;
-
-#[allow(deprecated)]
-pub use types::Issue;
 
 #[cfg(test)]
 #[path = "../crud_tests.rs"]

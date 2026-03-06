@@ -13,7 +13,7 @@ pub async fn count_issues(path: &Path) -> Result<u32, std::io::Error> {
             Some(n) => n.to_string(),
             None => continue,
         };
-        let is_new_format = file_type.is_file() && is_uuid_file(&name);
+        let is_new_format = !file_type.is_dir() && is_uuid_file(&name);
         let is_old_format = file_type.is_dir() && is_uuid_folder(&name);
         if is_new_format || is_old_format {
             count = count.saturating_add(1);
@@ -37,7 +37,7 @@ pub async fn count_md_files(path: &Path) -> Result<u32, std::io::Error> {
     let mut entries = fs::read_dir(path).await?;
     while let Some(entry) = entries.next_entry().await? {
         let file_type = entry.file_type().await?;
-        if file_type.is_file() {
+        if !file_type.is_dir() {
             if let Some(ext) = entry.path().extension() {
                 if ext == "md" {
                     count = count.saturating_add(1);

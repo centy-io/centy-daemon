@@ -2,6 +2,7 @@ use crate::item::entities::issue::Issue;
 use std::path::PathBuf;
 use thiserror::Error;
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum WorkspaceError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
@@ -22,6 +23,7 @@ pub struct CreateStandaloneWorkspaceOptions {
     pub source_project_path: PathBuf,
     pub name: Option<String>,
 }
+#[allow(clippy::struct_field_names)]
 pub struct CreateStandaloneWorkspaceResult {
     pub workspace_path: PathBuf,
     pub workspace_id: String,

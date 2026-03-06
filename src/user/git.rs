@@ -8,6 +8,7 @@ use std::path::Path;
 use std::process::Command;
 
 /// Check if a path is inside a git repository
+#[must_use]
 pub fn is_git_repository(project_path: &Path) -> bool {
     Command::new("git")
         .args(["rev-parse", "--git-dir"])
@@ -37,7 +38,7 @@ pub fn get_git_contributors(project_path: &Path) -> Result<Vec<GitContributor>, 
     }
 
     let log_output = String::from_utf8(output.stdout)
-        .map_err(|_| UserError::GitError("Invalid UTF-8 in git log output".to_string()))?;
+        .map_err(|_e| UserError::GitError("Invalid UTF-8 in git log output".to_string()))?;
 
     // Use a HashSet to deduplicate by email (case-insensitive)
     let mut seen_emails: HashSet<String> = HashSet::new();

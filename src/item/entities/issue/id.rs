@@ -32,11 +32,7 @@ pub fn is_valid_issue_file(name: &str) -> bool {
 #[must_use]
 pub fn issue_id_from_filename(name: &str) -> Option<&str> {
     let id = name.strip_suffix(".md")?;
-    if is_uuid(id) {
-        Some(id)
-    } else {
-        None
-    }
+    is_uuid(id).then_some(id)
 }
 
 /// Generate a new UUID for an issue folder

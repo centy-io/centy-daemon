@@ -11,7 +11,7 @@
 //! assertions by calling whichever subset they require:
 //!
 //! ```ignore
-//! assert_initialized(project_path).await?;
+//! assert_initialized(project_path)?;
 //! ```
 //!
 //! `init` itself and daemon-level RPCs are exempt from these checks.
@@ -47,13 +47,7 @@ impl fmt::Display for AssertError {
 /// # Errors
 ///
 /// Returns [`AssertError::NotInitialized`] if the manifest file does not exist.
-#[allow(
-    unknown_lints,
-    renamed_and_removed_lints,
-    unused_async,
-    clippy::unused_async
-)]
-pub async fn assert_initialized(project_path: &Path) -> Result<(), AssertError> {
+pub fn assert_initialized(project_path: &Path) -> Result<(), AssertError> {
     if get_manifest_path(project_path).exists() {
         Ok(())
     } else {

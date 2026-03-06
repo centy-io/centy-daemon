@@ -24,7 +24,7 @@ pub async fn create_item_type(
     track_project_async(req.project_path.clone());
     let cwd = req.project_path.clone();
     let project_path = Path::new(&cwd);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(error_response(&cwd, "NOT_INITIALIZED", e.to_string()));
     }
     if let Err((code, msg)) = validate_request(&req) {

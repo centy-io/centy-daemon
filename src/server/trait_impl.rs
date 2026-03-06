@@ -1,9 +1,4 @@
-#![allow(
-    renamed_and_removed_lints,
-    wildcard_imports,
-    unknown_lints,
-    max_lines_per_file
-)]
+#![allow(max_lines_per_file, clippy::wildcard_imports)]
 use super::proto::centy_daemon_server::CentyDaemon;
 use super::proto::*;
 use super::{handlers, CentyDaemonService};
@@ -52,7 +47,7 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<IsInitializedRequest>,
     ) -> Result<Response<IsInitializedResponse>, Status> {
-        handlers::init::is_initialized(request.into_inner()).await
+        handlers::init::is_initialized(&request.into_inner())
     }
     async fn add_asset(
         &self,
@@ -220,13 +215,13 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<GetDaemonInfoRequest>,
     ) -> Result<Response<DaemonInfo>, Status> {
-        handlers::daemon::get_daemon_info(request.into_inner()).await
+        handlers::daemon::get_daemon_info(request.into_inner())
     }
     async fn shutdown(
         &self,
         request: Request<ShutdownRequest>,
     ) -> Result<Response<ShutdownResponse>, Status> {
-        handlers::daemon::shutdown(request.into_inner(), &self.shutdown_tx).await
+        handlers::daemon::shutdown(request.into_inner(), &self.shutdown_tx)
     }
     async fn restart(
         &self,
@@ -237,7 +232,6 @@ impl CentyDaemon for CentyDaemonService {
             &self.shutdown_tx,
             self.exe_path.as_ref(),
         )
-        .await
     }
     async fn create_link(
         &self,
@@ -315,7 +309,7 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<GetSupportedEditorsRequest>,
     ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
-        handlers::workspace_manage::get_supported_editors(request.into_inner()).await
+        handlers::workspace_manage::get_supported_editors(request.into_inner())
     }
     async fn open_in_temp_workspace(
         &self,
@@ -353,7 +347,7 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<ListTempWorkspacesRequest>,
     ) -> Result<Response<ListTempWorkspacesResponse>, Status> {
-        handlers::workspace_manage::list_temp_workspaces(request.into_inner()).await
+        handlers::workspace_manage::list_temp_workspaces(request.into_inner())
     }
     async fn close_temp_workspace(
         &self,
@@ -365,7 +359,7 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<CleanupExpiredWorkspacesRequest>,
     ) -> Result<Response<CleanupExpiredWorkspacesResponse>, Status> {
-        handlers::workspace_cleanup::cleanup_expired_workspaces(request.into_inner()).await
+        handlers::workspace_cleanup::cleanup_expired_workspaces(request.into_inner())
     }
     async fn open_standalone_workspace(
         &self,
@@ -415,37 +409,37 @@ impl CentyDaemon for CentyDaemonService {
         &self,
         request: Request<ListSyncConflictsRequest>,
     ) -> Result<Response<ListSyncConflictsResponse>, Status> {
-        handlers::sync::list_sync_conflicts(request.into_inner()).await
+        handlers::sync::list_sync_conflicts(request.into_inner())
     }
     async fn get_sync_conflict(
         &self,
         request: Request<GetSyncConflictRequest>,
     ) -> Result<Response<GetSyncConflictResponse>, Status> {
-        handlers::sync::get_sync_conflict(request.into_inner()).await
+        handlers::sync::get_sync_conflict(&request.into_inner())
     }
     async fn resolve_sync_conflict(
         &self,
         request: Request<ResolveSyncConflictRequest>,
     ) -> Result<Response<ResolveSyncConflictResponse>, Status> {
-        handlers::sync::resolve_sync_conflict(request.into_inner()).await
+        handlers::sync::resolve_sync_conflict(request.into_inner())
     }
     async fn get_sync_status(
         &self,
         request: Request<GetSyncStatusRequest>,
     ) -> Result<Response<GetSyncStatusResponse>, Status> {
-        handlers::sync::get_sync_status(request.into_inner()).await
+        handlers::sync::get_sync_status(request.into_inner())
     }
     async fn sync_pull(
         &self,
         request: Request<SyncPullRequest>,
     ) -> Result<Response<SyncPullResponse>, Status> {
-        handlers::sync::sync_pull(request.into_inner()).await
+        handlers::sync::sync_pull(request.into_inner())
     }
     async fn sync_push(
         &self,
         request: Request<SyncPushRequest>,
     ) -> Result<Response<SyncPushResponse>, Status> {
-        handlers::sync::sync_push(request.into_inner()).await
+        handlers::sync::sync_push(request.into_inner())
     }
     async fn create_item_type(
         &self,

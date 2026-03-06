@@ -45,7 +45,7 @@ impl TemplateEngine {
         Self::get_templates_path(project_path).join(template_type.folder_name())
     }
 
-    /// Load a template from disk by name. Looks for "{template_name}.md" in the appropriate folder.
+    /// Load a template from disk by name. Looks for `{template_name}.md` in the appropriate folder.
     pub async fn load_template(
         &self,
         project_path: &Path,

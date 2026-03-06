@@ -18,12 +18,10 @@ pub use organizations::{
     update_organization, ListOrgIssuesOptions, OrgConfigError, OrgCustomFieldDef, OrgIssue,
     OrgIssueError, OrganizationError, UpdateOrgIssueOptions,
 };
-#[allow(unused_imports)]
 pub use tracking::{
     get_org_projects, get_project_info, list_projects, set_project_archived, set_project_favorite,
     set_project_user_title, track_project, track_project_async, untrack_project,
 };
-#[allow(unused_imports)]
 pub use types::{
     ListProjectsOptions, Organization, OrganizationInfo, ProjectInfo, ProjectOrganization,
     ProjectRegistry, TrackedProject, CURRENT_SCHEMA_VERSION,

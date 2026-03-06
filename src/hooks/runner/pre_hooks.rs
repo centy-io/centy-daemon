@@ -5,7 +5,7 @@ use super::super::executor::execute_hook;
 use super::common::{find_matching_hooks, load_hooks_config};
 use std::path::Path;
 use tracing::debug;
-/// Run pre-hooks for the given item_type and operation.
+/// Run pre-hooks for the given `item_type` and operation.
 /// Pre-hooks run synchronously; the first non-zero exit code aborts with an error.
 pub async fn run_pre_hooks(
     project_path: &Path,
@@ -33,7 +33,7 @@ pub async fn run_pre_hooks(
             &hook.pattern,
         )
         .await?;
-        if result.exit_code != 0 {
+        if result.exit_code != 0i32 {
             return Err(HookError::PreHookFailed {
                 pattern: hook.pattern.clone(),
                 exit_code: result.exit_code,

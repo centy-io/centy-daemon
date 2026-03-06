@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
 use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::types::{IssueInfo, ReconcileError};
@@ -16,10 +15,9 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             Some(n) => n.to_string(),
             None => continue,
         };
-        if file_type.is_file() && is_valid_issue_file(&name) {
-            let content = match fs::read_to_string(entry.path()).await {
-                Ok(c) => c,
-                Err(_) => continue,
+        if !file_type.is_dir() && is_valid_issue_file(&name) {
+            let Ok(content) = fs::read_to_string(entry.path()).await else {
+                continue;
             };
             let frontmatter: IssueFrontmatter =
                 match parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content)) {
@@ -38,9 +36,8 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             if !metadata_path.exists() {
                 continue;
             }
-            let content = match fs::read_to_string(&metadata_path).await {
-                Ok(c) => c,
-                Err(_) => continue,
+            let Ok(content) = fs::read_to_string(&metadata_path).await else {
+                continue;
             };
             let metadata: IssueMetadata = match serde_json::from_str(&content) {
                 Ok(m) => m,
@@ -52,6 +49,8 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
                 display_number: metadata.common.display_number,
                 created_at: metadata.common.created_at,
             });
+        } else {
+            // not a valid issue entry — skip
         }
     }
     Ok(issues)
@@ -71,7 +70,7 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
             Some(n) => n.to_string(),
             None => continue,
         };
-        if file_type.is_file() && is_valid_issue_file(&name) {
+        if !file_type.is_dir() && is_valid_issue_file(&name) {
             if let Ok(content) = fs::read_to_string(entry.path()).await {
                 if let Ok((frontmatter, _, _)) =
                     parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
@@ -89,6 +88,8 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
                     max_number = max_number.max(metadata.common.display_number);
                 }
             }
+        } else {
+            // not a valid issue entry — skip
         }
     }
     Ok(max_number.saturating_add(1))

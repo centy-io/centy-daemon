@@ -1,13 +1,10 @@
-#![allow(unknown_lints, max_nesting_depth)]
-use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
 use super::super::reconcile::reconcile_display_numbers;
+use super::get_matchers::match_entry_by_display_number;
 use super::migrate::migrate_issue_to_new_format;
-use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
+use super::read::read_issue_from_frontmatter;
 use super::types::{Issue, IssueCrudError};
 use crate::manifest::read_manifest;
-use crate::utils::{get_centy_path, strip_centy_md_header};
-use mdstore::parse_frontmatter;
+use crate::utils::get_centy_path;
 use std::path::Path;
 use tokio::fs;
 
@@ -43,33 +40,10 @@ pub async fn get_issue_by_display_number(
     reconcile_display_numbers(&issues_path).await?;
     let mut entries = fs::read_dir(&issues_path).await?;
     while let Some(entry) = entries.next_entry().await? {
-        let file_type = entry.file_type().await?;
-        if let Some(name) = entry.file_name().to_str() {
-            if file_type.is_file() && is_valid_issue_file(name) {
-                if let Ok(content) = fs::read_to_string(entry.path()).await {
-                    if let Ok((fm, _, _)) =
-                        parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
-                    {
-                        if fm.display_number == display_number {
-                            let issue_id = name.trim_end_matches(".md");
-                            return read_issue_from_frontmatter(&entry.path(), issue_id).await;
-                        }
-                    }
-                }
-            } else if file_type.is_dir() && is_valid_issue_folder(name) {
-                let metadata_path = entry.path().join("metadata.json");
-                if !metadata_path.exists() {
-                    continue;
-                }
-                if let Ok(content) = fs::read_to_string(&metadata_path).await {
-                    if let Ok(meta) = serde_json::from_str::<IssueMetadata>(&content) {
-                        if meta.common.display_number == display_number {
-                            return migrate_issue_to_new_format(&issues_path, &entry.path(), name)
-                                .await;
-                        }
-                    }
-                }
-            }
+        if let Some(issue) =
+            match_entry_by_display_number(&entry, display_number, &issues_path).await?
+        {
+            return Ok(issue);
         }
     }
     Err(IssueCrudError::IssueDisplayNumberNotFound(display_number))

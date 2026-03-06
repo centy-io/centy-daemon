@@ -2,7 +2,7 @@ use crate::server::proto;
 use crate::server::structured_error::StructuredError;
 use tonic::{Response, Status};
 
-pub async fn list_sync_conflicts(
+pub fn list_sync_conflicts(
     _req: proto::ListSyncConflictsRequest,
 ) -> Result<Response<proto::ListSyncConflictsResponse>, Status> {
     // Sync feature removed - return empty list
@@ -13,8 +13,8 @@ pub async fn list_sync_conflicts(
     }))
 }
 
-pub async fn get_sync_conflict(
-    req: proto::GetSyncConflictRequest,
+pub fn get_sync_conflict(
+    req: &proto::GetSyncConflictRequest,
 ) -> Result<Response<proto::GetSyncConflictResponse>, Status> {
     // Sync feature removed - conflict not found
     Ok(Response::new(proto::GetSyncConflictResponse {
@@ -32,7 +32,7 @@ pub async fn get_sync_conflict(
     }))
 }
 
-pub async fn resolve_sync_conflict(
+pub fn resolve_sync_conflict(
     _req: proto::ResolveSyncConflictRequest,
 ) -> Result<Response<proto::ResolveSyncConflictResponse>, Status> {
     // Sync feature removed - cannot resolve conflicts
@@ -43,7 +43,7 @@ pub async fn resolve_sync_conflict(
     }))
 }
 
-pub async fn get_sync_status(
+pub fn get_sync_status(
     _req: proto::GetSyncStatusRequest,
 ) -> Result<Response<proto::GetSyncStatusResponse>, Status> {
     // Sync feature removed - return disabled status
@@ -58,7 +58,7 @@ pub async fn get_sync_status(
     }))
 }
 
-pub async fn sync_pull(
+pub fn sync_pull(
     _req: proto::SyncPullRequest,
 ) -> Result<Response<proto::SyncPullResponse>, Status> {
     // Sync feature removed - no-op success
@@ -70,7 +70,7 @@ pub async fn sync_pull(
     }))
 }
 
-pub async fn sync_push(
+pub fn sync_push(
     _req: proto::SyncPushRequest,
 ) -> Result<Response<proto::SyncPushResponse>, Status> {
     // Sync feature removed - no-op success

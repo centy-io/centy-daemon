@@ -778,7 +778,7 @@ async fn test_delete_asset_removes_file() {
 
 #[tokio::test]
 async fn test_asset_scope_default_is_issue_specific() {
-    let scope: AssetScope = Default::default();
+    let scope = AssetScope::default();
     assert_eq!(scope, AssetScope::IssueSpecific);
 }
 

@@ -3,9 +3,7 @@
 //! This module consolidates Issues and Docs into a unified "item" concept
 //! with shared traits for common operations while preserving entity-specific behavior.
 
-// Allow unused code in this module - these are infrastructure traits/types
 // that are prepared for future use but not yet fully integrated
-#![allow(dead_code, unused_imports)]
 
 pub mod core;
 pub mod entities;

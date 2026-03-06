@@ -1,6 +1,5 @@
 mod pattern;
 mod types;
-#[allow(unused_imports)]
 pub use super::error::HookError;
 pub use pattern::ParsedPattern;
 pub use types::{HookDefinition, HookOperation, PatternSegment, Phase};

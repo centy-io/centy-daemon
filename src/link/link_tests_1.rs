@@ -1,5 +1,5 @@
 use super::*;
-use std::str::FromStr;
+use std::str::FromStr as _;
 
 #[test]
 fn test_target_type_from_str() {

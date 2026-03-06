@@ -17,7 +17,7 @@ use tempfile::TempDir;
 static REGISTRY_ISOLATION: LazyLock<()> = LazyLock::new(|| {
     let dir = tempfile::tempdir().expect("Failed to create temp registry dir");
     std::env::set_var("CENTY_HOME", dir.path());
-    std::mem::forget(dir); // Keep dir alive for the process lifetime
+    Box::leak(Box::new(dir)); // Keep dir alive for the process lifetime
 });
 
 fn create_test_dir() -> TempDir {
@@ -230,7 +230,7 @@ async fn test_project_info_counts_issues() {
     init_centy_project(project_path).await;
 
     // Create some issues
-    for i in 1..=3 {
+    for i in 1i32..=3i32 {
         let options = CreateIssueOptions {
             title: format!("Issue {i}"),
             ..Default::default()

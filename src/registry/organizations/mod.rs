@@ -20,6 +20,6 @@ pub use org_issues::{
     UpdateOrgIssueOptions,
 };
 pub use query::{get_organization, list_organizations};
-pub(crate) use slug::slugify;
+pub use slug::slugify;
 pub use sync::sync_org_from_project;
 pub use update::update_organization;

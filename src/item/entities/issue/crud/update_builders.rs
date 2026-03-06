@@ -51,10 +51,8 @@ pub fn build_issue_struct(
     current: &Issue,
     updated_at: &str,
 ) -> Issue {
-    #[allow(deprecated)]
     Issue {
         id: issue_number.to_string(),
-        issue_number: issue_number.to_string(),
         title: updates.title.clone(),
         description: updates.description.clone(),
         metadata: IssueMetadataFlat {

@@ -6,12 +6,27 @@ use super::move_io::{
     load_source_issue, remove_source_issue, source_issues_path, validate_issue_move,
 };
 use super::read::read_issue_from_frontmatter;
-use super::types::IssueCrudError;
+use super::types::{Issue, IssueCrudError};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, now_iso, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use tokio::fs;
 
+fn build_target_frontmatter(issue: &Issue, new_display_number: u32) -> IssueFrontmatter {
+    IssueFrontmatter {
+        display_number: new_display_number,
+        status: issue.metadata.status.clone(),
+        priority: issue.metadata.priority,
+        created_at: issue.metadata.created_at.clone(),
+        updated_at: now_iso(),
+        draft: issue.metadata.draft,
+        deleted_at: issue.metadata.deleted_at.clone(),
+        is_org_issue: issue.metadata.is_org_issue,
+        org_slug: issue.metadata.org_slug.clone(),
+        org_display_number: issue.metadata.org_display_number,
+        custom_fields: issue.metadata.custom_fields.clone(),
+    }
+}
 pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, IssueCrudError> {
     if options.source_project_path == options.target_project_path {
         return Err(IssueCrudError::SameProject);
@@ -31,19 +46,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     let target_issues_path = target_centy.join("issues");
     fs::create_dir_all(&target_issues_path).await?;
     let new_display_number = get_next_display_number(&target_issues_path).await?;
-    let frontmatter = IssueFrontmatter {
-        display_number: new_display_number,
-        status: source_issue.metadata.status.clone(),
-        priority: source_issue.metadata.priority,
-        created_at: source_issue.metadata.created_at.clone(),
-        updated_at: now_iso(),
-        draft: source_issue.metadata.draft,
-        deleted_at: source_issue.metadata.deleted_at.clone(),
-        is_org_issue: source_issue.metadata.is_org_issue,
-        org_slug: source_issue.metadata.org_slug.clone(),
-        org_display_number: source_issue.metadata.org_display_number,
-        custom_fields: source_issue.metadata.custom_fields.clone(),
-    };
+    let frontmatter = build_target_frontmatter(&source_issue, new_display_number);
     let target_issue_file = target_issues_path.join(format!("{}.md", &options.issue_id));
     let issue_content = generate_frontmatter(
         &frontmatter,

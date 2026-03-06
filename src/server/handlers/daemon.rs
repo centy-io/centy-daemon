@@ -7,13 +7,7 @@ use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
-pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<DaemonInfo>, Status> {
+pub fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<DaemonInfo>, Status> {
     let binary_path = std::env::current_exe()
         .map(|p| format_display_path(&p.to_string_lossy()))
         .unwrap_or_default();
@@ -25,13 +19,7 @@ pub async fn get_daemon_info(_req: GetDaemonInfoRequest) -> Result<Response<Daem
     }))
 }
 
-#[allow(
-    renamed_and_removed_lints,
-    unknown_lints,
-    unused_async,
-    clippy::unused_async
-)]
-pub async fn shutdown(
+pub fn shutdown(
     req: ShutdownRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,
 ) -> Result<Response<ShutdownResponse>, Status> {
@@ -40,7 +28,7 @@ pub async fn shutdown(
     info!("Shutdown requested with delay: {} seconds", delay);
 
     // Clone the sender for use in the spawned task
-    let shutdown_tx = shutdown_tx.clone();
+    let shutdown_tx = Arc::clone(shutdown_tx);
 
     // Spawn a task to handle the delayed shutdown
     // Always wait a small amount of time to ensure the response is sent before shutting down

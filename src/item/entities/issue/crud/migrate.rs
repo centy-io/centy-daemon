@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::metadata::IssueFrontmatter;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
 use super::read::read_issue_from_legacy_folder;
@@ -10,6 +9,7 @@ use std::path::Path;
 use tokio::fs;
 use tracing::debug;
 
+#[allow(clippy::cognitive_complexity)]
 pub async fn migrate_issue_to_new_format(
     issues_path: &Path,
     issue_folder_path: &Path,

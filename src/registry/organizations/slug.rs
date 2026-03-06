@@ -1,7 +1,7 @@
 use super::errors::OrganizationError;
 
 /// Convert a name to a URL-friendly slug (kebab-case)
-pub(crate) fn slugify(name: &str) -> String {
+pub fn slugify(name: &str) -> String {
     name.to_lowercase()
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '-' })

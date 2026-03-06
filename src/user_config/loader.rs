@@ -8,12 +8,9 @@ use tracing::{debug, warn};
 ///
 /// Returns [`UserConfigError`] if the file exists but cannot be read or parsed.
 pub fn load_user_config() -> Result<UserConfig, UserConfigError> {
-    let path = match user_config_path() {
-        Some(p) => p,
-        None => {
-            warn!("Could not determine user config directory; using defaults");
-            return Ok(UserConfig::default());
-        }
+    let Some(path) = user_config_path() else {
+        warn!("Could not determine user config directory; using defaults");
+        return Ok(UserConfig::default());
     };
     if !path.exists() {
         debug!(

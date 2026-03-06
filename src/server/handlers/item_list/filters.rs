@@ -55,14 +55,17 @@ fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Fi
             }
             filters
         }
-        _ => filters,
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::Array(_) => filters,
     }
 }
 fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> Filters {
     match condition {
         serde_json::Value::Number(n) => {
             if let Some(p) = n.as_u64() {
-                filters.with_priority(p as u32)
+                filters.with_priority(u32::try_from(p).unwrap_or(u32::MAX))
             } else {
                 filters
             }
@@ -70,22 +73,25 @@ fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> 
         serde_json::Value::Object(ops) => {
             let mut f = filters;
             if let Some(v) = ops.get("$eq").and_then(serde_json::Value::as_u64) {
-                f = f.with_priority(v as u32);
+                f = f.with_priority(u32::try_from(v).unwrap_or(u32::MAX));
             }
             if let Some(v) = ops.get("$lte").and_then(serde_json::Value::as_u64) {
-                f = f.with_priority_lte(v as u32);
+                f = f.with_priority_lte(u32::try_from(v).unwrap_or(u32::MAX));
             }
             if let Some(v) = ops.get("$lt").and_then(serde_json::Value::as_u64) {
-                f = f.with_priority_lte(v.saturating_sub(1) as u32);
+                f = f.with_priority_lte(u32::try_from(v.saturating_sub(1)).unwrap_or(u32::MAX));
             }
             if let Some(v) = ops.get("$gte").and_then(serde_json::Value::as_u64) {
-                f = f.with_priority_gte(v as u32);
+                f = f.with_priority_gte(u32::try_from(v).unwrap_or(0));
             }
             if let Some(v) = ops.get("$gt").and_then(serde_json::Value::as_u64) {
-                f = f.with_priority_gte(v.saturating_add(1) as u32);
+                f = f.with_priority_gte(u32::try_from(v.saturating_add(1)).unwrap_or(u32::MAX));
             }
             f
         }
-        _ => filters,
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::String(_)
+        | serde_json::Value::Array(_) => filters,
     }
 }

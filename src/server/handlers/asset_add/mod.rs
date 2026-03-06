@@ -11,7 +11,7 @@ use tonic::{Response, Status};
 pub async fn add_asset(req: AddAssetRequest) -> Result<Response<AddAssetResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return Ok(Response::new(AddAssetResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),

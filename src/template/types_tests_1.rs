@@ -70,7 +70,7 @@ fn test_issue_template_context_clone() {
         custom_fields: HashMap::new(),
     };
 
-    let cloned = ctx.clone();
+    let cloned = ctx;
     assert_eq!(cloned.title, "Test");
     assert_eq!(cloned.priority, 1);
 }

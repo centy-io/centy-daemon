@@ -13,7 +13,7 @@ pub async fn delete_user(
 ) -> Result<DeleteUserResult, UserError> {
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let mut users = read_users(project_path).await?;
     let user_idx = users
@@ -27,14 +27,14 @@ pub async fn delete_user(
     info!("Deleted user: {}", user_id);
     Ok(DeleteUserResult { manifest })
 }
-/// Soft-delete a user (set deleted_at timestamp)
+/// Soft-delete a user (set `deleted_at` timestamp)
 pub async fn soft_delete_user(
     project_path: &Path,
     user_id: &str,
 ) -> Result<SoftDeleteUserResult, UserError> {
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let mut users = read_users(project_path).await?;
     let user = users
@@ -57,14 +57,14 @@ pub async fn soft_delete_user(
         manifest,
     })
 }
-/// Restore a soft-deleted user (clear deleted_at timestamp)
+/// Restore a soft-deleted user (clear `deleted_at` timestamp)
 pub async fn restore_user(
     project_path: &Path,
     user_id: &str,
 ) -> Result<RestoreUserResult, UserError> {
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let mut users = read_users(project_path).await?;
     let user = users

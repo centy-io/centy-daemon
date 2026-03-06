@@ -12,14 +12,12 @@ pub async fn create_standalone_workspace(
         .clone()
         .unwrap_or_else(|| format!("standalone-{workspace_id}"));
     let project_path = &options.source_project_path;
-    let project_name = project_path
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "project".to_string());
+    let project_name = project_path.file_name().map_or_else(
+        || "project".to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    );
     let workspace_path = dirs::home_dir()
-        .ok_or(WorkspaceError::GitError(
-            "Could not determine home directory".to_string(),
-        ))?
+        .ok_or_else(|| WorkspaceError::GitError("Could not determine home directory".to_string()))?
         .join("worktrees")
         .join("local")
         .join(&project_name)

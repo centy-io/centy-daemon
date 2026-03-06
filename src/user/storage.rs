@@ -10,7 +10,7 @@ use tokio::fs;
 pub async fn read_users(project_path: &Path) -> Result<Vec<User>, UserError> {
     read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let centy_path = get_centy_path(project_path);
     let users_path = centy_path.join("users.json");
@@ -35,11 +35,13 @@ pub async fn write_users(project_path: &Path, users: &[User]) -> Result<(), User
 }
 
 /// Check if a user with the given email already exists.
+#[must_use]
 pub fn find_user_by_email<'a>(users: &'a [User], email: &str) -> Option<&'a User> {
     users.iter().find(|u| u.email.as_deref() == Some(email))
 }
 
 /// Check if a user with the given ID already exists.
+#[must_use]
 pub fn find_user_by_id<'a>(users: &'a [User], id: &str) -> Option<&'a User> {
     users.iter().find(|u| u.id == id)
 }

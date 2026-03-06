@@ -9,14 +9,20 @@ use crate::server::structured_error::to_error_json;
 use crate::user::delete_user;
 use std::path::Path;
 use tonic::{Response, Status};
+fn err_resp(
+    cwd: &str,
+    e: &(impl std::fmt::Display + crate::server::error_mapping::ToStructuredError),
+) -> Response<DeleteItemResponse> {
+    Response::new(DeleteItemResponse {
+        success: false,
+        error: to_error_json(cwd, e),
+    })
+}
 pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemResponse>, Status> {
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
-    if let Err(e) = assert_initialized(project_path).await {
-        return Ok(Response::new(DeleteItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-        }));
+    if let Err(e) = assert_initialized(project_path) {
+        return Ok(err_resp(&req.project_path, &e));
     }
     let lower = req.item_type.to_lowercase();
     if lower == "user" || lower == "users" {
@@ -25,30 +31,17 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
                 success: true,
                 error: String::new(),
             })),
-            Err(e) => Ok(Response::new(DeleteItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-            })),
+            Err(e) => Ok(err_resp(&req.project_path, &e)),
         };
     }
     let (item_type, config) = match resolve_item_type_config(project_path, &req.item_type).await {
         Ok(pair) => pair,
-        Err(e) => {
-            return Ok(Response::new(DeleteItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-            }))
-        }
+        Err(e) => return Ok(err_resp(&req.project_path, &e)),
     };
     let hook_type = config.name.to_lowercase();
     let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
         Ok(id) => id,
-        Err(e) => {
-            return Ok(Response::new(DeleteItemResponse {
-                success: false,
-                error: to_error_json(&req.project_path, &e),
-            }))
-        }
+        Err(e) => return Ok(err_resp(&req.project_path, &e)),
     };
     let hook_project_path = req.project_path.clone();
     let hook_item_id = item_id.clone();
@@ -64,10 +57,7 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
     )
     .await
     {
-        return Ok(Response::new(DeleteItemResponse {
-            success: false,
-            error: to_error_json(&req.project_path, &e),
-        }));
+        return Ok(err_resp(&req.project_path, &e));
     }
     Ok(Response::new(
         do_delete(

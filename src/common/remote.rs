@@ -6,7 +6,7 @@
 //! - Self-hosted: `https://git.company.com/org-name/repo.git`
 
 /// Result of parsing a git remote URL
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedRemote {
     /// The hosting platform (e.g., "github.com", "gitlab.com", "bitbucket.org")
     pub host: String,
@@ -20,6 +20,7 @@ pub struct ParsedRemote {
 ///
 /// Supports HTTPS, HTTP, and SSH formats, including self-hosted.
 /// Returns `None` if the URL format is not recognized.
+#[must_use]
 pub fn parse_remote_url(url: &str) -> Option<ParsedRemote> {
     let url = url.trim();
     if let Some(ssh_part) = url.strip_prefix("git@") {

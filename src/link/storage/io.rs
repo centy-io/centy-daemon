@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::links_file::{LinksFile, LINKS_FILENAME};
 use std::path::Path;
 use tokio::fs;
@@ -32,17 +31,14 @@ pub async fn read_links(entity_path: &Path) -> Result<LinksFile, std::io::Error>
     Ok(LinksFile::new())
 }
 /// Write links to an entity's links folder.
-/// Uses new format: parent/links/{entity_id}/links.json.
+/// Uses new format: parent/links/`{entity_id}`/links.json.
 /// If the links list is empty, deletes the file if it exists.
 pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(), std::io::Error> {
-    let (parent, entity_id) = match (entity_path.parent(), entity_path.file_name()) {
-        (Some(p), Some(id)) => (p, id),
-        _ => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Invalid entity path",
-            ))
-        }
+    let (Some(parent), Some(entity_id)) = (entity_path.parent(), entity_path.file_name()) else {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Invalid entity path",
+        ));
     };
     let links_dir = parent.join("links").join(entity_id);
     let new_links_path = links_dir.join(LINKS_FILENAME);

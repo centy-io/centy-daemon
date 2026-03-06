@@ -1,5 +1,5 @@
 use std::path::Path;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::process::Command;
 
 use super::context::HookContext;
@@ -7,10 +7,8 @@ use super::error::HookError;
 
 /// Result of executing a hook command
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct HookExecResult {
     pub exit_code: i32,
-    pub stdout: String,
     pub stderr: String,
 }
 
@@ -31,7 +29,7 @@ pub async fn execute_hook(
         .current_dir(project_path.join(".centy"))
         .envs(env_vars)
         .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())
         .spawn()?;
 
@@ -42,8 +40,7 @@ pub async fn execute_hook(
         drop(stdin);
     }
 
-    // Take stdout/stderr handles before waiting
-    let mut stdout_handle = child.stdout.take();
+    // Take stderr handle before waiting
     let mut stderr_handle = child.stderr.take();
 
     // Wait with timeout
@@ -52,19 +49,14 @@ pub async fn execute_hook(
 
     match wait_result {
         Ok(Ok(status)) => {
-            // Read stdout and stderr
-            let mut stdout_buf = Vec::new();
+            // Read stderr
             let mut stderr_buf = Vec::new();
-            if let Some(ref mut stdout) = stdout_handle {
-                let _ = stdout.read_to_end(&mut stdout_buf).await;
-            }
             if let Some(ref mut stderr) = stderr_handle {
                 let _ = stderr.read_to_end(&mut stderr_buf).await;
             }
 
             Ok(HookExecResult {
-                exit_code: status.code().unwrap_or(-1),
-                stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
+                exit_code: status.code().unwrap_or(-1i32),
                 stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
             })
         }

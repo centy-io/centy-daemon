@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 mod file_ops;
 mod types;
 use super::managed_files::get_managed_files;
@@ -43,9 +42,7 @@ pub async fn execute_reconciliation(
     }
     for file_info in &plan.to_reset {
         let template = managed_templates.get(&file_info.path);
-        let has_merge = template
-            .map(|t| t.merge_strategy.is_some())
-            .unwrap_or(false);
+        let has_merge = template.is_some_and(|t| t.merge_strategy.is_some());
         if has_merge {
             merge_file(&centy_path, &file_info.path, &managed_templates).await?;
             result.reset.push(file_info.path.clone());
@@ -76,18 +73,14 @@ pub async fn execute_reconciliation(
     Ok(result)
 }
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests.rs"]
 mod tests;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_2.rs"]
 mod tests2;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_3.rs"]
 mod tests3;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../execute_tests_4.rs"]
 mod tests4;

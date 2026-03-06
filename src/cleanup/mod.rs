@@ -19,6 +19,7 @@ const DEFAULT_RETENTION_DAYS: i64 = 30;
 ///
 /// For each project in the global registry, reads its config and runs
 /// `run_cleanup_for_project` if auto-cleanup is enabled.
+#[allow(clippy::cognitive_complexity)]
 pub async fn run_cleanup_all_projects() {
     let projects = match list_projects(ListProjectsOptions {
         include_archived: true,
@@ -64,13 +65,13 @@ pub async fn run_cleanup_all_projects() {
                 debug!(project = %project_path_str, "Cleanup disabled (retention_period = 0)");
                 continue;
             }
-            Some(s) => match parse_retention_duration(s) {
-                Some(d) => d,
-                None => {
+            Some(s) => {
+                let Some(d) = parse_retention_duration(s) else {
                     warn!(project = %project_path_str, value = %s, "Invalid retention_period, skipping cleanup");
                     continue;
-                }
-            },
+                };
+                d
+            }
             // None → use default
             None => Duration::days(DEFAULT_RETENTION_DAYS),
         };

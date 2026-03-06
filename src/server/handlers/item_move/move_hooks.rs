@@ -8,10 +8,10 @@ use std::path::Path;
 use tonic::{Response, Status};
 
 pub(super) struct MoveHookContext {
-    pub(super) hook_type: String,
-    pub(super) hook_project_path: String,
-    pub(super) hook_item_id: String,
-    pub(super) hook_request_data: serde_json::Value,
+    pub item_type: String,
+    pub project_path: String,
+    pub item_id: String,
+    pub request_data: serde_json::Value,
 }
 /// Build hook context and run pre-hooks for a move operation.
 pub(super) async fn prepare_move_hooks(
@@ -20,9 +20,9 @@ pub(super) async fn prepare_move_hooks(
     source_config_name: &str,
 ) -> Result<MoveHookContext, Response<MoveItemResponse>> {
     let hook_type = source_config_name.to_lowercase();
-    let hook_project_path = req.source_project_path.clone();
-    let hook_item_id = req.item_id.clone();
-    let hook_request_data = serde_json::json!({
+    let project_path = req.source_project_path.clone();
+    let item_id = req.item_id.clone();
+    let request_data = serde_json::json!({
         "item_type": &req.item_type, "item_id": &req.item_id,
         "source_project_path": &req.source_project_path,
         "target_project_path": &req.target_project_path,
@@ -32,9 +32,9 @@ pub(super) async fn prepare_move_hooks(
         source_path,
         &hook_type,
         HookOperation::Move,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data.clone()),
+        &project_path,
+        Some(&item_id),
+        Some(request_data.clone()),
     )
     .await
     {
@@ -45,10 +45,10 @@ pub(super) async fn prepare_move_hooks(
         }));
     }
     Ok(MoveHookContext {
-        hook_type,
-        hook_project_path,
-        hook_item_id,
-        hook_request_data,
+        item_type: hook_type,
+        project_path,
+        item_id,
+        request_data,
     })
 }
 /// Run post-hooks and return the move response.
@@ -58,9 +58,9 @@ pub(super) async fn finish_move(
     target_path: &Path,
     target_type: &str,
     hook_type: &str,
-    hook_project_path: &str,
-    hook_item_id: &str,
-    hook_request_data: serde_json::Value,
+    project_path: &str,
+    item_id: &str,
+    request_data: serde_json::Value,
     error_project_path: &str,
 ) -> Result<Response<MoveItemResponse>, Status> {
     let success = move_result.is_ok();
@@ -68,9 +68,9 @@ pub(super) async fn finish_move(
         source_path,
         hook_type,
         HookOperation::Move,
-        hook_project_path,
-        Some(hook_item_id),
-        Some(hook_request_data),
+        project_path,
+        Some(item_id),
+        Some(request_data),
         success,
     )
     .await;

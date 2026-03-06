@@ -5,13 +5,10 @@
 mod reconcile_fn;
 mod scan;
 mod types;
-#[allow(unused_imports)]
 pub use super::metadata::IssueMetadata;
 pub use reconcile_fn::reconcile_display_numbers;
 pub use scan::get_next_display_number;
-#[allow(unused_imports)]
 pub use std::path::Path;
-#[allow(unused_imports)]
 pub use tokio::fs;
 pub use types::ReconcileError;
 #[cfg(test)]

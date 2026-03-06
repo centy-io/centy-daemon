@@ -24,7 +24,7 @@ pub fn get_centy_config_dir() -> Result<PathBuf, RegistryError> {
     }
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| RegistryError::HomeDirNotFound)?;
+        .map_err(|_e| RegistryError::HomeDirNotFound)?;
     Ok(PathBuf::from(home).join(".centy"))
 }
 
@@ -50,13 +50,6 @@ pub async fn read_registry() -> Result<ProjectRegistry, RegistryError> {
     Ok(registry)
 }
 
-/// Write the registry to disk with locking and atomic write
-#[allow(dead_code)]
-pub async fn write_registry(registry: &ProjectRegistry) -> Result<(), RegistryError> {
-    let _guard = get_lock().lock().await;
-    write_registry_unlocked(registry).await
-}
-
 /// Write the registry to disk without acquiring the lock (caller must hold lock)
 pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), RegistryError> {
     let path = get_registry_path()?;
@@ -75,7 +68,7 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
     let temp_name = format!("projects.{unique_id}.json.tmp");
     let temp_path = path
         .parent()
-        .unwrap_or(std::path::Path::new("."))
+        .unwrap_or_else(|| std::path::Path::new("."))
         .join(temp_name);
     let content = serde_json::to_string_pretty(registry)?;
     fs::write(&temp_path, &content).await?;

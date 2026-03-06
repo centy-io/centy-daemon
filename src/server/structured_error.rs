@@ -19,6 +19,7 @@ pub struct StructuredError {
 }
 
 impl StructuredError {
+    #[must_use]
     pub fn new(cwd: &str, code: &str, message: String) -> Self {
         Self {
             cwd: cwd.to_string(),
@@ -37,6 +38,7 @@ impl StructuredError {
         }
         self
     }
+    #[must_use]
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).unwrap_or_else(|_| {
             r#"{"cwd":"","logs":"","messages":[{"message":"serialization error","code":"INTERNAL_ERROR"}]}"#.to_string()

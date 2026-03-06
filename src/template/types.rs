@@ -9,7 +9,7 @@ pub enum TemplateType {
 
 impl TemplateType {
     #[must_use]
-    pub fn folder_name(&self) -> &'static str {
+    pub fn folder_name(self) -> &'static str {
         match self {
             TemplateType::Issue => "issues",
         }
@@ -17,7 +17,7 @@ impl TemplateType {
 }
 
 /// Context for issue templates
-/// Placeholders: {{title}}, {{description}}, {{priority}}, {{priority_label}}, {{status}}, {{created_at}}, {{custom_fields}}
+/// Placeholders: `{{title}}`, `{{description}}`, `{{priority}}`, `{{priority_label}}`, `{{status}}`, `{{created_at}}`, `{{custom_fields}}`
 #[derive(Debug, Clone, Serialize)]
 pub struct IssueTemplateContext {
     pub title: String,

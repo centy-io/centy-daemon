@@ -14,7 +14,7 @@ pub async fn update_user(
 ) -> Result<UpdateUserResult, UserError> {
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let mut users = read_users(project_path).await?;
     let user = users

@@ -10,27 +10,27 @@ use std::path::Path;
 use tonic::Response;
 
 pub(super) struct AddAssetHookContext {
-    pub(super) hook_project_path: String,
-    pub(super) hook_item_id: String,
-    pub(super) hook_request_data: serde_json::Value,
+    pub project_path: String,
+    pub item_id: String,
+    pub request_data: serde_json::Value,
 }
 
 pub(super) async fn prepare_add_asset_hooks(
     req: &AddAssetRequest,
     project_path: &Path,
 ) -> Result<AddAssetHookContext, Response<AddAssetResponse>> {
-    let hook_project_path = req.project_path.clone();
-    let hook_item_id = req.filename.clone();
-    let hook_request_data = serde_json::json!({
+    let path_str = req.project_path.clone();
+    let item_id = req.filename.clone();
+    let request_data = serde_json::json!({
         "filename": &req.filename, "issue_id": &req.issue_id, "is_shared": req.is_shared,
     });
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
         "asset",
         HookOperation::Create,
-        &hook_project_path,
-        Some(&hook_item_id),
-        Some(hook_request_data.clone()),
+        &path_str,
+        Some(&item_id),
+        Some(request_data.clone()),
     )
     .await
     {
@@ -41,9 +41,9 @@ pub(super) async fn prepare_add_asset_hooks(
         }));
     }
     Ok(AddAssetHookContext {
-        hook_project_path,
-        hook_item_id,
-        hook_request_data,
+        project_path: path_str,
+        item_id,
+        request_data,
     })
 }
 
@@ -58,9 +58,9 @@ pub(super) async fn finish_add_asset(
         project_path,
         "asset",
         HookOperation::Create,
-        &ctx.hook_project_path,
-        Some(&ctx.hook_item_id),
-        Some(ctx.hook_request_data),
+        &ctx.project_path,
+        Some(&ctx.item_id),
+        Some(ctx.request_data),
         success,
     )
     .await;

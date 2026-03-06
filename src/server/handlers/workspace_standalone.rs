@@ -29,7 +29,7 @@ pub async fn open_standalone_workspace(
         }))
     };
 
-    if let Err(e) = assert_initialized(project_path).await {
+    if let Err(e) = assert_initialized(project_path) {
         return err_response(to_error_json(&req.project_path, &e));
     }
 

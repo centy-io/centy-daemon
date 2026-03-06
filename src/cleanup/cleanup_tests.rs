@@ -31,9 +31,13 @@ fn test_parse_disabled_values() {
 }
 
 #[test]
+fn test_parse_minutes() {
+    assert_eq!(parse_retention_duration("30m"), Some(Duration::minutes(30)));
+}
+
+#[test]
 fn test_parse_invalid() {
     assert_eq!(parse_retention_duration("abc"), None);
-    assert_eq!(parse_retention_duration("30m"), None);
     assert_eq!(parse_retention_duration("-1d"), None);
     assert_eq!(parse_retention_duration("0d"), None);
     assert_eq!(parse_retention_duration("0h"), None);

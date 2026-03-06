@@ -38,7 +38,7 @@ async fn test_create_issue_with_explicit_template() {
         .expect("Should create issue with template");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -66,7 +66,7 @@ async fn test_create_issue_without_template_uses_default() {
         .expect("Should create issue");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -102,7 +102,7 @@ async fn test_issue_template_with_custom_fields_loop() {
     let template_path = project_path.join(".centy/templates/issues/detailed.md");
     fs::write(
         &template_path,
-        r"# {{title}}
+        "# {{title}}
 
 {{#each custom_fields}}
 - **{{@key}}:** {{this}}
@@ -130,7 +130,7 @@ async fn test_issue_template_with_custom_fields_loop() {
         .expect("Should create issue");
 
     let issue_content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
             .await
             .expect("Should read issue file");
 
@@ -150,7 +150,7 @@ async fn test_issue_template_with_conditionals() {
     let template_path = project_path.join(".centy/templates/issues/conditional.md");
     fs::write(
         &template_path,
-        r"# {{title}}
+        "# {{title}}
 
 {{#if description}}
 ## Description
@@ -171,10 +171,9 @@ async fn test_issue_template_with_conditionals() {
         .await
         .expect("Should create issue");
 
-    let content =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.issue_number)))
-            .await
-            .unwrap();
+    let content = fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result.id)))
+        .await
+        .unwrap();
     assert!(content.contains("## Description"));
     assert!(content.contains("Has description"));
 
@@ -190,7 +189,7 @@ async fn test_issue_template_with_conditionals() {
         .expect("Should create issue");
 
     let content2 =
-        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result2.issue_number)))
+        fs::read_to_string(project_path.join(format!(".centy/issues/{}.md", result2.id)))
             .await
             .unwrap();
     assert!(!content2.contains("## Description"));

@@ -1,3 +1,4 @@
+mod archive_move;
 mod handler;
 mod operation;
 pub use handler::archive_item;

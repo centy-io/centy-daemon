@@ -6,6 +6,7 @@ use thiserror::Error;
 use tokio::fs;
 
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum OrgConfigError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),

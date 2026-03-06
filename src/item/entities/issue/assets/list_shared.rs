@@ -16,11 +16,11 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
     }
     let mut entries = fs::read_dir(&shared_assets_path).await?;
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
-        let file_name = entry.file_name();
-        let Some(filename) = file_name.to_str() else {
+        let os_name = entry.file_name();
+        let Some(filename) = os_name.to_str() else {
             continue;
         };
         let asset_path = entry.path();
@@ -30,14 +30,14 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
         let mime_type =
             get_mime_type(filename).unwrap_or_else(|| "application/octet-stream".to_string());
         let metadata = fs::metadata(&asset_path).await?;
-        let created_at = metadata
-            .created()
-            .map(|t| {
+        let created_at = metadata.created().map_or_else(
+            |_| now_iso(),
+            |t| {
                 chrono::DateTime::<chrono::Utc>::from(t)
                     .format("%Y-%m-%dT%H:%M:%S%.6f+00:00")
                     .to_string()
-            })
-            .unwrap_or_else(|_| now_iso());
+            },
+        );
         assets.push(AssetInfo {
             filename: filename.to_string(),
             hash,

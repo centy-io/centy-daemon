@@ -9,7 +9,8 @@ pub enum StatusError {
 }
 
 /// Validate that a status is in the allowed states list.
-/// Returns Ok(()) if valid, or Err with allowed states for helpful error message.
+///
+/// Returns `Ok(())` if valid, or `Err` with allowed states for a helpful error message.
 pub fn validate_status(status: &str, allowed_states: &[String]) -> Result<(), StatusError> {
     if allowed_states.iter().any(|s| s == status) {
         Ok(())
@@ -20,6 +21,7 @@ pub fn validate_status(status: &str, allowed_states: &[String]) -> Result<(), St
 }
 
 /// Validate a status against the item-type config for the given project.
+///
 /// Reads `.centy/<item_type>/config.yaml` and checks the `statuses` field.
 /// If no config or no statuses are defined, validation passes (permissive).
 pub async fn validate_status_for_project(
@@ -39,9 +41,11 @@ pub async fn validate_status_for_project(
     Ok(())
 }
 
-/// Resolve the status for a new issue: use the requested status if given, otherwise
-/// fall back to the first configured status, or "open" if none is configured.
-/// Validates the resolved status against the project's issue config.
+/// Resolve the status for a new issue.
+///
+/// Uses the requested status if given, otherwise falls back to the first configured
+/// status, or `"open"` if none is configured. Validates the resolved status against
+/// the project's issue config.
 pub async fn resolve_issue_status(
     project_path: &Path,
     requested_status: Option<String>,

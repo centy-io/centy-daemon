@@ -1,8 +1,3 @@
-#![allow(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::field_reassign_with_default
-)]
 use super::*;
 use crate::config::CentyConfig;
 use mdstore::{CustomFieldDef, IdStrategy};
@@ -92,14 +87,16 @@ async fn test_write_and_read_item_type_config() {
 
 #[test]
 fn test_issue_config_custom_fields_mapped() {
-    let mut config = CentyConfig::default();
-    config.custom_fields = vec![CustomFieldDef {
-        name: "environment".to_string(),
-        field_type: "enum".to_string(),
-        required: true,
-        default_value: Some("dev".to_string()),
-        enum_values: vec!["dev".to_string(), "staging".to_string(), "prod".to_string()],
-    }];
+    let config = CentyConfig {
+        custom_fields: vec![CustomFieldDef {
+            name: "environment".to_string(),
+            field_type: "enum".to_string(),
+            required: true,
+            default_value: Some("dev".to_string()),
+            enum_values: vec!["dev".to_string(), "staging".to_string(), "prod".to_string()],
+        }],
+        ..CentyConfig::default()
+    };
 
     let issue = default_issue_config(&config);
     assert_eq!(issue.custom_fields.len(), 1);

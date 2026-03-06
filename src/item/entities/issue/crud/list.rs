@@ -1,4 +1,3 @@
-#![allow(unknown_lints, max_nesting_depth)]
 use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
 use super::super::reconcile::reconcile_display_numbers;
 use super::extra_types::{GetIssuesByUuidResult, IssueWithProject};
@@ -33,7 +32,7 @@ pub async fn list_issues(
     while let Some(entry) = entries.next_entry().await? {
         let file_type = entry.file_type().await?;
         if let Some(name) = entry.file_name().to_str() {
-            let read_result = if file_type.is_file() && is_valid_issue_file(name) {
+            let read_result = if !file_type.is_dir() && is_valid_issue_file(name) {
                 let issue_id = name.trim_end_matches(".md");
                 read_issue_from_frontmatter(&entry.path(), issue_id).await
             } else if file_type.is_dir() && is_valid_issue_folder(name) {
@@ -77,8 +76,7 @@ pub async fn get_issues_by_uuid(
                 let project_name = project.name.clone().unwrap_or_else(|| {
                     project_path
                         .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| project.path.clone())
+                        .map_or_else(|| project.path.clone(), |n| n.to_string_lossy().to_string())
                 });
                 found_issues.push(IssueWithProject {
                     issue,

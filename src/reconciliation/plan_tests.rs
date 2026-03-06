@@ -62,7 +62,7 @@ fn test_file_info_clone() {
         hash: String::new(),
         content_preview: None,
     };
-    let cloned = file_info.clone();
+    let cloned = file_info;
     assert_eq!(cloned.path, "test.md");
     assert_eq!(cloned.file_type, ManagedFileType::Directory);
 }

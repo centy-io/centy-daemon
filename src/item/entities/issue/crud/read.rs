@@ -16,10 +16,8 @@ pub async fn read_issue_from_frontmatter(
     let (frontmatter, title, body): (IssueFrontmatter, String, String) =
         parse_frontmatter(strip_centy_md_header(&content))?;
     let description = remove_planning_note(&body);
-    #[allow(deprecated)]
     Ok(Issue {
         id: issue_id.to_string(),
-        issue_number: issue_id.to_string(),
         title,
         description,
         metadata: IssueMetadataFlat {
@@ -49,8 +47,8 @@ pub async fn read_issue_from_legacy_folder(
             "Issue {issue_id} is missing required files"
         )));
     }
-    let issue_md = fs::read_to_string(&issue_md_path).await?;
-    let (title, description) = parse_issue_md(&issue_md);
+    let md_content = fs::read_to_string(&issue_md_path).await?;
+    let (title, description) = parse_issue_md(&md_content);
     let metadata_content = fs::read_to_string(&metadata_path).await?;
     let metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
     let custom_fields: HashMap<String, String> = metadata
@@ -60,15 +58,17 @@ pub async fn read_issue_from_legacy_folder(
         .map(|(k, v)| {
             let str_val = match v {
                 serde_json::Value::String(s) => s,
-                other => other.to_string(),
+                other @ (serde_json::Value::Null
+                | serde_json::Value::Bool(_)
+                | serde_json::Value::Number(_)
+                | serde_json::Value::Array(_)
+                | serde_json::Value::Object(_)) => other.to_string(),
             };
             (k, str_val)
         })
         .collect();
-    #[allow(deprecated)]
     Ok(Issue {
         id: issue_id.to_string(),
-        issue_number: issue_id.to_string(),
         title,
         description,
         metadata: IssueMetadataFlat {

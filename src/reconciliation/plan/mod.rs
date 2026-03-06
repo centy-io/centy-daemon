@@ -1,5 +1,4 @@
-#![allow(unknown_lints, max_nesting_depth)]
-pub(crate) mod helpers;
+pub mod helpers;
 mod types;
 use super::managed_files::get_managed_files;
 use crate::manifest::ManagedFileType;
@@ -59,7 +58,16 @@ pub async fn build_reconciliation_plan(
             plan.to_create.push(file_info);
         }
     }
-    for disk_path in &files_on_disk {
+    add_user_files(&mut plan, &files_on_disk, &managed_paths, &centy_path).await;
+    Ok(plan)
+}
+async fn add_user_files(
+    plan: &mut ReconciliationPlan,
+    files_on_disk: &HashSet<String>,
+    managed_paths: &HashSet<String>,
+    centy_path: &Path,
+) {
+    for disk_path in files_on_disk {
         if !managed_paths.contains(disk_path) {
             let full_path = centy_path.join(disk_path.trim_end_matches('/'));
             let is_dir = full_path.is_dir();
@@ -80,13 +88,10 @@ pub async fn build_reconciliation_plan(
             });
         }
     }
-    Ok(plan)
 }
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../plan_tests.rs"]
 mod tests;
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 #[path = "../plan_tests_2.rs"]
 mod tests2;

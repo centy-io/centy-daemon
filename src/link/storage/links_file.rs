@@ -24,17 +24,14 @@ impl LinksFile {
             if link.target_id != target_id {
                 return true;
             }
-            if let Some(lt) = link_type {
-                link.link_type != lt
-            } else {
-                false
-            }
+            link_type.is_some_and(|lt| link.kind != lt)
         });
         self.links.len() < initial_len
     }
+    #[must_use]
     pub fn has_link(&self, target_id: &str, link_type: &str) -> bool {
         self.links
             .iter()
-            .any(|link| link.target_id == target_id && link.link_type == link_type)
+            .any(|link| link.target_id == target_id && link.kind == link_type)
     }
 }

@@ -52,9 +52,9 @@ async fn test_create_link_between_issues() {
         .expect("Should create link");
 
     assert_eq!(result.created_link.target_id, issue2.id);
-    assert_eq!(result.created_link.link_type, "blocks");
+    assert_eq!(result.created_link.kind, "blocks");
     assert_eq!(result.inverse_link.target_id, issue1.id);
-    assert_eq!(result.inverse_link.link_type, "blocked-by");
+    assert_eq!(result.inverse_link.kind, "blocked-by");
 }
 
 #[tokio::test]
@@ -100,7 +100,7 @@ async fn test_create_link_inverse_created() {
         .unwrap();
 
     assert_eq!(target_links.links.len(), 1);
-    assert_eq!(target_links.links[0].link_type, "child-of");
+    assert_eq!(target_links.links[0].kind, "child-of");
     assert_eq!(target_links.links[0].target_id, issue1.id);
 }
 
@@ -645,8 +645,8 @@ async fn test_create_link_with_custom_type() {
         .await
         .expect("Should create link with custom type");
 
-    assert_eq!(result.created_link.link_type, "depends-on");
-    assert_eq!(result.inverse_link.link_type, "dependency-of");
+    assert_eq!(result.created_link.kind, "depends-on");
+    assert_eq!(result.inverse_link.kind, "dependency-of");
 }
 
 #[tokio::test]
@@ -692,8 +692,8 @@ async fn test_all_builtin_link_types() {
             .await
             .unwrap_or_else(|_| panic!("Should create {link_type} link"));
 
-        assert_eq!(result.created_link.link_type, *link_type);
-        assert_eq!(result.inverse_link.link_type, expected_inverses[i]);
+        assert_eq!(result.created_link.kind, *link_type);
+        assert_eq!(result.inverse_link.kind, expected_inverses[i]);
     }
 }
 
@@ -708,7 +708,7 @@ async fn test_target_type_variants() {
 
 #[tokio::test]
 async fn test_target_type_from_str() {
-    use std::str::FromStr;
+    use std::str::FromStr as _;
 
     assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::issue());
     assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::new("doc"));

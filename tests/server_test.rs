@@ -56,7 +56,7 @@ async fn test_issue_list_with_filters() {
 
     // Create multiple issues
     for i in 1..=5 {
-        let status = if i % 2 == 0 { "open" } else { "closed" };
+        let status = if i & 1u32 == 0 { "open" } else { "closed" };
         create_issue(
             project_path,
             CreateIssueOptions {
@@ -196,7 +196,7 @@ fn test_config_enum_field_has_values() {
 
 #[test]
 fn test_config_hex_color_format() {
-    let hex_regex = regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$").unwrap();
+    let hex_regex = regex::Regex::new("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$").unwrap();
 
     // Valid colors
     assert!(hex_regex.is_match("#FFF"));
@@ -278,7 +278,7 @@ async fn test_issue_display_numbers_sequential() {
 
     let mut display_numbers = vec![];
 
-    for i in 1..=5 {
+    for i in 1i32..=5i32 {
         let result = create_issue(
             project_path,
             CreateIssueOptions {
@@ -305,7 +305,7 @@ async fn test_sequential_issue_creation() {
 
     // Create issues sequentially
     let mut results = vec![];
-    for i in 1..=10 {
+    for i in 1i32..=10i32 {
         let result = create_issue(
             project_path,
             CreateIssueOptions {

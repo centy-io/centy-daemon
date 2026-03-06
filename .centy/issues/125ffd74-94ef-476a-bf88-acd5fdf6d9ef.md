@@ -1,9 +1,9 @@
 ---
 displayNumber: 120
-status: open
+status: closed
 priority: 2
 createdAt: 2026-01-22T16:07:28.683277+00:00
-updatedAt: 2026-01-22T16:07:28.683277+00:00
+updatedAt: 2026-03-05T19:16:43.650096+00:00
 ---
 
 # Refactor src/item/entities/issue/crud.rs to under 100 lines

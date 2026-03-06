@@ -4,7 +4,7 @@ use super::*;
 fn test_hook_error_pre_hook_failed() {
     let err = HookError::PreHookFailed {
         pattern: "issue:create:*".to_string(),
-        exit_code: 1,
+        exit_code: 1i32,
         stderr: "validation failed".to_string(),
     };
     let display = format!("{err}");

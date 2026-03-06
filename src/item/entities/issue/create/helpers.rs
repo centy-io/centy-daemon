@@ -76,10 +76,8 @@ pub fn build_issue_for_sync(
     display_number: u32,
     metadata: &IssueMetadata,
 ) -> Issue {
-    #[allow(deprecated)]
     Issue {
         id: issue_id.to_string(),
-        issue_number: issue_id.to_string(),
         title: options.title.clone(),
         description: options.description.clone(),
         metadata: IssueMetadataFlat {

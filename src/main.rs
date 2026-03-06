@@ -1,3 +1,7 @@
+// Allow unknown/renamed lints (shared with lib.rs for consistency across targets)
+#![allow(unknown_lints, renamed_and_removed_lints)]
+// Allow unused imports/dead_code for pub use re-exports that form the lib's public API but aren't all used by the binary
+#![allow(unused_imports, dead_code)]
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 #![cfg_attr(
     test,
@@ -8,7 +12,9 @@
         clippy::panic_in_result_fn,
         clippy::unwrap_in_result,
         clippy::arithmetic_side_effects,
-        clippy::indexing_slicing
+        clippy::indexing_slicing,
+        clippy::wildcard_imports,
+        clippy::field_reassign_with_default
     )
 )]
 
@@ -17,7 +23,6 @@ mod cleanup;
 mod common;
 mod config;
 mod cors;
-mod grpc_logging;
 mod hooks;
 mod item;
 mod link;
@@ -34,11 +39,14 @@ mod user_config;
 mod utils;
 mod workspace;
 
-use clap::Parser;
+use clap::Parser as _;
 use color_eyre::eyre::Result;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     color_eyre::install()?;
-    run::run(app::Args::parse()).await
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(color_eyre::eyre::Report::from)?
+        .block_on(run::run(app::Args::parse()))
 }
