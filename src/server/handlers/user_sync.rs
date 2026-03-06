@@ -29,6 +29,7 @@ pub async fn sync_users(req: SyncUsersRequest) -> Result<Response<SyncUsersRespo
                 error: String::new(),
                 created: result.created,
                 skipped: result.skipped,
+                updated: result.updated,
                 errors: result.errors,
                 would_create: result
                     .would_create
@@ -46,18 +47,21 @@ pub async fn sync_users(req: SyncUsersRequest) -> Result<Response<SyncUsersRespo
                         email: c.email,
                     })
                     .collect(),
+                would_update: result
+                    .would_update
+                    .into_iter()
+                    .map(|c| ProtoGitContributor {
+                        name: c.name,
+                        email: c.email,
+                    })
+                    .collect(),
                 manifest: Some(manifest_to_proto(&full_result.manifest)),
             }))
         }
         Err(e) => Ok(Response::new(SyncUsersResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),
-            created: vec![],
-            skipped: vec![],
-            errors: vec![],
-            would_create: vec![],
-            would_skip: vec![],
-            manifest: None,
+            ..Default::default()
         })),
     }
 }

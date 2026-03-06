@@ -1,6 +1,25 @@
-use super::super::crud::{create_user, CreateUserOptions};
+use super::super::crud::{create_user, update_user, CreateUserOptions, UpdateUserOptions};
 use super::super::types::{slugify, GitContributor, SyncUsersResult, UserError};
 use std::path::Path;
+
+pub async fn update_user_git_usernames(
+    project_path: &Path,
+    user_id: &str,
+    contributor: &GitContributor,
+    result: &mut SyncUsersResult,
+) {
+    let options = UpdateUserOptions {
+        name: None,
+        email: None,
+        git_usernames: Some(vec![contributor.name.clone()]),
+    };
+    match update_user(project_path, user_id, options).await {
+        Ok(_) => result.updated.push(user_id.to_string()),
+        Err(e) => result
+            .errors
+            .push(format!("Failed to update user {user_id}: {e}")),
+    }
+}
 
 pub async fn create_user_from_contributor(
     project_path: &Path,
