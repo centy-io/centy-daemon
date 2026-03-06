@@ -621,6 +621,13 @@ eq_op = "deny"
 explicit_auto_deref = "deny"
 impossible_comparisons = "deny"
 literal_string_with_formatting_args = "deny"
+derived_hash_with_manual_eq = "deny"
+octal_escapes = "deny"
+print_with_newline = "deny"
+size_of_ref = "deny"
+temporary_assignment = "deny"
+useless_nonzero_new_unchecked = "deny"
+while_immutable_condition = "deny"
 
 [[bin]]
 name = "centy-daemon"

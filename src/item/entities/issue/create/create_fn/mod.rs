@@ -1,21 +1,15 @@
 use super::super::id::generate_issue_id;
-use super::super::planning::{add_planning_note, is_planning_status};
 use super::super::reconcile::get_next_display_number;
 use super::super::status::resolve_issue_status;
-use super::helpers::{
-    build_custom_fields, build_issue_for_sync, resolve_org_info, resolve_priority,
-};
-use super::render::render_title_and_description;
+use super::helpers::{build_custom_fields, resolve_org_info, resolve_priority};
 use super::types::{CreateIssueOptions, CreateIssueResult, IssueError};
-use super::write_issue::{
-    build_frontmatter, build_issue_metadata, persist_manifest, write_issue_file,
-};
-use crate::common::sync_to_org_projects;
 use crate::config::read_config;
 use crate::manifest::read_manifest;
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
+
+mod inner;
 
 pub async fn create_issue(
     project_path: &Path,
@@ -24,7 +18,7 @@ pub async fn create_issue(
     if options.title.trim().is_empty() {
         return Err(IssueError::TitleRequired);
     }
-    let mut manifest = read_manifest(project_path)
+    let manifest = read_manifest(project_path)
         .await?
         .ok_or(IssueError::NotInitialized)?;
     let issues_path = get_centy_path(project_path).join("issues");
@@ -40,54 +34,36 @@ pub async fn create_issue(
     let custom_field_values = build_custom_fields(config.as_ref(), &options.custom_fields);
     let draft = options.draft.unwrap_or(false);
     let now = now_iso();
-    let frontmatter = build_frontmatter(
+    let (frontmatter, display_title, body) = inner::build_content(
+        project_path,
         display_number,
         &status,
         priority,
+        priority_levels,
         &now,
         draft,
         org_slug.clone(),
         org_display_number,
-        options.custom_fields.clone(),
-    );
-    let (display_title, description) = render_title_and_description(
-        project_path,
         &options,
-        priority,
-        priority_levels,
-        &status,
-        &frontmatter,
+        options.custom_fields.clone(),
     )
     .await?;
-    let body = if is_planning_status(&status) {
-        add_planning_note(&description)
-    } else {
-        description
-    };
-    write_issue_file(&issues_path, &issue_id, &frontmatter, &display_title, &body).await?;
-    persist_manifest(project_path, &mut manifest).await?;
-    let created_files = vec![format!(".centy/issues/{issue_id}.md")];
-    let metadata = build_issue_metadata(
+    inner::finalize_issue(
+        &issues_path,
+        issue_id,
+        &frontmatter,
+        &display_title,
+        &body,
+        project_path,
+        manifest,
         display_number,
-        org_slug.as_deref(),
+        org_slug,
         org_display_number,
         status,
         priority,
         custom_field_values,
         draft,
-    );
-    let sync_results = if options.is_org_issue {
-        let issue = build_issue_for_sync(&issue_id, &options, display_number, &metadata);
-        sync_to_org_projects(&issue, project_path).await
-    } else {
-        Vec::new()
-    };
-    Ok(CreateIssueResult {
-        id: issue_id,
-        display_number,
-        org_display_number,
-        created_files,
-        manifest,
-        sync_results,
-    })
+        &options,
+    )
+    .await
 }
