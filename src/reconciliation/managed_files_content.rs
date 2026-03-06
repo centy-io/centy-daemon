@@ -1,5 +1,6 @@
 /// Default README content
-pub const README_CONTENT: &str = "<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
+pub const README_CONTENT: &str =
+    "<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
 # Centy Project
 
 This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
