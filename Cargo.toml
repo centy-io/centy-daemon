@@ -860,6 +860,7 @@ many_single_char_names = "deny"
 needless_lifetimes = "deny"
 derive_partial_eq_without_eq = "deny"
 redundant_clone = "deny"
+needless_collect = "deny"
 
 [[bin]]
 name = "centy-daemon"

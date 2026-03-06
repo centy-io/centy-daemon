@@ -135,9 +135,8 @@ async fn test_reconciliation_detects_deleted_files() {
         .expect("Should build plan");
 
     // Without manifest-based file tracking, deleted files appear in to_create
-    let create_paths: Vec<&str> = plan.to_create.iter().map(|f| f.path.as_str()).collect();
     assert!(
-        create_paths.contains(&"README.md"),
+        plan.to_create.iter().any(|f| f.path == "README.md"),
         "Should detect README.md needs to be created"
     );
 }
@@ -161,9 +160,8 @@ async fn test_reconciliation_detects_modified_files() {
         .await
         .expect("Should build plan");
 
-    let reset_paths: Vec<&str> = plan.to_reset.iter().map(|f| f.path.as_str()).collect();
     assert!(
-        reset_paths.contains(&"README.md"),
+        plan.to_reset.iter().any(|f| f.path == "README.md"),
         "Should detect README.md was modified"
     );
 }
@@ -645,13 +643,11 @@ async fn test_init_merges_cspell_json_updates_version() {
     assert_eq!(parsed["language"], "en");
 
     // Custom word should still be there
-    let words: Vec<&str> = parsed["words"]
+    assert!(parsed["words"]
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| v.as_str().unwrap())
-        .collect();
-    assert!(words.contains(&"custom"));
+        .any(|v| v.as_str().unwrap() == "custom"));
 }
 
 #[tokio::test]
