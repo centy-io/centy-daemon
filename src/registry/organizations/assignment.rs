@@ -4,10 +4,31 @@ use crate::registry::storage::{get_lock, read_registry, write_registry_unlocked}
 use crate::registry::tracking::enrich_project;
 use crate::registry::types::{ProjectInfo, ProjectOrganization, TrackedProject};
 use crate::registry::validation::ValidationService;
-use crate::registry::RegistryError;
+use crate::registry::{ProjectRegistry, RegistryError};
 use crate::utils::{get_centy_path, now_iso};
 use std::path::Path;
 use tokio::fs;
+fn verify_org_and_name(
+    registry: &ProjectRegistry,
+    org_slug: Option<&str>,
+    canonical_path: &str,
+    path: &Path,
+) -> Result<Option<String>, OrganizationError> {
+    let Some(slug) = org_slug else { return Ok(None); };
+    if slug.is_empty() { return Ok(None); }
+    let org = registry.organizations.get(slug).ok_or_else(|| OrganizationError::NotFound(slug.to_string()))?;
+    let org_name = Some(org.name.clone());
+    if let Some(project_name) = path.file_name() {
+        let project_name_str = project_name.to_string_lossy();
+        ValidationService::validate_unique_project_name(
+            registry,
+            slug,
+            canonical_path,
+            &project_name_str,
+        )?;
+    }
+    Ok(org_name)
+}
 /// Set or remove a project's organization assignment
 pub async fn set_project_organization(
     project_path: &str,
@@ -22,35 +43,7 @@ pub async fn set_project_organization(
     let _guard = get_lock().lock().await;
     let mut registry = read_registry().await?;
 
-    // Verify org exists if assigning
-    let org_name = if let Some(slug) = org_slug {
-        if slug.is_empty() {
-            None
-        } else {
-            let org = registry
-                .organizations
-                .get(slug)
-                .ok_or_else(|| OrganizationError::NotFound(slug.to_string()))?;
-            Some(org.name.clone())
-        }
-    } else {
-        None
-    };
-
-    // Check for duplicate project names within organization
-    if let Some(slug) = org_slug {
-        if !slug.is_empty() {
-            if let Some(project_name) = path.file_name() {
-                let project_name_str = project_name.to_string_lossy();
-                ValidationService::validate_unique_project_name(
-                    &registry,
-                    slug,
-                    &canonical_path,
-                    &project_name_str,
-                )?;
-            }
-        }
-    }
+    let org_name = verify_org_and_name(&registry, org_slug, &canonical_path, path)?;
 
     let project = registry
         .projects
