@@ -864,6 +864,7 @@ needless_collect = "deny"
 redundant_pub_crate = "deny"
 needless_borrow = "deny"
 clone_on_ref_ptr = "deny"
+redundant_closure = "deny"
 
 [[bin]]
 name = "centy-daemon"
