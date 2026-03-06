@@ -237,6 +237,12 @@ internal_features = "deny"
 non_contiguous_range_endpoints = "deny"
 out_of_scope_macro_calls = "deny"
 proc_macro_derive_resolution_fallback = "deny"
+stable_features = "deny"
+unreachable_patterns = "deny"
+unused_parens = "deny"
+useless_deprecated = "deny"
+unused_braces = "deny"
+unused_unsafe = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
