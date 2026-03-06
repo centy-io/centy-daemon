@@ -862,9 +862,6 @@ derive_partial_eq_without_eq = "deny"
 redundant_clone = "deny"
 needless_collect = "deny"
 redundant_pub_crate = "deny"
-iter_out_of_range = "deny"
-transmute_int_to_char = "deny"
-transmute_int_to_float = "deny"
 
 [[bin]]
 name = "centy-daemon"
