@@ -46,7 +46,7 @@ impl HookContext {
         vars.insert("CENTY_ITEM_TYPE".to_string(), self.item_type.clone());
         vars.insert("CENTY_OPERATION".to_string(), self.operation.clone());
         vars.insert("CENTY_PROJECT_PATH".to_string(), self.project_path.clone());
-        if let Some(ref id) = self.item_id {
+        if let Some(id) = &self.item_id {
             vars.insert("CENTY_ITEM_ID".to_string(), id.clone());
         }
         vars

@@ -38,7 +38,7 @@ pub(super) async fn apply_init_config(
     if !overrides.hooks.is_empty() {
         config.hooks = overrides.hooks;
     }
-    if let Some(ref ws) = proto_config.workspace {
+    if let Some(ws) = &proto_config.workspace {
         if let Some(v) = ws.update_status_on_open {
             config.workspace.update_status_on_open = Some(v);
         }

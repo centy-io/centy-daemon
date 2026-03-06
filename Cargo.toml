@@ -890,6 +890,7 @@ equatable_if_let = "deny"
 get_unwrap = "deny"
 significant_drop_in_scrutinee = "deny"
 single_char_lifetime_names = "deny"
+ref_patterns = "deny"
 
 [[bin]]
 name = "centy-daemon"

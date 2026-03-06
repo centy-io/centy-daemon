@@ -48,8 +48,8 @@ pub(super) fn open_editor_with_hooks(
         branch: format!("issue-{display_number}"),
         worktree_path: workspace_path.to_string(),
     };
-    if let Some(ref cfg) = config {
-        if let Some(ref script) = cfg.hooks.pre_open {
+    if let Some(cfg) = &config {
+        if let Some(script) = &cfg.hooks.pre_open {
             let _ = run_hook(script, &hook_ctx);
         }
     }

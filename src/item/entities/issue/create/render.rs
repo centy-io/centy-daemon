@@ -13,7 +13,7 @@ pub async fn render_title_and_description(
     status: &str,
     frontmatter: &IssueFrontmatter,
 ) -> Result<(String, String), IssueError> {
-    if let Some(ref template_name) = options.template {
+    if let Some(template_name) = &options.template {
         let template_engine = TemplateEngine::new();
         let context = IssueTemplateContext {
             title: options.title.clone(),

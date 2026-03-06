@@ -16,7 +16,7 @@ pub async fn try_auto_assign_organization(
     }
     let inference = infer_organization_from_remote(path, current_org_slug).await;
     if !inference.has_mismatch {
-        if let Some(ref slug) = inference.inferred_org_slug {
+        if let Some(slug) = &inference.inferred_org_slug {
             let _ = super::super::organizations::set_project_organization(project_path, Some(slug))
                 .await;
         }

@@ -61,7 +61,7 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
         if hook.is_async {
             let parsed = crate::hooks::config::ParsedPattern::parse(&hook.pattern)
                 .map_err(|e| format!("invalid hook pattern: {e}"))?;
-            if let crate::hooks::config::PatternSegment::Exact(ref phase) = parsed.phase {
+            if let crate::hooks::config::PatternSegment::Exact(phase) = &parsed.phase {
                 if phase == "pre" {
                     return Err(format!(
                         "hook '{}' cannot be async: pre-hooks must be synchronous",

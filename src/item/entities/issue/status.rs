@@ -33,7 +33,7 @@ pub async fn validate_status_for_project(
         .await
         .ok()
         .flatten();
-    if let Some(ref config) = itc {
+    if let Some(config) = &itc {
         if !config.statuses.is_empty() {
             return validate_status(status, &config.statuses);
         }

@@ -31,7 +31,7 @@ pub async fn register_project(
 
     // Auto-assign if no existing org and inference succeeded without mismatch
     if existing_org.is_none() && !inference.has_mismatch {
-        if let Some(ref slug) = inference.inferred_org_slug {
+        if let Some(slug) = &inference.inferred_org_slug {
             let _ = set_project_organization(&req.project_path, Some(slug)).await;
         }
     }

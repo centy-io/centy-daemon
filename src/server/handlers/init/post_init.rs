@@ -19,11 +19,11 @@ pub(super) async fn post_reconcile(
         .and_then(|info| info.organization_slug);
     let inference = infer_organization_from_remote(project_path, existing_org.as_deref()).await;
     if existing_org.is_none() && !inference.has_mismatch {
-        if let Some(ref slug) = inference.inferred_org_slug {
+        if let Some(slug) = &inference.inferred_org_slug {
             let _ = set_project_organization(&req.project_path, Some(slug)).await;
         }
     }
-    if let Some(ref proto_config) = req.init_config {
+    if let Some(proto_config) = &req.init_config {
         if let Err(e) = apply_init_config(project_path, proto_config).await {
             return Ok(Response::new(InitResponse {
                 success: false,

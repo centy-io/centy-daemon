@@ -50,7 +50,7 @@ pub async fn copy_item_assets(
     } else {
         None
     };
-    if let Some(ref src_assets) = source_assets {
+    if let Some(src_assets) = &source_assets {
         let target_id = if source_config.identifier == mdstore::IdStrategy::Slug {
             new_id.unwrap_or(item_id)
         } else {

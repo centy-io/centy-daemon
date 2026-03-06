@@ -47,7 +47,7 @@ pub async fn list_org_issues(
         let Ok(issue) = read_org_issue_file(&issues_dir, issue_id).await else {
             continue;
         };
-        if let Some(ref status) = opts.status {
+        if let Some(status) = &opts.status {
             if &issue.status != status {
                 continue;
             }
@@ -57,7 +57,7 @@ pub async fn list_org_issues(
                 continue;
             }
         }
-        if let Some(ref project) = opts.referenced_project {
+        if let Some(project) = &opts.referenced_project {
             if !issue.referenced_projects.contains(project) {
                 continue;
             }
