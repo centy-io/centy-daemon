@@ -708,7 +708,7 @@ async fn test_target_type_variants() {
 
 #[tokio::test]
 async fn test_target_type_from_str() {
-    use std::str::FromStr;
+    use std::str::FromStr as _;
 
     assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::issue());
     assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::new("doc"));

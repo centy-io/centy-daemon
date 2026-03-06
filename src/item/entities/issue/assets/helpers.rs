@@ -1,5 +1,5 @@
 use super::types::AssetError;
-use sha2::{Digest, Sha256};
+use sha2::{Digest as _, Sha256};
 
 pub const IMAGE_MIME_TYPES: &[(&str, &str)] = &[
     ("png", "image/png"),

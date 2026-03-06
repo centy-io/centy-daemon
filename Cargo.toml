@@ -880,6 +880,8 @@ map_err_ignore = "deny"
 field_scoped_visibility_modifiers = "deny"
 option_if_let_else = "deny"
 wildcard_enum_match_arm = "deny"
+unused_trait_names = "deny"
+useless_let_if_seq = "deny"
 
 [[bin]]
 name = "centy-daemon"

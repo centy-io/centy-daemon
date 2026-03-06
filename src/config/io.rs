@@ -12,26 +12,20 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, mds
     }
     let content = fs::read_to_string(&config_path).await?;
     let mut raw: serde_json::Value = serde_json::from_str(&content)?;
-    let mut needs_write = false;
-    if migrate::needs_migration(&raw) {
+    let mut needs_write = if migrate::needs_migration(&raw) {
         warn!("Detected deprecated nested config format in {}, auto-converting to flat dot-separated keys", config_path.display());
         raw = migrate::flatten_config(raw);
-        needs_write = true;
-    }
-    if !raw.as_object().is_some_and(|o| o.contains_key("hooks")) {
-        needs_write = true;
-    }
+        true
+    } else {
+        false
+    };
+    needs_write |= !raw.as_object().is_some_and(|o| o.contains_key("hooks"));
     if let Some(obj) = raw.as_object_mut() {
-        if obj.remove("defaultState").is_some() {
-            needs_write = true;
-        }
+        needs_write |= obj.remove("defaultState").is_some();
     }
-    if raw
+    needs_write |= raw
         .as_object()
-        .is_some_and(|o| o.contains_key("allowedStates"))
-    {
-        needs_write = true;
-    }
+        .is_some_and(|o| o.contains_key("allowedStates"));
     let nested = migrate::unflatten_config(raw);
     let config: CentyConfig = serde_json::from_value(nested)?;
     if needs_write {

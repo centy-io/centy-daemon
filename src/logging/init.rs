@@ -5,9 +5,9 @@ use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    EnvFilter, Layer,
+    layer::SubscriberExt as _,
+    util::SubscriberInitExt as _,
+    EnvFilter, Layer as _,
 };
 fn make_env_filter(log_level: Level) -> EnvFilter {
     EnvFilter::try_from_default_env()

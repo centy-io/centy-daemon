@@ -39,7 +39,7 @@ mod user_config;
 mod utils;
 mod workspace;
 
-use clap::Parser;
+use clap::Parser as _;
 use color_eyre::eyre::Result;
 
 fn main() -> Result<()> {
