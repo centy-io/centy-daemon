@@ -1,15 +1,55 @@
+use super::error::GitError;
+use git2::{BranchType, Repository};
 use std::path::Path;
-use std::process::Command;
 
-/// Check if the current directory is a git repository.
+fn open_repo(project_path: &Path) -> Result<Repository, GitError> {
+    Repository::discover(project_path).map_err(|e| {
+        if e.code() == git2::ErrorCode::NotFound {
+            GitError::NotGitRepository
+        } else {
+            GitError::Git2Error(e.to_string())
+        }
+    })
+}
+
+/// Detect the current git branch.
+pub fn detect_current_branch(project_path: &Path) -> Result<String, GitError> {
+    let repo = open_repo(project_path)?;
+    let head = repo.head().map_err(|_| GitError::CurrentBranchNotFound)?;
+    if head.is_branch() {
+        head.shorthand()
+            .map(ToString::to_string)
+            .ok_or(GitError::CurrentBranchNotFound)
+    } else {
+        Err(GitError::CurrentBranchNotFound)
+    }
+}
+
+/// Validate that a branch exists in the repository (local or remote).
+pub fn validate_branch_exists(project_path: &Path, branch: &str) -> Result<bool, GitError> {
+    let repo = open_repo(project_path)?;
+    if repo.find_branch(branch, BranchType::Local).is_ok() {
+        return Ok(true);
+    }
+    let remote_ref = format!("origin/{branch}");
+    let found = repo.find_branch(&remote_ref, BranchType::Remote).is_ok();
+    Ok(found)
+}
+
+/// Check if the given path is inside a git repository.
 #[must_use]
 pub fn is_git_repository(project_path: &Path) -> bool {
-    Command::new("git")
-        .args(["rev-parse", "--git-dir"])
-        .current_dir(project_path)
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Repository::discover(project_path).is_ok()
+}
+
+/// Get the default branch name (main or master).
+#[must_use]
+pub fn get_default_branch(project_path: &Path) -> String {
+    if validate_branch_exists(project_path, "main").unwrap_or(false) {
+        return "main".to_string();
+    }
+    if validate_branch_exists(project_path, "master").unwrap_or(false) {
+        return "master".to_string();
+    }
+    "main".to_string()
 }
