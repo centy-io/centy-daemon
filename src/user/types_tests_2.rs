@@ -51,9 +51,11 @@ fn test_sync_users_result_default() {
     let result = SyncUsersResult::default();
     assert!(result.created.is_empty());
     assert!(result.skipped.is_empty());
+    assert!(result.updated.is_empty());
     assert!(result.errors.is_empty());
     assert!(result.would_create.is_empty());
     assert!(result.would_skip.is_empty());
+    assert!(result.would_update.is_empty());
 }
 #[test]
 fn test_user_error_display() {
