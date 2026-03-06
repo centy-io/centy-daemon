@@ -593,12 +593,10 @@ suspicious_assignment_formatting = "deny"
 swap_ptr_to_ref = "deny"
 tabs_in_doc_comments = "deny"
 to_string_trait_impl = "deny"
-undropped_manually_drops = "deny"
 uninit_assumed_init = "deny"
 unnecessary_filter_map = "deny"
 unnecessary_find_map = "deny"
 unnecessary_result_map_or_else = "deny"
-unnecessary_ret_expr = "deny"
 
 [[bin]]
 name = "centy-daemon"
