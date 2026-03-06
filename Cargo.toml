@@ -862,6 +862,8 @@ derive_partial_eq_without_eq = "deny"
 redundant_clone = "deny"
 needless_collect = "deny"
 redundant_pub_crate = "deny"
+manual_is_ascii = "deny"
+slicing_instead_of_ranges = "deny"
 
 [[bin]]
 name = "centy-daemon"
