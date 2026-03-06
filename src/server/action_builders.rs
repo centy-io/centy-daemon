@@ -34,7 +34,7 @@ fn build_terminal_action(terminal_available: bool) -> EntityAction {
 /// Build issue-specific actions.
 pub fn build_issue_actions(
     entity_status: Option<&String>,
-    allowed_states: &[String],
+    statuses: &[String],
     vscode_available: bool,
     terminal_available: bool,
     has_entity_id: bool,
@@ -80,7 +80,7 @@ pub fn build_issue_actions(
                 false,
             ),
         ]);
-        for state in allowed_states {
+        for state in statuses {
             actions.push(make_status_action(state, entity_status, false));
         }
         actions.push(build_vscode_action(vscode_available));
