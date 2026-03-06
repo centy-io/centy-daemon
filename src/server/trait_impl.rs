@@ -525,4 +525,10 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<SearchItemsResponse>, Status> {
         handlers::item_search::search_items(request.into_inner()).await
     }
+    async fn list_items_across_projects(
+        &self,
+        request: Request<ListItemsAcrossProjectsRequest>,
+    ) -> Result<Response<ListItemsAcrossProjectsResponse>, Status> {
+        handlers::item_list_global::list_items_across_projects(request.into_inner()).await
+    }
 }
