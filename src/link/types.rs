@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct TargetType(String);
 impl TargetType {
     #[must_use]
-    pub fn new(s: impl Into<String>) -> Self {
+    pub fn new<T: Into<String>>(s: T) -> Self {
         Self(s.into())
     }
     #[must_use]

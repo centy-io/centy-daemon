@@ -32,13 +32,13 @@ pub(super) async fn read_org_issue_file(
         referenced_projects: frontmatter.referenced_projects,
     })
 }
-pub async fn create_org_issue(
+pub async fn create_org_issue<T: Into<HashMap<String, String>>>(
     org_slug: &str,
     title: &str,
     description: &str,
     priority: u32,
     status: &str,
-    custom_fields: impl Into<HashMap<String, String>>,
+    custom_fields: T,
     referenced_projects: Vec<String>,
 ) -> Result<OrgIssue, OrgIssueError> {
     let custom_fields = custom_fields.into();
