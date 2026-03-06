@@ -638,7 +638,7 @@ integer_division_remainder_used = "deny"
 mem_forget = "deny"
 print_in_format_impl = "deny"
 unused_result_ok = "deny"
-string_to_string = "deny"
+
 empty_docs = "deny"
 deprecated_clippy_cfg_attr = "deny"
 manual_pattern_char_comparison = "deny"
