@@ -56,7 +56,7 @@ async fn test_issue_list_with_filters() {
 
     // Create multiple issues
     for i in 1..=5 {
-        let status = if i % 2 == 0 { "open" } else { "closed" };
+        let status = if i & 1u32 == 0 { "open" } else { "closed" };
         create_issue(
             project_path,
             CreateIssueOptions {

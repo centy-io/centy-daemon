@@ -17,7 +17,7 @@ use tempfile::TempDir;
 static REGISTRY_ISOLATION: LazyLock<()> = LazyLock::new(|| {
     let dir = tempfile::tempdir().expect("Failed to create temp registry dir");
     std::env::set_var("CENTY_HOME", dir.path());
-    std::mem::forget(dir); // Keep dir alive for the process lifetime
+    Box::leak(Box::new(dir)); // Keep dir alive for the process lifetime
 });
 
 fn create_test_dir() -> TempDir {

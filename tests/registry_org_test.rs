@@ -465,8 +465,8 @@ async fn test_duplicate_project_name_in_same_org() {
     let project1_path = temp_dir1.path().join("myapp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
@@ -517,8 +517,8 @@ async fn test_duplicate_project_name_case_insensitive() {
     let project1_path = temp_dir1.path().join("MyApp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
@@ -594,8 +594,8 @@ async fn test_same_name_in_different_orgs() {
     let project1_path = temp_dir1.path().join("myapp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
@@ -643,8 +643,8 @@ async fn test_move_project_to_org_with_duplicate() {
     let project1_path = temp_dir1.path().join("myapp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
@@ -699,8 +699,8 @@ async fn test_unorganized_projects_allow_duplicates() {
     let project1_path = temp_dir1.path().join("myapp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
@@ -730,8 +730,8 @@ async fn test_remove_from_org_with_duplicate_elsewhere() {
     let project1_path = temp_dir1.path().join("myapp");
     let project2_path = temp_dir2.path().join("myapp");
 
-    std::fs::create_dir(&project1_path).expect("Should create dir 1");
-    std::fs::create_dir(&project2_path).expect("Should create dir 2");
+    std::fs::create_dir_all(&project1_path).expect("Should create dir 1");
+    std::fs::create_dir_all(&project2_path).expect("Should create dir 2");
 
     init_project(&project1_path).await;
     init_project(&project2_path).await;
