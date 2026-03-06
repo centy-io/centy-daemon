@@ -10,7 +10,7 @@ use tokio::fs;
 pub async fn read_users(project_path: &Path) -> Result<Vec<User>, UserError> {
     read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let centy_path = get_centy_path(project_path);
     let users_path = centy_path.join("users.json");

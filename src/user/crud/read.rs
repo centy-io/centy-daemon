@@ -19,7 +19,7 @@ pub async fn create_user(
     validate_user_id(&id)?;
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     let mut users = read_users(project_path).await?;
     if find_user_by_id(&users, &id).is_some() {

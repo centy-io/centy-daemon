@@ -17,7 +17,7 @@ pub async fn sync_users(
 ) -> Result<SyncUsersFullResult, UserError> {
     let mut manifest = read_manifest(project_path)
         .await
-        .map_err(|_| UserError::NotInitialized)?
+        .map_err(|_e| UserError::NotInitialized)?
         .ok_or(UserError::NotInitialized)?;
     if !is_git_repository(project_path) {
         return Err(UserError::NotGitRepository);

@@ -24,7 +24,7 @@ pub fn get_centy_config_dir() -> Result<PathBuf, RegistryError> {
     }
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| RegistryError::HomeDirNotFound)?;
+        .map_err(|_e| RegistryError::HomeDirNotFound)?;
     Ok(PathBuf::from(home).join(".centy"))
 }
 

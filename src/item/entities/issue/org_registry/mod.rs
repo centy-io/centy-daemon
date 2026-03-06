@@ -19,7 +19,7 @@ fn get_lock() -> &'static Mutex<()> {
 fn get_centy_config_dir() -> Result<PathBuf, OrgIssueRegistryError> {
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| OrgIssueRegistryError::HomeDirNotFound)?;
+        .map_err(|_e| OrgIssueRegistryError::HomeDirNotFound)?;
     Ok(PathBuf::from(home).join(".centy"))
 }
 
