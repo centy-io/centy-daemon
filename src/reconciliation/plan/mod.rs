@@ -1,4 +1,4 @@
-pub(crate) mod helpers;
+pub mod helpers;
 mod types;
 use super::managed_files::get_managed_files;
 use crate::manifest::ManagedFileType;
