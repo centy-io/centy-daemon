@@ -28,6 +28,7 @@ pub mod proto {
     #![allow(clippy::wildcard_imports)] // generated tonic code uses `use tonic::codegen::*`
     #![allow(clippy::derive_partial_eq_without_eq)] // generated protobuf types can't implement Eq
     #![allow(clippy::clone_on_ref_ptr)] // generated tonic code clones Arc pointers
+    #![allow(clippy::empty_structs_with_brackets)] // generated protobuf types use empty braces
     include!(concat!(env!("OUT_DIR"), "/centy.v1.include.rs"));
 }
 
