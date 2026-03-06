@@ -9,6 +9,7 @@ use std::path::Path;
 use tokio::fs;
 use tracing::debug;
 
+#[allow(clippy::cognitive_complexity)]
 pub async fn migrate_issue_to_new_format(
     issues_path: &Path,
     issue_folder_path: &Path,

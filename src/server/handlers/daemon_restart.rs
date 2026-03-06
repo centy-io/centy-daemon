@@ -9,6 +9,7 @@ use tokio::sync::watch;
 use tonic::{Response, Status};
 use tracing::info;
 
+#[allow(clippy::cognitive_complexity)]
 async fn perform_restart(
     delay: u32,
     exe_path: PathBuf,

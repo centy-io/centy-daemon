@@ -19,6 +19,7 @@ const DEFAULT_RETENTION_DAYS: i64 = 30;
 ///
 /// For each project in the global registry, reads its config and runs
 /// `run_cleanup_for_project` if auto-cleanup is enabled.
+#[allow(clippy::cognitive_complexity)]
 pub async fn run_cleanup_all_projects() {
     let projects = match list_projects(ListProjectsOptions {
         include_archived: true,

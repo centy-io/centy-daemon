@@ -2,6 +2,7 @@ use crate::registry::{list_projects, try_auto_assign_organization, ListProjectsO
 use tracing::info;
 
 /// Background task to infer organizations for ungrouped projects on daemon startup.
+#[allow(clippy::cognitive_complexity)]
 pub async fn startup_org_inference() {
     use tokio::time::{sleep, Duration};
 
