@@ -1,65 +1,24 @@
 use crate::app::{self, report_server_error};
-use crate::cors::build_cors_layer;
-use crate::logging::{init_logging, parse_rotation, LogConfig, LOG_FILENAME};
 use crate::server::proto::centy_daemon_server::CentyDaemonServer;
 use crate::server::{CentyDaemonService, ShutdownSignal};
 use color_eyre::eyre::Result;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing::{info, warn, Level};
 
+mod core;
+
 pub async fn run(args: app::Args) -> Result<()> {
-    let log_dir = args.log_dir.map_or_else(
-        || {
-            dirs::home_dir()
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join(".centy")
-                .join("logs")
-        },
-        PathBuf::from,
-    );
-    let log_file = log_dir.join(LOG_FILENAME);
-    crate::logging::set_log_file_path(log_file.to_string_lossy().to_string());
-    let log_config = LogConfig {
-        log_dir,
-        json_format: args.log_json,
-        rotation: parse_rotation(&args.log_rotation),
-        ..Default::default()
-    };
-    if let Err(e) = init_logging(log_config) {
-        eprintln!();
-        eprintln!("Error: Failed to initialize logging: {e}");
-        eprintln!();
-        eprintln!("Note: Logging could not be set up.");
-        eprintln!("Logs: {}", log_file.display());
-        eprintln!();
-        return Err(e);
-    }
+    let log_file = core::setup_logging(args.log_dir, args.log_json, &args.log_rotation)?;
     let user_cfg = crate::user_config::load_user_config().unwrap_or_else(|e| {
         warn!("Failed to load user config, using defaults: {e}");
         crate::user_config::UserConfig::default()
     });
     crate::registry::init_ignore_paths(&user_cfg.registry.ignore_paths);
     let addr = args.addr.parse()?;
-    let cors_origins: Vec<String> = args
-        .cors_origins
-        .iter()
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-    let allow_all_origins = cors_origins.iter().any(|o| o == "*");
-    info!(
-        "CORS origins: {}",
-        if allow_all_origins {
-            "*".to_string()
-        } else {
-            cors_origins.join(", ")
-        }
-    );
-    let cors = build_cors_layer(cors_origins);
+    let cors = core::build_cors(&args.cors_origins);
     let (shutdown_tx, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(shutdown_tx);
     let exe_path = std::env::current_exe().ok();
