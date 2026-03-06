@@ -102,7 +102,7 @@ async fn test_issue_template_with_custom_fields_loop() {
     let template_path = project_path.join(".centy/templates/issues/detailed.md");
     fs::write(
         &template_path,
-        r"# {{title}}
+        "# {{title}}
 
 {{#each custom_fields}}
 - **{{@key}}:** {{this}}
@@ -150,7 +150,7 @@ async fn test_issue_template_with_conditionals() {
     let template_path = project_path.join(".centy/templates/issues/conditional.md");
     fs::write(
         &template_path,
-        r"# {{title}}
+        "# {{title}}
 
 {{#if description}}
 ## Description

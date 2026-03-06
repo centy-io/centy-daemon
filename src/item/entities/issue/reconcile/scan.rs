@@ -49,6 +49,8 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
                 display_number: metadata.common.display_number,
                 created_at: metadata.common.created_at,
             });
+        } else {
+            // not a valid issue entry — skip
         }
     }
     Ok(issues)
@@ -86,6 +88,8 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
                     max_number = max_number.max(metadata.common.display_number);
                 }
             }
+        } else {
+            // not a valid issue entry — skip
         }
     }
     Ok(max_number.saturating_add(1))

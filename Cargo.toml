@@ -870,6 +870,8 @@ unneeded_field_pattern = "deny"
 string_add = "deny"
 impl_trait_in_params = "deny"
 default_numeric_fallback = "deny"
+needless_raw_strings = "deny"
+else_if_without_else = "deny"
 
 [[bin]]
 name = "centy-daemon"

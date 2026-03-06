@@ -196,7 +196,7 @@ fn test_config_enum_field_has_values() {
 
 #[test]
 fn test_config_hex_color_format() {
-    let hex_regex = regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$").unwrap();
+    let hex_regex = regex::Regex::new("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$").unwrap();
 
     // Valid colors
     assert!(hex_regex.is_match("#FFF"));

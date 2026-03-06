@@ -1,7 +1,7 @@
 use crate::config::CentyConfig;
 
 fn is_valid_hex_color(color: &str) -> bool {
-    let Ok(re) = regex::Regex::new(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$") else {
+    let Ok(re) = regex::Regex::new("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$") else {
         return false;
     };
     re.is_match(color)

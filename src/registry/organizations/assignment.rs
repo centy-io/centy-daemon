@@ -83,6 +83,8 @@ pub async fn set_project_organization(
         }
     } else if org_file_path.exists() {
         let _ = fs::remove_file(&org_file_path).await;
+    } else {
+        // no org file to remove
     }
 
     let Some(project) = registry.projects.get(&canonical_path) else {
