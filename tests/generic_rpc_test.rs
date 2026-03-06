@@ -515,10 +515,10 @@ async fn test_custom_fields_roundtrip() {
     let meta = item.metadata.unwrap();
 
     // Custom fields should be preserved as JSON strings
-    assert_eq!(meta.custom_fields.get("env").unwrap(), "\"production\"");
-    assert_eq!(meta.custom_fields.get("count").unwrap(), "42");
+    assert_eq!(&meta.custom_fields["env"], "\"production\"");
+    assert_eq!(&meta.custom_fields["count"], "42");
     assert_eq!(
-        meta.custom_fields.get("tags").unwrap(),
+        &meta.custom_fields["tags"],
         "[\"bug\",\"urgent\"]"
     );
 
@@ -535,8 +535,8 @@ async fn test_custom_fields_roundtrip() {
     assert!(get_resp.success);
     let fetched_meta = get_resp.item.unwrap().metadata.unwrap();
     assert_eq!(
-        fetched_meta.custom_fields.get("env").unwrap(),
+        &fetched_meta.custom_fields["env"],
         "\"production\""
     );
-    assert_eq!(fetched_meta.custom_fields.get("count").unwrap(), "42");
+    assert_eq!(&fetched_meta.custom_fields["count"], "42");
 }

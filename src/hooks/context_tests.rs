@@ -13,11 +13,11 @@ fn test_context_env_vars() {
     );
 
     let vars = ctx.to_env_vars();
-    assert_eq!(vars.get("CENTY_PHASE").unwrap(), "pre");
-    assert_eq!(vars.get("CENTY_ITEM_TYPE").unwrap(), "issue");
-    assert_eq!(vars.get("CENTY_OPERATION").unwrap(), "create");
-    assert_eq!(vars.get("CENTY_PROJECT_PATH").unwrap(), "/tmp/project");
-    assert_eq!(vars.get("CENTY_ITEM_ID").unwrap(), "issue-123");
+    assert_eq!(&vars["CENTY_PHASE"], "pre");
+    assert_eq!(&vars["CENTY_ITEM_TYPE"], "issue");
+    assert_eq!(&vars["CENTY_OPERATION"], "create");
+    assert_eq!(&vars["CENTY_PROJECT_PATH"], "/tmp/project");
+    assert_eq!(&vars["CENTY_ITEM_ID"], "issue-123");
 }
 
 #[test]
