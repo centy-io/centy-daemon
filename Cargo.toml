@@ -229,6 +229,14 @@ invalid_macro_export_arguments = "deny"
 invalid_reference_casting = "deny"
 named_asm_labels = "deny"
 unknown_crate_types = "deny"
+async_fn_in_trait = "deny"
+edition_2024_expr_fragment_specifier = "deny"
+explicit_builtin_cfgs_in_flags = "deny"
+impl_trait_redundant_captures = "deny"
+internal_features = "deny"
+non_contiguous_range_endpoints = "deny"
+out_of_scope_macro_calls = "deny"
+proc_macro_derive_resolution_fallback = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
