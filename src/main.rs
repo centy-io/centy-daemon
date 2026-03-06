@@ -42,8 +42,11 @@ mod workspace;
 use clap::Parser;
 use color_eyre::eyre::Result;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     color_eyre::install()?;
-    run::run(app::Args::parse()).await
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(color_eyre::eyre::Report::from)?
+        .block_on(run::run(app::Args::parse()))
 }
