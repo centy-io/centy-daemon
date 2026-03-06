@@ -246,6 +246,12 @@ unused_unsafe = "deny"
 let_underscore_lock = "deny"
 trivial_bounds = "deny"
 missing_unsafe_on_extern = "deny"
+anonymous_parameters = "deny"
+const_evaluatable_unchecked = "deny"
+invalid_atomic_ordering = "deny"
+non_ascii_idents = "deny"
+redundant_semicolons = "deny"
+rust_2021_compatibility = { level = "deny", priority = -1 }
 
 [lints.clippy]
 # Enable pedantic lints
