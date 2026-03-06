@@ -13,7 +13,7 @@ pub async fn copy_assets_folder(
     let mut copied_count = 0u32;
     let mut entries = fs::read_dir(source_assets_path).await?;
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
         let source_file = entry.path();

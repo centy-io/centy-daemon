@@ -32,7 +32,7 @@ pub async fn list_issues(
     while let Some(entry) = entries.next_entry().await? {
         let file_type = entry.file_type().await?;
         if let Some(name) = entry.file_name().to_str() {
-            let read_result = if file_type.is_file() && is_valid_issue_file(name) {
+            let read_result = if !file_type.is_dir() && is_valid_issue_file(name) {
                 let issue_id = name.trim_end_matches(".md");
                 read_issue_from_frontmatter(&entry.path(), issue_id).await
             } else if file_type.is_dir() && is_valid_issue_folder(name) {

@@ -43,7 +43,7 @@ pub async fn scan_assets_directory(
 ) -> Result<(), AssetError> {
     let mut entries = fs::read_dir(dir_path).await?;
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_file() {
+        if !entry.file_type().await?.is_dir() {
             if let Some(filename) = entry.file_name().to_str() {
                 let asset_path = entry.path();
                 let data = fs::read(&asset_path).await?;

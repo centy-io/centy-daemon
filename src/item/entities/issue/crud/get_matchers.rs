@@ -18,7 +18,7 @@ pub(super) async fn match_entry_by_display_number(
     let Some(name) = name.to_str() else {
         return Ok(None);
     };
-    if file_type.is_file() && is_valid_issue_file(name) {
+    if !file_type.is_dir() && is_valid_issue_file(name) {
         return match_file_entry(entry, name, display_number).await;
     }
     if file_type.is_dir() && is_valid_issue_folder(name) {

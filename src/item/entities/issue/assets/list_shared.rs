@@ -16,7 +16,7 @@ pub async fn list_shared_assets(project_path: &Path) -> Result<Vec<AssetInfo>, A
     }
     let mut entries = fs::read_dir(&shared_assets_path).await?;
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
         let os_name = entry.file_name();

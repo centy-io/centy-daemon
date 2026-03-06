@@ -15,7 +15,7 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             Some(n) => n.to_string(),
             None => continue,
         };
-        if file_type.is_file() && is_valid_issue_file(&name) {
+        if !file_type.is_dir() && is_valid_issue_file(&name) {
             let Ok(content) = fs::read_to_string(entry.path()).await else {
                 continue;
             };
@@ -70,7 +70,7 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
             Some(n) => n.to_string(),
             None => continue,
         };
-        if file_type.is_file() && is_valid_issue_file(&name) {
+        if !file_type.is_dir() && is_valid_issue_file(&name) {
             if let Ok(content) = fs::read_to_string(entry.path()).await {
                 if let Ok((frontmatter, _, _)) =
                     parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
