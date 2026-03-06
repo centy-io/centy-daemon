@@ -3,22 +3,23 @@
   "language": "en",
   "words": [
     "Centralising",
+    "Meili",
+    "Microtask",
+    "Typesense",
     "centy",
     "centyVersion",
     "createdAt",
     "displayNumber",
     "frontmatter",
-    "Meili",
-    "Microtask",
     "priorityColors",
     "priorityLevels",
     "schemaVersion",
+    "scrutinee",
     "stateColors",
-    "Typesense",
     "unarchived",
     "untracks",
-    "updatedAt",
-    "updateStatusOnStart"
+    "updateStatusOnStart",
+    "updatedAt"
   ],
   "ignorePaths": [
     ".centy-manifest.json"

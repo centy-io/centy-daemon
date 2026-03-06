@@ -38,7 +38,8 @@ pub async fn run(args: app::Args) -> Result<()> {
         .serve_with_shutdown(addr, async move {
             loop {
                 let _ = shutdown_rx.changed().await;
-                match *shutdown_rx.borrow() {
+                let signal = *shutdown_rx.borrow();
+                match signal {
                     ShutdownSignal::Shutdown => {
                         info!("Received shutdown signal, stopping server...");
                         break;
