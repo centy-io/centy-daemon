@@ -1,0 +1,16 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
+name: Routine
+identifier: slug
+features:
+  displayNumber: false
+  status: false
+  priority: false
+  softDelete: false
+  assets: false
+  orgSync: false
+  move: false
+  duplicate: false
+statuses:
+- active
+- completed
+defaultStatus: active

@@ -252,6 +252,12 @@ invalid_atomic_ordering = "deny"
 non_ascii_idents = "deny"
 redundant_semicolons = "deny"
 rust_2021_compatibility = { level = "deny", priority = -1 }
+never_type_fallback_flowing_into_unsafe = "deny"
+unnameable_test_items = "deny"
+dangerous_implicit_autorefs = "deny"
+ambiguous_negative_literals = "deny"
+rust_2024_guarded_string_incompatible_syntax = "deny"
+rust_2024_prelude_collisions = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
