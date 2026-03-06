@@ -117,6 +117,16 @@ cargo-husky = { version = "1", default-features = false, features = [
 
 [lints.rust]
 unsafe_code = "forbid"
+named_arguments_used_positionally = "deny"
+non_local_definitions = "deny"
+type_alias_bounds = "deny"
+unused_extern_crates = "deny"
+unused_macro_rules = "deny"
+unused_lifetimes = "deny"
+trivial_casts = "deny"
+trivial_numeric_casts = "deny"
+unused_import_braces = "deny"
+variant_size_differences = "deny"
 
 [lints.clippy]
 # Enable pedantic lints
