@@ -1,13 +1,4 @@
 #![allow(clippy::all, clippy::pedantic, clippy::restriction)]
-/// Apply variable renaming to a single line to replace `self.xxx` references
-/// with function parameters.
-fn rename_vars(s: &str) -> String {
-    s.replace("accept_compression_encodings", "ace")
-        .replace("send_compression_encodings", "sce")
-        .replace("max_decoding_message_size", "mdms")
-        .replace("max_encoding_message_size", "mems")
-}
-
 /// Return true if the line is one of the self.xxx binding lines we remove.
 fn is_self_binding(trimmed: &str) -> bool {
     trimmed.starts_with("let accept_compression_encodings")
@@ -33,7 +24,12 @@ mdms: Option<usize>, mems: Option<usize>, req: http::Request<B>,\
         if is_self_binding(t) {
             continue;
         }
-        lines.push(rename_vars(raw));
+        lines.push(
+            raw.replace("accept_compression_encodings", "ace")
+                .replace("send_compression_encodings", "sce")
+                .replace("max_decoding_message_size", "mdms")
+                .replace("max_encoding_message_size", "mems"),
+        );
     }
     lines.push("}".to_string());
     lines
