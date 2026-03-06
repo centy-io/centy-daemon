@@ -866,6 +866,7 @@ needless_borrow = "deny"
 clone_on_ref_ptr = "deny"
 redundant_closure = "deny"
 cognitive_complexity = "deny"
+unneeded_field_pattern = "deny"
 
 [[bin]]
 name = "centy-daemon"

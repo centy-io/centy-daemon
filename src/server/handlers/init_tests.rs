@@ -6,6 +6,7 @@ use crate::config::{CentyConfig, ProjectMetadata, WorkspaceConfig};
 ///
 /// Fields not configurable at init time (complex types, deprecated, or internal) should be
 /// listed here with a comment explaining why they are intentionally excluded from the init API.
+#[allow(clippy::unneeded_field_pattern)] // intentional: ensures all fields are explicitly acknowledged
 #[test]
 fn test_all_config_fields_acknowledged_in_init() {
     let CentyConfig {
