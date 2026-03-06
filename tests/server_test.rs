@@ -278,7 +278,7 @@ async fn test_issue_display_numbers_sequential() {
 
     let mut display_numbers = vec![];
 
-    for i in 1..=5 {
+    for i in 1i32..=5i32 {
         let result = create_issue(
             project_path,
             CreateIssueOptions {
@@ -305,7 +305,7 @@ async fn test_sequential_issue_creation() {
 
     // Create issues sequentially
     let mut results = vec![];
-    for i in 1..=10 {
+    for i in 1i32..=10i32 {
         let result = create_issue(
             project_path,
             CreateIssueOptions {

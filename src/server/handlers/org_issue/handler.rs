@@ -53,7 +53,7 @@ pub async fn list_org_issues_handler(
         } else {
             Some(req.status.clone())
         },
-        priority: if req.priority == 0 {
+        priority: if req.priority == 0i32 {
             None
         } else {
             Some(u32::try_from(req.priority).unwrap_or(0))

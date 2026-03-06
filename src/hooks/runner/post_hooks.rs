@@ -13,7 +13,7 @@ fn spawn_async_hook(hook: &HookDefinition, context: &HookContext, project_path: 
     let pattern = hook.pattern.clone();
     tokio::spawn(async move {
         match execute_hook(&command, &context, &path, timeout, &pattern).await {
-            Ok(result) if result.exit_code != 0 => {
+            Ok(result) if result.exit_code != 0i32 => {
                 debug!(
                     "Async post-hook '{}' exited with code {}: {}",
                     pattern, result.exit_code, result.stderr
@@ -35,7 +35,7 @@ async fn run_sync_hook(hook: &HookDefinition, context: &HookContext, project_pat
     )
     .await
     {
-        Ok(result) if result.exit_code != 0 => {
+        Ok(result) if result.exit_code != 0i32 => {
             warn!(
                 "Post-hook '{}' exited with code {}: {}",
                 hook.pattern, result.exit_code, result.stderr

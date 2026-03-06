@@ -33,7 +33,7 @@ pub async fn run_pre_hooks(
             &hook.pattern,
         )
         .await?;
-        if result.exit_code != 0 {
+        if result.exit_code != 0i32 {
             return Err(HookError::PreHookFailed {
                 pattern: hook.pattern.clone(),
                 exit_code: result.exit_code,

@@ -223,7 +223,7 @@ async fn test_list_issues_returns_all() {
     init_centy_project(project_path).await;
 
     // Create multiple issues
-    for i in 1..=3 {
+    for i in 1i32..=3i32 {
         let options = CreateIssueOptions {
             title: format!("Issue {i}"),
             ..Default::default()
@@ -1209,7 +1209,7 @@ async fn test_planning_note_idempotent() {
         .join(format!("{}.md", &created.id));
 
     // Update multiple times while staying in planning
-    for i in 0..3 {
+    for i in 0i32..3i32 {
         update_issue(
             project_path,
             &created.id,

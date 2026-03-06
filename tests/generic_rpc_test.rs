@@ -162,9 +162,9 @@ async fn test_list_with_filters() {
 
     // Create multiple items
     for (title, status, priority) in [
-        ("Open P1", "open", 1),
-        ("Open P2", "open", 2),
-        ("Closed P1", "closed", 1),
+        ("Open P1", "open", 1i32),
+        ("Open P2", "open", 2i32),
+        ("Closed P1", "closed", 1i32),
     ] {
         let resp = create_item(create_req(
             pp,
@@ -193,7 +193,7 @@ async fn test_list_with_filters() {
     .unwrap()
     .into_inner();
     assert!(resp.success);
-    assert_eq!(resp.total_count, 3);
+    assert_eq!(resp.total_count, 3i32);
 
     // Filter by status (MQL: exact match)
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
@@ -206,7 +206,7 @@ async fn test_list_with_filters() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 2);
+    assert_eq!(resp.total_count, 2i32);
 
     // Filter by priority (MQL: exact match)
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
@@ -219,7 +219,7 @@ async fn test_list_with_filters() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 2);
+    assert_eq!(resp.total_count, 2i32);
 
     // Limit + offset
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
@@ -232,7 +232,7 @@ async fn test_list_with_filters() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 1);
+    assert_eq!(resp.total_count, 1i32);
 }
 
 // ─── Update item fields ─────────────────────────────────────────────────────
@@ -379,7 +379,7 @@ async fn test_soft_delete_and_restore() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 0);
+    assert_eq!(resp.total_count, 0i32);
 
     // Should appear with MQL $exists filter on deletedAt
     let resp = list_items(centy_daemon::server::proto::ListItemsRequest {
@@ -392,7 +392,7 @@ async fn test_soft_delete_and_restore() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 1);
+    assert_eq!(resp.total_count, 1i32);
 
     // Restore
     let resp = restore_item(centy_daemon::server::proto::RestoreItemRequest {
@@ -418,7 +418,7 @@ async fn test_soft_delete_and_restore() {
     .await
     .unwrap()
     .into_inner();
-    assert_eq!(resp.total_count, 1);
+    assert_eq!(resp.total_count, 1i32);
 }
 
 // ─── Invalid item_type returns ITEM_TYPE_NOT_FOUND ───────────────────────────

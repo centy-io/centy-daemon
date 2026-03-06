@@ -230,7 +230,7 @@ async fn test_project_info_counts_issues() {
     init_centy_project(project_path).await;
 
     // Create some issues
-    for i in 1..=3 {
+    for i in 1i32..=3i32 {
         let options = CreateIssueOptions {
             title: format!("Issue {i}"),
             ..Default::default()

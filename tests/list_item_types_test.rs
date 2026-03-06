@@ -35,7 +35,7 @@ async fn test_list_item_types_initialized_project() {
 
     assert!(resp.success, "list failed: {}", resp.error);
     assert!(
-        resp.total_count >= 2,
+        resp.total_count >= 2i32,
         "expected at least 2 built-in types, got {}",
         resp.total_count
     );
@@ -149,7 +149,7 @@ async fn test_list_item_types_empty_project() {
     .into_inner();
 
     assert!(resp.success, "list failed: {}", resp.error);
-    assert_eq!(resp.total_count, 0);
+    assert_eq!(resp.total_count, 0i32);
     assert!(resp.item_types.is_empty());
 }
 

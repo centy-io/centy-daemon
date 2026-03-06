@@ -5,7 +5,7 @@ use serde_json::json;
 fn test_needs_migration_no_sections() {
     let raw = json!({
         "version": "0.0.1",
-        "priorityLevels": 3
+        "priorityLevels": 3i32
     });
     assert!(!needs_migration(&raw));
 }
@@ -34,7 +34,7 @@ fn test_flatten_preserves_non_section_objects() {
 fn test_flatten_already_flat() {
     let input = json!({
         "version": "0.0.1",
-        "priorityLevels": 3
+        "priorityLevels": 3i32
     });
 
     let result = flatten_config(input.clone());
@@ -45,7 +45,7 @@ fn test_flatten_already_flat() {
 fn test_unflatten_no_section_keys() {
     let input = json!({
         "version": "0.0.1",
-        "priorityLevels": 3
+        "priorityLevels": 3i32
     });
 
     let result = unflatten_config(input.clone());
@@ -60,7 +60,7 @@ fn test_flatten_non_object_passthrough() {
 
 #[test]
 fn test_unflatten_non_object_passthrough() {
-    let input = json!(42);
+    let input = json!(42i32);
     assert_eq!(unflatten_config(input.clone()), input);
 }
 

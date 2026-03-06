@@ -28,7 +28,7 @@ pub async fn update_org_issue_handler(
         } else {
             Some(req.status.clone())
         },
-        priority: if req.priority == 0 {
+        priority: if req.priority == 0i32 {
             None
         } else {
             Some(u32::try_from(req.priority).unwrap_or(0))

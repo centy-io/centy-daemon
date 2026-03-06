@@ -869,6 +869,7 @@ cognitive_complexity = "deny"
 unneeded_field_pattern = "deny"
 string_add = "deny"
 impl_trait_in_params = "deny"
+default_numeric_fallback = "deny"
 
 [[bin]]
 name = "centy-daemon"

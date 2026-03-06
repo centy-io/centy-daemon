@@ -56,7 +56,7 @@ pub async fn execute_hook(
             }
 
             Ok(HookExecResult {
-                exit_code: status.code().unwrap_or(-1),
+                exit_code: status.code().unwrap_or(-1i32),
                 stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
             })
         }

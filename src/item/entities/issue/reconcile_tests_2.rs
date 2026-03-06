@@ -13,7 +13,7 @@ async fn create_test_issue_2(
     let metadata = serde_json::json!({
         "displayNumber": display_number,
         "status": "open",
-        "priority": 2,
+        "priority": 2i32,
         "createdAt": created_at,
         "updatedAt": created_at
     });
