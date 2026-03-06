@@ -199,6 +199,11 @@
     "worktrees",
     "yonib",
     "codegen",
+    "crosspointer",
+    "doctest",
+    "metavars",
+    "misrefactored",
+    "toplevel",
     "unseparated"
   ]
 }
