@@ -9,10 +9,10 @@ fn migrate_v1_to_v2(registry: &mut ProjectRegistry) {
 }
 
 pub fn apply_migrations(registry: &mut ProjectRegistry) -> bool {
-    let mut migrated = false;
     if registry.schema_version < 2 {
         migrate_v1_to_v2(registry);
-        migrated = true;
+        true
+    } else {
+        false
     }
-    migrated
 }
