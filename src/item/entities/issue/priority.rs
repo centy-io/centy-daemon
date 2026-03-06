@@ -65,13 +65,13 @@ pub fn label_to_priority(label: &str, max_levels: u32) -> Option<u32> {
         }
         "medium" | "normal" => Some(default_priority(max_levels)),
         "low" => Some(max_levels),
-        _ => {
-            if let Some(stripped) = label.strip_prefix('P').or_else(|| label.strip_prefix('p')) {
-                stripped.parse::<u32>().ok()
-            } else {
-                label.parse::<u32>().ok()
-            }
-        }
+        _ => label
+            .strip_prefix('P')
+            .or_else(|| label.strip_prefix('p'))
+            .map_or_else(
+                || label.parse::<u32>().ok(),
+                |stripped| stripped.parse::<u32>().ok(),
+            ),
     }
 }
 

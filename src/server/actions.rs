@@ -56,12 +56,9 @@ pub fn make_status_action(
 /// Capitalize the first letter of a string.
 pub fn capitalize_first(s: &str) -> String {
     let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => {
-            let mut result = first.to_uppercase().collect::<String>();
-            result.push_str(chars.as_str());
-            result
-        }
-    }
+    chars.next().map_or_else(String::new, |first| {
+        let mut result = first.to_uppercase().collect::<String>();
+        result.push_str(chars.as_str());
+        result
+    })
 }

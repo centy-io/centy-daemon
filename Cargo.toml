@@ -878,6 +878,7 @@ empty_structs_with_brackets = "deny"
 alloc_instead_of_core = "deny"
 map_err_ignore = "deny"
 field_scoped_visibility_modifiers = "deny"
+option_if_let_else = "deny"
 
 [[bin]]
 name = "centy-daemon"

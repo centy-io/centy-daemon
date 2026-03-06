@@ -24,11 +24,7 @@ impl LinksFile {
             if link.target_id != target_id {
                 return true;
             }
-            if let Some(lt) = link_type {
-                link.kind != lt
-            } else {
-                false
-            }
+            link_type.is_some_and(|lt| link.kind != lt)
         });
         self.links.len() < initial_len
     }
