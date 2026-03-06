@@ -1,5 +1,7 @@
 // Allow unknown/renamed lints (shared with lib.rs for consistency across targets)
 #![allow(unknown_lints, renamed_and_removed_lints)]
+// Allow no_wrapper_functions dylint: many legitimate helper functions are flagged as wrappers
+#![allow(no_wrapper_functions)]
 // Allow unused imports/dead_code for pub use re-exports that form the lib's public API but aren't all used by the binary
 #![allow(unused_imports, dead_code)]
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)

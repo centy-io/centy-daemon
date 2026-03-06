@@ -1,5 +1,7 @@
 // Allow panic/unwrap/expect in tests (denied globally via Cargo.toml lints)
 #![allow(unknown_lints, renamed_and_removed_lints)]
+// Allow no_wrapper_functions dylint: many legitimate helper functions are flagged as wrappers
+#![allow(no_wrapper_functions)]
 #![cfg_attr(
     test,
     allow(
