@@ -2,7 +2,7 @@ use super::super::item_type_resolve::{resolve_item_id, resolve_item_type_config}
 use super::operation::{build_update_options, do_update};
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
-use crate::server::assert_service::assert_initialized;
+use crate::server::assert_service::{assert_absolute_path, assert_initialized};
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{UpdateItemRequest, UpdateItemResponse};
 use crate::server::structured_error::to_error_json;
@@ -19,6 +19,9 @@ fn err_response(
     })
 }
 pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemResponse>, Status> {
+    if let Err(e) = assert_absolute_path(&req.project_path) {
+        return Ok(err_response(&req.project_path, &e));
+    }
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path) {

@@ -16,6 +16,10 @@ impl ToStructuredError for crate::server::assert_service::AssertError {
                 "NOT_INITIALIZED",
                 Some("Run 'centy init' to initialize the project"),
             ),
+            AssertError::RelativePath(_) => (
+                "INVALID_PATH",
+                Some("Provide the full absolute path to the project"),
+            ),
         }
     }
 }
