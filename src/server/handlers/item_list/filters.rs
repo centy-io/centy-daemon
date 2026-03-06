@@ -55,7 +55,10 @@ fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Fi
             }
             filters
         }
-        _ => filters,
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::Array(_) => filters,
     }
 }
 fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> Filters {
@@ -86,6 +89,9 @@ fn apply_priority_condition(filters: Filters, condition: &serde_json::Value) -> 
             }
             f
         }
-        _ => filters,
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::String(_)
+        | serde_json::Value::Array(_) => filters,
     }
 }

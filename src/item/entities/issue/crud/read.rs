@@ -58,7 +58,11 @@ pub async fn read_issue_from_legacy_folder(
         .map(|(k, v)| {
             let str_val = match v {
                 serde_json::Value::String(s) => s,
-                other => other.to_string(),
+                other @ (serde_json::Value::Null
+                | serde_json::Value::Bool(_)
+                | serde_json::Value::Number(_)
+                | serde_json::Value::Array(_)
+                | serde_json::Value::Object(_)) => other.to_string(),
             };
             (k, str_val)
         })
