@@ -16,6 +16,9 @@ worktree-io = "0.15.0"
 # Git native bindings
 git2 = "0.19"
 
+# Git URL parsing
+git-url-parse = "0.6"
+
 # Storage engine
 mdstore = "1.0.0"
 

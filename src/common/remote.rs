@@ -1,9 +1,11 @@
 //! Git remote URL parsing utilities for organization inference.
 //!
-//! Supports various URL formats including:
+//! Uses the `git-url-parse` crate for robust URL parsing across formats:
 //! - HTTPS: `https://github.com/org-name/repo.git`
 //! - SSH: `git@github.com:org-name/repo.git`
 //! - Self-hosted: `https://git.company.com/org-name/repo.git`
+
+use git_url_parse::GitUrl;
 
 /// Result of parsing a git remote URL
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,38 +24,25 @@ pub struct ParsedRemote {
 /// Returns `None` if the URL format is not recognized.
 #[must_use]
 pub fn parse_remote_url(url: &str) -> Option<ParsedRemote> {
-    let trimmed = url.trim();
-    if let Some(ssh_part) = trimmed.strip_prefix("git@") {
-        return parse_ssh_url(ssh_part);
-    }
-    if trimmed.starts_with("https://") || trimmed.starts_with("http://") {
-        return parse_https_url(trimmed);
-    }
-    None
+    let parsed = GitUrl::parse(url.trim()).ok()?;
+    let host = parsed.host()?.to_string();
+    let path = parsed.path();
+    extract_org_and_repo(&host, path)
 }
 
-fn parse_ssh_url(ssh_part: &str) -> Option<ParsedRemote> {
-    let (host, path) = ssh_part.split_once(':')?;
-    parse_path_segments(host, path)
-}
-
-fn parse_https_url(url: &str) -> Option<ParsedRemote> {
-    let tail = url
-        .strip_prefix("https://")
-        .or_else(|| url.strip_prefix("http://"))?;
-    let (host, path) = tail.split_once('/')?;
-    parse_path_segments(host, path)
-}
-
-fn parse_path_segments(host: &str, path: &str) -> Option<ParsedRemote> {
-    let path_clean = path.strip_suffix(".git").unwrap_or(path);
-    let parts: Vec<&str> = path_clean.split('/').filter(|s| !s.is_empty()).collect();
-    let org = parts.first()?;
-    let repo = parts.get(1)?;
+/// Extract the first two path segments as org and repo from a parsed path.
+fn extract_org_and_repo(host: &str, path: &str) -> Option<ParsedRemote> {
+    let clean = path
+        .strip_suffix(".git")
+        .unwrap_or(path)
+        .trim_start_matches('/');
+    let mut parts = clean.split('/').filter(|s| !s.is_empty());
+    let org = parts.next()?;
+    let repo = parts.next()?;
     Some(ParsedRemote {
         host: host.to_string(),
-        org: (*org).to_string(),
-        repo: (*repo).to_string(),
+        org: org.to_string(),
+        repo: repo.to_string(),
     })
 }
 
