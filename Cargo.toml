@@ -858,6 +858,9 @@ needless_range_loop = "deny"
 ptr_arg = "deny"
 many_single_char_names = "deny"
 needless_lifetimes = "deny"
+extended_format_args = "deny"
+for_loops_over_fallibles = "deny"
+match_on_vec_items = "deny"
 
 [[bin]]
 name = "centy-daemon"
