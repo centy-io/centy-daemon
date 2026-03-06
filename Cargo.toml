@@ -876,6 +876,8 @@ shadow_same = "deny"
 too_long_first_doc_paragraph = "deny"
 empty_structs_with_brackets = "deny"
 alloc_instead_of_core = "deny"
+map_err_ignore = "deny"
+field_scoped_visibility_modifiers = "deny"
 
 [[bin]]
 name = "centy-daemon"
