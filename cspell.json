@@ -119,6 +119,7 @@
     "osascript",
     "papaparse",
     "parseable",
+    "partialeq",
     "peekable",
     "pgrep",
     "pkgbuild",
