@@ -6,8 +6,8 @@ fn is_valid_hex_color(color: &str) -> bool {
     };
     re.is_match(color)
 }
-fn validate_colors<'a>(
-    colors: impl IntoIterator<Item = (&'a String, &'a String)>,
+fn validate_colors<'color>(
+    colors: impl IntoIterator<Item = (&'color String, &'color String)>,
     kind: &str,
 ) -> Result<(), String> {
     for (name, color) in colors {

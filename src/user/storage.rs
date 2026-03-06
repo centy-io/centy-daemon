@@ -36,13 +36,13 @@ pub async fn write_users(project_path: &Path, users: &[User]) -> Result<(), User
 
 /// Check if a user with the given email already exists.
 #[must_use]
-pub fn find_user_by_email<'a>(users: &'a [User], email: &str) -> Option<&'a User> {
+pub fn find_user_by_email<'user>(users: &'user [User], email: &str) -> Option<&'user User> {
     users.iter().find(|u| u.email.as_deref() == Some(email))
 }
 
 /// Check if a user with the given ID already exists.
 #[must_use]
-pub fn find_user_by_id<'a>(users: &'a [User], id: &str) -> Option<&'a User> {
+pub fn find_user_by_id<'user>(users: &'user [User], id: &str) -> Option<&'user User> {
     users.iter().find(|u| u.id == id)
 }
 

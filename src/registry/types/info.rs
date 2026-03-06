@@ -31,11 +31,11 @@ pub struct OrganizationInfo {
 /// Options for listing projects
 #[derive(Debug, Clone, Default)]
 #[allow(clippy::struct_excessive_bools)]
-pub struct ListProjectsOptions<'a> {
+pub struct ListProjectsOptions<'slug> {
     pub include_stale: bool,
     pub include_uninitialized: bool,
     pub include_archived: bool,
-    pub organization_slug: Option<&'a str>,
+    pub organization_slug: Option<&'slug str>,
     pub ungrouped_only: bool,
     pub include_temp: bool,
 }

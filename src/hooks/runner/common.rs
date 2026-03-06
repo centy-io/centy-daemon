@@ -11,12 +11,12 @@ pub async fn load_hooks_config(project_path: &Path) -> Vec<HookDefinition> {
 /// Find matching hooks for the given phase, `item_type`, and operation.
 /// Returns enabled hooks sorted by specificity descending (most-specific-first).
 #[must_use]
-pub fn find_matching_hooks<'a>(
-    hooks: &'a [HookDefinition],
+pub fn find_matching_hooks<'hook>(
+    hooks: &'hook [HookDefinition],
     phase: Phase,
     item_type: &str,
     operation: HookOperation,
-) -> Vec<&'a HookDefinition> {
+) -> Vec<&'hook HookDefinition> {
     let mut matching: Vec<(&HookDefinition, u8)> = hooks
         .iter()
         .filter(|h| h.enabled)
