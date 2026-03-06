@@ -102,6 +102,7 @@
     "mdstore",
     "memcpy",
     "metacharacters",
+    "metavariables",
     "metavars",
     "misrefactored",
     "mktemp",
