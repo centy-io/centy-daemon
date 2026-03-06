@@ -98,7 +98,8 @@ fn test_yaml_with_icon_and_template() {
 fn test_legacy_camel_case_yaml_still_deserializes() {
     // Backward compatibility: old camelCase YAML must still parse
     let yaml = "name: Issue\nidentifier: uuid\nfeatures:\n  displayNumber: true\n  priority: true\n  softDelete: true\n  assets: true\n  orgSync: true\n  move: true\n  duplicate: true\nstatuses:\n  - open\n  - closed\npriorityLevels: 3\n";
-    let config: ItemTypeConfig = serde_yaml::from_str(yaml).expect("Should deserialize legacy camelCase YAML");
+    let config: ItemTypeConfig =
+        serde_yaml::from_str(yaml).expect("Should deserialize legacy camelCase YAML");
 
     assert_eq!(config.name, "Issue");
     assert!(config.features.display_number);

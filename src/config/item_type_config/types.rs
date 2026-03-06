@@ -53,7 +53,11 @@ pub struct ItemTypeConfig {
     pub statuses: Vec<String>,
     /// Number of priority levels (must be > 0 when present).
     /// Omitted when not set.
-    #[serde(default, skip_serializing_if = "Option::is_none", alias = "priorityLevels")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        alias = "priorityLevels"
+    )]
     pub priority_levels: Option<u32>,
     /// Custom field definitions for this item type.
     /// Omitted when empty.
