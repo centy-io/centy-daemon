@@ -3,6 +3,7 @@ use std::path::Path;
 use tokio::fs;
 
 /// Read legacy `allowedStates` from a raw `config.json` file, if present.
+///
 /// Returns `None` when config.json is absent, malformed, or has no `allowedStates` key.
 /// Must be called **before** `read_config` so the key is still present on disk.
 pub async fn read_legacy_allowed_states(project_path: &Path) -> Option<Vec<String>> {
