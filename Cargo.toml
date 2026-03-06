@@ -5,6 +5,9 @@ edition = "2021"
 description = "A file-based database engine that stores structured data as Markdown files with YAML frontmatter, exposed via gRPC"
 authors = ["Centy Team"]
 license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+repository = "https://github.com/centy-io/centy-daemon"
+keywords = ["grpc", "markdown", "database", "issues", "project-management"]
+categories = ["development-tools", "database-implementations"]
 
 [dependencies]
 # Git worktree workspace management
@@ -363,6 +366,7 @@ semicolon_inside_block = "deny"
 trailing_empty_array = "deny"
 transmute_undefined_repr = "deny"
 maybe_infinite_iter = "deny"
+cargo_common_metadata = "deny"
 case_sensitive_file_extension_comparisons = "deny"
 read_line_without_trim = "deny"
 manual_bits = "deny"
