@@ -56,7 +56,7 @@ fn test_link_type_info_clone() {
         description: Some("Blocking relationship".to_string()),
         is_builtin: true,
     };
-    let cloned = info.clone();
+    let cloned = info;
     assert_eq!(cloned.name, "blocks");
     assert_eq!(cloned.inverse, "blocked-by");
     assert!(cloned.is_builtin);
