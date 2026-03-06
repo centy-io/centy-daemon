@@ -25,6 +25,7 @@ mod cleanup;
 mod common;
 mod config;
 mod cors;
+mod github_releases;
 mod hooks;
 mod item;
 mod link;

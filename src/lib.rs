@@ -19,6 +19,7 @@
 
 pub mod common;
 pub mod config;
+pub mod github_releases;
 pub mod hooks;
 pub mod item;
 pub mod link;
