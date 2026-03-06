@@ -15,9 +15,9 @@ pub async fn update_user_git_usernames(
     };
     match update_user(project_path, user_id, options).await {
         Ok(_) => result.updated.push(user_id.to_string()),
-        Err(e) => result.errors.push(format!(
-            "Failed to update user {user_id}: {e}"
-        )),
+        Err(e) => result
+            .errors
+            .push(format!("Failed to update user {user_id}: {e}")),
     }
 }
 
