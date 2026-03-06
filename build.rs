@@ -15,9 +15,13 @@ mod trait_condense;
 
 use mod_split::write_maybe_split;
 use split::split_into_chunks;
+use std::env;
+use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR")?);
+fn main() -> Result<(), Box<dyn Error>> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 
     tonic_build::configure()
         .build_server(true)
@@ -38,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // (the largest top-level struct/enum is ~52 lines) still keeps the chunk
     // within 99 lines: max_chunk_size (47) + max_item_size (52) = 99.
     let proto_file = out_dir.join("centy.v1.rs");
-    let content = std::fs::read_to_string(&proto_file)?;
+    let content = fs::read_to_string(&proto_file)?;
     let lines: Vec<&str> = content.lines().collect();
     let chunks = split_into_chunks(&lines, 47);
 
@@ -54,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let include_path = out_dir.join("centy.v1.include.rs");
     let mut include_content = include_lines.join("\n");
     include_content.push('\n');
-    std::fs::write(&include_path, include_content)?;
+    fs::write(&include_path, include_content)?;
 
     Ok(())
 }

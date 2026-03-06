@@ -8,10 +8,10 @@ use std::path::Path;
 use tonic::{Response, Status};
 
 pub(super) struct MoveHookContext {
-    pub(super) item_type: String,
-    pub(super) project_path: String,
-    pub(super) item_id: String,
-    pub(super) request_data: serde_json::Value,
+    pub item_type: String,
+    pub project_path: String,
+    pub item_id: String,
+    pub request_data: serde_json::Value,
 }
 /// Build hook context and run pre-hooks for a move operation.
 pub(super) async fn prepare_move_hooks(

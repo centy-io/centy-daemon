@@ -875,6 +875,7 @@ else_if_without_else = "deny"
 shadow_same = "deny"
 too_long_first_doc_paragraph = "deny"
 empty_structs_with_brackets = "deny"
+alloc_instead_of_core = "deny"
 
 [[bin]]
 name = "centy-daemon"

@@ -10,9 +10,9 @@ use std::path::Path;
 use tonic::Response;
 
 pub(super) struct AddAssetHookContext {
-    pub(super) project_path: String,
-    pub(super) item_id: String,
-    pub(super) request_data: serde_json::Value,
+    pub project_path: String,
+    pub item_id: String,
+    pub request_data: serde_json::Value,
 }
 
 pub(super) async fn prepare_add_asset_hooks(
