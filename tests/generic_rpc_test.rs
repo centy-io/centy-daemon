@@ -517,10 +517,7 @@ async fn test_custom_fields_roundtrip() {
     // Custom fields should be preserved as JSON strings
     assert_eq!(&meta.custom_fields["env"], "\"production\"");
     assert_eq!(&meta.custom_fields["count"], "42");
-    assert_eq!(
-        &meta.custom_fields["tags"],
-        "[\"bug\",\"urgent\"]"
-    );
+    assert_eq!(&meta.custom_fields["tags"], "[\"bug\",\"urgent\"]");
 
     // Verify they survive a get roundtrip
     let get_resp = get_item(centy_daemon::server::proto::GetItemRequest {
@@ -534,9 +531,6 @@ async fn test_custom_fields_roundtrip() {
     .into_inner();
     assert!(get_resp.success);
     let fetched_meta = get_resp.item.unwrap().metadata.unwrap();
-    assert_eq!(
-        &fetched_meta.custom_fields["env"],
-        "\"production\""
-    );
+    assert_eq!(&fetched_meta.custom_fields["env"], "\"production\"");
     assert_eq!(&fetched_meta.custom_fields["count"], "42");
 }
