@@ -23,7 +23,7 @@ pub async fn run(args: app::Args) -> Result<()> {
     let shutdown_tx = Arc::new(shutdown_tx);
     let exe_path = std::env::current_exe().ok();
     crate::cleanup::spawn_cleanup_task();
-    let service = CentyDaemonService::new(shutdown_tx.clone(), exe_path, user_cfg);
+    let service = CentyDaemonService::new(Arc::clone(&shutdown_tx), exe_path, user_cfg);
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(app::FILE_DESCRIPTOR_SET)
         .build_v1()?;

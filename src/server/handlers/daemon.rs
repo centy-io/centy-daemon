@@ -28,7 +28,7 @@ pub fn shutdown(
     info!("Shutdown requested with delay: {} seconds", delay);
 
     // Clone the sender for use in the spawned task
-    let shutdown_tx = shutdown_tx.clone();
+    let shutdown_tx = Arc::clone(shutdown_tx);
 
     // Spawn a task to handle the delayed shutdown
     // Always wait a small amount of time to ensure the response is sent before shutting down

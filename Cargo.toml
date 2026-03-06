@@ -862,6 +862,8 @@ derive_partial_eq_without_eq = "deny"
 redundant_clone = "deny"
 needless_collect = "deny"
 redundant_pub_crate = "deny"
+needless_borrow = "deny"
+clone_on_ref_ptr = "deny"
 
 [[bin]]
 name = "centy-daemon"

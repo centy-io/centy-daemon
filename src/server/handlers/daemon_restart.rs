@@ -49,7 +49,7 @@ pub fn restart(
             .to_json(),
         }));
     };
-    tokio::spawn(perform_restart(delay, exe_path, shutdown_tx.clone()));
+    tokio::spawn(perform_restart(delay, exe_path, Arc::clone(shutdown_tx)));
     let message = if delay > 0 {
         format!("Daemon will restart in {delay} seconds")
     } else {
