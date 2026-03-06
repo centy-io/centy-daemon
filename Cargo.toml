@@ -628,6 +628,11 @@ size_of_ref = "deny"
 temporary_assignment = "deny"
 useless_nonzero_new_unchecked = "deny"
 while_immutable_condition = "deny"
+write_with_newline = "deny"
+with_push_str = "deny"
+zero_divided_by_zero = "deny"
+zero_repeat_side_effects = "deny"
+unnamed_address = "deny"
 
 [[bin]]
 name = "centy-daemon"
