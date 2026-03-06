@@ -653,6 +653,8 @@ single_range_in_vec_init = "deny"
 
 type_complexity = "deny"
 unsafe_derive_deserialize = "deny"
+imprecise_flops = "deny"
+maybe_misused_cfg = "deny"
 
 [[bin]]
 name = "centy-daemon"
