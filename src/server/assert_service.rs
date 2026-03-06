@@ -26,6 +26,8 @@ use crate::utils::get_manifest_path;
 pub enum AssertError {
     /// The project has not been initialized (`.centy-manifest.json` is absent).
     NotInitialized,
+    /// The supplied `project_path` is not an absolute path.
+    RelativePath(String),
 }
 
 impl fmt::Display for AssertError {
@@ -34,6 +36,10 @@ impl fmt::Display for AssertError {
             AssertError::NotInitialized => write!(
                 f,
                 "project is not initialized: .centy-manifest.json not found"
+            ),
+            AssertError::RelativePath(p) => write!(
+                f,
+                "Invalid path: projectPath must be an absolute path, got: {p}"
             ),
         }
     }
@@ -52,6 +58,22 @@ pub fn assert_initialized(project_path: &Path) -> Result<(), AssertError> {
         Ok(())
     } else {
         Err(AssertError::NotInitialized)
+    }
+}
+
+/// Assert that `project_path` is an absolute path.
+///
+/// gRPC requests must always supply an absolute path so the daemon can
+/// unambiguously locate the project on disk.
+///
+/// # Errors
+///
+/// Returns [`AssertError::RelativePath`] when the path is not absolute.
+pub fn assert_absolute_path(project_path: &str) -> Result<(), AssertError> {
+    if Path::new(project_path).is_absolute() {
+        Ok(())
+    } else {
+        Err(AssertError::RelativePath(project_path.to_owned()))
     }
 }
 
