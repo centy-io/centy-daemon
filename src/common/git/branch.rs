@@ -15,7 +15,7 @@ fn open_repo(project_path: &Path) -> Result<Repository, GitError> {
 /// Detect the current git branch.
 pub fn detect_current_branch(project_path: &Path) -> Result<String, GitError> {
     let repo = open_repo(project_path)?;
-    let head = repo.head().map_err(|_| GitError::CurrentBranchNotFound)?;
+    let head = repo.head().map_err(|_e| GitError::CurrentBranchNotFound)?;
     if head.is_branch() {
         head.shorthand()
             .map(ToString::to_string)

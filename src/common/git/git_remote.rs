@@ -13,7 +13,7 @@ pub fn get_remote_origin_url(project_path: &Path) -> Result<String, GitError> {
     })?;
     let remote = repo
         .find_remote("origin")
-        .map_err(|_| GitError::RemoteNotFound("origin".to_string()))?;
+        .map_err(|_e| GitError::RemoteNotFound("origin".to_string()))?;
     remote
         .url()
         .map(ToString::to_string)
