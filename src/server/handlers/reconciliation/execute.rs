@@ -30,7 +30,7 @@ pub async fn execute_reconciliation_handler(
                 infer_organization_from_remote(project_path, existing_org.as_deref()).await;
             if existing_org.is_none() && !inference.has_mismatch {
                 if let Some(slug) = &inference.inferred_org_slug {
-                    let _ = set_project_organization(&req.project_path, Some(slug)).await;
+                    drop(set_project_organization(&req.project_path, Some(slug)).await);
                 }
             }
             Ok(Response::new(InitResponse {

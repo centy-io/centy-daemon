@@ -36,7 +36,7 @@ pub async fn execute_hook(
     // Write JSON to stdin
     if let Some(mut stdin) = child.stdin.take() {
         // Ignore write errors - the process may have exited
-        let _ = stdin.write_all(json_input.as_bytes()).await;
+        drop(stdin.write_all(json_input.as_bytes()).await);
         drop(stdin);
     }
 
@@ -52,7 +52,7 @@ pub async fn execute_hook(
             // Read stderr
             let mut stderr_buf = Vec::new();
             if let Some(ref mut stderr) = stderr_handle {
-                let _ = stderr.read_to_end(&mut stderr_buf).await;
+                drop(stderr.read_to_end(&mut stderr_buf).await);
             }
 
             Ok(HookExecResult {
@@ -65,7 +65,7 @@ pub async fn execute_hook(
         ))),
         Err(_) => {
             // Timeout - try to kill the process
-            let _ = child.kill().await;
+            drop(child.kill().await);
             Err(HookError::Timeout {
                 pattern: pattern.to_string(),
                 timeout_secs,

@@ -42,7 +42,7 @@ pub async fn list_projects(
             .and_then(|slug| registry.organizations.get(slug))
             .map(|org| org.name.clone());
         if tracked.organization_slug.is_some() && org_name.is_none() {
-            let _ = sync_org_from_project(Path::new(path)).await;
+            drop(sync_org_from_project(Path::new(path)).await);
         }
         let info = enrich_project(path, tracked, org_name).await;
         if !opts.include_uninitialized && !info.initialized {

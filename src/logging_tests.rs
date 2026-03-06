@@ -39,9 +39,9 @@ fn test_parse_rotation_daily() {
 
 #[test]
 fn test_parse_rotation_case_insensitive() {
-    let _ = parse_rotation("HOURLY");
-    let _ = parse_rotation("Never");
-    let _ = parse_rotation("DAILY");
+    drop(parse_rotation("HOURLY"));
+    drop(parse_rotation("Never"));
+    drop(parse_rotation("DAILY"));
 }
 
 #[test]

@@ -12,15 +12,17 @@ pub(super) async fn try_update_status_on_open(
             && current_status != "in-progress"
             && current_status != "closed"
         {
-            let _ = update_issue(
-                project_path,
-                issue_id,
-                UpdateIssueOptions {
-                    status: Some("in-progress".to_string()),
-                    ..Default::default()
-                },
-            )
-            .await;
+            drop(
+                update_issue(
+                    project_path,
+                    issue_id,
+                    UpdateIssueOptions {
+                        status: Some("in-progress".to_string()),
+                        ..Default::default()
+                    },
+                )
+                .await,
+            );
         }
     }
 }
@@ -50,7 +52,7 @@ pub(super) fn open_editor_with_hooks(
     };
     if let Some(cfg) = &config {
         if let Some(script) = &cfg.hooks.pre_open {
-            let _ = run_hook(script, &hook_ctx);
+            drop(run_hook(script, &hook_ctx));
         }
     }
     if editor_id.is_empty() {
@@ -66,7 +68,7 @@ pub(super) fn open_editor_with_hooks(
             if matches!(opener::open_with_hook(path, &cmd, &rendered), Ok(true)) {
                 true
             } else {
-                let _ = run_hook(script, &hook_ctx);
+                drop(run_hook(script, &hook_ctx));
                 opener::open_in_editor(path, &cmd).is_ok()
             }
         },

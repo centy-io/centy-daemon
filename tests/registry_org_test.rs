@@ -72,7 +72,7 @@ async fn test_create_organization_success() {
     assert!(!result.created_at.is_empty());
 
     // Cleanup
-    let _ = delete_organization(&slug, false).await;
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -88,7 +88,7 @@ async fn test_create_organization_auto_slug() {
     assert_eq!(result.name, name);
 
     // Cleanup
-    let _ = delete_organization(&result.slug, false).await;
+    drop(delete_organization(&result.slug, false).await);
 }
 
 #[tokio::test]
@@ -105,7 +105,7 @@ async fn test_create_organization_already_exists() {
     assert!(result.is_err());
 
     // Cleanup
-    let _ = delete_organization(&slug, false).await;
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -152,8 +152,8 @@ async fn test_list_organizations_with_orgs() {
     assert!(has_a && has_b);
 
     // Cleanup
-    let _ = delete_organization(&slug_a, false).await;
-    let _ = delete_organization(&slug_b, false).await;
+    drop(delete_organization(&slug_a, false).await);
+    drop(delete_organization(&slug_b, false).await);
 }
 
 #[tokio::test]
@@ -174,7 +174,7 @@ async fn test_get_organization_success() {
     assert_eq!(org.description, Some("Description".to_string()));
 
     // Cleanup
-    let _ = delete_organization(&slug, false).await;
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -202,7 +202,7 @@ async fn test_update_organization_name() {
     assert_eq!(updated.name, "New Name");
 
     // Cleanup
-    let _ = delete_organization(&slug, false).await;
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -227,7 +227,7 @@ async fn test_update_organization_description() {
     assert_eq!(cleared.description, None);
 
     // Cleanup
-    let _ = delete_organization(&slug, false).await;
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -257,7 +257,7 @@ async fn test_update_organization_slug() {
     assert_eq!(new.slug, new_slug);
 
     // Cleanup
-    let _ = delete_organization(&new_slug, false).await;
+    drop(delete_organization(&new_slug, false).await);
 }
 
 #[tokio::test]
@@ -316,9 +316,9 @@ async fn test_delete_organization_with_projects_fails() {
     assert!(result.is_err());
 
     // Cleanup - first unassign project, then delete org
-    let _ = set_project_organization(&path_str, None).await;
-    let _ = untrack_project(&path_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(set_project_organization(&path_str, None).await);
+    drop(untrack_project(&path_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 // Project organization assignment tests
@@ -351,9 +351,9 @@ async fn test_set_project_organization() {
     assert_eq!(org.project_count, 1);
 
     // Cleanup
-    let _ = set_project_organization(&path_str, None).await;
-    let _ = untrack_project(&path_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(set_project_organization(&path_str, None).await);
+    drop(untrack_project(&path_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -388,8 +388,8 @@ async fn test_remove_project_from_organization() {
     assert_eq!(org.project_count, 0);
 
     // Cleanup
-    let _ = untrack_project(&path_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(untrack_project(&path_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 // Slug validation tests
@@ -429,7 +429,7 @@ async fn test_slug_auto_generation() {
     assert_eq!(result.slug, format!("test-with-{suffix}"));
 
     // Cleanup
-    let _ = delete_organization(&result.slug, false).await;
+    drop(delete_organization(&result.slug, false).await);
 }
 
 #[tokio::test]
@@ -450,7 +450,7 @@ async fn test_slug_auto_generation_special_chars() {
     assert!(!result.slug.ends_with('-'));
 
     // Cleanup
-    let _ = delete_organization(&result.slug, false).await;
+    drop(delete_organization(&result.slug, false).await);
 }
 
 // Project name uniqueness tests
@@ -501,10 +501,10 @@ async fn test_duplicate_project_name_in_same_org() {
     assert!(error_msg.contains(&slug), "Error should mention org slug");
 
     // Cleanup
-    let _ = set_project_organization(&path1_str, None).await;
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(set_project_organization(&path1_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -544,10 +544,10 @@ async fn test_duplicate_project_name_case_insensitive() {
     assert!(result.is_err(), "Should fail due to case-insensitive match");
 
     // Cleanup
-    let _ = set_project_organization(&path1_str, None).await;
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(set_project_organization(&path1_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -579,9 +579,9 @@ async fn test_reassign_same_project_idempotent() {
     );
 
     // Cleanup
-    let _ = set_project_organization(&path_str, None).await;
-    let _ = untrack_project(&path_str).await;
-    let _ = delete_organization(&slug, false).await;
+    drop(set_project_organization(&path_str, None).await);
+    drop(untrack_project(&path_str).await);
+    drop(delete_organization(&slug, false).await);
 }
 
 #[tokio::test]
@@ -625,12 +625,12 @@ async fn test_same_name_in_different_orgs() {
         .expect("Should set org B");
 
     // Cleanup
-    let _ = set_project_organization(&path1_str, None).await;
-    let _ = set_project_organization(&path2_str, None).await;
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
-    let _ = delete_organization(&slug_a, false).await;
-    let _ = delete_organization(&slug_b, false).await;
+    drop(set_project_organization(&path1_str, None).await);
+    drop(set_project_organization(&path2_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug_a, false).await);
+    drop(delete_organization(&slug_b, false).await);
 }
 
 #[tokio::test]
@@ -681,12 +681,12 @@ async fn test_move_project_to_org_with_duplicate() {
     );
 
     // Cleanup
-    let _ = set_project_organization(&path1_str, None).await;
-    let _ = set_project_organization(&path2_str, None).await;
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
-    let _ = delete_organization(&source_slug, false).await;
-    let _ = delete_organization(&target_slug, false).await;
+    drop(set_project_organization(&path1_str, None).await);
+    drop(set_project_organization(&path2_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&source_slug, false).await);
+    drop(delete_organization(&target_slug, false).await);
 }
 
 #[tokio::test]
@@ -716,8 +716,8 @@ async fn test_unorganized_projects_allow_duplicates() {
     // No need to assert anything specific, just that tracking succeeded
 
     // Cleanup
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
 }
 
 #[tokio::test]
@@ -765,9 +765,9 @@ async fn test_remove_from_org_with_duplicate_elsewhere() {
     assert!(result.is_ok(), "Should succeed removing from org");
 
     // Cleanup
-    let _ = set_project_organization(&path2_str, None).await;
-    let _ = untrack_project(&path1_str).await;
-    let _ = untrack_project(&path2_str).await;
-    let _ = delete_organization(&slug1, false).await;
-    let _ = delete_organization(&slug2, false).await;
+    drop(set_project_organization(&path2_str, None).await);
+    drop(untrack_project(&path1_str).await);
+    drop(untrack_project(&path2_str).await);
+    drop(delete_organization(&slug1, false).await);
+    drop(delete_organization(&slug2, false).await);
 }

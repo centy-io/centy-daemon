@@ -9,7 +9,7 @@ use crate::utils::get_centy_path;
 use std::path::Path;
 use tonic::{Response, Status};
 pub async fn init(mut req: InitRequest) -> Result<Response<InitResponse>, Status> {
-    let _ = track_project(&req.project_path).await;
+    drop(track_project(&req.project_path).await);
     let project_path_str = req.project_path.clone();
     let project_path = Path::new(&project_path_str);
     let decisions = req

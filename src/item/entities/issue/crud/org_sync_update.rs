@@ -86,9 +86,9 @@ pub async fn update_or_create_issue_in_project(
         let new_assets_path = issues_path.join("assets").join(issue_id);
         if old_assets_path.exists() {
             fs::create_dir_all(&new_assets_path).await?;
-            let _ = copy_assets_folder(&old_assets_path, &new_assets_path).await;
+            drop(copy_assets_folder(&old_assets_path, &new_assets_path).await);
         }
-        let _ = fs::remove_dir_all(&issue_folder_path).await;
+        drop(fs::remove_dir_all(&issue_folder_path).await);
     }
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest)

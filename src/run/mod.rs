@@ -37,7 +37,7 @@ pub async fn run(args: app::Args) -> Result<()> {
         .add_service(CentyDaemonServer::new(service))
         .serve_with_shutdown(addr, async move {
             loop {
-                let _ = shutdown_rx.changed().await;
+                drop(shutdown_rx.changed().await);
                 let signal = *shutdown_rx.borrow();
                 match signal {
                     ShutdownSignal::Shutdown => {

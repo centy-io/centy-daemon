@@ -10,7 +10,7 @@ pub const LOG_FILENAME: &str = "centy-daemon.log";
 static LOG_FILE_PATH: OnceLock<String> = OnceLock::new();
 /// Store the log file path for later retrieval (e.g., in structured error responses).
 pub fn set_log_file_path(path: String) {
-    let _ = LOG_FILE_PATH.set(path);
+    drop(LOG_FILE_PATH.set(path));
 }
 /// Get the log file path set at startup.
 pub fn get_log_file_path() -> &'static str {

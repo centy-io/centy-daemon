@@ -46,13 +46,13 @@ pub async fn copy_issue_data_to_workspace(
         // Copy assets folder
         let source_assets = source_issue_dir.join("assets");
         let target_assets = target_issue_dir.join("assets");
-        let _ = copy_assets_folder(&source_assets, &target_assets).await;
+        drop(copy_assets_folder(&source_assets, &target_assets).await);
     }
 
     // Copy shared assets folder
     let source_shared_assets = source_centy.join("assets");
     let target_shared_assets = target_centy.join("assets");
-    let _ = copy_assets_folder(&source_shared_assets, &target_shared_assets).await;
+    drop(copy_assets_folder(&source_shared_assets, &target_shared_assets).await);
 
     // Copy config.json if it exists
     let source_config = source_centy.join("config.json");
@@ -79,7 +79,7 @@ pub async fn copy_project_config_to_workspace(
     // Copy shared assets folder
     let source_shared_assets = source_centy.join("assets");
     let target_shared_assets = target_centy.join("assets");
-    let _ = copy_assets_folder(&source_shared_assets, &target_shared_assets).await;
+    drop(copy_assets_folder(&source_shared_assets, &target_shared_assets).await);
 
     // Copy config.json if it exists
     let source_config = source_centy.join("config.json");

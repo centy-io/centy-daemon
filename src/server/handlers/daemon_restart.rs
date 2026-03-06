@@ -24,7 +24,7 @@ async fn perform_restart(
     match Command::new(&exe_path).spawn() {
         Ok(_) => {
             info!("New daemon process spawned successfully");
-            let _ = shutdown_tx.send(ShutdownSignal::Restart);
+            let _res = shutdown_tx.send(ShutdownSignal::Restart);
         }
         Err(e) => {
             info!("Failed to spawn new daemon process: {}", e);

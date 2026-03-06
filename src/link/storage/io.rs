@@ -57,7 +57,7 @@ pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(
                 .await?
                 .is_none()
         {
-            let _ = fs::remove_dir(&links_dir).await;
+            drop(fs::remove_dir(&links_dir).await);
         }
         return Ok(());
     }
@@ -71,7 +71,7 @@ pub async fn write_links(entity_path: &Path, links_file: &LinksFile) -> Result<(
     fs::write(&new_links_path, content).await?;
     let old_links_path = entity_path.join(LINKS_FILENAME);
     if old_links_path.exists() {
-        let _ = fs::remove_file(&old_links_path).await;
+        drop(fs::remove_file(&old_links_path).await);
     }
     Ok(())
 }

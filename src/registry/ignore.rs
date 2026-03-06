@@ -15,7 +15,7 @@ static IGNORE_PREFIXES: OnceLock<Vec<PathBuf>> = OnceLock::new();
 /// Initialise the global ignore-prefix list from user-config patterns. Call once at daemon startup.
 pub fn init_ignore_paths(patterns: &[String]) {
     let prefixes: Vec<PathBuf> = patterns.iter().filter_map(|p| resolve_pattern(p)).collect();
-    let _ = IGNORE_PREFIXES.set(prefixes);
+    drop(IGNORE_PREFIXES.set(prefixes));
 }
 
 /// Returns `true` if `path` falls under any configured ignore prefix.
