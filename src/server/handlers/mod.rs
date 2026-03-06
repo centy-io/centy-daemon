@@ -12,6 +12,7 @@ pub mod item_create;
 pub mod item_delete;
 pub mod item_duplicate;
 pub mod item_list;
+pub mod item_list_global;
 pub mod item_move;
 pub mod item_read;
 pub mod item_restore;

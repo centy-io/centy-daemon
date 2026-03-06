@@ -1,3 +1,3 @@
-mod filters;
+pub mod filters;
 mod handler;
 pub use handler::list_items;
