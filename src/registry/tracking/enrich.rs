@@ -79,7 +79,7 @@ pub async fn get_org_projects(
 fn spawn_auto_assign(paths: Vec<String>) {
     tokio::spawn(async move {
         for path in paths {
-            let _ = try_auto_assign_organization(&path, None).await;
+            drop(try_auto_assign_organization(&path, None).await);
         }
     });
 }
