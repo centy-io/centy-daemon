@@ -19,7 +19,7 @@ use mdstore::TypeConfig;
 ///
 /// Returns `TypeConfig` (mdstore's type) for use with storage operations.
 /// The `ItemTypeConfig` → `TypeConfig` conversion drops centy-only fields
-/// (`icon`, `soft_delete`, `template`) which are not needed for storage.
+/// (`icon`, `template`) which are not needed for storage.
 pub async fn resolve_item_type_config(
     project_path: &Path,
     item_type: &str,
