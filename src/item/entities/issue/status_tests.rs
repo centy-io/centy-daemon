@@ -23,7 +23,7 @@ fn test_validate_status_invalid_returns_error() {
 #[test]
 fn test_validate_status_empty_allowed() {
     let allowed: Vec<String> = vec![];
-    // Any status is invalid when allowed_states is empty
+    // Any status is invalid when statuses list is empty
     let result = validate_status("open", &allowed);
     assert!(result.is_err());
 }

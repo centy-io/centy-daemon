@@ -8,14 +8,14 @@ pub enum StatusError {
     InvalidStatus(String, String),
 }
 
-/// Validate that a status is in the allowed states list.
+/// Validate that a status is in the configured statuses list.
 ///
-/// Returns `Ok(())` if valid, or `Err` with allowed states for a helpful error message.
-pub fn validate_status(status: &str, allowed_states: &[String]) -> Result<(), StatusError> {
-    if allowed_states.iter().any(|s| s == status) {
+/// Returns `Ok(())` if valid, or `Err` with allowed statuses for a helpful error message.
+pub fn validate_status(status: &str, statuses: &[String]) -> Result<(), StatusError> {
+    if statuses.iter().any(|s| s == status) {
         Ok(())
     } else {
-        let allowed_list = allowed_states.join(", ");
+        let allowed_list = statuses.join(", ");
         Err(StatusError::InvalidStatus(status.to_string(), allowed_list))
     }
 }

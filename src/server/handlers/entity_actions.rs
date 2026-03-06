@@ -30,7 +30,7 @@ pub async fn get_entity_actions(
                 .await
                 .ok()
                 .flatten();
-            let allowed_states = item_type_config
+            let statuses = item_type_config
                 .as_ref()
                 .map(|c| c.statuses.clone())
                 .filter(|s| !s.is_empty())
@@ -52,7 +52,7 @@ pub async fn get_entity_actions(
             };
             build_issue_actions(
                 entity_status.as_ref(),
-                &allowed_states,
+                &statuses,
                 which::which("code").is_ok(),
                 terminal_available(),
                 has_entity_id,
