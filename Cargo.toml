@@ -853,6 +853,11 @@ self_named_constructors = "deny"
 unused_unit = "deny"
 needless_update = "deny"
 new_without_default = "deny"
+needless_match = "deny"
+needless_range_loop = "deny"
+ptr_arg = "deny"
+many_single_char_names = "deny"
+needless_lifetimes = "deny"
 
 [[bin]]
 name = "centy-daemon"
