@@ -8,8 +8,8 @@ use tracing::{debug, error, warn};
 
 /// Run hard-delete cleanup on a single project.
 ///
-/// Iterates all item types with soft-delete enabled, finds items whose
-/// `deleted_at` timestamp is older than `retention`, and permanently removes them.
+/// Iterates all item types, finds soft-deleted items whose `deleted_at`
+/// timestamp is older than `retention`, and permanently removes them.
 #[allow(clippy::cognitive_complexity)]
 pub async fn run_cleanup_for_project(project_path: &Path, retention: Duration) {
     let centy_path = get_centy_path(project_path);
@@ -24,9 +24,6 @@ pub async fn run_cleanup_for_project(project_path: &Path, retention: Duration) {
     let now: DateTime<Utc> = Utc::now();
 
     for (folder, itc) in &item_types {
-        if !itc.features.soft_delete {
-            continue;
-        }
         let type_config = TypeConfig::from(itc);
         let items = match generic_list(project_path, folder, Filters::new().include_deleted()).await
         {

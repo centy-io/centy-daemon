@@ -10,7 +10,7 @@ fn test_archived_config_yaml_serialization() {
     assert!(yaml.contains("identifier: uuid"));
     assert!(yaml.contains("displayNumber: false"));
     assert!(yaml.contains("priority: false"));
-    assert!(yaml.contains("softDelete: false"));
+    assert!(!yaml.contains("softDelete"));
     assert!(yaml.contains("assets: true"));
     assert!(yaml.contains("orgSync: true"));
     assert!(yaml.contains("move: true"));
@@ -32,7 +32,7 @@ fn test_issue_config_yaml_serialization() {
     assert!(yaml.contains("icon: clipboard"));
     assert!(yaml.contains("identifier: uuid"));
     assert!(yaml.contains("displayNumber: true"));
-    assert!(yaml.contains("softDelete: true"));
+    assert!(!yaml.contains("softDelete"));
     assert!(yaml.contains("move: true"));
     assert!(!yaml.contains("defaultStatus:"));
     assert!(yaml.contains("template: template.md"));
@@ -47,7 +47,7 @@ fn test_doc_config_yaml_serialization() {
     assert!(yaml.contains("icon: document"));
     assert!(yaml.contains("identifier: slug"));
     assert!(yaml.contains("displayNumber: false"));
-    assert!(yaml.contains("softDelete: false"));
+    assert!(!yaml.contains("softDelete"));
     assert!(!yaml.contains("statuses"));
     assert!(!yaml.contains("defaultStatus"));
     assert!(!yaml.contains("priorityLevels"));
@@ -64,10 +64,6 @@ fn test_item_type_config_yaml_roundtrip() {
     assert_eq!(deserialized.icon, Some("clipboard".to_string()));
     assert_eq!(deserialized.statuses, config.statuses);
     assert_eq!(deserialized.priority_levels, config.priority_levels);
-    assert_eq!(
-        deserialized.features.soft_delete,
-        config.features.soft_delete
-    );
     assert_eq!(deserialized.template, config.template);
 }
 
@@ -81,7 +77,6 @@ fn test_legacy_yaml_without_new_fields_deserializes() {
     assert_eq!(config.name, "Issue");
     assert!(config.icon.is_none());
     assert!(config.template.is_none());
-    assert!(!config.features.soft_delete);
 }
 
 #[test]

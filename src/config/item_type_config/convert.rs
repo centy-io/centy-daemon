@@ -4,8 +4,8 @@ use mdstore::{CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 
 /// Convert an `ItemTypeConfig` to mdstore's `TypeConfig` for storage operations.
 ///
-/// The `icon`, `soft_delete`, and `template` fields are centy-daemon-only
-/// metadata and are intentionally dropped in this conversion.
+/// The `icon` and `template` fields are centy-daemon-only metadata and are
+/// intentionally dropped in this conversion.
 impl From<&ItemTypeConfig> for TypeConfig {
     fn from(config: &ItemTypeConfig) -> TypeConfig {
         TypeConfig {
@@ -42,7 +42,6 @@ pub fn default_archived_config() -> ItemTypeConfig {
         features: ItemTypeFeatures {
             display_number: false,
             priority: false,
-            soft_delete: false,
             assets: true,
             org_sync: true,
             move_item: true,
@@ -80,7 +79,6 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
         features: ItemTypeFeatures {
             display_number: true,
             priority: true,
-            soft_delete: true,
             assets: true,
             org_sync: true,
             move_item: true,

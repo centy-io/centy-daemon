@@ -2,10 +2,12 @@ use super::*;
 use mdstore::IdStrategy;
 
 #[test]
-fn test_yaml_soft_delete_feature() {
+fn test_legacy_yaml_with_soft_delete_still_parses() {
     let yaml = "name: Bug\nidentifier: uuid\nfeatures:\n  displayNumber: false\n  status: true\n  priority: true\n  softDelete: true\n  assets: false\n  orgSync: false\n  move: false\n  duplicate: false\n";
+    // Legacy config files with softDelete should still parse — the field is silently ignored.
     let config: ItemTypeConfig = serde_yaml::from_str(yaml).expect("Should deserialize");
-    assert!(config.features.soft_delete);
+    assert_eq!(config.name, "Bug");
+    assert!(config.features.priority);
 }
 
 #[test]

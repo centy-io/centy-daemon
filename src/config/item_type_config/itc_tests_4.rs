@@ -36,10 +36,7 @@ fn test_type_config_conversion_drops_new_fields() {
         name: "Task".to_string(),
         icon: Some("tasks".to_string()),
         identifier: IdStrategy::Uuid,
-        features: ItemTypeFeatures {
-            soft_delete: true,
-            ..ItemTypeFeatures::default()
-        },
+        features: ItemTypeFeatures::default(),
         statuses: Vec::new(),
         priority_levels: None,
         custom_fields: Vec::new(),
@@ -81,7 +78,7 @@ async fn test_write_and_read_item_type_config() {
     assert_eq!(read.name, "Issue");
     assert_eq!(read.icon, Some("clipboard".to_string()));
     assert_eq!(read.statuses, config.statuses);
-    assert_eq!(read.features.soft_delete, config.features.soft_delete);
+    assert_eq!(read.features.priority, config.features.priority);
     assert_eq!(read.template, config.template);
 }
 
