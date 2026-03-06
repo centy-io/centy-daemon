@@ -35,11 +35,11 @@ async fn perform_restart(
 pub fn restart(
     req: RestartRequest,
     shutdown_tx: &Arc<watch::Sender<ShutdownSignal>>,
-    exe_path: Option<&PathBuf>,
+    exe_path_opt: Option<&PathBuf>,
 ) -> Result<Response<RestartResponse>, Status> {
     let delay = req.delay_seconds;
     info!("Restart requested with delay: {} seconds", delay);
-    let Some(exe_path) = exe_path.cloned() else {
+    let Some(exe_path) = exe_path_opt.cloned() else {
         return Ok(Response::new(RestartResponse {
             success: false,
             message: StructuredError::new(

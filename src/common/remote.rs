@@ -22,12 +22,12 @@ pub struct ParsedRemote {
 /// Returns `None` if the URL format is not recognized.
 #[must_use]
 pub fn parse_remote_url(url: &str) -> Option<ParsedRemote> {
-    let url = url.trim();
-    if let Some(ssh_part) = url.strip_prefix("git@") {
+    let trimmed = url.trim();
+    if let Some(ssh_part) = trimmed.strip_prefix("git@") {
         return parse_ssh_url(ssh_part);
     }
-    if url.starts_with("https://") || url.starts_with("http://") {
-        return parse_https_url(url);
+    if trimmed.starts_with("https://") || trimmed.starts_with("http://") {
+        return parse_https_url(trimmed);
     }
     None
 }
@@ -38,16 +38,16 @@ fn parse_ssh_url(ssh_part: &str) -> Option<ParsedRemote> {
 }
 
 fn parse_https_url(url: &str) -> Option<ParsedRemote> {
-    let url = url
+    let tail = url
         .strip_prefix("https://")
         .or_else(|| url.strip_prefix("http://"))?;
-    let (host, path) = url.split_once('/')?;
+    let (host, path) = tail.split_once('/')?;
     parse_path_segments(host, path)
 }
 
 fn parse_path_segments(host: &str, path: &str) -> Option<ParsedRemote> {
-    let path = path.strip_suffix(".git").unwrap_or(path);
-    let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    let path_clean = path.strip_suffix(".git").unwrap_or(path);
+    let parts: Vec<&str> = path_clean.split('/').filter(|s| !s.is_empty()).collect();
     let org = parts.first()?;
     let repo = parts.get(1)?;
     Some(ParsedRemote {

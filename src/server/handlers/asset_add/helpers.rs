@@ -65,13 +65,13 @@ pub(super) async fn finish_add_asset(
     )
     .await;
     match result {
-        Ok(result) => {
+        Ok(add_result) => {
             let manifest = read_manifest(project_path).await.ok().flatten();
             Response::new(AddAssetResponse {
                 success: true,
                 error: String::new(),
-                asset: Some(asset_info_to_proto(&result.asset)),
-                path: result.path,
+                asset: Some(asset_info_to_proto(&add_result.asset)),
+                path: add_result.path,
                 manifest: manifest.map(|m| manifest_to_proto(&m)),
             })
         }

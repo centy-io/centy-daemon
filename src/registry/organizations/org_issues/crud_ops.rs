@@ -38,10 +38,10 @@ pub async fn create_org_issue<T: Into<HashMap<String, String>>>(
     description: &str,
     priority: u32,
     status: &str,
-    custom_fields: T,
+    custom_fields_raw: T,
     referenced_projects: Vec<String>,
 ) -> Result<OrgIssue, OrgIssueError> {
-    let custom_fields = custom_fields.into();
+    let custom_fields = custom_fields_raw.into();
     if title.trim().is_empty() {
         return Err(OrgIssueError::TitleRequired);
     }

@@ -57,11 +57,11 @@ pub async fn list_users(
     git_username_filter: Option<&str>,
     include_deleted: bool,
 ) -> Result<Vec<User>, UserError> {
-    let users = read_users(project_path).await?;
+    let all_users = read_users(project_path).await?;
     let users = if include_deleted {
-        users
+        all_users
     } else {
-        users
+        all_users
             .into_iter()
             .filter(|u| u.deleted_at.is_none())
             .collect()

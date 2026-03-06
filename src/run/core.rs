@@ -6,11 +6,11 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 
 pub fn setup_logging(
-    log_dir: Option<String>,
+    log_dir_opt: Option<String>,
     log_json: bool,
     log_rotation: &str,
 ) -> Result<PathBuf> {
-    let log_dir = log_dir.map_or_else(
+    let log_dir = log_dir_opt.map_or_else(
         || {
             dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("."))

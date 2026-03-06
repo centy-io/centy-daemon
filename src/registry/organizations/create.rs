@@ -7,11 +7,11 @@ use tracing::info;
 
 /// Create a new organization
 pub async fn create_organization(
-    slug: Option<&str>,
+    slug_opt: Option<&str>,
     name: &str,
     description: Option<&str>,
 ) -> Result<OrganizationInfo, OrganizationError> {
-    let slug = match slug {
+    let slug = match slug_opt {
         Some(s) if !s.is_empty() => {
             validate_slug(s)?;
             s.to_string()

@@ -60,9 +60,9 @@ pub(super) fn build_options(
     body: String,
     status: Option<String>,
     priority: Option<u32>,
-    custom_fields: HashMap<String, String>,
+    custom_fields_raw: HashMap<String, String>,
 ) -> CreateOptions {
-    let custom_fields = custom_fields
+    let custom_fields = custom_fields_raw
         .into_iter()
         .map(|(k, v)| {
             let val = serde_json::from_str(&v).unwrap_or(serde_json::Value::String(v));

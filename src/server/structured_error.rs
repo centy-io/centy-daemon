@@ -48,9 +48,9 @@ impl StructuredError {
 
 /// Convenience function to convert a domain error into a structured JSON error string.
 pub fn to_error_json<E: ToStructuredError + Display>(cwd: &str, err: &E) -> String {
-    let (code, tip) = err.error_code_and_tip();
+    let (code, maybe_tip) = err.error_code_and_tip();
     let mut se = StructuredError::new(cwd, code, err.to_string());
-    if let Some(tip) = tip {
+    if let Some(tip) = maybe_tip {
         se = se.with_tip(tip);
     }
     se.to_json()

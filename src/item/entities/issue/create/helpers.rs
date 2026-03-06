@@ -52,8 +52,8 @@ pub fn build_custom_fields(
 ) -> HashMap<String, serde_json::Value> {
     let mut fields: HashMap<String, serde_json::Value> = HashMap::new();
 
-    if let Some(config) = config {
-        for field in &config.custom_fields {
+    if let Some(cfg) = config {
+        for field in &cfg.custom_fields {
             if let Some(default_value) = &field.default_value {
                 fields.insert(
                     field.name.clone(),

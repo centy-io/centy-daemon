@@ -28,7 +28,7 @@ pub fn shutdown(
     info!("Shutdown requested with delay: {} seconds", delay);
 
     // Clone the sender for use in the spawned task
-    let shutdown_tx = Arc::clone(shutdown_tx);
+    let tx = Arc::clone(shutdown_tx);
 
     // Spawn a task to handle the delayed shutdown
     // Always wait a small amount of time to ensure the response is sent before shutting down
@@ -39,7 +39,7 @@ pub fn shutdown(
             // Small delay to ensure the RPC response is fully sent before shutdown
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         }
-        let _res = shutdown_tx.send(ShutdownSignal::Shutdown);
+        let _res = tx.send(ShutdownSignal::Shutdown);
     });
 
     let message = if delay > 0 {

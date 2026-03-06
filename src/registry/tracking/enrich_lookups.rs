@@ -11,11 +11,11 @@ pub async fn get_project_info(project_path: &str) -> Result<Option<ProjectInfo>,
         |p| p.to_string_lossy().to_string(),
     );
     let registry = read_registry().await?;
-    let tracked = registry
+    let maybe_tracked = registry
         .projects
         .get(&canonical_path)
         .or_else(|| registry.projects.get(project_path));
-    match tracked {
+    match maybe_tracked {
         Some(tracked) => {
             let org_name = tracked
                 .organization_slug

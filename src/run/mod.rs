@@ -19,8 +19,8 @@ pub async fn run(args: app::Args) -> Result<()> {
     crate::registry::init_ignore_paths(&user_cfg.registry.ignore_paths);
     let addr = args.addr.parse()?;
     let cors = core::build_cors(&args.cors_origins);
-    let (shutdown_tx, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
-    let shutdown_tx = Arc::new(shutdown_tx);
+    let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
+    let shutdown_tx = Arc::new(tx_raw);
     let exe_path = std::env::current_exe().ok();
     crate::cleanup::spawn_cleanup_task();
     let service = CentyDaemonService::new(Arc::clone(&shutdown_tx), exe_path, user_cfg);

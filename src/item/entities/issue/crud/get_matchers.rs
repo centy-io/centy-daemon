@@ -14,8 +14,8 @@ pub(super) async fn match_entry_by_display_number(
     issues_path: &Path,
 ) -> Result<Option<Issue>, IssueCrudError> {
     let file_type = entry.file_type().await?;
-    let name = entry.file_name();
-    let Some(name) = name.to_str() else {
+    let file_name_os = entry.file_name();
+    let Some(name) = file_name_os.to_str() else {
         return Ok(None);
     };
     if !file_type.is_dir() && is_valid_issue_file(name) {

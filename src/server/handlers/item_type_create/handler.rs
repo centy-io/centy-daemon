@@ -70,7 +70,7 @@ pub async fn create_item_type(
     }
     if let Ok(Some(mut manifest)) = read_manifest(project_path).await {
         update_manifest(&mut manifest);
-        let _ = write_manifest(project_path, &manifest).await;
+        drop(write_manifest(project_path, &manifest).await);
     }
     Ok(Response::new(CreateItemTypeResponse {
         success: true,
