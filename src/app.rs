@@ -28,15 +28,11 @@ pub struct Args {
     #[arg(long, env = "CENTY_LOG_DIR")]
     pub log_dir: Option<String>,
 }
-pub fn report_server_error(
-    addr: std::net::SocketAddr,
-    log_file: &std::path::Path,
-    e: &tonic::transport::Error,
-) {
+pub fn report_server_error(addr: std::net::SocketAddr, e: &tonic::transport::Error) {
     let err_string = format!("{e:?}");
+    eprintln!();
+    eprintln!("Error: Failed to start server: {e}");
     if err_string.contains("AddrInUse") {
-        eprintln!();
-        eprintln!("Error: Failed to start server - address {addr} is already in use");
         eprintln!();
         eprintln!("Another instance of centy-daemon may already be running.");
         eprintln!();
@@ -44,13 +40,5 @@ pub fn report_server_error(
         eprintln!("  1. Kill the existing process:   pkill centy-daemon");
         eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
         eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
-        eprintln!();
-        eprintln!("Logs: {}", log_file.display());
-        eprintln!();
     }
-    eprintln!();
-    eprintln!("Error: Failed to start server: {e}");
-    eprintln!();
-    eprintln!("Logs: {}", log_file.display());
-    eprintln!();
 }
