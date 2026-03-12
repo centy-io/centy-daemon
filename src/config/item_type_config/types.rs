@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 /// Features that can be toggled per item type.
 ///
 /// Stored as a nested object inside `config.yaml` under the `features` key.
+///
+/// Note: `softDelete` was removed — soft delete is always enabled for all item
+/// types.  Existing config files that still contain the key are silently
+/// ignored by serde (no `deny_unknown_fields`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::struct_excessive_bools)]
@@ -14,9 +18,6 @@ pub struct ItemTypeFeatures {
     /// Enable priority levels.
     #[serde(default)]
     pub priority: bool,
-    /// Enable soft-deletion (items can be deleted and restored).
-    #[serde(default)]
-    pub soft_delete: bool,
     /// Enable file attachments.
     #[serde(default)]
     pub assets: bool,

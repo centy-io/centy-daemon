@@ -71,7 +71,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
             display_number: config.features.display_number,
             status: !config.statuses.is_empty(),
             priority: config.features.priority,
-            soft_delete: config.features.soft_delete,
+            soft_delete: true, // always enabled
             assets: config.features.assets,
             org_sync: config.features.org_sync,
             r#move: config.features.move_item,

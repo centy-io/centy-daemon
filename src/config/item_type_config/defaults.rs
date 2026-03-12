@@ -34,7 +34,6 @@ pub fn default_doc_config() -> ItemTypeConfig {
         features: ItemTypeFeatures {
             display_number: false,
             priority: false,
-            soft_delete: false,
             assets: false,
             org_sync: true,
             move_item: true,

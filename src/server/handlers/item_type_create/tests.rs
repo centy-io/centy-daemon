@@ -25,7 +25,6 @@ fn test_config_to_proto_roundtrip() {
         features: ItemTypeFeatures {
             display_number: true,
             priority: true,
-            soft_delete: true,
             assets: false,
             org_sync: false,
             move_item: true,
@@ -49,7 +48,7 @@ fn test_config_to_proto_roundtrip() {
     assert!(f.display_number);
     assert!(f.status);
     assert!(f.priority);
-    assert!(f.soft_delete);
+    assert!(f.soft_delete); // always true in proto response
     assert!(!f.assets);
     assert!(f.r#move);
     assert!(f.duplicate);
