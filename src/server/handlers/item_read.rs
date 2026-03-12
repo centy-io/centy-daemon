@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::item::generic::storage::{generic_get, generic_get_by_display_number};
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_absolute_path;
 use crate::server::convert_entity::{generic_item_to_proto, user_to_generic_item_proto};
 use crate::server::proto::{GetItemRequest, GetItemResponse};
 use crate::server::structured_error::to_error_json;
@@ -11,6 +12,13 @@ use tonic::{Response, Status};
 use super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 
 pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, Status> {
+    if let Err(e) = assert_absolute_path(&req.project_path) {
+        return Ok(Response::new(GetItemResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            item: None,
+        }));
+    }
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
 
