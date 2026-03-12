@@ -15,7 +15,9 @@ pub const CSPELL_JSON_CONTENT: &str = r#"{
     "stateColors",
     "priorityColors",
     "centyVersion",
-    "schemaVersion"
+    "schemaVersion",
+    "orgSync",
+    "softDelete"
   ],
   "ignorePaths": [
     ".centy-manifest.json"

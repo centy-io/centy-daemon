@@ -294,8 +294,8 @@ async fn test_init_creates_item_type_config_yaml() {
         .await
         .expect("Should read issues/config.yaml");
     assert!(
-        issues_content.contains("displayNumber: true"),
-        "issues/config.yaml should have displayNumber: true"
+        issues_content.contains("display_number: true"),
+        "issues/config.yaml should have display_number: true"
     );
     assert!(
         !issues_content.contains("status:"),
@@ -311,8 +311,8 @@ async fn test_init_creates_item_type_config_yaml() {
         .await
         .expect("Should read docs/config.yaml");
     assert!(
-        docs_content.contains("displayNumber: false"),
-        "docs/config.yaml should have displayNumber: false"
+        docs_content.contains("display_number: false"),
+        "docs/config.yaml should have display_number: false"
     );
     assert!(
         !docs_content.contains("status:"),
@@ -820,8 +820,8 @@ async fn test_init_does_not_overwrite_existing_issues_config_yaml() {
         "name should be preserved"
     );
     assert!(
-        content.contains("displayNumber: true"),
-        "displayNumber should be preserved"
+        content.contains("display_number: true"),
+        "display_number should be preserved"
     );
     assert!(
         !content.contains("status:"),
