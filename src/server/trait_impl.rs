@@ -217,6 +217,12 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<DaemonInfo>, Status> {
         handlers::daemon::get_daemon_info(request.into_inner())
     }
+    async fn check_for_updates(
+        &self,
+        request: Request<CheckForUpdatesRequest>,
+    ) -> Result<Response<CheckForUpdatesResponse>, Status> {
+        handlers::check_for_updates::check_for_updates(request.into_inner()).await
+    }
     async fn shutdown(
         &self,
         request: Request<ShutdownRequest>,
