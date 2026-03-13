@@ -525,4 +525,10 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<SearchItemsResponse>, Status> {
         handlers::item_search::search_items(request.into_inner()).await
     }
+    async fn list_items_across_projects(
+        &self,
+        _request: Request<ListItemsAcrossProjectsRequest>,
+    ) -> Result<Response<ListItemsAcrossProjectsResponse>, Status> {
+        Err(Status::unimplemented("not yet implemented"))
+    }
 }
