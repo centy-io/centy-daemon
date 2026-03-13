@@ -20,5 +20,7 @@ const SECTION_PREFIXES: &[&str] = &["workspace."];
 #[must_use]
 pub fn is_system_key(key: &str) -> bool {
     SYSTEM_KEYS.contains(&key)
-        || SECTION_PREFIXES.iter().any(|prefix| key.starts_with(prefix))
+        || SECTION_PREFIXES
+            .iter()
+            .any(|prefix| key.starts_with(prefix))
 }
