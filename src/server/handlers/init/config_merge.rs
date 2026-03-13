@@ -43,5 +43,8 @@ pub(super) async fn apply_init_config(
             config.workspace.update_status_on_open = Some(v);
         }
     }
+    if !overrides.extra.is_empty() {
+        config.extra.extend(overrides.extra);
+    }
     write_config(project_path, &config).await
 }

@@ -21,6 +21,7 @@ fn test_all_config_fields_acknowledged_in_init() {
         hooks: _,             // ✓ exposed via InitRequest.init_config (Config.hooks)
         workspace,            // ✓ exposed via InitRequest.init_config (Config.workspace)
         cleanup: _,           // not exposed at init time; configured directly in config.json
+        extra: _,             // ✓ exposed via InitRequest.init_config (Config.user_values)
     } = CentyConfig::default();
 
     let WorkspaceConfig {

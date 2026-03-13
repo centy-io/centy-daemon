@@ -39,6 +39,7 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                 default_editor: String::new(),
                 hooks: vec![],
                 workspace: None,
+                user_values: std::collections::HashMap::new(),
             }),
         })),
         Err(e) => Ok(Response::new(GetConfigResponse {

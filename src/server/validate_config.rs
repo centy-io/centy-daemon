@@ -1,4 +1,4 @@
-use crate::config::CentyConfig;
+use crate::config::{is_system_key, CentyConfig};
 
 fn is_valid_hex_color(color: &str) -> bool {
     let Ok(re) = regex::Regex::new("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$") else {
@@ -35,6 +35,14 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
             return Err(format!(
                 "custom field '{}' is of type 'enum' but has no enum_values",
                 field.name
+            ));
+        }
+    }
+
+    for key in config.extra.keys() {
+        if is_system_key(key) {
+            return Err(format!(
+                "user_values key '{key}' conflicts with a system-managed config field"
             ));
         }
     }

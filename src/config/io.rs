@@ -1,5 +1,6 @@
 use super::migrate;
-use super::types::{CentyConfig, ProjectMetadata};
+use super::project_metadata::ProjectMetadata;
+use super::types::CentyConfig;
 use crate::utils::get_centy_path;
 use std::path::Path;
 use tokio::fs;
@@ -22,10 +23,8 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, mds
     needs_write |= !raw.as_object().is_some_and(|o| o.contains_key("hooks"));
     if let Some(obj) = raw.as_object_mut() {
         needs_write |= obj.remove("defaultState").is_some();
+        needs_write |= obj.remove("allowedStates").is_some();
     }
-    needs_write |= raw
-        .as_object()
-        .is_some_and(|o| o.contains_key("allowedStates"));
     let nested = migrate::unflatten_config(raw);
     let config: CentyConfig = serde_json::from_value(nested)?;
     if needs_write {

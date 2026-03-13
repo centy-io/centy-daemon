@@ -47,5 +47,20 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
         workspace: Some(ProtoWorkspaceConfig {
             update_status_on_open: config.workspace.update_status_on_open,
         }),
+        user_values: config
+            .extra
+            .iter()
+            .map(|(k, v)| {
+                let s = match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    serde_json::Value::Null
+                    | serde_json::Value::Bool(_)
+                    | serde_json::Value::Number(_)
+                    | serde_json::Value::Array(_)
+                    | serde_json::Value::Object(_) => v.to_string(),
+                };
+                (k.clone(), s)
+            })
+            .collect(),
     }
 }

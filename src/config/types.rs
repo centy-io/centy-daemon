@@ -63,6 +63,9 @@ pub struct CentyConfig {
     /// Cleanup / retention settings for soft-deleted artifacts
     #[serde(default)]
     pub cleanup: CleanupConfig,
+    /// User-defined free-form key-value pairs (preserved through read/write cycles)
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 impl CentyConfig {
     /// Get the effective version (config version or daemon default).
@@ -87,14 +90,7 @@ impl Default for CentyConfig {
             hooks: Vec::new(),
             workspace: WorkspaceConfig::default(),
             cleanup: CleanupConfig::default(),
+            extra: HashMap::new(),
         }
     }
-}
-/// Project metadata stored in .centy/project.json (version-controlled, shared with team)
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ProjectMetadata {
-    /// Project-scope custom title (visible to all users)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
 }

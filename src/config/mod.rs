@@ -1,14 +1,16 @@
 mod io;
 pub mod item_type_config;
 pub mod migrate;
+mod project_metadata;
+mod system_keys;
 mod types;
 pub use io::{
     get_project_title, read_config, read_project_metadata, set_project_title, write_config,
     write_project_metadata,
 };
-pub use types::{
-    default_priority_levels, CentyConfig, CleanupConfig, ProjectMetadata, WorkspaceConfig,
-};
+pub use project_metadata::ProjectMetadata;
+pub use system_keys::is_system_key;
+pub use types::{default_priority_levels, CentyConfig, CleanupConfig, WorkspaceConfig};
 #[cfg(test)]
 #[path = "config_tests_1.rs"]
 mod config_tests_1;
@@ -21,3 +23,6 @@ mod config_tests_3;
 #[cfg(test)]
 #[path = "config_tests_4.rs"]
 mod config_tests_4;
+#[cfg(test)]
+#[path = "config_tests_5.rs"]
+mod config_tests_5;

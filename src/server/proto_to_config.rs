@@ -1,4 +1,4 @@
-use crate::config::{CentyConfig, WorkspaceConfig};
+use crate::config::{is_system_key, CentyConfig, WorkspaceConfig};
 use crate::hooks::HookDefinition as InternalHookDefinition;
 use crate::server::helpers::nonempty;
 use mdstore::CustomFieldDef as InternalCustomFieldDef;
@@ -52,5 +52,11 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             })
             .unwrap_or_default(),
         cleanup: crate::config::CleanupConfig::default(),
+        extra: proto
+            .user_values
+            .iter()
+            .filter(|(k, _)| !is_system_key(k))
+            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+            .collect(),
     }
 }
