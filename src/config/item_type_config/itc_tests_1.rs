@@ -24,7 +24,6 @@ fn test_default_issue_config_maps_fields() {
     assert_eq!(issue.template, Some("template.md".to_string()));
     assert!(issue.features.display_number);
     assert!(issue.features.priority);
-    assert!(issue.features.soft_delete);
     assert!(issue.features.assets);
     assert!(issue.features.org_sync);
     assert!(issue.features.move_item);
@@ -45,7 +44,6 @@ fn test_default_doc_config() {
     assert!(doc.template.is_none());
     assert!(!doc.features.display_number);
     assert!(!doc.features.priority);
-    assert!(!doc.features.soft_delete);
     assert!(!doc.features.assets);
     assert!(doc.features.org_sync);
     assert!(doc.features.move_item);
@@ -68,7 +66,6 @@ fn test_default_archived_config() {
     assert_eq!(archived.custom_fields[0].field_type, "string");
     assert!(!archived.features.display_number);
     assert!(!archived.features.priority);
-    assert!(!archived.features.soft_delete);
     assert!(archived.features.assets);
     assert!(archived.features.org_sync);
     assert!(archived.features.move_item);
