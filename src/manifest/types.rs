@@ -6,7 +6,6 @@ pub struct CentyManifest {
     pub schema_version: u32,
     pub centy_version: String,
     pub created_at: String,
-    pub updated_at: String,
 }
 
 /// Type of managed file (file or directory)

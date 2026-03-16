@@ -38,18 +38,15 @@ pub async fn write_manifest(
 /// Create a new empty manifest
 #[must_use]
 pub fn create_manifest() -> CentyManifest {
-    let now = now_iso();
     CentyManifest {
         schema_version: 1,
         centy_version: CENTY_VERSION.to_string(),
-        created_at: now.clone(),
-        updated_at: now,
+        created_at: now_iso(),
     }
 }
 
-/// Update the manifest timestamp and version
+/// Update the manifest version
 pub fn update_manifest(manifest: &mut CentyManifest) {
-    manifest.updated_at = now_iso();
     manifest.centy_version = CENTY_VERSION.to_string();
 }
 

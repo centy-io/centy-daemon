@@ -7,7 +7,6 @@ fn test_create_manifest() {
     assert_eq!(manifest.schema_version, 1);
     assert_eq!(manifest.centy_version, CENTY_VERSION);
     assert!(!manifest.created_at.is_empty());
-    assert!(!manifest.updated_at.is_empty());
 }
 
 #[test]
@@ -16,13 +15,11 @@ fn test_update_manifest_sets_version() {
         schema_version: 1,
         centy_version: "0.0.0".to_string(),
         created_at: "2024-01-01T00:00:00Z".to_string(),
-        updated_at: "2024-01-01T00:00:00Z".to_string(),
     };
 
     update_manifest(&mut manifest);
 
     assert_eq!(manifest.centy_version, CENTY_VERSION);
-    assert_ne!(manifest.updated_at, "2024-01-01T00:00:00Z");
 }
 
 #[test]
@@ -48,7 +45,6 @@ fn test_manifest_json_uses_camel_case() {
     assert!(json.contains("schemaVersion"));
     assert!(json.contains("centyVersion"));
     assert!(json.contains("createdAt"));
-    assert!(json.contains("updatedAt"));
 
     // Should NOT contain snake_case
     assert!(!json.contains("schema_version"));

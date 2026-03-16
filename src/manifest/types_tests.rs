@@ -6,7 +6,6 @@ fn test_centy_manifest_default() {
     assert_eq!(manifest.schema_version, 0);
     assert!(manifest.centy_version.is_empty());
     assert!(manifest.created_at.is_empty());
-    assert!(manifest.updated_at.is_empty());
 }
 
 #[test]
@@ -15,7 +14,6 @@ fn test_centy_manifest_serialization() {
         schema_version: 1,
         centy_version: "0.0.1".to_string(),
         created_at: "2024-01-01T00:00:00Z".to_string(),
-        updated_at: "2024-06-15T12:00:00Z".to_string(),
     };
 
     let json = serde_json::to_string(&manifest).expect("Should serialize");
@@ -29,14 +27,12 @@ fn test_centy_manifest_camel_case_json() {
         schema_version: 1,
         centy_version: "0.0.1".to_string(),
         created_at: "2024-01-01".to_string(),
-        updated_at: "2024-01-01".to_string(),
     };
 
     let json = serde_json::to_string(&manifest).expect("Should serialize");
     assert!(json.contains("schemaVersion"));
     assert!(json.contains("centyVersion"));
     assert!(json.contains("createdAt"));
-    assert!(json.contains("updatedAt"));
     assert!(!json.contains("schema_version"));
 }
 
@@ -46,7 +42,6 @@ fn test_centy_manifest_clone() {
         schema_version: 2,
         centy_version: "1.0.0".to_string(),
         created_at: "2024-01-01".to_string(),
-        updated_at: "2024-01-01".to_string(),
     };
 
     let cloned = manifest.clone();
