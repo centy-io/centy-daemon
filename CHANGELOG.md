@@ -7,11 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] — 2026-03-16
+
+### Added
+- User-defined free-form key-value pairs to project config
+- Stub `ListItemsAcrossProjects` RPC for cross-project item queries (#354)
+- Release new version routine with automated steps
+
 ### Changed
+- Replace custom git URL parsing with `git-url-parse` crate (#266)
+- Replace git subprocess calls with `git2` crate for branch and remote operations
+- Replace inline proto definitions with git submodule
+- Replace custom duration parser with `humantime` crate (#203)
+- Replace custom `GrpcLoggingLayer` with `tower-http` `TraceLayer` (#204)
 - Upgrade mdstore to 1.0.0 with native frontmatter comment injection (#259)
+- Update worktree-io dependency to 0.15.0 (#180)
+- Remove legacy `allowedStates` from `CentyConfig` (#202)
+- Remove `defaultStatus` from item type config (#182)
+- Remove deprecated `issue_number` field and backward-compat functions
+- Remove `updatedAt` from manifest
+- Enforce 100-line file size limit for Rust source files (#177)
+- Comprehensive clippy lint campaign: deny 880+ lints including full lint groups (correctness, style, suspicious, complexity, perf) and 50+ Rust standard lints
+- Split oversized handler files into modules to comply with line limits (#324–#344)
 
 ### Fixed
 - Generic item create/update/soft-delete/restore/duplicate/move missing managed-by header (#258)
+- Skip tracking projects in ignored/temp directories (#205)
+- Remove implicit `.expect()` in main by replacing `#[tokio::main]` (#345)
+- Add submodule checkout to release workflow
 
 ## [0.8.1] — 2026-03-05
 
@@ -151,7 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidate shared fields between `IssueMetadata` and `PrMetadata`
 - Replace custom SemVer parsing with `semver` crate
 
-[Unreleased]: https://github.com/centy-io/centy-daemon/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/centy-io/centy-daemon/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/centy-io/centy-daemon/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/centy-io/centy-daemon/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/centy-io/centy-daemon/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/centy-io/centy-daemon/compare/v0.6.0...v0.7.0
