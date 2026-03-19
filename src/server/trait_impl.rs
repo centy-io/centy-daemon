@@ -317,19 +317,6 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
         handlers::workspace_temp::open_in_temp_workspace(request.into_inner()).await
     }
-    async fn open_in_temp_vscode(
-        &self,
-        request: Request<OpenInTempWorkspaceRequest>,
-    ) -> Result<Response<OpenInTempWorkspaceResponse>, Status> {
-        let r = request.into_inner();
-        handlers::workspace_temp::open_in_temp_workspace(OpenInTempWorkspaceWithEditorRequest {
-            project_path: r.project_path,
-            issue_id: r.issue_id,
-            ttl_hours: r.ttl_hours,
-            editor_id: "vscode".to_string(),
-        })
-        .await
-    }
     async fn open_in_temp_terminal(
         &self,
         request: Request<OpenInTempWorkspaceRequest>,
@@ -366,22 +353,6 @@ impl CentyDaemon for CentyDaemonService {
         request: Request<OpenStandaloneWorkspaceWithEditorRequest>,
     ) -> Result<Response<OpenStandaloneWorkspaceResponse>, Status> {
         handlers::workspace_standalone::open_standalone_workspace(request.into_inner()).await
-    }
-    async fn open_standalone_workspace_vscode(
-        &self,
-        request: Request<OpenStandaloneWorkspaceRequest>,
-    ) -> Result<Response<OpenStandaloneWorkspaceResponse>, Status> {
-        let r = request.into_inner();
-        handlers::workspace_standalone::open_standalone_workspace(
-            OpenStandaloneWorkspaceWithEditorRequest {
-                project_path: r.project_path,
-                name: r.name,
-                description: r.description,
-                ttl_hours: r.ttl_hours,
-                editor_id: String::new(),
-            },
-        )
-        .await
     }
     async fn open_standalone_workspace_terminal(
         &self,

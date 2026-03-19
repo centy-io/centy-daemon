@@ -7,40 +7,43 @@ use crate::server::structured_error::StructuredError;
 use crate::workspace::remove_workspace;
 use tonic::{Response, Status};
 
+const TERMINAL_ALIASES: &[&str] = &[
+    "terminal", "iterm", "iterm2", "warp", "ghostty", "alacritty", "kitty", "wezterm", "tmux",
+    "wt",
+];
+
 pub fn get_supported_editors(
     _req: GetSupportedEditorsRequest,
 ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
-    let vscode_available = which::which("code").is_ok();
-    let terminal_available = terminal_available();
-    Ok(Response::new(GetSupportedEditorsResponse {
-        editors: vec![
-            EditorInfo {
-                editor_type: EditorType::Vscode as i32,
-                name: "VS Code".to_string(),
-                description: "Open in Visual Studio Code".to_string(),
-                available: vscode_available,
-                editor_id: "vscode".to_string(),
-                terminal_wrapper: false,
-            },
-            EditorInfo {
-                editor_type: EditorType::Terminal as i32,
-                name: "Terminal".to_string(),
-                description: "Open in Terminal".to_string(),
-                available: terminal_available,
-                editor_id: "terminal".to_string(),
-                terminal_wrapper: true,
-            },
-        ],
-    }))
-}
+    use std::collections::HashSet;
+    use worktree_io::opener::{detect::available_entries, entries::all_entries};
 
-fn terminal_available() -> bool {
-    #[cfg(target_os = "linux")]
-    return which::which("gnome-terminal").is_ok()
-        || which::which("konsole").is_ok()
-        || which::which("xterm").is_ok();
-    #[cfg(not(target_os = "linux"))]
-    return true;
+    let available: HashSet<&str> = available_entries()
+        .iter()
+        .filter_map(|e| e.aliases.first().copied())
+        .collect();
+
+    let editors = all_entries()
+        .into_iter()
+        .filter_map(|e| {
+            let primary = e.aliases.first().copied()?;
+            let is_terminal = e.aliases.iter().any(|&a| TERMINAL_ALIASES.contains(&a));
+            Some(EditorInfo {
+                editor_type: if is_terminal {
+                    EditorType::Terminal as i32
+                } else {
+                    EditorType::Unspecified as i32
+                },
+                name: e.display.to_string(),
+                description: format!("Open in {}", e.display),
+                available: available.contains(primary),
+                editor_id: primary.to_string(),
+                terminal_wrapper: is_terminal,
+            })
+        })
+        .collect();
+
+    Ok(Response::new(GetSupportedEditorsResponse { editors }))
 }
 
 /// Returns an empty list — workspace tracking is now handled by git worktree state.

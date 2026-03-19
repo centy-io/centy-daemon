@@ -53,7 +53,6 @@ pub async fn get_entity_actions(
             build_issue_actions(
                 entity_status.as_ref(),
                 &statuses,
-                which::which("code").is_ok(),
                 terminal_available(),
                 has_entity_id,
             )

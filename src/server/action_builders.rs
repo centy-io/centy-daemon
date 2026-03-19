@@ -1,21 +1,6 @@
 use super::actions::{make_action, make_status_action};
 use super::proto::{ActionCategory, EntityAction};
 
-fn build_vscode_action(vscode_available: bool) -> EntityAction {
-    EntityAction {
-        id: "open_in_vscode".to_string(),
-        label: "Open in VSCode".to_string(),
-        category: ActionCategory::External as i32,
-        enabled: vscode_available,
-        disabled_reason: if vscode_available {
-            String::new()
-        } else {
-            "VSCode not available".to_string()
-        },
-        destructive: false,
-        keyboard_shortcut: "o".to_string(),
-    }
-}
 fn build_terminal_action(terminal_available: bool) -> EntityAction {
     EntityAction {
         id: "open_in_terminal".to_string(),
@@ -35,7 +20,6 @@ fn build_terminal_action(terminal_available: bool) -> EntityAction {
 pub fn build_issue_actions(
     entity_status: Option<&String>,
     statuses: &[String],
-    vscode_available: bool,
     terminal_available: bool,
     has_entity_id: bool,
 ) -> Vec<EntityAction> {
@@ -83,7 +67,6 @@ pub fn build_issue_actions(
         for state in statuses {
             actions.push(make_status_action(state, entity_status, false));
         }
-        actions.push(build_vscode_action(vscode_available));
         actions.push(build_terminal_action(terminal_available));
     }
     actions
