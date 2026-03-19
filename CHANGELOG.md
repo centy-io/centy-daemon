@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-03-19
+
+### Changed
+- Update worktree-io dependency to 0.17.1
+
 ## [0.8.2] — 2026-03-16
 
 ### Added
