@@ -302,7 +302,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "walkdir",
- "which",
+ "which 6.0.3",
  "worktree-io",
 ]
 
@@ -2849,6 +2849,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "which"
+version = "8.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81995fafaaaf6ae47a7d0cc83c67caf92aeb7e5331650ae6ff856f7c0c60c459"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "winapi-util"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3252,9 +3261,9 @@ dependencies = [
 
 [[package]]
 name = "worktree-io"
-version = "0.17.1"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd6c8dbb0dd5a1977d0260789a1d4ceb8475edf56f5ee3ff450950e973f3dfb4"
+checksum = "acff1539e69c589420f7dee4ab8ad36317a90fb3b78e84b99bbd63c453ab5e80"
 dependencies = [
  "anyhow",
  "clap",
@@ -3265,6 +3274,7 @@ dependencies = [
  "toml 1.0.3+spec-1.1.0",
  "url",
  "uuid",
+ "which 8.0.2",
 ]
 
 [[package]]
