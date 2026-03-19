@@ -65,7 +65,10 @@ pub(super) fn open_editor_with_hooks(
         || opener::open_in_editor(path, &cmd, true).is_ok(),
         |script| {
             let rendered = hook_ctx.render(script);
-            if matches!(opener::open_with_hook(path, &cmd, &rendered, true), Ok(true)) {
+            if matches!(
+                opener::open_with_hook(path, &cmd, &rendered, true),
+                Ok(true)
+            ) {
                 true
             } else {
                 drop(run_hook(script, &hook_ctx));
