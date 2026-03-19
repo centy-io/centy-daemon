@@ -8,7 +8,15 @@ use crate::workspace::remove_workspace;
 use tonic::{Response, Status};
 
 const TERMINAL_ALIASES: &[&str] = &[
-    "terminal", "iterm", "iterm2", "warp", "ghostty", "alacritty", "kitty", "wezterm", "tmux",
+    "terminal",
+    "iterm",
+    "iterm2",
+    "warp",
+    "ghostty",
+    "alacritty",
+    "kitty",
+    "wezterm",
+    "tmux",
     "wt",
 ];
 
