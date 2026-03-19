@@ -11,7 +11,7 @@ categories = ["development-tools", "database-implementations"]
 
 [dependencies]
 # Git worktree workspace management
-worktree-io = "0.15.0"
+worktree-io = "0.17.1"
 
 # Git native bindings
 git2 = "0.19"
