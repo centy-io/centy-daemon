@@ -1,5 +1,5 @@
 use crate::server::proto::{
-    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, EditorInfo, EditorType,
+    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, EditorInfo,
     GetSupportedEditorsRequest, GetSupportedEditorsResponse, ListTempWorkspacesRequest,
     ListTempWorkspacesResponse,
 };
@@ -37,11 +37,6 @@ pub fn get_supported_editors(
             let primary = e.aliases.first().copied()?;
             let is_terminal = e.aliases.iter().any(|&a| TERMINAL_ALIASES.contains(&a));
             Some(EditorInfo {
-                editor_type: if is_terminal {
-                    EditorType::Terminal as i32
-                } else {
-                    EditorType::Unspecified as i32
-                },
                 name: e.display.to_string(),
                 description: format!("Open in {}", e.display),
                 available: available.contains(primary),
