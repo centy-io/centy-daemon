@@ -1,7 +1,6 @@
 use crate::server::proto::{
-    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, EditorInfo,
-    GetSupportedEditorsRequest, GetSupportedEditorsResponse, ListTempWorkspacesRequest,
-    ListTempWorkspacesResponse,
+    CloseTempWorkspaceRequest, CloseTempWorkspaceResponse, EditorInfo, GetSupportedEditorsRequest,
+    GetSupportedEditorsResponse, ListTempWorkspacesRequest, ListTempWorkspacesResponse,
 };
 use crate::server::structured_error::StructuredError;
 use crate::workspace::remove_workspace;
