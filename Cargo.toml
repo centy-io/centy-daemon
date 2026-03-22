@@ -14,7 +14,7 @@ categories = ["development-tools", "database-implementations"]
 worktree-io = "0.17.4"
 
 # Git native bindings
-git2 = "0.19"
+git2 = { version = "0.19", features = ["vendored-openssl"] }
 
 # Git URL parsing
 git-url-parse = "0.6"
