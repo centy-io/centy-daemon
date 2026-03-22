@@ -4,7 +4,7 @@ set -e
 # Spell check on staged files (soft fail if cspell unavailable)
 if command -v cspell >/dev/null 2>&1; then
     echo "Running cspell on staged files..."
-    STAGED_FILES=$(git diff --cached --name-only --diff-filter=d)
+    STAGED_FILES=$(git diff --cached --name-only --diff-filter=d | grep -E '\.(rs|md|toml|yml|yaml|json|ts|js|sh|txt)$' || true)
     if [ -n "$STAGED_FILES" ]; then
         echo "$STAGED_FILES" | xargs cspell --no-progress
     fi
