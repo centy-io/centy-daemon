@@ -23,7 +23,7 @@ pub fn get_supported_editors(
     _req: GetSupportedEditorsRequest,
 ) -> Result<Response<GetSupportedEditorsResponse>, Status> {
     use std::collections::HashSet;
-    use worktree_io::opener::{detect::available_entries, entries::all_entries};
+    use worktree_io::opener::{available_entries::available_entries, entries::all_entries};
 
     let available: HashSet<&str> = available_entries()
         .iter()

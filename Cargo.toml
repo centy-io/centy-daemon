@@ -1,6 +1,6 @@
 [package]
 name = "centy-daemon"
-version = "0.8.3"
+version = "0.8.4"
 edition = "2021"
 description = "A file-based database engine that stores structured data as Markdown files with YAML frontmatter, exposed via gRPC"
 authors = ["Centy Team"]
@@ -11,7 +11,7 @@ categories = ["development-tools", "database-implementations"]
 
 [dependencies]
 # Git worktree workspace management
-worktree-io = "0.17.2"
+worktree-io = "0.17.4"
 
 # Git native bindings
 git2 = "0.19"
