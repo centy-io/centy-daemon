@@ -1,6 +1,24 @@
 use super::*;
 
 #[test]
+fn test_merge_json_content_case_insensitive_sort() {
+    let existing = r#"{"version": "0.2", "language": "en", "words": ["Zebra", "apple", "Mango"]}"#;
+    let template = r#"{"version": "0.2", "language": "en", "words": ["centy", "Beta"]}"#;
+
+    let result = merge_json_content(existing, template).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+    let words: Vec<&str> = parsed["words"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    // Case-insensitive: apple, Beta, centy, Mango, Zebra
+    assert_eq!(words, vec!["apple", "Beta", "centy", "Mango", "Zebra"]);
+}
+
+#[test]
 fn test_merge_json_content_sorted_output() {
     let existing = r#"{"version": "0.2", "language": "en", "words": ["zebra", "apple"]}"#;
     let template = r#"{"version": "0.2", "language": "en", "words": ["mango", "centy"]}"#;

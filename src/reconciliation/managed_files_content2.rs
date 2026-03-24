@@ -6,16 +6,16 @@ pub const CSPELL_JSON_CONTENT: &str = r#"{
   "version": "0.2",
   "language": "en",
   "words": [
-    "centy",
-    "displayNumber",
-    "createdAt",
-    "updatedAt",
-    "priorityLevels",
     "allowedStates",
-    "stateColors",
-    "priorityColors",
+    "centy",
     "centyVersion",
-    "schemaVersion"
+    "createdAt",
+    "displayNumber",
+    "priorityColors",
+    "priorityLevels",
+    "schemaVersion",
+    "stateColors",
+    "updatedAt"
   ],
   "ignorePaths": [
     ".centy-manifest.json"
