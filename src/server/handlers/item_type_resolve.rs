@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_archived_config, default_issue_config, read_item_type_config, ItemTypeRegistry,
+    default_archived_config, default_comment_config, default_issue_config, read_item_type_config,
+    ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
@@ -55,6 +56,10 @@ pub async fn resolve_item_type_config(
         "archived" | "archive" => Ok((
             "archived".to_string(),
             TypeConfig::from(&default_archived_config()),
+        )),
+        "comments" | "comment" => Ok((
+            "comments".to_string(),
+            TypeConfig::from(&default_comment_config()),
         )),
         _ => Err(ItemError::ItemTypeNotFound(item_type.to_string())),
     }

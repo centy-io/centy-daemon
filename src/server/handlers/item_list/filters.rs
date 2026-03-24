@@ -1,4 +1,32 @@
 use mdstore::Filters;
+use std::collections::HashMap;
+
+/// Extract `customFields` constraints from a JSON-encoded MQL query string.
+///
+/// Returns a map of field name → required string value.
+/// Only exact-match (`{"customFields": {"field": "value"}}`) is supported.
+pub(super) fn parse_custom_field_filters(filter_json: &str) -> HashMap<String, String> {
+    let mut result = HashMap::new();
+    if filter_json.is_empty() {
+        return result;
+    }
+    let Ok(doc) = serde_json::from_str::<serde_json::Value>(filter_json) else {
+        return result;
+    };
+    let Some(obj) = doc.as_object() else {
+        return result;
+    };
+    let Some(cf) = obj.get("customFields").and_then(|v| v.as_object()) else {
+        return result;
+    };
+    for (field, value) in cf {
+        if let Some(s) = value.as_str() {
+            result.insert(field.clone(), s.to_string());
+        }
+    }
+    result
+}
+
 /// Build a `Filters` from a JSON-encoded MQL query string and pagination params.
 pub(super) fn build_filters_from_mql(filter_json: &str, limit: u32, offset: u32) -> Filters {
     let mut filters = Filters::new();

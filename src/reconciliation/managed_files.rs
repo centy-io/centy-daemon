@@ -53,6 +53,7 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     dir(&mut files, "issues/");
     dir(&mut files, "docs/");
     dir(&mut files, "archived/");
+    dir(&mut files, "comments/");
     dir(&mut files, "assets/");
     dir(&mut files, "templates/");
     dir(&mut files, "templates/issues/");
