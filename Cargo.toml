@@ -20,7 +20,7 @@ git2 = { version = "0.19", features = ["vendored-openssl"] }
 git-url-parse = "0.6"
 
 # Storage engine
-mdstore = { path = "../mdstore" }
+mdstore = "1.1.0"
 
 # gRPC
 tonic = "0.12"
