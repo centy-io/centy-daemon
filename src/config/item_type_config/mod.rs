@@ -6,7 +6,7 @@ mod registry;
 mod types;
 
 pub use convert::{default_archived_config, default_issue_config};
-pub use defaults::{default_doc_config, validate_item_type_config};
+pub use defaults::{default_comment_config, default_doc_config, validate_item_type_config};
 pub use io::{
     discover_item_types, discover_item_types_map, read_item_type_config,
     read_legacy_allowed_states, write_item_type_config,

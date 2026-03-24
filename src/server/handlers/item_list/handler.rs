@@ -1,5 +1,5 @@
 use super::super::item_type_resolve::resolve_item_type_config;
-use super::filters::build_filters_from_mql;
+use super::filters::{build_filters_from_mql, parse_custom_field_filters};
 use crate::item::generic::storage::generic_list;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
@@ -30,13 +30,25 @@ pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsRespo
         }
     };
     let filters = build_filters_from_mql(&req.filter, req.limit, req.offset);
+    let custom_field_filters = parse_custom_field_filters(&req.filter);
     match generic_list(project_path, &item_type, filters).await {
-        Ok(items) => {
-            let total_count = items.len().try_into().unwrap_or(i32::MAX);
+        Ok(mut all_items) => {
+            if !custom_field_filters.is_empty() {
+                all_items.retain(|item| {
+                    custom_field_filters.iter().all(|(field, value)| {
+                        item.frontmatter
+                            .custom_fields
+                            .get(field)
+                            .and_then(|v| v.as_str())
+                            == Some(value.as_str())
+                    })
+                });
+            }
+            let total_count = all_items.len().try_into().unwrap_or(i32::MAX);
             Ok(Response::new(ListItemsResponse {
                 success: true,
                 error: String::new(),
-                items: items
+                items: all_items
                     .iter()
                     .map(|item| generic_item_to_proto(item, &item_type))
                     .collect(),

@@ -1,6 +1,6 @@
 //! Migration helpers for item type configs.
 use super::convert::{default_archived_config, default_issue_config};
-use super::defaults::default_doc_config;
+use super::defaults::{default_comment_config, default_doc_config};
 use super::io::{read_item_type_config, write_item_type_config};
 use crate::config::CentyConfig;
 use std::path::Path;
@@ -60,6 +60,13 @@ pub async fn migrate_to_item_type_configs(
         let archived_config = default_archived_config();
         write_item_type_config(project_path, "archived", &archived_config).await?;
         created.push("archived/config.yaml".to_string());
+    }
+    // Comments
+    let comments_config_path = centy_path.join("comments").join("config.yaml");
+    if !comments_config_path.exists() {
+        let comment_config = default_comment_config();
+        write_item_type_config(project_path, "comments", &comment_config).await?;
+        created.push("comments/config.yaml".to_string());
     }
     Ok(created)
 }

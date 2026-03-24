@@ -4,8 +4,8 @@ use super::*;
 fn test_get_managed_files_count() {
     let files = get_managed_files();
 
-    // 7 directories + 5 files = 12 total
-    assert_eq!(files.len(), 12);
+    // 8 directories + 5 files = 13 total
+    assert_eq!(files.len(), 13);
 }
 
 #[test]
