@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-03-24
+
+### Added
+- Tags support for all item types with MQL `$in`/`$all` filter operators (#357)
+
+### Changed
+- Switch mdstore to published 1.1.0
+
+## [0.8.4] — 2026-03-24
+
+### Added
+- Comments as a built-in item type with `item_id`/`item_type`/`author` custom fields (#356)
+- MQL `customFields` filter for post-retrieval filtering by custom field value
+
+### Changed
+- Remove deprecated `EditorType` enum and `editor_type` field from workspace RPCs
+- Update worktree-io dependency to 0.17.4
+
+### Fixed
+- Vendor OpenSSL in git2 to fix CI builds on Linux/macOS cross-compilation
+- Prevent cspell from failing on lock files and non-text staged files
+
 ## [0.8.3] — 2026-03-19
 
 ### Changed
@@ -179,7 +201,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidate shared fields between `IssueMetadata` and `PrMetadata`
 - Replace custom SemVer parsing with `semver` crate
 
-[Unreleased]: https://github.com/centy-io/centy-daemon/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/centy-io/centy-daemon/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/centy-io/centy-daemon/compare/v0.8.4...v0.9.0
+[0.8.4]: https://github.com/centy-io/centy-daemon/compare/v0.8.3...v0.8.4
+[0.8.3]: https://github.com/centy-io/centy-daemon/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/centy-io/centy-daemon/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/centy-io/centy-daemon/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/centy-io/centy-daemon/compare/v0.7.0...v0.8.0
