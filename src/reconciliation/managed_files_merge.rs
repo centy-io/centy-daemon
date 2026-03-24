@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 /// Merge existing JSON with template using `JsonArrayMerge` strategy.
 pub fn merge_json_content(
     existing_content: &str,
@@ -24,7 +23,7 @@ pub fn merge_json_content(
         }
     }
     for key in &["words", "ignorePaths"] {
-        let mut merged: BTreeSet<String> = BTreeSet::new();
+        let mut merged: std::collections::HashSet<String> = std::collections::HashSet::new();
         if let Some(serde_json::Value::Array(arr)) = existing_obj.get(*key) {
             for item in arr {
                 if let Some(s) = item.as_str() {
@@ -40,9 +39,11 @@ pub fn merge_json_content(
             }
         }
         if !merged.is_empty() {
-            let sorted: Vec<serde_json::Value> =
-                merged.into_iter().map(serde_json::Value::String).collect();
-            existing_obj.insert((*key).to_string(), serde_json::Value::Array(sorted));
+            let mut words: Vec<String> = merged.into_iter().collect();
+            words.sort_by_key(|w| w.to_lowercase());
+            let json_words: Vec<serde_json::Value> =
+                words.into_iter().map(serde_json::Value::String).collect();
+            existing_obj.insert((*key).to_string(), serde_json::Value::Array(json_words));
         }
     }
     let mut output = serde_json::to_string_pretty(&existing)?;

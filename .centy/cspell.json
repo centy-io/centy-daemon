@@ -5,12 +5,8 @@
   "language": "en",
   "version": "0.2",
   "words": [
-    "Centralising",
-    "Meili",
-    "Microtask",
-    "Sigstore",
-    "Typesense",
     "allowedStates",
+    "Centralising",
     "centy",
     "centyVersion",
     "citty",
@@ -18,17 +14,21 @@
     "displayNumber",
     "frontmatter",
     "luxon",
+    "Meili",
+    "Microtask",
     "papaparse",
     "priorityColors",
     "priorityLevels",
     "pyproject",
     "schemaVersion",
     "scrutinee",
+    "Sigstore",
     "smol",
     "stateColors",
+    "Typesense",
     "unarchived",
     "untracks",
-    "updateStatusOnStart",
-    "updatedAt"
+    "updatedAt",
+    "updateStatusOnStart"
   ]
 }
