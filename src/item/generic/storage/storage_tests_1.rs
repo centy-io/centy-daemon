@@ -33,6 +33,7 @@ async fn test_create_and_get() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -61,6 +62,7 @@ async fn test_create_minimal_features() {
         id: None,
         status: None,
         priority: None,
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -83,6 +85,7 @@ async fn test_create_slug_id_strategy() {
         id: None,
         status: None,
         priority: None,
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -102,6 +105,7 @@ async fn test_create_invalid_status() {
         id: None,
         status: Some("nonexistent".to_string()),
         priority: None,
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };

@@ -60,6 +60,7 @@ pub(super) fn build_options(
     body: String,
     status: Option<String>,
     priority: Option<u32>,
+    tags: Vec<String>,
     custom_fields_raw: HashMap<String, String>,
 ) -> CreateOptions {
     let custom_fields = custom_fields_raw
@@ -75,6 +76,7 @@ pub(super) fn build_options(
         id: None,
         status,
         priority,
+        tags: if tags.is_empty() { None } else { Some(tags) },
         custom_fields,
         comment: Some(CENTY_HEADER_YAML.to_string()),
     }

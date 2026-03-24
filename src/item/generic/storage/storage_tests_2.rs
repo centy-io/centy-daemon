@@ -22,6 +22,7 @@ async fn test_create_invalid_priority() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(99),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -45,6 +46,7 @@ async fn test_list_with_filters() {
             id: None,
             status: Some(status.to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -80,6 +82,7 @@ async fn test_update() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -91,6 +94,7 @@ async fn test_update() {
         body: Some("Updated body.".to_string()),
         status: Some("closed".to_string()),
         priority: Some(1),
+        tags: None,
         custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
         comment: None,
     };

@@ -70,6 +70,7 @@ async fn create_issue(project_path: &std::path::Path, title: &str) -> mdstore::I
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };

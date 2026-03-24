@@ -13,6 +13,8 @@ pub(super) fn build_update_options(
     body: String,
     status: String,
     priority: i32,
+    tags: Vec<String>,
+    clear_tags: bool,
     raw_fields: HashMap<String, String>,
 ) -> UpdateOptions {
     let custom_fields = raw_fields
@@ -22,11 +24,19 @@ pub(super) fn build_update_options(
             (k, val)
         })
         .collect();
+    let resolved_tags = if clear_tags {
+        Some(vec![])
+    } else if tags.is_empty() {
+        None
+    } else {
+        Some(tags)
+    };
     UpdateOptions {
         title: nonempty(title),
         body: nonempty(body),
         status: nonempty(status),
         priority: nonzero_u32(priority),
+        tags: resolved_tags,
         custom_fields,
         comment: None,
     }

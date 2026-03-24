@@ -22,6 +22,7 @@ async fn test_soft_delete_and_restore() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -60,6 +61,7 @@ async fn test_hard_delete() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -84,6 +86,7 @@ async fn test_display_number_auto_increment() {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -104,6 +107,7 @@ async fn test_update_preserves_fields() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(1),
+        tags: None,
         custom_fields: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
         comment: None,
     };

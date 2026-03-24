@@ -117,6 +117,7 @@ async fn test_create_item_with_custom_type() {
         body: "Bug description".to_string(),
         status: "open".to_string(),
         priority: 1,
+        tags: vec![],
         custom_fields: HashMap::new(),
     })
     .await

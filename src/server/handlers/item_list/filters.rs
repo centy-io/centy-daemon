@@ -60,10 +60,43 @@ pub(super) fn build_filters_from_mql(filter_json: &str, limit: u32, offset: u32)
                     }
                 }
             }
+            "tags" => {
+                filters = apply_tags_condition(filters, condition);
+            }
             _ => {}
         }
     }
     filters
+}
+fn apply_tags_condition(filters: Filters, condition: &serde_json::Value) -> Filters {
+    match condition {
+        serde_json::Value::String(s) => filters.with_tags_any(vec![s.clone()]),
+        serde_json::Value::Object(ops) => {
+            if let Some(arr) = ops.get("$in").and_then(|v| v.as_array()) {
+                let tags: Vec<String> = arr
+                    .iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect();
+                if !tags.is_empty() {
+                    return filters.with_tags_any(tags);
+                }
+            }
+            if let Some(arr) = ops.get("$all").and_then(|v| v.as_array()) {
+                let tags: Vec<String> = arr
+                    .iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect();
+                if !tags.is_empty() {
+                    return filters.with_tags_all(tags);
+                }
+            }
+            filters
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::Array(_) => filters,
+    }
 }
 fn apply_status_condition(filters: Filters, condition: &serde_json::Value) -> Filters {
     match condition {

@@ -33,6 +33,7 @@ async fn test_cannot_update_deleted_item() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -68,6 +69,7 @@ async fn test_already_exists() {
         id: None,
         status: None,
         priority: None,
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -106,6 +108,7 @@ async fn test_get_by_display_number_success() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -119,6 +122,7 @@ async fn test_get_by_display_number_success() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(1),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };
@@ -143,6 +147,7 @@ async fn test_get_by_display_number_not_found() {
         id: None,
         status: Some("open".to_string()),
         priority: Some(2),
+        tags: None,
         custom_fields: HashMap::new(),
         comment: None,
     };

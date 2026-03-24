@@ -49,6 +49,7 @@ fn create_req(
         body: body.to_string(),
         status: status.to_string(),
         priority,
+        tags: vec![],
         custom_fields,
     }
 }
@@ -267,6 +268,8 @@ async fn test_update_item() {
         body: "Updated body".to_string(),
         status: "closed".to_string(),
         priority: 1,
+        tags: vec![],
+        clear_tags: false,
         custom_fields: HashMap::new(),
     })
     .await
