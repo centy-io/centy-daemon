@@ -3,7 +3,6 @@ name: Routine
 identifier: slug
 features:
   displayNumber: false
-  status: false
   priority: false
   softDelete: false
   assets: false
@@ -13,4 +12,3 @@ features:
 statuses:
 - active
 - completed
-defaultStatus: active

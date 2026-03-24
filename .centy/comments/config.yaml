@@ -1,6 +1,7 @@
 # This file is managed by Centy. Use the Centy CLI to modify it.
-name: story
-identifier: slug
+name: Comment
+icon: chat-bubble
+identifier: uuid
 features:
   displayNumber: false
   priority: false
@@ -9,14 +10,13 @@ features:
   orgSync: false
   move: false
   duplicate: false
-statuses:
-- draft
-- ready
-- done
 customFields:
-- name: persona
+- name: item_id
   type: string
   required: false
-- name: acceptance-criteria
+- name: item_type
+  type: string
+  required: false
+- name: author
   type: string
   required: false

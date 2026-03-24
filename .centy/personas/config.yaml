@@ -1,9 +1,10 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
 name: persona
 identifier: slug
 features:
   displayNumber: false
-  status: false
   priority: false
+  softDelete: false
   assets: false
   orgSync: false
   move: false
@@ -11,7 +12,6 @@ features:
 statuses:
 - active
 - archived
-defaultStatus: active
 customFields:
 - name: role
   type: string

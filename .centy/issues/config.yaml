@@ -1,19 +1,19 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
 name: Issue
 identifier: uuid
 features:
   displayNumber: true
-  status: true
   priority: true
+  softDelete: false
   assets: true
   orgSync: true
   move: true
   duplicate: true
 statuses:
-  - open
-  - in-progress
-  - closed
-  - testing
-  - to-check-if-needed
-  - For QA
-defaultStatus: open
+- open
+- in-progress
+- closed
+- testing
+- to-check-if-needed
+- For QA
 priorityLevels: 3

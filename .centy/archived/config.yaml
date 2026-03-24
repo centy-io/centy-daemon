@@ -1,22 +1,15 @@
 # This file is managed by Centy. Use the Centy CLI to modify it.
-name: story
-identifier: slug
+name: Archived
+identifier: uuid
 features:
   displayNumber: false
   priority: false
   softDelete: false
-  assets: false
-  orgSync: false
-  move: false
+  assets: true
+  orgSync: true
+  move: true
   duplicate: false
-statuses:
-- draft
-- ready
-- done
 customFields:
-- name: persona
-  type: string
-  required: false
-- name: acceptance-criteria
+- name: original_item_type
   type: string
   required: false

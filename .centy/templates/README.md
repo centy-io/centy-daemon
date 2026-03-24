@@ -1,3 +1,4 @@
+<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
 # Templates
 
 This folder contains templates for creating issues and docs using [Handlebars](https://handlebarsjs.com/) syntax.
@@ -32,50 +33,24 @@ To use a template, specify the `template` parameter when creating an issue or do
 
 ## Handlebars Features
 
-Templates support full Handlebars syntax:
+Templates support full Handlebars syntax, including:
 
 ### Conditionals
-```handlebars
+
+Use `{{#if field}}` to conditionally include content:
+
+```
 {{#if description}}
-## Description
-{{description}}
+**Description:** {{description}}
 {{/if}}
 ```
 
 ### Loops
-```handlebars
-{{#each custom_fields}}
-- **{{@key}}:** {{this}}
-{{/each}}
+
+Use `{{#each items}}` to iterate over lists:
+
 ```
-
-## Example Templates
-
-### Issue Template (`templates/issues/bug-report.md`)
-```handlebars
-# Bug: {{title}}
-
-**Priority:** {{priority_label}} | **Status:** {{status}}
-
-## Description
-{{description}}
-
-{{#if custom_fields}}
-## Additional Info
 {{#each custom_fields}}
 - {{@key}}: {{this}}
 {{/each}}
-{{/if}}
-```
-
-### Doc Template (`templates/docs/api.md`)
-```handlebars
----
-title: "{{title}}"
-slug: "{{slug}}"
----
-
-# API: {{title}}
-
-{{content}}
 ```
