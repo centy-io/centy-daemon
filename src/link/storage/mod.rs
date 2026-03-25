@@ -9,14 +9,14 @@ pub use links_file::LINKS_FILENAME;
 #[cfg(test)]
 pub use tokio::fs;
 #[cfg(test)]
-#[path = "../storage_tests_1.rs"]
-mod storage_tests_1;
+#[path = "../links_file_basic_operations.rs"]
+mod links_file_basic_operations;
 #[cfg(test)]
-#[path = "../storage_tests_2.rs"]
-mod storage_tests_2;
+#[path = "../links_file_edge_cases.rs"]
+mod links_file_edge_cases;
 #[cfg(test)]
-#[path = "../storage_tests_3.rs"]
-mod storage_tests_3;
+#[path = "../links_file_multiple_links.rs"]
+mod links_file_multiple_links;
 #[cfg(test)]
-#[path = "../storage_tests_4.rs"]
-mod storage_tests_4;
+#[path = "../links_file_persistence.rs"]
+mod links_file_persistence;

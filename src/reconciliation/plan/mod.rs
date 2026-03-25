@@ -90,8 +90,8 @@ async fn add_user_files(
     }
 }
 #[cfg(test)]
+#[path = "../plan_building.rs"]
+mod plan_building;
+#[cfg(test)]
 #[path = "../plan_tests.rs"]
 mod tests;
-#[cfg(test)]
-#[path = "../plan_tests_2.rs"]
-mod tests2;

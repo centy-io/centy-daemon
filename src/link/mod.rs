@@ -16,11 +16,11 @@ pub use storage::{read_links, write_links, LinksFile};
 pub use types::{CustomLinkTypeDefinition, Link, TargetType};
 
 #[cfg(test)]
-#[path = "link_tests_1.rs"]
-mod tests_1;
+#[path = "link_creation_and_serialization.rs"]
+mod link_creation_and_serialization;
 #[cfg(test)]
-#[path = "link_tests_2.rs"]
-mod tests_2;
+#[path = "target_type_conversion.rs"]
+mod target_type_conversion;
 #[cfg(test)]
-#[path = "link_tests_3.rs"]
-mod tests_3;
+#[path = "target_type_serialization.rs"]
+mod target_type_serialization;

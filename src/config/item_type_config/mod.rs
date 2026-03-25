@@ -16,32 +16,32 @@ pub use registry::ItemTypeRegistry;
 pub use types::{ItemTypeConfig, ItemTypeFeatures};
 
 #[cfg(test)]
-#[path = "itc_tests_1.rs"]
-mod itc_tests_1;
+#[path = "default_issue_config.rs"]
+mod default_issue_config;
 #[cfg(test)]
-#[path = "itc_tests_10.rs"]
-mod itc_tests_10;
+#[path = "item_type_config_field_validation.rs"]
+mod item_type_config_field_validation;
 #[cfg(test)]
-#[path = "itc_tests_2.rs"]
-mod itc_tests_2;
+#[path = "item_type_config_migration.rs"]
+mod item_type_config_migration;
 #[cfg(test)]
-#[path = "itc_tests_3.rs"]
-mod itc_tests_3;
+#[path = "item_type_config_validation.rs"]
+mod item_type_config_validation;
 #[cfg(test)]
-#[path = "itc_tests_4.rs"]
-mod itc_tests_4;
+#[path = "item_type_config_yaml_serialization.rs"]
+mod item_type_config_yaml_serialization;
 #[cfg(test)]
-#[path = "itc_tests_5.rs"]
-mod itc_tests_5;
+#[path = "item_type_registry_build.rs"]
+mod item_type_registry_build;
 #[cfg(test)]
-#[path = "itc_tests_6.rs"]
-mod itc_tests_6;
+#[path = "item_type_registry_error_handling.rs"]
+mod item_type_registry_error_handling;
 #[cfg(test)]
-#[path = "itc_tests_7.rs"]
-mod itc_tests_7;
+#[path = "item_type_registry_lookup.rs"]
+mod item_type_registry_lookup;
 #[cfg(test)]
-#[path = "itc_tests_8.rs"]
-mod itc_tests_8;
+#[path = "item_type_registry_resolve.rs"]
+mod item_type_registry_resolve;
 #[cfg(test)]
-#[path = "itc_tests_9.rs"]
-mod itc_tests_9;
+#[path = "type_config_conversion.rs"]
+mod type_config_conversion;

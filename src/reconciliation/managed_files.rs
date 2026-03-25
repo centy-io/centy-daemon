@@ -2,12 +2,14 @@ use crate::manifest::ManagedFileType;
 use std::collections::HashMap;
 #[path = "managed_files_content.rs"]
 mod managed_files_content;
-#[path = "managed_files_content2.rs"]
-mod managed_files_content2;
+#[path = "managed_files_content_alt.rs"]
+mod managed_files_content_alt;
 #[path = "managed_files_merge.rs"]
 mod managed_files_merge;
 use managed_files_content::{ISSUES_README_CONTENT, README_CONTENT};
-use managed_files_content2::{CSPELL_JSON_CONTENT, HOOKS_YAML_CONTENT, TEMPLATES_README_CONTENT};
+use managed_files_content_alt::{
+    CSPELL_JSON_CONTENT, HOOKS_YAML_CONTENT, TEMPLATES_README_CONTENT,
+};
 pub use managed_files_merge::merge_json_content;
 /// Strategy for how a managed file should be updated when it already exists
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,17 +78,17 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     files
 }
 #[cfg(test)]
-#[path = "managed_files_tests_1.rs"]
-mod tests_1;
+#[path = "managed_file_template_struct.rs"]
+mod managed_file_template_struct;
 #[cfg(test)]
-#[path = "managed_files_tests_2.rs"]
-mod tests_2;
+#[path = "managed_files_catalog.rs"]
+mod managed_files_catalog;
 #[cfg(test)]
-#[path = "managed_files_tests_3.rs"]
-mod tests_3;
+#[path = "managed_files_json_merge.rs"]
+mod managed_files_json_merge;
 #[cfg(test)]
-#[path = "managed_files_tests_4.rs"]
-mod tests_4;
+#[path = "managed_files_json_sorting.rs"]
+mod managed_files_json_sorting;
 #[cfg(test)]
-#[path = "managed_files_tests_5.rs"]
-mod tests_5;
+#[path = "managed_files_readme_content.rs"]
+mod managed_files_readme_content;

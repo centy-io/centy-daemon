@@ -47,11 +47,11 @@ fn extract_org_and_repo(host: &str, path: &str) -> Option<ParsedRemote> {
 }
 
 #[cfg(test)]
-#[path = "remote_tests_1.rs"]
-mod tests_1;
+#[path = "parse_bitbucket_and_self_hosted.rs"]
+mod parse_bitbucket_and_self_hosted;
 #[cfg(test)]
-#[path = "remote_tests_2.rs"]
-mod tests_2;
+#[path = "parse_github_urls.rs"]
+mod parse_github_urls;
 #[cfg(test)]
-#[path = "remote_tests_3.rs"]
-mod tests_3;
+#[path = "parse_remote_urls_edge_cases.rs"]
+mod parse_remote_urls_edge_cases;

@@ -12,17 +12,17 @@ pub use project_metadata::ProjectMetadata;
 pub use system_keys::is_system_key;
 pub use types::{default_priority_levels, CentyConfig, CleanupConfig, WorkspaceConfig};
 #[cfg(test)]
-#[path = "config_tests_1.rs"]
-mod config_tests_1;
+#[path = "centy_config_defaults.rs"]
+mod centy_config_defaults;
 #[cfg(test)]
-#[path = "config_tests_2.rs"]
-mod config_tests_2;
+#[path = "config_extra_fields.rs"]
+mod config_extra_fields;
 #[cfg(test)]
-#[path = "config_tests_3.rs"]
-mod config_tests_3;
+#[path = "custom_field_and_metadata_serialization.rs"]
+mod custom_field_and_metadata_serialization;
 #[cfg(test)]
-#[path = "config_tests_4.rs"]
-mod config_tests_4;
+#[path = "read_config_normalization.rs"]
+mod read_config_normalization;
 #[cfg(test)]
-#[path = "config_tests_5.rs"]
-mod config_tests_5;
+#[path = "workspace_config_serialization.rs"]
+mod workspace_config_serialization;

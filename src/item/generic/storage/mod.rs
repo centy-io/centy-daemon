@@ -20,14 +20,14 @@ pub use move_ops::{generic_duplicate, generic_rename_slug};
 #[cfg(test)]
 use tokio::fs;
 #[cfg(test)]
-#[path = "storage_tests_1.rs"]
-mod storage_tests_1;
+#[path = "create_and_get.rs"]
+mod create_and_get;
 #[cfg(test)]
-#[path = "storage_tests_2.rs"]
-mod storage_tests_2;
+#[path = "deletion_constraints.rs"]
+mod deletion_constraints;
 #[cfg(test)]
-#[path = "storage_tests_3.rs"]
-mod storage_tests_3;
+#[path = "priority_validation.rs"]
+mod priority_validation;
 #[cfg(test)]
-#[path = "storage_tests_4.rs"]
-mod storage_tests_4;
+#[path = "soft_delete.rs"]
+mod soft_delete;

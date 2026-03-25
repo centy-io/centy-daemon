@@ -55,8 +55,8 @@ pub fn is_in_temp_dir(path: &Path) -> bool {
 }
 
 #[cfg(test)]
-#[path = "utils_tests_1.rs"]
-mod tests_1;
+#[path = "display_and_temp_dir_utilities.rs"]
+mod display_and_temp_dir_utilities;
 #[cfg(test)]
-#[path = "utils_tests_2.rs"]
-mod tests_2;
+#[path = "path_utilities.rs"]
+mod path_utilities;

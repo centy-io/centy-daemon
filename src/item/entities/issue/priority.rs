@@ -83,8 +83,8 @@ pub fn migrate_string_priority(priority_str: &str, max_levels: u32) -> u32 {
 }
 
 #[cfg(test)]
-#[path = "priority_tests_1.rs"]
-mod tests_1;
+#[path = "priority_label_conversion.rs"]
+mod priority_label_conversion;
 #[cfg(test)]
-#[path = "priority_tests_2.rs"]
-mod tests_2;
+#[path = "priority_validation.rs"]
+mod priority_validation;

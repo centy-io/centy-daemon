@@ -12,11 +12,11 @@ pub use std::path::Path;
 pub use tokio::fs;
 pub use types::ReconcileError;
 #[cfg(test)]
-#[path = "../reconcile_tests_1.rs"]
-mod reconcile_tests_1;
+#[path = "../reconcile_basic.rs"]
+mod reconcile_basic;
 #[cfg(test)]
-#[path = "../reconcile_tests_2.rs"]
-mod reconcile_tests_2;
+#[path = "../reconcile_helpers.rs"]
+mod reconcile_helpers;
 #[cfg(test)]
-#[path = "../reconcile_tests_3.rs"]
-mod reconcile_tests_3;
+#[path = "../reconcile_variants.rs"]
+mod reconcile_variants;
