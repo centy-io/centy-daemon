@@ -4,11 +4,11 @@ pub use super::error::HookError;
 pub use pattern::ParsedPattern;
 pub use types::{HookDefinition, HookOperation, PatternSegment, Phase};
 #[cfg(test)]
-#[path = "../config_tests_1.rs"]
-mod config_tests_1;
+#[path = "../hook_pattern_parsing.rs"]
+mod hook_pattern_parsing;
 #[cfg(test)]
-#[path = "../config_tests_2.rs"]
-mod config_tests_2;
+#[path = "../hook_pattern_segment_matching.rs"]
+mod hook_pattern_segment_matching;
 #[cfg(test)]
-#[path = "../config_tests_3.rs"]
-mod config_tests_3;
+#[path = "../hook_phase_and_operation.rs"]
+mod hook_phase_and_operation;

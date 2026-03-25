@@ -5,8 +5,8 @@ pub use stored::{
     Organization, ProjectOrganization, ProjectRegistry, TrackedProject, CURRENT_SCHEMA_VERSION,
 };
 #[cfg(test)]
-#[path = "../types_tests_1.rs"]
-mod types_tests_1;
+#[path = "../organization_types.rs"]
+mod organization_types;
 #[cfg(test)]
-#[path = "../types_tests_2.rs"]
-mod types_tests_2;
+#[path = "../project_registry_types.rs"]
+mod project_registry_types;

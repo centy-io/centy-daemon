@@ -6,8 +6,8 @@ pub use super::crud_types::{CreateLinkOptions, DeleteLinkOptions, LinkError};
 #[cfg(test)]
 pub use super::{CustomLinkTypeDefinition, TargetType};
 #[cfg(test)]
-#[path = "crud_tests_1.rs"]
-mod tests_1;
+#[path = "link_options_debug.rs"]
+mod link_options_debug;
 #[cfg(test)]
-#[path = "crud_tests_2.rs"]
-mod tests_2;
+#[path = "link_type_availability.rs"]
+mod link_type_availability;

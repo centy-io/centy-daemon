@@ -67,8 +67,8 @@ pub enum UserError {
     GitError(String),
 }
 #[cfg(test)]
-#[path = "../types_tests_1.rs"]
-mod types_tests_1;
+#[path = "../user_id_validation.rs"]
+mod user_id_validation;
 #[cfg(test)]
-#[path = "../types_tests_2.rs"]
-mod types_tests_2;
+#[path = "../user_serialization.rs"]
+mod user_serialization;

@@ -30,5 +30,5 @@ pub struct IssueTemplateContext {
 }
 
 #[cfg(test)]
-#[path = "types_tests_1.rs"]
-mod tests_1;
+#[path = "template_types.rs"]
+mod template_types;
