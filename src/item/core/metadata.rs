@@ -60,3 +60,54 @@ pub trait CustomFielded: ItemMetadata {
     /// Get mutable reference to custom fields
     fn custom_fields_mut(&mut self) -> &mut HashMap<String, serde_json::Value>;
 }
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::struct_field_names)]
+    use super::*;
+
+    #[derive(Clone)]
+    struct MockItem {
+        created_at: String,
+        updated_at: String,
+        deleted_at: Option<String>,
+    }
+
+    impl ItemMetadata for MockItem {
+        fn created_at(&self) -> &str {
+            &self.created_at
+        }
+        fn updated_at(&self) -> &str {
+            &self.updated_at
+        }
+        fn deleted_at(&self) -> Option<&str> {
+            self.deleted_at.as_deref()
+        }
+        fn set_updated_at(&mut self, timestamp: String) {
+            self.updated_at = timestamp;
+        }
+        fn set_deleted_at(&mut self, timestamp: Option<String>) {
+            self.deleted_at = timestamp;
+        }
+    }
+
+    #[test]
+    fn test_is_deleted_returns_false_when_no_deleted_at() {
+        let item = MockItem {
+            created_at: "2024-01-01".to_string(),
+            updated_at: "2024-01-01".to_string(),
+            deleted_at: None,
+        };
+        assert!(!item.is_deleted());
+    }
+
+    #[test]
+    fn test_is_deleted_returns_true_when_deleted_at_set() {
+        let item = MockItem {
+            created_at: "2024-01-01".to_string(),
+            updated_at: "2024-01-01".to_string(),
+            deleted_at: Some("2024-06-01T00:00:00Z".to_string()),
+        };
+        assert!(item.is_deleted());
+    }
+}

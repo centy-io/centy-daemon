@@ -19,5 +19,19 @@ pub use types::{
 };
 
 #[cfg(test)]
+#[path = "../assets_delete_tests.rs"]
+mod assets_delete_tests;
+#[cfg(test)]
+#[path = "../assets_get_tests.rs"]
+mod assets_get_tests;
+#[cfg(test)]
+#[path = "../assets_list_shared_tests.rs"]
+mod assets_list_shared_tests;
+#[cfg(test)]
+#[path = "../assets_list_tests.rs"]
+mod assets_list_tests;
+#[cfg(test)]
 #[path = "../assets_tests.rs"]
 mod assets_tests;
+#[cfg(test)]
+pub use list::scan_assets_directory;

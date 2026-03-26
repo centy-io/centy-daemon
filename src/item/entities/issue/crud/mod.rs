@@ -24,5 +24,10 @@ pub use types::{IssueCrudError, IssueMetadataFlat, UpdateIssueOptions, UpdateIss
 pub use update::update_issue;
 
 #[cfg(test)]
+pub use read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
+#[cfg(test)]
+pub use update_helpers::{compute_sync_results, resolve_update_options};
+
+#[cfg(test)]
 #[path = "../crud_tests.rs"]
 mod crud_tests;

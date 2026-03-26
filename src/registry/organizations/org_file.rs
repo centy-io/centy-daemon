@@ -36,3 +36,79 @@ pub(super) async fn write_project_org_file(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
+    use super::*;
+    use tempfile::TempDir;
+
+    fn make_project_org() -> ProjectOrganization {
+        ProjectOrganization {
+            slug: "test-slug".to_string(),
+            name: "Test Org".to_string(),
+            description: Some("A test".to_string()),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_read_project_org_file_returns_none_when_missing() {
+        let dir = TempDir::new().expect("tmp");
+        let result = read_project_org_file(dir.path()).await.expect("should ok");
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_write_and_read_project_org_file() {
+        let dir = TempDir::new().expect("tmp");
+        let project_path = dir.path();
+        let centy_dir = project_path.join(".centy");
+        tokio::fs::create_dir_all(&centy_dir)
+            .await
+            .expect("create .centy");
+
+        let org_file_path = centy_dir.join("organization.json");
+        let org = make_project_org();
+        write_project_org_file(&org_file_path, &org)
+            .await
+            .expect("write");
+
+        let result = read_project_org_file(project_path)
+            .await
+            .expect("read")
+            .expect("should be Some");
+
+        assert_eq!(result.slug, "test-slug");
+        assert_eq!(result.name, "Test Org");
+        assert_eq!(result.description, Some("A test".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_read_project_org_file_invalid_json() {
+        let dir = TempDir::new().expect("tmp");
+        let centy_dir = dir.path().join(".centy");
+        tokio::fs::create_dir_all(&centy_dir)
+            .await
+            .expect("create .centy");
+
+        let org_file = centy_dir.join("organization.json");
+        tokio::fs::write(&org_file, b"{ bad json }")
+            .await
+            .expect("write bad");
+
+        let result = read_project_org_file(dir.path()).await;
+        assert!(result.is_err(), "should error on invalid JSON");
+    }
+
+    #[tokio::test]
+    async fn test_write_project_org_file_creates_parent_dir() {
+        let dir = TempDir::new().expect("tmp");
+        // Write to a deeply nested path that doesn't exist yet
+        let nested = dir.path().join("deep").join("nested").join("org.json");
+        let org = make_project_org();
+        write_project_org_file(&nested, &org)
+            .await
+            .expect("should create parents and write");
+        assert!(nested.exists());
+    }
+}

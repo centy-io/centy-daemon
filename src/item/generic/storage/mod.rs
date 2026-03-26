@@ -26,6 +26,12 @@ mod create_and_get;
 #[path = "deletion_constraints.rs"]
 mod deletion_constraints;
 #[cfg(test)]
+#[path = "helpers_tests.rs"]
+mod helpers_tests;
+#[cfg(test)]
+#[path = "move_ops_tests.rs"]
+mod move_ops_tests;
+#[cfg(test)]
 #[path = "priority_validation.rs"]
 mod priority_validation;
 #[cfg(test)]

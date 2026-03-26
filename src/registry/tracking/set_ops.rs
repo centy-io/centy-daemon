@@ -5,6 +5,10 @@ use super::enrich_fn::enrich_project;
 use crate::utils::now_iso;
 use std::path::Path;
 
+#[cfg(test)]
+#[path = "set_ops_tests.rs"]
+mod tests;
+
 /// Set the favorite status for a project
 pub async fn set_project_favorite(
     project_path: &str,

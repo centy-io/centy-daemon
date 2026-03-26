@@ -99,3 +99,7 @@ pub async fn set_project_organization(
 
     Ok(info)
 }
+
+#[cfg(test)]
+#[path = "assignment_tests.rs"]
+mod tests;

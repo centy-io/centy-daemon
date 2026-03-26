@@ -82,5 +82,8 @@ mod execute_config_creation;
 #[path = "../execute_hooks_yaml.rs"]
 mod execute_hooks_yaml;
 #[cfg(test)]
+#[path = "../file_ops_tests.rs"]
+mod file_ops_tests;
+#[cfg(test)]
 #[path = "../execute_tests.rs"]
 mod tests;
