@@ -170,7 +170,8 @@
       "Bash(head:*)",
       "Bash(centy item-type:*)",
       "Bash(do grep:*)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(centy update:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
