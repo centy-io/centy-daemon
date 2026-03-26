@@ -171,7 +171,13 @@
       "Bash(centy item-type:*)",
       "Bash(do grep:*)",
       "Bash(gh issue:*)",
-      "Bash(centy update:*)"
+      "Bash(centy update:*)",
+      "Bash(cargo llvm-cov:*)",
+      "Bash(cargo info:*)",
+      "Bash(submodule-kit:*)",
+      "Bash(centy link:*)",
+      "Bash(for dir:*)",
+      "Bash(do echo:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
