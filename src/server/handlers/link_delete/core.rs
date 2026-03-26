@@ -1,20 +1,19 @@
 use crate::hooks::HookOperation;
-use crate::link::DeleteLinkOptions;
 use crate::server::hooks_helper::maybe_run_post_hooks;
 use crate::server::proto::DeleteLinkResponse;
 use crate::server::structured_error::to_error_json;
 use std::path::Path;
 use tonic::{Response, Status};
 
-pub async fn run_delete_link(
+pub async fn run_delete_link_by_id(
     project_path: &Path,
-    options: DeleteLinkOptions,
+    link_id: &str,
     hook_project_path: String,
     hook_item_id: String,
     hook_request_data: serde_json::Value,
     cwd: &str,
 ) -> Result<Response<DeleteLinkResponse>, Status> {
-    match crate::link::delete_link(project_path, options).await {
+    match crate::link::delete_link_by_id(project_path, link_id).await {
         Ok(result) => {
             maybe_run_post_hooks(
                 project_path,
