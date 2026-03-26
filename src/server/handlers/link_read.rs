@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_link::{internal_link_to_proto, proto_link_target_to_internal};
+use crate::server::convert_link::{internal_link_to_proto, resolve_target_type};
 use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
@@ -22,8 +22,8 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
         }));
     }
 
-    // Convert proto type to internal type
-    let entity_type = proto_link_target_to_internal(req.entity_type());
+    // Resolve entity type: prefer string field, fall back to legacy enum.
+    let entity_type = resolve_target_type(req.entity_type(), &req.entity_item_type);
 
     match crate::link::list_links(project_path, &req.entity_id, entity_type).await {
         Ok(links_file) => Ok(Response::new(ListLinksResponse {

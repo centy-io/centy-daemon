@@ -3,8 +3,9 @@ use crate::hooks::HookOperation;
 use crate::link::CreateLinkOptions;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_link::proto_link_target_to_internal;
+use crate::server::convert_link::resolve_target_type;
 use crate::server::error_mapping::ToStructuredError;
+use crate::server::handlers::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{CreateLinkRequest, CreateLinkResponse};
 use crate::server::structured_error::to_error_json;
@@ -47,16 +48,37 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     {
         return Ok(err_resp(&req.project_path, &e));
     }
-    let source_type = proto_link_target_to_internal(req.source_type());
-    let target_type = proto_link_target_to_internal(req.target_type());
+    let source_type = resolve_target_type(req.source_type(), &req.source_item_type);
+    let target_type = resolve_target_type(req.target_type(), &req.target_item_type);
+
+    // Resolve display numbers to UUIDs, scoped to each item's type.
+    let source_id = match resolve_item_type_config(project_path, source_type.as_str()).await {
+        Ok((folder, config)) => {
+            match resolve_item_id(project_path, &folder, &config, &req.source_id).await {
+                Ok(id) => id,
+                Err(e) => return Ok(err_resp(&req.project_path, &e)),
+            }
+        }
+        Err(_) => req.source_id.clone(),
+    };
+    let target_id = match resolve_item_type_config(project_path, target_type.as_str()).await {
+        Ok((folder, config)) => {
+            match resolve_item_id(project_path, &folder, &config, &req.target_id).await {
+                Ok(id) => id,
+                Err(e) => return Ok(err_resp(&req.project_path, &e)),
+            }
+        }
+        Err(_) => req.target_id.clone(),
+    };
+
     let custom_types = match read_config(project_path).await {
         Ok(Some(config)) => config.custom_link_types,
         Ok(None) | Err(_) => vec![],
     };
     let options = CreateLinkOptions {
-        source_id: req.source_id,
+        source_id,
         source_type,
-        target_id: req.target_id,
+        target_id,
         target_type,
         link_type: req.link_type,
     };
