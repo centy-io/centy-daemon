@@ -169,7 +169,8 @@
       "Bash(cargo dylint:*)",
       "Bash(head:*)",
       "Bash(centy item-type:*)",
-      "Bash(do grep:*)"
+      "Bash(do grep:*)",
+      "Bash(gh issue:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
