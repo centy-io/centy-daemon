@@ -3,25 +3,33 @@ set -e
 
 echo "Pre-push checks starting..."
 
-echo "[1/6] Checking formatting..."
+echo "[1/8] Checking formatting..."
 cargo fmt --all -- --check
 
-echo "[2/6] Running Clippy..."
+echo "[2/8] Running Clippy..."
 cargo clippy --all-targets -- -D warnings
 
-echo "[3/6] Type checking..."
+echo "[3/8] Type checking..."
 cargo check --all-targets
 
-echo "[4/6] Building project..."
+echo "[4/8] Building project..."
 cargo build --all-targets
 
-echo "[5/6] Running tests..."
+echo "[5/8] Running tests..."
 CENTY_HOME="$(mktemp -d)" cargo test --all-targets
 
-echo "[6/6] Running dylint lints..."
+echo "[6/8] Running dylint lints..."
 cargo dylint --all
 
-echo "[7/7] Running e2e tests..."
+echo "[7/8] Validating submodule state..."
+SUBMODULE_KIT_MANIFEST=$(cargo metadata --format-version 1 | python3 -c "
+import sys, json
+pkgs = json.load(sys.stdin)['packages']
+print(next(p['manifest_path'] for p in pkgs if p['name'] == 'submodule-kit'))
+")
+cargo run -q --manifest-path "$SUBMODULE_KIT_MANIFEST" --target-dir "$(pwd)/target" -- is populated synced clean
+
+echo "[8/8] Running e2e tests..."
 cd e2e && pnpm test && cd ..
 
 echo "Pre-push checks passed!"

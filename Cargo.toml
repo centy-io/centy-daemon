@@ -1097,3 +1097,7 @@ assets = [
     { source = "packaging/linux/systemd/centy-daemon.service", dest = "/lib/systemd/system/centy-daemon.service", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/centy-daemon/README.md", mode = "644", doc = true },
 ]
+
+# Development tools (installed locally by hooks via cargo install --root target/dev-tools)
+[package.metadata.tools]
+submodule-kit = "0.1.0"
