@@ -1,49 +1,20 @@
 use super::types::CustomLinkTypeDefinition;
-/// Built-in link types and their inverses
-pub const BUILTIN_LINK_TYPES: &[(&str, &str)] = &[
-    ("blocks", "blocked-by"),
-    ("blocked-by", "blocks"),
-    ("parent-of", "child-of"),
-    ("child-of", "parent-of"),
-    ("relates-to", "related-from"),
-    ("related-from", "relates-to"),
-    ("duplicates", "duplicated-by"),
-    ("duplicated-by", "duplicates"),
+/// All built-in link type names (each is a valid link type from the source's perspective).
+pub const BUILTIN_LINK_TYPES: &[&str] = &[
+    "blocks",
+    "blocked-by",
+    "parent-of",
+    "child-of",
+    "relates-to",
+    "related-from",
+    "duplicates",
+    "duplicated-by",
 ];
-/// Get the inverse of a link type.
-/// Returns `None` if the link type is not found.
-#[must_use]
-pub fn get_inverse_link_type(
-    link_type: &str,
-    custom_types: &[CustomLinkTypeDefinition],
-) -> Option<String> {
-    for (name, inverse) in BUILTIN_LINK_TYPES {
-        if *name == link_type {
-            return Some((*inverse).to_string());
-        }
-    }
-    for custom in custom_types {
-        if custom.name == link_type {
-            return Some(custom.inverse.clone());
-        }
-        if custom.inverse == link_type {
-            return Some(custom.name.clone());
-        }
-    }
-    None
-}
-/// Check if a link type is valid (either built-in or custom)
+/// Check if a link type is valid (either built-in or custom).
 #[must_use]
 pub fn is_valid_link_type(link_type: &str, custom_types: &[CustomLinkTypeDefinition]) -> bool {
-    for (name, _) in BUILTIN_LINK_TYPES {
-        if *name == link_type {
-            return true;
-        }
+    if BUILTIN_LINK_TYPES.contains(&link_type) {
+        return true;
     }
-    for custom in custom_types {
-        if custom.name == link_type || custom.inverse == link_type {
-            return true;
-        }
-    }
-    false
+    custom_types.iter().any(|c| c.name == link_type)
 }

@@ -28,7 +28,6 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
             .iter()
             .map(|lt| LinkTypeDefinition {
                 name: lt.name.clone(),
-                inverse: lt.inverse.clone(),
                 description: lt.description.clone().unwrap_or_default(),
             })
             .collect(),

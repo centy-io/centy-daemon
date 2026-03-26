@@ -2,7 +2,6 @@ use super::super::metadata::IssueFrontmatter;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
 use super::read::read_issue_from_legacy_folder;
 use super::types::{Issue, IssueCrudError};
-use crate::link::{read_links, write_links};
 use crate::utils::CENTY_HEADER_YAML;
 use mdstore::generate_frontmatter;
 use std::path::Path;
@@ -52,11 +51,6 @@ pub async fn migrate_issue_to_new_format(
             fs::rename(&old_file, &new_file).await?;
         }
         debug!("Migrated assets for issue {}", issue_id);
-    }
-    let old_links = read_links(issue_folder_path).await?;
-    if !old_links.links.is_empty() {
-        write_links(issue_folder_path, &old_links).await?;
-        debug!("Migrated links for issue {}", issue_id);
     }
     fs::remove_dir_all(issue_folder_path).await?;
     debug!("Deleted old issue folder for {}", issue_id);

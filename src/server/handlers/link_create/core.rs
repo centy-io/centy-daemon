@@ -1,6 +1,6 @@
 use crate::hooks::HookOperation;
 use crate::link::{CreateLinkOptions, CustomLinkTypeDefinition};
-use crate::server::convert_link::internal_link_to_proto;
+use crate::server::convert_link::link_view_to_proto;
 use crate::server::hooks_helper::maybe_run_post_hooks;
 use crate::server::proto::CreateLinkResponse;
 use crate::server::structured_error::to_error_json;
@@ -17,7 +17,7 @@ pub async fn run_create_link(
     cwd: &str,
 ) -> Result<Response<CreateLinkResponse>, Status> {
     match crate::link::create_link(project_path, options, &custom_types).await {
-        Ok(result) => {
+        Ok(record) => {
             maybe_run_post_hooks(
                 project_path,
                 "link",
@@ -31,8 +31,8 @@ pub async fn run_create_link(
             Ok(Response::new(CreateLinkResponse {
                 success: true,
                 error: String::new(),
-                created_link: Some(internal_link_to_proto(&result.created_link)),
-                inverse_link: Some(internal_link_to_proto(&result.inverse_link)),
+                created_link: Some(link_view_to_proto(&record.source_view())),
+                inverse_link: Some(link_view_to_proto(&record.target_view())),
             }))
         }
         Err(e) => {

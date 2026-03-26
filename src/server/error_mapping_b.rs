@@ -64,7 +64,7 @@ impl ToStructuredError for crate::link::LinkError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
         use crate::link::LinkError;
         match self {
-            LinkError::IoError(_) => ("IO_ERROR", None),
+            LinkError::IoError(_) | LinkError::StoreError(_) => ("IO_ERROR", None),
             LinkError::InvalidLinkType(_) => ("INVALID_LINK_TYPE", None),
             LinkError::SourceNotFound(_, _) => ("LINK_SOURCE_NOT_FOUND", None),
             LinkError::TargetNotFound(_, _) => ("LINK_TARGET_NOT_FOUND", None),

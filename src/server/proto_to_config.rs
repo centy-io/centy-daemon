@@ -28,7 +28,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             .iter()
             .map(|lt| crate::link::CustomLinkTypeDefinition {
                 name: lt.name.clone(),
-                inverse: lt.inverse.clone(),
                 description: nonempty(lt.description.clone()),
             })
             .collect(),

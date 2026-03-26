@@ -1,33 +1,69 @@
-use super::*;
-use crate::link::TargetType;
+use super::super::types::TargetType;
+use super::{create_link_file, delete_link_file, list_all_link_records};
 
 #[tokio::test]
-async fn test_write_empty_links_removes_file() {
+async fn test_delete_link_file_removes_record() {
     use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    let centy = temp.path().join(".centy");
+    tokio::fs::create_dir_all(&centy).await.unwrap();
 
-    let temp_dir = tempdir().expect("Should create temp dir");
-    let issues_path = temp_dir.path().join("issues");
-    fs::create_dir_all(&issues_path)
-        .await
-        .expect("Should create dirs");
+    let record = create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "b",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
 
-    let entity_path = issues_path.join("uuid-1");
+    delete_link_file(temp.path(), &record.id).await.unwrap();
 
-    let mut links_file = LinksFile::new();
-    links_file.add_link(Link::new(
-        "uuid-2".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-    write_links(&entity_path, &links_file)
-        .await
-        .expect("Should write");
+    let records = list_all_link_records(temp.path()).await.unwrap();
+    assert!(records.is_empty());
+}
 
-    let empty_file = LinksFile::new();
-    write_links(&entity_path, &empty_file)
-        .await
-        .expect("Should write empty");
+#[tokio::test]
+async fn test_delete_nonexistent_link_returns_error() {
+    use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    let centy = temp.path().join(".centy");
+    tokio::fs::create_dir_all(&centy).await.unwrap();
 
-    let read_back = read_links(&entity_path).await.expect("Should read");
-    assert!(read_back.links.is_empty());
+    let result = delete_link_file(temp.path(), "nonexistent-uuid").await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_multiple_links_stored_and_listed() {
+    use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    let centy = temp.path().join(".centy");
+    tokio::fs::create_dir_all(&centy).await.unwrap();
+
+    create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "b",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
+    create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "c",
+        &TargetType::issue(),
+        "relates-to",
+    )
+    .await
+    .unwrap();
+
+    let records = list_all_link_records(temp.path()).await.unwrap();
+    assert_eq!(records.len(), 2);
 }

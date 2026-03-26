@@ -11,9 +11,8 @@ pub use crud::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
     DeleteLinkOptions, LinkError,
 };
-pub use link_types::{get_inverse_link_type, is_valid_link_type, BUILTIN_LINK_TYPES};
-pub use storage::{read_links, write_links, LinksFile};
-pub use types::{CustomLinkTypeDefinition, Link, TargetType};
+pub use link_types::{is_valid_link_type, BUILTIN_LINK_TYPES};
+pub use types::{CustomLinkTypeDefinition, LinkDirection, LinkRecord, LinkView, TargetType};
 
 #[cfg(test)]
 #[path = "link_creation_and_serialization.rs"]
