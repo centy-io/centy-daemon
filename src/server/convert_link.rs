@@ -36,3 +36,42 @@ pub fn internal_link_to_proto(link: &crate::link::Link) -> ProtoLink {
         target_item_type: link.target_type.as_str().to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_uses_string_over_enum() {
+        // String field must win over the legacy enum.
+        // This is the core of issue #361: the target type prefix must not be ignored.
+        let ty = resolve_target_type(LinkTargetType::Unspecified, "plan");
+        assert_eq!(ty, TargetType::new("plan"));
+    }
+
+    #[test]
+    fn resolve_lowercases_the_string_field() {
+        let ty = resolve_target_type(LinkTargetType::Unspecified, "Plan");
+        assert_eq!(ty, TargetType::new("plan"));
+    }
+
+    #[test]
+    fn resolve_falls_back_to_enum_when_string_empty() {
+        // Empty string: use legacy enum (doc enum gives "doc").
+        let ty = resolve_target_type(LinkTargetType::Doc, "");
+        assert_eq!(ty, TargetType::new("doc"));
+    }
+
+    #[test]
+    fn resolve_unspecified_enum_empty_string_defaults_to_issue() {
+        let ty = resolve_target_type(LinkTargetType::Unspecified, "");
+        assert_eq!(ty, TargetType::issue());
+    }
+
+    #[test]
+    fn resolve_string_doc_matches_enum_doc() {
+        let via_string = resolve_target_type(LinkTargetType::Unspecified, "doc");
+        let via_enum = resolve_target_type(LinkTargetType::Doc, "");
+        assert_eq!(via_string, via_enum);
+    }
+}

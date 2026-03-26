@@ -3,12 +3,15 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::default_doc_config;
 use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
+use centy_daemon::item::generic::storage::generic_create;
 use centy_daemon::link::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
     CustomLinkTypeDefinition, DeleteLinkOptions, LinkError, TargetType,
 };
 use common::{create_test_dir, init_centy_project};
+use mdstore::{CreateOptions, TypeConfig};
 
 #[tokio::test]
 async fn test_create_link_between_issues() {
@@ -716,4 +719,168 @@ async fn test_target_type_from_str() {
     // String-based TargetType accepts any value
     assert_eq!(TargetType::from_str("pr").unwrap().as_str(), "pr");
     assert_eq!(TargetType::from_str("invalid").unwrap().as_str(), "invalid");
+}
+
+// Regression tests for issue #361: target type prefix must be respected when
+// creating cross-type links (e.g. `centy link issue <id> relates-to doc:<id>`).
+// Before the fix the daemon defaulted to the source type (issue) for the target,
+// producing "Target entity not found: <id> (issue)" even when the target was a doc.
+
+#[tokio::test]
+async fn test_create_link_cross_type_issue_to_doc() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Source Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should create issue");
+
+    let doc_config = TypeConfig::from(&default_doc_config());
+    let doc = generic_create(
+        project_path,
+        "docs",
+        &doc_config,
+        CreateOptions {
+            title: "Target Doc".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            tags: None,
+            custom_fields: std::collections::HashMap::new(),
+            comment: None,
+        },
+    )
+    .await
+    .expect("Should create doc");
+
+    let options = CreateLinkOptions {
+        source_id: issue.id.clone(),
+        source_type: TargetType::issue(),
+        target_id: doc.id.clone(),
+        target_type: TargetType::new("doc"),
+        link_type: "relates-to".to_string(),
+    };
+
+    let result = create_link(project_path, options, &[])
+        .await
+        .expect("Cross-type link (issue->doc) should succeed");
+
+    assert_eq!(result.created_link.target_id, doc.id);
+    assert_eq!(result.created_link.target_type, TargetType::new("doc"));
+    assert_eq!(result.created_link.kind, "relates-to");
+    assert_eq!(result.inverse_link.target_id, issue.id);
+    assert_eq!(result.inverse_link.target_type, TargetType::issue());
+    assert_eq!(result.inverse_link.kind, "related-from");
+}
+
+#[tokio::test]
+async fn test_cross_type_target_not_found_uses_target_type() {
+    // The error message must report the correct TARGET type, not the source type.
+    // Regression: before the fix this always said "(issue)" regardless of the
+    // requested target type.
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Source".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let options = CreateLinkOptions {
+        source_id: issue.id.clone(),
+        source_type: TargetType::issue(),
+        target_id: "nonexistent-doc-uuid".to_string(),
+        target_type: TargetType::new("doc"),
+        link_type: "relates-to".to_string(),
+    };
+
+    let err = create_link(project_path, options, &[]).await.unwrap_err();
+
+    match err {
+        LinkError::TargetNotFound(id, ty) => {
+            assert_eq!(id, "nonexistent-doc-uuid");
+            // Must say "(doc)", not "(issue)" -- the source type must not leak.
+            assert_eq!(ty, TargetType::new("doc"));
+        }
+        LinkError::IoError(_)
+        | LinkError::InvalidLinkType(_)
+        | LinkError::SourceNotFound(_, _)
+        | LinkError::LinkAlreadyExists
+        | LinkError::LinkNotFound
+        | LinkError::SelfLink => panic!("Expected TargetNotFound, got {err:?}"),
+    }
+}
+
+#[tokio::test]
+async fn test_list_links_cross_type_doc_entity() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let doc_config = TypeConfig::from(&default_doc_config());
+    let doc = generic_create(
+        project_path,
+        "docs",
+        &doc_config,
+        CreateOptions {
+            title: "Doc".to_string(),
+            body: String::new(),
+            id: None,
+            status: None,
+            priority: None,
+            tags: None,
+            custom_fields: std::collections::HashMap::new(),
+            comment: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: doc.id.clone(),
+            target_type: TargetType::new("doc"),
+            link_type: "relates-to".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap();
+
+    // List links for the doc -- should contain the inverse "related-from" link.
+    let doc_links = list_links(project_path, &doc.id, TargetType::new("doc"))
+        .await
+        .expect("list_links for doc entity should succeed");
+
+    assert_eq!(doc_links.links.len(), 1);
+    assert_eq!(doc_links.links[0].kind, "related-from");
+    assert_eq!(doc_links.links[0].target_id, issue.id);
+    assert_eq!(doc_links.links[0].target_type, TargetType::issue());
 }
