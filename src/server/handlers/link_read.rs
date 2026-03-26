@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::config::read_config;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_link::{internal_link_to_proto, resolve_target_type};
+use crate::server::convert_link::{link_view_to_proto, resolve_target_type};
 use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
@@ -22,17 +22,12 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
         }));
     }
 
-    // Resolve entity type: prefer string field, fall back to legacy enum.
     let entity_type = resolve_target_type(req.entity_type(), &req.entity_item_type);
 
     match crate::link::list_links(project_path, &req.entity_id, entity_type).await {
-        Ok(links_file) => Ok(Response::new(ListLinksResponse {
-            links: links_file
-                .links
-                .iter()
-                .map(internal_link_to_proto)
-                .collect(),
-            total_count: links_file.links.len().try_into().unwrap_or(i32::MAX),
+        Ok(views) => Ok(Response::new(ListLinksResponse {
+            links: views.iter().map(link_view_to_proto).collect(),
+            total_count: views.len().try_into().unwrap_or(i32::MAX),
             success: true,
             error: String::new(),
         })),
@@ -51,7 +46,6 @@ pub async fn get_available_link_types(
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
 
-    // Get custom link types from config
     let custom_types = match read_config(project_path).await {
         Ok(Some(config)) => config.custom_link_types,
         Ok(None) | Err(_) => vec![],
@@ -64,7 +58,6 @@ pub async fn get_available_link_types(
             .iter()
             .map(|t| LinkTypeInfo {
                 name: t.name.clone(),
-                inverse: t.inverse.clone(),
                 description: t.description.clone().unwrap_or_default(),
                 is_builtin: t.is_builtin,
             })

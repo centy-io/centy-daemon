@@ -24,67 +24,21 @@ fn test_target_type_folder_name() {
 }
 
 #[test]
-fn test_get_inverse_builtin() {
+fn test_is_valid_link_type_builtin() {
     let custom: Vec<CustomLinkTypeDefinition> = vec![];
-    assert_eq!(
-        get_inverse_link_type("blocks", &custom),
-        Some("blocked-by".to_string())
-    );
-    assert_eq!(
-        get_inverse_link_type("blocked-by", &custom),
-        Some("blocks".to_string())
-    );
-    assert_eq!(
-        get_inverse_link_type("parent-of", &custom),
-        Some("child-of".to_string())
-    );
-}
-
-#[test]
-fn test_get_inverse_custom() {
-    let custom = vec![CustomLinkTypeDefinition {
-        name: "depends-on".to_string(),
-        inverse: "dependency-of".to_string(),
-        description: None,
-    }];
-    assert_eq!(
-        get_inverse_link_type("depends-on", &custom),
-        Some("dependency-of".to_string())
-    );
-    assert_eq!(
-        get_inverse_link_type("dependency-of", &custom),
-        Some("depends-on".to_string())
-    );
-}
-
-#[test]
-fn test_get_inverse_unknown() {
-    let custom: Vec<CustomLinkTypeDefinition> = vec![];
-    assert_eq!(get_inverse_link_type("unknown-type", &custom), None);
-}
-
-#[test]
-fn test_is_valid_link_type() {
-    let custom = vec![CustomLinkTypeDefinition {
-        name: "depends-on".to_string(),
-        inverse: "dependency-of".to_string(),
-        description: None,
-    }];
     assert!(is_valid_link_type("blocks", &custom));
-    assert!(is_valid_link_type("depends-on", &custom));
-    assert!(is_valid_link_type("dependency-of", &custom));
+    assert!(is_valid_link_type("blocked-by", &custom));
+    assert!(is_valid_link_type("parent-of", &custom));
     assert!(!is_valid_link_type("invalid-type", &custom));
 }
 
 #[test]
-fn test_link_serialization() {
-    let link = Link::new(
-        "uuid-123".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    );
-    let json = serde_json::to_string(&link).unwrap();
-    assert!(json.contains("\"targetId\":\"uuid-123\""));
-    assert!(json.contains("\"targetType\":\"issue\""));
-    assert!(json.contains("\"linkType\":\"blocks\""));
+fn test_is_valid_link_type_custom() {
+    let custom = vec![CustomLinkTypeDefinition {
+        name: "depends-on".to_string(),
+        description: None,
+    }];
+    assert!(is_valid_link_type("depends-on", &custom));
+    assert!(!is_valid_link_type("dependency-of", &custom));
+    assert!(!is_valid_link_type("invalid-type", &custom));
 }

@@ -32,33 +32,83 @@ impl std::fmt::Display for TargetType {
         write!(f, "{}", self.0)
     }
 }
-/// A link between two entities
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Link {
-    pub target_id: String,
-    pub target_type: TargetType,
-    #[serde(rename = "linkType")]
-    pub kind: String,
-    pub created_at: String,
+/// Which side of a link a queried entity is on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LinkDirection {
+    /// The queried entity is the source of the link.
+    Source,
+    /// The queried entity is the target of the link.
+    Target,
 }
-impl Link {
+impl LinkDirection {
     #[must_use]
-    pub fn new(target_id: String, target_type: TargetType, link_type: String) -> Self {
-        Self {
-            target_id,
-            target_type,
-            kind: link_type,
-            created_at: crate::utils::now_iso(),
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Source => "source",
+            Self::Target => "target",
         }
     }
 }
-/// Custom link type definition (for config.json)
+/// Full bidirectional link record stored as one markdown file in `.centy/links/`.
+#[derive(Debug, Clone)]
+pub struct LinkRecord {
+    /// UUID of the link file — use for deletion.
+    pub id: String,
+    pub source_id: String,
+    pub source_type: TargetType,
+    pub target_id: String,
+    pub target_type: TargetType,
+    /// Link type from the source's perspective (e.g. "blocks").
+    pub link_type: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+impl LinkRecord {
+    /// View from the source entity's perspective.
+    #[must_use]
+    pub fn source_view(&self) -> LinkView {
+        LinkView {
+            id: self.id.clone(),
+            target_id: self.target_id.clone(),
+            target_type: self.target_type.clone(),
+            link_type: self.link_type.clone(),
+            direction: LinkDirection::Source,
+            created_at: self.created_at.clone(),
+        }
+    }
+    /// View from the target entity's perspective.
+    #[must_use]
+    pub fn target_view(&self) -> LinkView {
+        LinkView {
+            id: self.id.clone(),
+            target_id: self.source_id.clone(),
+            target_type: self.source_type.clone(),
+            link_type: self.link_type.clone(),
+            direction: LinkDirection::Target,
+            created_at: self.created_at.clone(),
+        }
+    }
+}
+/// Entity-centric view of a link (what gets returned in list / create responses).
+#[derive(Debug, Clone)]
+pub struct LinkView {
+    /// UUID of the underlying link file.
+    pub id: String,
+    /// The other entity's ID.
+    pub target_id: String,
+    /// The other entity's type.
+    pub target_type: TargetType,
+    /// Link type from the source's perspective (always).
+    pub link_type: String,
+    /// Which side the queried entity is on.
+    pub direction: LinkDirection,
+    pub created_at: String,
+}
+/// Custom link type definition (for config.json).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomLinkTypeDefinition {
     pub name: String,
-    pub inverse: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }

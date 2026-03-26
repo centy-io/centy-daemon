@@ -216,12 +216,10 @@ fn test_config_hex_color_format() {
 fn test_custom_link_type_definition() {
     let link_type = CustomLinkTypeDefinition {
         name: "depends-on".to_string(),
-        inverse: "dependency-of".to_string(),
         description: Some("Issue depends on another".to_string()),
     };
 
     assert_eq!(link_type.name, "depends-on");
-    assert_eq!(link_type.inverse, "dependency-of");
     assert!(link_type.description.is_some());
 }
 

@@ -31,33 +31,14 @@ fn test_target_type_deserialization() {
 }
 
 #[test]
-fn test_builtin_link_types_symmetry() {
-    for (name, inverse) in BUILTIN_LINK_TYPES {
-        let has_inverse = BUILTIN_LINK_TYPES.iter().any(|(n, _)| *n == *inverse);
-        assert!(
-            has_inverse,
-            "Inverse '{inverse}' of '{name}' not found in BUILTIN_LINK_TYPES"
-        );
-    }
-}
-
-#[test]
-fn test_is_valid_link_type_all_builtins() {
+fn test_builtin_link_types_all_valid() {
     let custom: Vec<CustomLinkTypeDefinition> = vec![];
-    for (name, _) in BUILTIN_LINK_TYPES {
+    for &name in BUILTIN_LINK_TYPES {
         assert!(is_valid_link_type(name, &custom), "{name} should be valid");
     }
 }
 
 #[test]
-fn test_get_inverse_all_builtins() {
-    let custom: Vec<CustomLinkTypeDefinition> = vec![];
-    for (name, expected_inverse) in BUILTIN_LINK_TYPES {
-        let inverse = get_inverse_link_type(name, &custom);
-        assert_eq!(
-            inverse.as_deref(),
-            Some(*expected_inverse),
-            "Inverse of '{name}' should be '{expected_inverse}'"
-        );
-    }
+fn test_builtin_link_types_count() {
+    assert_eq!(BUILTIN_LINK_TYPES.len(), 8);
 }

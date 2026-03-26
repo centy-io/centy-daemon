@@ -1,4 +1,4 @@
-use crate::link::TargetType;
+use crate::link::{LinkView, TargetType};
 
 use super::proto::{Link as ProtoLink, LinkTargetType};
 
@@ -27,13 +27,15 @@ pub fn internal_target_type_to_proto(internal_type: &TargetType) -> i32 {
     }
 }
 
-pub fn internal_link_to_proto(link: &crate::link::Link) -> ProtoLink {
+pub fn link_view_to_proto(view: &LinkView) -> ProtoLink {
     ProtoLink {
-        target_id: link.target_id.clone(),
-        target_type: internal_target_type_to_proto(&link.target_type),
-        link_type: link.kind.clone(),
-        created_at: link.created_at.clone(),
-        target_item_type: link.target_type.as_str().to_string(),
+        id: view.id.clone(),
+        target_id: view.target_id.clone(),
+        target_type: internal_target_type_to_proto(&view.target_type),
+        link_type: view.link_type.clone(),
+        created_at: view.created_at.clone(),
+        target_item_type: view.target_type.as_str().to_string(),
+        direction: view.direction.as_str().to_string(),
     }
 }
 

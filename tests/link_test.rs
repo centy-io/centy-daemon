@@ -8,7 +8,7 @@ use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use centy_daemon::item::generic::storage::generic_create;
 use centy_daemon::link::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
-    CustomLinkTypeDefinition, DeleteLinkOptions, LinkError, TargetType,
+    CustomLinkTypeDefinition, DeleteLinkOptions, LinkDirection, LinkError, TargetType,
 };
 use common::{create_test_dir, init_centy_project};
 use mdstore::{CreateOptions, TypeConfig};
@@ -20,7 +20,6 @@ async fn test_create_link_between_issues() {
 
     init_centy_project(project_path).await;
 
-    // Create two issues
     let issue1 = create_issue(
         project_path,
         CreateIssueOptions {
@@ -41,7 +40,6 @@ async fn test_create_link_between_issues() {
     .await
     .expect("Should create issue 2");
 
-    // Create a link
     let options = CreateLinkOptions {
         source_id: issue1.id.clone(),
         source_type: TargetType::issue(),
@@ -50,18 +48,25 @@ async fn test_create_link_between_issues() {
         link_type: "blocks".to_string(),
     };
 
-    let result = create_link(project_path, options, &[])
+    let record = create_link(project_path, options, &[])
         .await
         .expect("Should create link");
 
-    assert_eq!(result.created_link.target_id, issue2.id);
-    assert_eq!(result.created_link.kind, "blocks");
-    assert_eq!(result.inverse_link.target_id, issue1.id);
-    assert_eq!(result.inverse_link.kind, "blocked-by");
+    // Source view
+    let source_view = record.source_view();
+    assert_eq!(source_view.target_id, issue2.id);
+    assert_eq!(source_view.link_type, "blocks");
+    assert_eq!(source_view.direction, LinkDirection::Source);
+
+    // Target view (from issue2's perspective)
+    let target_view = record.target_view();
+    assert_eq!(target_view.target_id, issue1.id);
+    assert_eq!(target_view.link_type, "blocks");
+    assert_eq!(target_view.direction, LinkDirection::Target);
 }
 
 #[tokio::test]
-async fn test_create_link_inverse_created() {
+async fn test_list_links_shows_both_sides() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -87,24 +92,37 @@ async fn test_create_link_inverse_created() {
     .await
     .unwrap();
 
-    let options = CreateLinkOptions {
-        source_id: issue1.id.clone(),
-        source_type: TargetType::issue(),
-        target_id: issue2.id.clone(),
-        target_type: TargetType::issue(),
-        link_type: "parent-of".to_string(),
-    };
+    create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue1.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: issue2.id.clone(),
+            target_type: TargetType::issue(),
+            link_type: "parent-of".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap();
 
-    create_link(project_path, options, &[]).await.unwrap();
+    // Source side: direction=source, link_type="parent-of"
+    let source_links = list_links(project_path, &issue1.id, TargetType::issue())
+        .await
+        .unwrap();
+    assert_eq!(source_links.len(), 1);
+    assert_eq!(source_links[0].link_type, "parent-of");
+    assert_eq!(source_links[0].direction, LinkDirection::Source);
+    assert_eq!(source_links[0].target_id, issue2.id);
 
-    // Verify inverse link exists on target
+    // Target side: direction=target, link_type="parent-of" (still from source's perspective)
     let target_links = list_links(project_path, &issue2.id, TargetType::issue())
         .await
         .unwrap();
-
-    assert_eq!(target_links.links.len(), 1);
-    assert_eq!(target_links.links[0].kind, "child-of");
-    assert_eq!(target_links.links[0].target_id, issue1.id);
+    assert_eq!(target_links.len(), 1);
+    assert_eq!(target_links[0].link_type, "parent-of");
+    assert_eq!(target_links[0].direction, LinkDirection::Target);
+    assert_eq!(target_links[0].target_id, issue1.id);
 }
 
 #[tokio::test]
@@ -274,18 +292,16 @@ async fn test_create_link_already_exists() {
         link_type: "blocks".to_string(),
     };
 
-    // Create first link
     create_link(project_path, options.clone(), &[])
         .await
         .unwrap();
 
-    // Try to create duplicate
     let result = create_link(project_path, options, &[]).await;
     assert!(matches!(result.unwrap_err(), LinkError::LinkAlreadyExists));
 }
 
 #[tokio::test]
-async fn test_delete_link_success() {
+async fn test_delete_link_by_id() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -311,112 +327,7 @@ async fn test_delete_link_success() {
     .await
     .unwrap();
 
-    // Create link
-    let create_options = CreateLinkOptions {
-        source_id: issue1.id.clone(),
-        source_type: TargetType::issue(),
-        target_id: issue2.id.clone(),
-        target_type: TargetType::issue(),
-        link_type: "blocks".to_string(),
-    };
-    create_link(project_path, create_options, &[])
-        .await
-        .unwrap();
-
-    // Delete link
-    let delete_options = DeleteLinkOptions {
-        source_id: issue1.id.clone(),
-        source_type: TargetType::issue(),
-        target_id: issue2.id.clone(),
-        target_type: TargetType::issue(),
-        link_type: Some("blocks".to_string()),
-    };
-    let result = delete_link(project_path, delete_options, &[])
-        .await
-        .expect("Should delete link");
-
-    assert_eq!(result.deleted_count, 2); // forward + inverse
-
-    // Verify links are gone
-    let source_links = list_links(project_path, &issue1.id, TargetType::issue())
-        .await
-        .unwrap();
-    assert!(source_links.links.is_empty());
-
-    let target_links = list_links(project_path, &issue2.id, TargetType::issue())
-        .await
-        .unwrap();
-    assert!(target_links.links.is_empty());
-}
-
-#[tokio::test]
-async fn test_delete_link_not_found() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let issue1 = create_issue(
-        project_path,
-        CreateIssueOptions {
-            title: "Issue 1".to_string(),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let issue2 = create_issue(
-        project_path,
-        CreateIssueOptions {
-            title: "Issue 2".to_string(),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let delete_options = DeleteLinkOptions {
-        source_id: issue1.id,
-        source_type: TargetType::issue(),
-        target_id: issue2.id,
-        target_type: TargetType::issue(),
-        link_type: Some("blocks".to_string()),
-    };
-
-    let result = delete_link(project_path, delete_options, &[]).await;
-    assert!(matches!(result.unwrap_err(), LinkError::LinkNotFound));
-}
-
-#[tokio::test]
-async fn test_delete_all_links_between_entities() {
-    let temp_dir = create_test_dir();
-    let project_path = temp_dir.path();
-
-    init_centy_project(project_path).await;
-
-    let issue1 = create_issue(
-        project_path,
-        CreateIssueOptions {
-            title: "Issue 1".to_string(),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    let issue2 = create_issue(
-        project_path,
-        CreateIssueOptions {
-            title: "Issue 2".to_string(),
-            ..Default::default()
-        },
-    )
-    .await
-    .unwrap();
-
-    // Create multiple links
-    create_link(
+    let record = create_link(
         project_path,
         CreateLinkOptions {
             source_id: issue1.id.clone(),
@@ -430,34 +341,44 @@ async fn test_delete_all_links_between_entities() {
     .await
     .unwrap();
 
-    create_link(
+    let result = delete_link(
         project_path,
-        CreateLinkOptions {
-            source_id: issue1.id.clone(),
-            source_type: TargetType::issue(),
-            target_id: issue2.id.clone(),
-            target_type: TargetType::issue(),
-            link_type: "relates-to".to_string(),
+        DeleteLinkOptions {
+            link_id: record.id.clone(),
         },
-        &[],
     )
     .await
-    .unwrap();
+    .expect("Should delete link");
 
-    // Delete all links (no link_type specified)
-    let delete_options = DeleteLinkOptions {
-        source_id: issue1.id.clone(),
-        source_type: TargetType::issue(),
-        target_id: issue2.id.clone(),
-        target_type: TargetType::issue(),
-        link_type: None,
-    };
+    assert_eq!(result.deleted_count, 1);
 
-    let result = delete_link(project_path, delete_options, &[])
+    // Verify link is gone from both sides
+    let source_links = list_links(project_path, &issue1.id, TargetType::issue())
         .await
-        .expect("Should delete all links");
+        .unwrap();
+    assert!(source_links.is_empty());
 
-    assert!(result.deleted_count >= 2);
+    let target_links = list_links(project_path, &issue2.id, TargetType::issue())
+        .await
+        .unwrap();
+    assert!(target_links.is_empty());
+}
+
+#[tokio::test]
+async fn test_delete_link_not_found() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+
+    init_centy_project(project_path).await;
+
+    let result = delete_link(
+        project_path,
+        DeleteLinkOptions {
+            link_id: "nonexistent-link-uuid".to_string(),
+        },
+    )
+    .await;
+    assert!(matches!(result.unwrap_err(), LinkError::LinkNotFound));
 }
 
 #[tokio::test]
@@ -481,7 +402,7 @@ async fn test_list_links_empty() {
         .await
         .expect("Should list links");
 
-    assert!(links.links.is_empty());
+    assert!(links.is_empty());
 }
 
 #[tokio::test]
@@ -521,7 +442,6 @@ async fn test_list_links_multiple() {
     .await
     .unwrap();
 
-    // Create links from main to others
     create_link(
         project_path,
         CreateLinkOptions {
@@ -554,53 +474,57 @@ async fn test_list_links_multiple() {
         .await
         .expect("Should list links");
 
-    assert_eq!(links.links.len(), 2);
+    assert_eq!(links.len(), 2);
 }
 
 #[tokio::test]
-async fn test_list_links_entity_not_found() {
+async fn test_list_links_nonexistent_entity_returns_empty() {
+    // With the new model, list_links just scans all link files and filters.
+    // A nonexistent entity simply returns an empty list.
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
     init_centy_project(project_path).await;
 
-    let result = list_links(project_path, "nonexistent-uuid", TargetType::issue()).await;
-    assert!(matches!(
-        result.unwrap_err(),
-        LinkError::SourceNotFound(_, _)
-    ));
+    let links = list_links(project_path, "nonexistent-uuid", TargetType::issue())
+        .await
+        .expect("Should return Ok with empty list for nonexistent entity");
+
+    assert!(links.is_empty());
 }
 
 #[tokio::test]
 async fn test_get_available_link_types_builtin() {
     let types = get_available_link_types(&[]);
 
-    // Should have 4 builtin pairs
-    assert_eq!(types.len(), 4);
+    // All 8 builtin link type names
+    assert_eq!(types.len(), 8);
     assert!(types.iter().all(|t| t.is_builtin));
 
     let names: Vec<&str> = types.iter().map(|t| t.name.as_str()).collect();
     assert!(names.contains(&"blocks"));
+    assert!(names.contains(&"blocked-by"));
     assert!(names.contains(&"parent-of"));
+    assert!(names.contains(&"child-of"));
     assert!(names.contains(&"relates-to"));
+    assert!(names.contains(&"related-from"));
     assert!(names.contains(&"duplicates"));
+    assert!(names.contains(&"duplicated-by"));
 }
 
 #[tokio::test]
 async fn test_get_available_link_types_with_custom() {
     let custom = vec![CustomLinkTypeDefinition {
         name: "depends-on".to_string(),
-        inverse: "dependency-of".to_string(),
         description: Some("Dependency relationship".to_string()),
     }];
 
     let types = get_available_link_types(&custom);
 
-    assert_eq!(types.len(), 5); // 4 builtin + 1 custom
+    assert_eq!(types.len(), 9); // 8 builtin + 1 custom
 
     let custom_type = types.iter().find(|t| !t.is_builtin).unwrap();
     assert_eq!(custom_type.name, "depends-on");
-    assert_eq!(custom_type.inverse, "dependency-of");
 }
 
 #[tokio::test]
@@ -632,7 +556,6 @@ async fn test_create_link_with_custom_type() {
 
     let custom = vec![CustomLinkTypeDefinition {
         name: "depends-on".to_string(),
-        inverse: "dependency-of".to_string(),
         description: None,
     }];
 
@@ -644,23 +567,34 @@ async fn test_create_link_with_custom_type() {
         link_type: "depends-on".to_string(),
     };
 
-    let result = create_link(project_path, options, &custom)
+    let record = create_link(project_path, options, &custom)
         .await
         .expect("Should create link with custom type");
 
-    assert_eq!(result.created_link.kind, "depends-on");
-    assert_eq!(result.inverse_link.kind, "dependency-of");
+    assert_eq!(record.link_type, "depends-on");
+    assert_eq!(record.source_view().link_type, "depends-on");
+    // Target view also shows the stored link_type (source perspective)
+    assert_eq!(record.target_view().link_type, "depends-on");
+    assert_eq!(record.target_view().direction, LinkDirection::Target);
 }
 
 #[tokio::test]
-async fn test_all_builtin_link_types() {
+async fn test_all_builtin_link_types_are_valid() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
     init_centy_project(project_path).await;
 
-    let builtin_types = ["blocks", "parent-of", "relates-to", "duplicates"];
-    let expected_inverses = ["blocked-by", "child-of", "related-from", "duplicated-by"];
+    let builtin_types = [
+        "blocks",
+        "blocked-by",
+        "parent-of",
+        "child-of",
+        "relates-to",
+        "related-from",
+        "duplicates",
+        "duplicated-by",
+    ];
 
     for (i, link_type) in builtin_types.iter().enumerate() {
         let issue1 = create_issue(
@@ -691,12 +625,13 @@ async fn test_all_builtin_link_types() {
             link_type: (*link_type).to_string(),
         };
 
-        let result = create_link(project_path, options, &[])
+        let record = create_link(project_path, options, &[])
             .await
             .unwrap_or_else(|_| panic!("Should create {link_type} link"));
 
-        assert_eq!(result.created_link.kind, *link_type);
-        assert_eq!(result.inverse_link.kind, expected_inverses[i]);
+        assert_eq!(record.link_type, *link_type);
+        assert_eq!(record.source_view().direction, LinkDirection::Source);
+        assert_eq!(record.target_view().direction, LinkDirection::Target);
     }
 }
 
@@ -716,16 +651,11 @@ async fn test_target_type_from_str() {
     assert_eq!(TargetType::from_str("issue").unwrap(), TargetType::issue());
     assert_eq!(TargetType::from_str("doc").unwrap(), TargetType::new("doc"));
     assert_eq!(TargetType::from_str("ISSUE").unwrap(), TargetType::issue());
-    // String-based TargetType accepts any value
     assert_eq!(TargetType::from_str("pr").unwrap().as_str(), "pr");
     assert_eq!(TargetType::from_str("invalid").unwrap().as_str(), "invalid");
 }
 
-// Regression tests for issue #361: target type prefix must be respected when
-// creating cross-type links (e.g. `centy link issue <id> relates-to doc:<id>`).
-// Before the fix the daemon defaulted to the source type (issue) for the target,
-// producing "Target entity not found: <id> (issue)" even when the target was a doc.
-
+// Regression tests for issue #361
 #[tokio::test]
 async fn test_create_link_cross_type_issue_to_doc() {
     let temp_dir = create_test_dir();
@@ -769,23 +699,20 @@ async fn test_create_link_cross_type_issue_to_doc() {
         link_type: "relates-to".to_string(),
     };
 
-    let result = create_link(project_path, options, &[])
+    let record = create_link(project_path, options, &[])
         .await
         .expect("Cross-type link (issue->doc) should succeed");
 
-    assert_eq!(result.created_link.target_id, doc.id);
-    assert_eq!(result.created_link.target_type, TargetType::new("doc"));
-    assert_eq!(result.created_link.kind, "relates-to");
-    assert_eq!(result.inverse_link.target_id, issue.id);
-    assert_eq!(result.inverse_link.target_type, TargetType::issue());
-    assert_eq!(result.inverse_link.kind, "related-from");
+    assert_eq!(record.source_view().target_id, doc.id);
+    assert_eq!(record.source_view().target_type, TargetType::new("doc"));
+    assert_eq!(record.source_view().link_type, "relates-to");
+    assert_eq!(record.target_view().target_id, issue.id);
+    assert_eq!(record.target_view().target_type, TargetType::issue());
+    assert_eq!(record.target_view().direction, LinkDirection::Target);
 }
 
 #[tokio::test]
 async fn test_cross_type_target_not_found_uses_target_type() {
-    // The error message must report the correct TARGET type, not the source type.
-    // Regression: before the fix this always said "(issue)" regardless of the
-    // requested target type.
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
     init_centy_project(project_path).await;
@@ -813,10 +740,10 @@ async fn test_cross_type_target_not_found_uses_target_type() {
     match err {
         LinkError::TargetNotFound(id, ty) => {
             assert_eq!(id, "nonexistent-doc-uuid");
-            // Must say "(doc)", not "(issue)" -- the source type must not leak.
             assert_eq!(ty, TargetType::new("doc"));
         }
         LinkError::IoError(_)
+        | LinkError::StoreError(_)
         | LinkError::InvalidLinkType(_)
         | LinkError::SourceNotFound(_, _)
         | LinkError::LinkAlreadyExists
@@ -874,13 +801,64 @@ async fn test_list_links_cross_type_doc_entity() {
     .await
     .unwrap();
 
-    // List links for the doc -- should contain the inverse "related-from" link.
+    // List links for the doc — should appear with direction=target.
     let doc_links = list_links(project_path, &doc.id, TargetType::new("doc"))
         .await
         .expect("list_links for doc entity should succeed");
 
-    assert_eq!(doc_links.links.len(), 1);
-    assert_eq!(doc_links.links[0].kind, "related-from");
-    assert_eq!(doc_links.links[0].target_id, issue.id);
-    assert_eq!(doc_links.links[0].target_type, TargetType::issue());
+    assert_eq!(doc_links.len(), 1);
+    // link_type is always stored from source's perspective
+    assert_eq!(doc_links[0].link_type, "relates-to");
+    assert_eq!(doc_links[0].direction, LinkDirection::Target);
+    assert_eq!(doc_links[0].target_id, issue.id);
+    assert_eq!(doc_links[0].target_type, TargetType::issue());
+}
+
+#[tokio::test]
+async fn test_link_record_has_id_for_deletion() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let issue1 = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "A".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let issue2 = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "B".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let record = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue1.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: issue2.id.clone(),
+            target_type: TargetType::issue(),
+            link_type: "blocks".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap();
+
+    // The record has a UUID that can be used for deletion
+    assert!(!record.id.is_empty());
+
+    // The same id appears in the list result
+    let links = list_links(project_path, &issue1.id, TargetType::issue())
+        .await
+        .unwrap();
+    assert_eq!(links[0].id, record.id);
 }

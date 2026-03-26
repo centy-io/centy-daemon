@@ -1,95 +1,79 @@
-use super::*;
-use crate::link::TargetType;
+use super::super::types::{LinkDirection, LinkRecord, TargetType};
+use super::{create_link_file, list_all_link_records};
 
-#[test]
-fn test_links_file_new() {
-    let file = LinksFile::new();
-    assert!(file.links.is_empty());
+#[tokio::test]
+async fn test_create_link_file_returns_record() {
+    use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    // Create stub entity files so entity_exists checks work (not needed for storage tests).
+    let centy = temp.path().join(".centy");
+    tokio::fs::create_dir_all(&centy).await.unwrap();
+
+    let record = create_link_file(
+        temp.path(),
+        "src-uuid",
+        &TargetType::issue(),
+        "tgt-uuid",
+        &TargetType::new("doc"),
+        "blocks",
+    )
+    .await
+    .unwrap();
+
+    assert!(!record.id.is_empty());
+    assert_eq!(record.source_id, "src-uuid");
+    assert_eq!(record.source_type, TargetType::issue());
+    assert_eq!(record.target_id, "tgt-uuid");
+    assert_eq!(record.target_type, TargetType::new("doc"));
+    assert_eq!(record.link_type, "blocks");
+    assert!(!record.created_at.is_empty());
+}
+
+#[tokio::test]
+async fn test_list_all_link_records_empty() {
+    use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    let records = list_all_link_records(temp.path()).await.unwrap();
+    assert!(records.is_empty());
+}
+
+#[tokio::test]
+async fn test_list_all_link_records_returns_created() {
+    use tempfile::tempdir;
+    let temp = tempdir().unwrap();
+    let centy = temp.path().join(".centy");
+    tokio::fs::create_dir_all(&centy).await.unwrap();
+
+    create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "b",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
+
+    let records = list_all_link_records(temp.path()).await.unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].source_id, "a");
+    assert_eq!(records[0].target_id, "b");
+    assert_eq!(records[0].link_type, "blocks");
 }
 
 #[test]
-fn test_links_file_add_link() {
-    let mut file = LinksFile::new();
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-    assert_eq!(file.links.len(), 1);
-}
-
-#[test]
-fn test_links_file_remove_link() {
-    let mut file = LinksFile::new();
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "parent-of".to_string(),
-    ));
-
-    // Remove specific link type
-    assert!(file.remove_link("uuid-1", Some("blocks")));
-    assert_eq!(file.links.len(), 1);
-    assert_eq!(file.links[0].kind, "parent-of");
-}
-
-#[test]
-fn test_links_file_remove_all_links_to_target() {
-    let mut file = LinksFile::new();
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "parent-of".to_string(),
-    ));
-    file.add_link(Link::new(
-        "uuid-2".to_string(),
-        TargetType::new("doc"),
-        "relates-to".to_string(),
-    ));
-
-    // Remove all links to uuid-1
-    assert!(file.remove_link("uuid-1", None));
-    assert_eq!(file.links.len(), 1);
-    assert_eq!(file.links[0].target_id, "uuid-2");
-}
-
-#[test]
-fn test_links_file_has_link() {
-    let mut file = LinksFile::new();
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-
-    assert!(file.has_link("uuid-1", "blocks"));
-    assert!(!file.has_link("uuid-1", "parent-of"));
-    assert!(!file.has_link("uuid-2", "blocks"));
-}
-
-#[test]
-fn test_links_file_serialization() {
-    let mut file = LinksFile::new();
-    file.add_link(Link::new(
-        "uuid-1".to_string(),
-        TargetType::issue(),
-        "blocks".to_string(),
-    ));
-
-    let json = serde_json::to_string_pretty(&file).unwrap();
-    assert!(json.contains("\"links\""));
-    assert!(json.contains("\"targetId\": \"uuid-1\""));
-
-    let parsed: LinksFile = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed.links.len(), 1);
+fn test_source_view_direction() {
+    let record = LinkRecord {
+        id: "id".to_string(),
+        source_id: "s".to_string(),
+        source_type: TargetType::issue(),
+        target_id: "t".to_string(),
+        target_type: TargetType::issue(),
+        link_type: "blocks".to_string(),
+        created_at: "ts".to_string(),
+        updated_at: "ts".to_string(),
+    };
+    assert_eq!(record.source_view().direction, LinkDirection::Source);
+    assert_eq!(record.target_view().direction, LinkDirection::Target);
 }

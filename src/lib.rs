@@ -51,8 +51,8 @@ pub use item::generic::{
     generic_restore, generic_soft_delete, generic_update, DuplicateGenericItemOptions,
 };
 pub use link::{
-    create_link, delete_link, get_available_link_types, list_links, read_links, write_links,
-    CreateLinkOptions, CustomLinkTypeDefinition, DeleteLinkOptions, Link, LinkError, LinksFile,
+    create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
+    CustomLinkTypeDefinition, DeleteLinkOptions, LinkDirection, LinkError, LinkRecord, LinkView,
     TargetType,
 };
 pub use manifest::{CentyManifest, ManagedFileType};
