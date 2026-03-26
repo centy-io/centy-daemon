@@ -154,6 +154,9 @@ fn test_templates_readme_content() {
     let templates_readme = files
         .get("templates/README.md")
         .expect("Should have templates/README.md");
-    let content = templates_readme.content.as_ref().expect("Should have content");
+    let content = templates_readme
+        .content
+        .as_ref()
+        .expect("Should have content");
     assert!(!content.is_empty());
 }
