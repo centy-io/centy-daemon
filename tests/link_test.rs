@@ -808,9 +808,7 @@ async fn test_cross_type_target_not_found_uses_target_type() {
         link_type: "relates-to".to_string(),
     };
 
-    let err = create_link(project_path, options, &[])
-        .await
-        .unwrap_err();
+    let err = create_link(project_path, options, &[]).await.unwrap_err();
 
     match err {
         LinkError::TargetNotFound(id, ty) => {
