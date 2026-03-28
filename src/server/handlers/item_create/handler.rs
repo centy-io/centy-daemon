@@ -2,7 +2,7 @@ use super::super::item_type_resolve::resolve_item_type_config;
 use super::operation::{build_options, do_create};
 use crate::hooks::HookOperation;
 use crate::registry::track_project_async;
-use crate::server::assert_service::assert_initialized;
+use crate::server::assert_service::{assert_absolute_path, assert_initialized};
 use crate::server::helpers::{nonempty, nonzero_u32};
 use crate::server::hooks_helper::maybe_run_pre_hooks;
 use crate::server::proto::{CreateItemRequest, CreateItemResponse};
@@ -20,6 +20,9 @@ fn err_resp(
     })
 }
 pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemResponse>, Status> {
+    if let Err(e) = assert_absolute_path(&req.project_path) {
+        return Ok(err_resp(&req.project_path, &e));
+    }
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     if let Err(e) = assert_initialized(project_path) {

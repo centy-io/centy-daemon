@@ -1,5 +1,6 @@
 use crate::reconciliation::build_reconciliation_plan;
 use crate::registry::track_project_async;
+use crate::server::assert_service::assert_absolute_path;
 use crate::server::convert_infra::file_info_to_proto;
 use crate::server::proto::{GetReconciliationPlanRequest, ReconciliationPlan};
 use crate::server::structured_error::to_error_json;
@@ -8,6 +9,13 @@ use tonic::{Response, Status};
 pub async fn get_reconciliation_plan(
     req: GetReconciliationPlanRequest,
 ) -> Result<Response<ReconciliationPlan>, Status> {
+    if let Err(e) = assert_absolute_path(&req.project_path) {
+        return Ok(Response::new(ReconciliationPlan {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     match build_reconciliation_plan(project_path).await {

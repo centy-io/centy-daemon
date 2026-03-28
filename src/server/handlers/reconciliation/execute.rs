@@ -2,6 +2,7 @@ use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use crate::registry::{
     get_project_info, infer_organization_from_remote, set_project_organization, track_project_async,
 };
+use crate::server::assert_service::assert_absolute_path;
 use crate::server::convert_infra::{manifest_to_proto, org_inference_to_proto};
 use crate::server::proto::{ExecuteReconciliationRequest, InitResponse};
 use crate::server::structured_error::to_error_json;
@@ -10,6 +11,13 @@ use tonic::{Response, Status};
 pub async fn execute_reconciliation_handler(
     req: ExecuteReconciliationRequest,
 ) -> Result<Response<InitResponse>, Status> {
+    if let Err(e) = assert_absolute_path(&req.project_path) {
+        return Ok(Response::new(InitResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            ..Default::default()
+        }));
+    }
     track_project_async(req.project_path.clone());
     let project_path = Path::new(&req.project_path);
     let decisions = req

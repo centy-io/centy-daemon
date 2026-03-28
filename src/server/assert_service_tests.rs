@@ -32,3 +32,34 @@ fn test_assert_error_display() {
     assert!(msg.contains("not initialized"));
     assert!(msg.contains(".centy-manifest.json"));
 }
+
+#[test]
+fn test_assert_absolute_path_accepts_absolute() {
+    assert_absolute_path("/Users/someone/project").unwrap();
+}
+
+#[test]
+fn test_assert_absolute_path_rejects_relative() {
+    let err = assert_absolute_path("relative/path").unwrap_err();
+    assert!(matches!(err, AssertError::RelativePath(_)));
+}
+
+#[test]
+fn test_assert_absolute_path_rejects_empty() {
+    let err = assert_absolute_path("").unwrap_err();
+    assert!(matches!(err, AssertError::RelativePath(_)));
+}
+
+#[test]
+fn test_assert_absolute_path_rejects_dot() {
+    let err = assert_absolute_path("./project").unwrap_err();
+    assert!(matches!(err, AssertError::RelativePath(_)));
+}
+
+#[test]
+fn test_relative_path_error_display() {
+    let err = AssertError::RelativePath("my/project".to_string());
+    let msg = err.to_string();
+    assert!(msg.contains("absolute path"));
+    assert!(msg.contains("my/project"));
+}
