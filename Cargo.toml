@@ -1,6 +1,6 @@
 [package]
 name = "centy-daemon"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 description = "A file-based database engine that stores structured data as Markdown files with YAML frontmatter, exposed via gRPC"
 authors = ["Centy Team"]
@@ -20,7 +20,7 @@ git2 = { version = "0.20", features = ["vendored-openssl"] }
 git-url-parse = "0.6"
 
 # Storage engine
-mdstore = "1.1.0"
+mdstore = "1.1.1"
 
 # gRPC
 tonic = "0.12"
