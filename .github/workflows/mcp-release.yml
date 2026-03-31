@@ -38,12 +38,14 @@ jobs:
 
       - name: Build binaries
         run: |
+          VERSION="${{ inputs.version || github.ref_name }}"
+          VERSION="${VERSION#v}"
           cd mcp
-          GOOS=linux   GOARCH=amd64 go build -o ../centy-mcp-linux-x86_64   .
-          GOOS=linux   GOARCH=arm64 go build -o ../centy-mcp-linux-aarch64  .
-          GOOS=darwin  GOARCH=amd64 go build -o ../centy-mcp-darwin-x86_64  .
-          GOOS=darwin  GOARCH=arm64 go build -o ../centy-mcp-darwin-aarch64 .
-          GOOS=windows GOARCH=amd64 go build -o ../centy-mcp-windows-x86_64.exe .
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-linux-x86_64   .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-linux-aarch64  .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-darwin-x86_64  .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-darwin-aarch64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-windows-x86_64.exe .
 
       - name: Upload to release
         if: github.event_name == 'push'

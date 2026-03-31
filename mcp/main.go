@@ -13,6 +13,8 @@ import (
 	"github.com/centy-io/centy-daemon/mcp/gen/centy/v1/centyv1mcp"
 )
 
+var version = "dev"
+
 func main() {
 	addr := os.Getenv("CENTY_DAEMON_ADDR")
 	if addr == "" {
@@ -25,7 +27,7 @@ func main() {
 		connect.WithGRPC(),
 	)
 
-	raw, s := mark3labs.NewServer("centy-daemon", "0.9.3")
+	raw, s := mark3labs.NewServer("centy-daemon", version)
 	centyv1mcp.ForwardToConnectCentyDaemonClient(s, client)
 
 	if err := mcpserver.ServeStdio(raw); err != nil {

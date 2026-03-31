@@ -1,6 +1,6 @@
 {
   "name": "centy-mcp",
-  "version": "0.9.3",
+  "version": "0.0.0",
   "description": "MCP server for centy-daemon — expose centy tools to AI clients like Claude",
   "repository": {
     "type": "git",

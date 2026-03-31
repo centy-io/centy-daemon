@@ -87,6 +87,7 @@
     "funcs",
     "GOARCH",
     "GOOS",
+    "ldflags",
     "gitops",
     "gitoxide",
     "grpc",
