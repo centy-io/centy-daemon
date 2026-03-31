@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 0.9.1)"
+        required: true
 
 permissions:
   contents: write
@@ -41,6 +46,7 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o ../centy-mcp-windows-x86_64.exe .
 
       - name: Upload to release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -68,7 +74,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Set version
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
+        run: |
+          VERSION="${{ inputs.version || github.ref_name }}"
+          npm version "${VERSION#v}" --no-git-tag-version
         working-directory: mcp/npm
 
       - name: Publish
