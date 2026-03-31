@@ -56,13 +56,15 @@ jobs:
     name: Publish npm package
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Set version
@@ -70,7 +72,5 @@ jobs:
         working-directory: mcp/npm
 
       - name: Publish
-        run: npm publish
+        run: npm publish --provenance --access public
         working-directory: mcp/npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
