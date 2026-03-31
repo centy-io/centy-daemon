@@ -1,0 +1,76 @@
+name: MCP Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build MCP binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: mcp/go.sum
+
+      - name: Generate
+        run: make generate
+
+      - name: Build binaries
+        run: |
+          cd mcp
+          GOOS=linux   GOARCH=amd64 go build -o ../centy-mcp-linux-x86_64   .
+          GOOS=linux   GOARCH=arm64 go build -o ../centy-mcp-linux-aarch64  .
+          GOOS=darwin  GOARCH=amd64 go build -o ../centy-mcp-darwin-x86_64  .
+          GOOS=darwin  GOARCH=arm64 go build -o ../centy-mcp-darwin-aarch64 .
+          GOOS=windows GOARCH=amd64 go build -o ../centy-mcp-windows-x86_64.exe .
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            centy-mcp-linux-x86_64
+            centy-mcp-linux-aarch64
+            centy-mcp-darwin-x86_64
+            centy-mcp-darwin-aarch64
+            centy-mcp-windows-x86_64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish npm package
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set version
+        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
+        working-directory: mcp/npm
+
+      - name: Publish
+        run: npm publish
+        working-directory: mcp/npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

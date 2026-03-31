@@ -383,7 +383,6 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          # Generate checksums for all release files
           sha256sum *.tar.gz *.zip *.deb *.rpm *.pkg *.msi 2>/dev/null > checksums-sha256.txt || true
           echo "=== Checksums ==="
           cat checksums-sha256.txt

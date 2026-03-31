@@ -89,6 +89,8 @@
     "funcs",
     "gitops",
     "gitoxide",
+    "GOARCH",
+    "GOOS",
     "grpc",
     "grpcui",
     "grpcurl",
