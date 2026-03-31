@@ -25,7 +25,7 @@ func main() {
 		connect.WithGRPC(),
 	)
 
-	raw, s := mark3labs.NewServer("centy-daemon", "0.9.1")
+	raw, s := mark3labs.NewServer("centy-daemon", "0.9.3")
 	centyv1mcp.ForwardToConnectCentyDaemonClient(s, client)
 
 	if err := mcpserver.ServeStdio(raw); err != nil {
