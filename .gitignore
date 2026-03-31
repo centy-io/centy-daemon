@@ -4,7 +4,7 @@ node_modules/
 # Build output
 dist/
 target/
-mcp/gen/
+centy-mcp-*
 
 # Testing
 coverage/
