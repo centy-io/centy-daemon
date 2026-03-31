@@ -177,7 +177,16 @@
       "Bash(submodule-kit:*)",
       "Bash(centy link:*)",
       "Bash(for dir:*)",
-      "Bash(do echo:*)"
+      "Bash(do echo:*)",
+      "Bash(git submodule:*)",
+      "Bash(git rm:*)",
+      "Bash(gh release:*)",
+      "Bash(make generate:*)",
+      "Bash(buf generate:*)",
+      "Bash(cargo locate-project:*)",
+      "Bash(cargo:*)",
+      "Bash(cargo fetch:*)",
+      "Bash(cargo metadata:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
