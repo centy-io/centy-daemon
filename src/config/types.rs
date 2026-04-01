@@ -1,4 +1,3 @@
-use crate::hooks::HookDefinition;
 use crate::link::CustomLinkTypeDefinition;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -54,9 +53,6 @@ pub struct CentyConfig {
     /// Default editor ID for this project (e.g., "vscode", "terminal", "zed").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_editor: Option<String>,
-    /// Lifecycle hooks (bash scripts to run before/after operations)
-    #[serde(default)]
-    pub hooks: Vec<HookDefinition>,
     /// Workspace settings (e.g. auto-update issue status on open)
     #[serde(default)]
     pub workspace: WorkspaceConfig,
@@ -87,7 +83,6 @@ impl Default for CentyConfig {
             priority_colors: HashMap::new(),
             custom_link_types: Vec::new(),
             default_editor: None,
-            hooks: Vec::new(),
             workspace: WorkspaceConfig::default(),
             cleanup: CleanupConfig::default(),
             extra: HashMap::new(),

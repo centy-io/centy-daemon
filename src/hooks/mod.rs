@@ -4,7 +4,7 @@ pub mod error;
 pub mod executor;
 pub mod runner;
 
-pub use config::{HookDefinition, HookOperation, Phase};
+pub use config::{HookDefinition, HookOperation, HooksFile, Phase};
 pub use context::HookContext;
 pub use error::HookError;
-pub use runner::{run_post_hooks, run_pre_hooks};
+pub use runner::{load_hooks_config, run_post_hooks, run_pre_hooks};

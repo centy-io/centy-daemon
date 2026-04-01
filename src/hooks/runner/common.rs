@@ -1,12 +1,16 @@
-use super::super::config::{HookDefinition, HookOperation, ParsedPattern, Phase};
+use super::super::config::{HookDefinition, HookOperation, HooksFile, ParsedPattern, Phase};
+use crate::utils::get_centy_path;
 use std::path::Path;
-/// Load hooks configuration from the project's config.json.
-/// Returns an empty vec if no config exists or no hooks are configured.
+/// Load hooks configuration from the project's hooks.yaml.
+/// Returns an empty vec if the file does not exist or has no hooks.
 pub async fn load_hooks_config(project_path: &Path) -> Vec<HookDefinition> {
-    match crate::config::read_config(project_path).await {
-        Ok(Some(config)) => config.hooks,
-        _ => Vec::new(),
-    }
+    let hooks_path = get_centy_path(project_path).join("hooks.yaml");
+    let Ok(content) = tokio::fs::read_to_string(&hooks_path).await else {
+        return Vec::new();
+    };
+    serde_yaml::from_str::<HooksFile>(&content)
+        .map(|f| f.hooks)
+        .unwrap_or_default()
 }
 /// Find matching hooks for the given phase, `item_type`, and operation.
 /// Returns enabled hooks sorted by specificity descending (most-specific-first).

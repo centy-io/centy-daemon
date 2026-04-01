@@ -20,8 +20,8 @@ pub async fn read_config(project_path: &Path) -> Result<Option<CentyConfig>, mds
     } else {
         false
     };
-    needs_write |= !raw.as_object().is_some_and(|o| o.contains_key("hooks"));
     if let Some(obj) = raw.as_object_mut() {
+        needs_write |= obj.remove("hooks").is_some();
         needs_write |= obj.remove("defaultState").is_some();
         needs_write |= obj.remove("allowedStates").is_some();
     }

@@ -1,5 +1,4 @@
 use crate::config::{is_system_key, CentyConfig, WorkspaceConfig};
-use crate::hooks::HookDefinition as InternalHookDefinition;
 use crate::server::helpers::nonempty;
 use mdstore::CustomFieldDef as InternalCustomFieldDef;
 
@@ -32,17 +31,6 @@ pub fn proto_to_config(proto: &Config) -> CentyConfig {
             })
             .collect(),
         default_editor: nonempty(proto.default_editor.clone()),
-        hooks: proto
-            .hooks
-            .iter()
-            .map(|h| InternalHookDefinition {
-                pattern: h.pattern.clone(),
-                command: h.command.clone(),
-                is_async: h.run_async,
-                timeout: if h.timeout == 0 { 30 } else { h.timeout },
-                enabled: h.enabled,
-            })
-            .collect(),
         workspace: proto
             .workspace
             .as_ref()

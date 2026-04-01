@@ -1,8 +1,7 @@
 use crate::config::CentyConfig;
 
 use super::proto::{
-    Config, CustomFieldDefinition, HookDefinition as ProtoHookDefinition, LinkTypeDefinition,
-    WorkspaceConfig as ProtoWorkspaceConfig,
+    Config, CustomFieldDefinition, LinkTypeDefinition, WorkspaceConfig as ProtoWorkspaceConfig,
 };
 
 pub fn config_to_proto(config: &CentyConfig) -> Config {
@@ -32,17 +31,6 @@ pub fn config_to_proto(config: &CentyConfig) -> Config {
             })
             .collect(),
         default_editor: config.default_editor.clone().unwrap_or_default(),
-        hooks: config
-            .hooks
-            .iter()
-            .map(|h| ProtoHookDefinition {
-                pattern: h.pattern.clone(),
-                command: h.command.clone(),
-                run_async: h.is_async,
-                timeout: h.timeout,
-                enabled: h.enabled,
-            })
-            .collect(),
         workspace: Some(ProtoWorkspaceConfig {
             update_status_on_open: config.workspace.update_status_on_open,
         }),

@@ -31,18 +31,18 @@ fn test_hook_operation_as_str() {
 // --- HookDefinition tests ---
 
 #[test]
-fn test_hook_definition_serialization() {
+fn test_hook_definition_yaml_serialization() {
     let hook = HookDefinition {
-        pattern: "pre:issue:create".to_string(),
+        pattern: "issue.creating".to_string(),
         command: "echo hello".to_string(),
         is_async: false,
         timeout: 30,
         enabled: true,
     };
 
-    let json = serde_json::to_string(&hook).expect("Should serialize");
-    let deserialized: HookDefinition = serde_json::from_str(&json).expect("Should deserialize");
-    assert_eq!(deserialized.pattern, "pre:issue:create");
+    let yaml = serde_yaml::to_string(&hook).expect("Should serialize");
+    let deserialized: HookDefinition = serde_yaml::from_str(&yaml).expect("Should deserialize");
+    assert_eq!(deserialized.pattern, "issue.creating");
     assert_eq!(deserialized.command, "echo hello");
     assert!(!deserialized.is_async);
     assert_eq!(deserialized.timeout, 30);
@@ -51,15 +51,15 @@ fn test_hook_definition_serialization() {
 
 #[test]
 fn test_hook_definition_defaults() {
-    let json = r#"{"pattern":"pre:issue:create","command":"echo test"}"#;
-    let hook: HookDefinition = serde_json::from_str(json).expect("Should deserialize");
+    let yaml = "pattern: issue.creating\ncommand: echo test\n";
+    let hook: HookDefinition = serde_yaml::from_str(yaml).expect("Should deserialize");
     assert!(!hook.is_async);
     assert_eq!(hook.timeout, 30);
     assert!(hook.enabled);
 }
 
 #[test]
-fn test_hook_definition_camel_case() {
+fn test_hook_definition_async_rename() {
     let hook = HookDefinition {
         pattern: "test".to_string(),
         command: "cmd".to_string(),
@@ -68,7 +68,26 @@ fn test_hook_definition_camel_case() {
         enabled: false,
     };
 
-    let json = serde_json::to_string(&hook).expect("Should serialize");
-    assert!(json.contains("\"async\""));
-    assert!(!json.contains("is_async"));
+    let yaml = serde_yaml::to_string(&hook).expect("Should serialize");
+    assert!(yaml.contains("async:") || yaml.contains("async: "));
+    assert!(!yaml.contains("is_async"));
+}
+
+#[test]
+fn test_hooks_file_deserialization() {
+    let yaml = "hooks:\n  - pattern: \"issue.creating\"\n    command: \"echo pre\"\n  - pattern: \"*.deleted\"\n    command: \"notify.sh\"\n    async: true\n    timeout: 10\n";
+    let file: HooksFile = serde_yaml::from_str(yaml).expect("Should deserialize");
+    assert_eq!(file.hooks.len(), 2);
+    assert_eq!(file.hooks[0].pattern, "issue.creating");
+    assert!(!file.hooks[0].is_async);
+    assert_eq!(file.hooks[1].pattern, "*.deleted");
+    assert!(file.hooks[1].is_async);
+    assert_eq!(file.hooks[1].timeout, 10);
+}
+
+#[test]
+fn test_hooks_file_empty_when_no_hooks_key() {
+    let yaml = "";
+    let file: HooksFile = serde_yaml::from_str(yaml).expect("Should deserialize");
+    assert!(file.hooks.is_empty());
 }

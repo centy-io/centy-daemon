@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Remove legacy `LinkTargetType` enum from proto; use string-based `*_item_type` fields directly in link RPCs (#367)
+- Migrate hooks from `config.json` to `hooks.yaml` as the single source of truth (#362)
+- Rename hook patterns to event-driven convention: `item_type.event` (e.g. `issue.creating`, `*.deleted`, `*.*`) replacing the old `phase:type:operation` format
+- Remove `hooks` field from gRPC `Config` proto (reserve field 12)
 
 ## [0.9.0] — 2026-03-24
 

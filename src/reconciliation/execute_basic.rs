@@ -106,7 +106,7 @@ async fn test_execute_reconciliation_creates_config_json() {
     let content = fs::read_to_string(&config_path).await.expect("Should read");
     let value: serde_json::Value = serde_json::from_str(&content).expect("Should parse");
     assert!(
-        value.as_object().unwrap().contains_key("hooks"),
-        "config.json should contain hooks key"
+        !value.as_object().unwrap().contains_key("hooks"),
+        "config.json should not contain hooks key (hooks moved to hooks.yaml)"
     );
 }

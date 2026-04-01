@@ -2,7 +2,7 @@ mod pattern;
 mod types;
 pub use super::error::HookError;
 pub use pattern::ParsedPattern;
-pub use types::{HookDefinition, HookOperation, PatternSegment, Phase};
+pub use types::{HookDefinition, HookOperation, HooksFile, PatternSegment, Phase};
 #[cfg(test)]
 #[path = "../hook_pattern_parsing.rs"]
 mod hook_pattern_parsing;

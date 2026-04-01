@@ -5,9 +5,8 @@ fn default_timeout() -> u64 {
 fn default_enabled() -> bool {
     true
 }
-/// Hook definition from config.json
+/// Hook definition from hooks.yaml
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct HookDefinition {
     pub pattern: String,
     pub command: String,
@@ -17,6 +16,12 @@ pub struct HookDefinition {
     pub timeout: u64,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
+}
+/// Top-level wrapper for hooks.yaml deserialization
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HooksFile {
+    #[serde(default)]
+    pub hooks: Vec<HookDefinition>,
 }
 /// Phase of hook execution
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

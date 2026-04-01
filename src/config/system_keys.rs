@@ -8,7 +8,6 @@ const SYSTEM_KEYS: &[&str] = &[
     "priorityColors",
     "customLinkTypes",
     "defaultEditor",
-    "hooks",
     "workspace",
     "cleanup",
 ];
