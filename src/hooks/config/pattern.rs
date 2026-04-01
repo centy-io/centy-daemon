@@ -54,10 +54,7 @@ impl ParsedPattern {
         let event = Self::parse_event_segment(event_str, pattern)?;
         Ok(ParsedPattern { item_type, event })
     }
-    fn parse_item_type_segment(
-        value: &str,
-        pattern: &str,
-    ) -> Result<PatternSegment, HookError> {
+    fn parse_item_type_segment(value: &str, pattern: &str) -> Result<PatternSegment, HookError> {
         if value == "*" {
             return Ok(PatternSegment::Wildcard);
         }
@@ -83,8 +80,7 @@ impl ParsedPattern {
     #[must_use]
     pub fn matches(&self, phase: Phase, item_type: &str, operation: HookOperation) -> bool {
         let ev = event_name(phase, operation);
-        Self::segment_matches(&self.item_type, item_type)
-            && Self::segment_matches(&self.event, ev)
+        Self::segment_matches(&self.item_type, item_type) && Self::segment_matches(&self.event, ev)
     }
     fn segment_matches(segment: &PatternSegment, value: &str) -> bool {
         match segment {

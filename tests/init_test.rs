@@ -474,7 +474,9 @@ async fn test_init_does_not_overwrite_existing_config_json() {
         .expect("Should read config.json");
     let value: Value = serde_json::from_str(&content).expect("Should parse");
     assert_eq!(
-        value.get("priorityLevels").and_then(serde_json::Value::as_u64),
+        value
+            .get("priorityLevels")
+            .and_then(serde_json::Value::as_u64),
         Some(5),
         "Custom priorityLevels should be preserved"
     );

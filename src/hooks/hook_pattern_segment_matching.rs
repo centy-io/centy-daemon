@@ -73,7 +73,9 @@ fn test_specificity() {
     assert_eq!(ParsedPattern::parse("issue.*").unwrap().specificity(), 1);
     assert_eq!(ParsedPattern::parse("*.creating").unwrap().specificity(), 1);
     assert_eq!(
-        ParsedPattern::parse("issue.creating").unwrap().specificity(),
+        ParsedPattern::parse("issue.creating")
+            .unwrap()
+            .specificity(),
         2
     );
 }
