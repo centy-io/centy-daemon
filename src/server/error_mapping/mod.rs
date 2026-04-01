@@ -3,9 +3,9 @@ pub trait ToStructuredError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>);
 }
 
-mod issue_crud;
-mod infra;
 mod hooks_org;
+mod infra;
+mod issue_crud;
 mod user_assets;
 
 impl ToStructuredError for crate::server::assert_service::AssertError {
