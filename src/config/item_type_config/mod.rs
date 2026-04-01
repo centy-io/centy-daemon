@@ -27,8 +27,8 @@ mod item_type_config_field_validation_tests;
 #[path = "item_type_config_migration.rs"]
 mod item_type_config_migration;
 #[cfg(test)]
-#[path = "item_type_config_validation.rs"]
-mod item_type_config_validation;
+#[path = "item_type_config_validation_tests.rs"]
+mod item_type_config_validation_tests;
 #[cfg(test)]
 #[path = "item_type_config_yaml_serialization_tests.rs"]
 mod item_type_config_yaml_serialization_tests;
