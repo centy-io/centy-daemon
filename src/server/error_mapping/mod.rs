@@ -3,10 +3,10 @@ pub trait ToStructuredError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>);
 }
 
-mod impls_a;
-mod impls_b;
-mod impls_c;
-mod impls_d;
+mod issue_crud;
+mod infra;
+mod hooks_org;
+mod user_assets;
 
 impl ToStructuredError for crate::server::assert_service::AssertError {
     fn error_code_and_tip(&self) -> (&str, Option<&str>) {
