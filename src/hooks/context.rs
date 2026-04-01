@@ -60,4 +60,4 @@ impl HookContext {
 
 #[cfg(test)]
 #[path = "context_tests.rs"]
-mod tests;
+mod context_tests;

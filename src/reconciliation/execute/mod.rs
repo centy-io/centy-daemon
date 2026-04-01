@@ -76,8 +76,8 @@ pub async fn execute_reconciliation(
 #[path = "../execute_basic.rs"]
 mod execute_basic;
 #[cfg(test)]
-#[path = "../execute_config_creation.rs"]
-mod execute_config_creation;
+#[path = "../execute_config_creation_tests.rs"]
+mod execute_config_creation_tests;
 #[cfg(test)]
 #[path = "../execute_hooks_yaml.rs"]
 mod execute_hooks_yaml;

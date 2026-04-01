@@ -18,11 +18,11 @@ pub use types::{CustomLinkTypeDefinition, LinkDirection, LinkRecord, LinkView, T
 #[path = "link_create_tests.rs"]
 mod link_create_tests;
 #[cfg(test)]
-#[path = "link_creation_and_serialization.rs"]
-mod link_creation_and_serialization;
+#[path = "link_creation_and_serialization_tests.rs"]
+mod link_creation_and_serialization_tests;
 #[cfg(test)]
-#[path = "target_type_conversion.rs"]
-mod target_type_conversion;
+#[path = "target_type_conversion_tests.rs"]
+mod target_type_conversion_tests;
 #[cfg(test)]
-#[path = "target_type_serialization.rs"]
-mod target_type_serialization;
+#[path = "target_type_serialization_tests.rs"]
+mod target_type_serialization_tests;

@@ -4,8 +4,8 @@ pub use super::error::HookError;
 pub use pattern::ParsedPattern;
 pub use types::{HookDefinition, HookOperation, HooksFile, PatternSegment, Phase};
 #[cfg(test)]
-#[path = "../hook_pattern_parsing.rs"]
-mod hook_pattern_parsing;
+#[path = "../hook_pattern_parsing_tests.rs"]
+mod hook_pattern_parsing_tests;
 #[cfg(test)]
 #[path = "../hook_pattern_segment_matching.rs"]
 mod hook_pattern_segment_matching;

@@ -78,4 +78,5 @@ impl ToStructuredError for crate::item::entities::issue::IssueError {
 }
 
 #[cfg(test)]
-mod tests;
+#[path = "error_mapping_tests.rs"]
+mod error_mapping_tests;

@@ -16,11 +16,11 @@ pub use registry::ItemTypeRegistry;
 pub use types::{ItemTypeConfig, ItemTypeFeatures};
 
 #[cfg(test)]
-#[path = "default_issue_config.rs"]
-mod default_issue_config;
+#[path = "default_configs_tests.rs"]
+mod default_configs_tests;
 #[cfg(test)]
-#[path = "item_type_config_field_validation.rs"]
-mod item_type_config_field_validation;
+#[path = "item_type_config_field_validation_tests.rs"]
+mod item_type_config_field_validation_tests;
 #[cfg(test)]
 #[path = "item_type_config_migration.rs"]
 mod item_type_config_migration;
@@ -28,11 +28,11 @@ mod item_type_config_migration;
 #[path = "item_type_config_validation.rs"]
 mod item_type_config_validation;
 #[cfg(test)]
-#[path = "item_type_config_yaml_serialization.rs"]
-mod item_type_config_yaml_serialization;
+#[path = "item_type_config_yaml_serialization_tests.rs"]
+mod item_type_config_yaml_serialization_tests;
 #[cfg(test)]
-#[path = "item_type_registry_build.rs"]
-mod item_type_registry_build;
+#[path = "item_type_registry_build_tests.rs"]
+mod item_type_registry_build_tests;
 #[cfg(test)]
 #[path = "item_type_registry_error_handling.rs"]
 mod item_type_registry_error_handling;
