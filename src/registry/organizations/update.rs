@@ -93,3 +93,7 @@ pub async fn update_organization(
 
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "update_tests.rs"]
+mod tests;

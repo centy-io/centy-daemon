@@ -1,5 +1,51 @@
 use super::*;
 
+// ── StructuredError::with_tip on empty messages ───────────────────────────────
+
+#[test]
+fn test_with_tip_no_op_when_no_messages() {
+    // Construct a StructuredError with empty messages to exercise the
+    // `if let Some(msg) = self.messages.first_mut()` false branch.
+    let empty_se = StructuredError {
+        cwd: "/tmp".to_string(),
+        logs: String::new(),
+        messages: vec![],
+    };
+    // with_tip should be a no-op (not panic) when there are no messages
+    let result_se = empty_se.with_tip("some tip");
+    assert!(result_se.messages.is_empty());
+}
+
+// ── to_error_json ─────────────────────────────────────────────────────────────
+
+#[test]
+fn test_to_error_json_without_tip() {
+    use crate::registry::RegistryError;
+    let err = RegistryError::HomeDirNotFound;
+    let json = to_error_json("/tmp/proj", &err);
+    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed["cwd"], "/tmp/proj");
+    assert_eq!(parsed["messages"][0]["code"], "HOME_DIR_NOT_FOUND");
+    // No tip for this variant
+    assert!(parsed["messages"][0].get("tip").is_none());
+}
+
+#[test]
+fn test_to_error_json_with_tip() {
+    use crate::item::core::error::ItemError;
+    let err = ItemError::NotInitialized;
+    let json = to_error_json("/tmp/proj", &err);
+    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed["messages"][0]["code"], "NOT_INITIALIZED");
+    assert!(parsed["messages"][0]["tip"].is_string());
+    assert!(parsed["messages"][0]["tip"]
+        .as_str()
+        .unwrap()
+        .contains("centy init"));
+}
+
+// ── StructuredError::new / with_tip / to_json ────────────────────────────────
+
 #[test]
 fn test_structured_error_json_format() {
     let se = StructuredError::new(

@@ -15,6 +15,9 @@ pub use link_types::{is_valid_link_type, BUILTIN_LINK_TYPES};
 pub use types::{CustomLinkTypeDefinition, LinkDirection, LinkRecord, LinkView, TargetType};
 
 #[cfg(test)]
+#[path = "link_create_tests.rs"]
+mod link_create_tests;
+#[cfg(test)]
 #[path = "link_creation_and_serialization.rs"]
 mod link_creation_and_serialization;
 #[cfg(test)]

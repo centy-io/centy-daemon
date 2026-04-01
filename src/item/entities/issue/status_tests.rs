@@ -1,4 +1,31 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 use super::*;
+
+#[tokio::test]
+async fn test_validate_status_for_project_permissive_without_config() {
+    // A path with no config file should be permissive (return Ok)
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let result = validate_status_for_project(temp_dir.path(), "issues", "any-status").await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_resolve_issue_status_defaults_to_open_without_config() {
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let status = resolve_issue_status(temp_dir.path(), None)
+        .await
+        .expect("Should resolve status");
+    assert_eq!(status, "open");
+}
+
+#[tokio::test]
+async fn test_resolve_issue_status_uses_requested_when_provided() {
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let status = resolve_issue_status(temp_dir.path(), Some("closed".to_string()))
+        .await
+        .expect("Should resolve status");
+    assert_eq!(status, "closed");
+}
 
 #[test]
 fn test_validate_status_valid() {

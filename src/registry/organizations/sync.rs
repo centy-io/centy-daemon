@@ -6,6 +6,10 @@ use crate::utils::now_iso;
 use std::path::Path;
 use tracing::info;
 
+#[cfg(test)]
+#[path = "sync_tests.rs"]
+mod tests;
+
 /// Sync an organization from a project's .centy/organization.json file.
 /// Called when a project is first accessed (e.g., after cloning a repo).
 /// If the org doesn't exist globally, it's auto-imported.

@@ -15,3 +15,6 @@ pub use crud::{delete_org_issue, update_org_issue, UpdateOrgIssueOptions};
 pub use crud_list::{get_org_issue_by_display_number, list_org_issues};
 pub use crud_ops::{create_org_issue, get_org_issue};
 pub use crud_types::{ListOrgIssuesOptions, OrgIssue, OrgIssueError};
+
+#[cfg(test)]
+mod tests;

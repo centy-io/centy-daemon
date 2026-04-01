@@ -9,6 +9,25 @@ fn test_format_display_path_non_home() {
 }
 
 #[test]
+fn test_is_in_temp_dir_nonexistent_path_in_temp() {
+    // A non-existent path inside the temp dir — canonicalize() will fail,
+    // exercising the string-prefix fallback branch in is_in_temp_dir.
+    let temp_dir = std::env::temp_dir();
+    let nonexistent = temp_dir.join("centy-test-nonexistent-xyz-99999999");
+    // Confirm the path doesn't actually exist (so canonicalize fails)
+    assert!(!nonexistent.exists());
+    assert!(is_in_temp_dir(&nonexistent));
+}
+
+#[test]
+fn test_is_in_temp_dir_nonexistent_path_not_in_temp() {
+    // A non-existent path NOT in temp dir — string fallback returns false.
+    let nonexistent = std::path::Path::new("/nonexistent/project/path/xyz123");
+    assert!(!nonexistent.exists());
+    assert!(!is_in_temp_dir(nonexistent));
+}
+
+#[test]
 fn test_format_display_path_home() {
     // Get the actual home directory for this system
     if let Some(home) = dirs::home_dir() {

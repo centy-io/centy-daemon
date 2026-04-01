@@ -1,4 +1,8 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use super::*;
+use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
+use tempfile::tempdir;
 
 fn make_user(id: &str, name: &str, email: Option<&str>) -> User {
     User {
@@ -72,4 +76,96 @@ fn test_find_user_by_id_empty_list() {
     let users: Vec<User> = vec![];
     let found = find_user_by_id(&users, "test");
     assert!(found.is_none());
+}
+
+// ---------------------------------------------------------------------------
+// Async storage tests: read_users / write_users
+// ---------------------------------------------------------------------------
+
+async fn init_project(project_path: &std::path::Path) {
+    execute_reconciliation(project_path, ReconciliationDecisions::default(), true)
+        .await
+        .expect("Failed to initialize project");
+}
+
+#[tokio::test]
+async fn test_read_users_not_initialized_returns_error() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+
+    // No .centy directory → NotInitialized
+    let result = read_users(project_path).await;
+    assert!(
+        matches!(result, Err(UserError::NotInitialized)),
+        "Expected NotInitialized error"
+    );
+}
+
+#[tokio::test]
+async fn test_read_users_initialized_no_file_returns_empty() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+    init_project(project_path).await;
+
+    // No users.json file yet → empty vec
+    let users = read_users(project_path).await.expect("Should read");
+    assert!(users.is_empty());
+}
+
+#[tokio::test]
+async fn test_write_and_read_users_roundtrip() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+    init_project(project_path).await;
+
+    let written = vec![
+        make_user("alice", "Alice", Some("alice@example.com")),
+        make_user("bob", "Bob", None),
+    ];
+
+    write_users(project_path, &written)
+        .await
+        .expect("Should write users");
+
+    let loaded = read_users(project_path).await.expect("Should read users");
+    assert_eq!(loaded.len(), 2);
+    assert_eq!(loaded[0].id, "alice");
+    assert_eq!(loaded[0].email.as_deref(), Some("alice@example.com"));
+    assert_eq!(loaded[1].id, "bob");
+    assert!(loaded[1].email.is_none());
+}
+
+#[tokio::test]
+async fn test_write_empty_users_list() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+    init_project(project_path).await;
+
+    write_users(project_path, &[])
+        .await
+        .expect("Should write empty list");
+
+    let loaded = read_users(project_path).await.expect("Should read");
+    assert!(loaded.is_empty());
+}
+
+#[tokio::test]
+async fn test_write_users_overwrites_previous() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+    init_project(project_path).await;
+
+    let first = vec![make_user("alice", "Alice", None)];
+    write_users(project_path, &first)
+        .await
+        .expect("First write");
+
+    let second = vec![make_user("bob", "Bob", None)];
+    write_users(project_path, &second)
+        .await
+        .expect("Second write");
+
+    let loaded = read_users(project_path).await.expect("Read");
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(loaded[0].id, "bob");
 }
