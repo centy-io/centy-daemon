@@ -1,5 +1,26 @@
 /// Hooks YAML template content
-pub const HOOKS_YAML_CONTENT: &str = "# This file is managed by Centy. Use the Centy CLI to modify it.\n# Centy Hooks \u{2014} https://docs.centy.io/hooks\n#\n# Example hook:\n# hooks:\n#   - event: issue.created\n#     run: echo \"Issue created: $CENTY_ITEM_TITLE\"\n";
+pub const HOOKS_YAML_CONTENT: &str = "\
+# This file is managed by Centy. Use the Centy CLI to modify it.\n\
+# Centy Hooks \u{2014} https://docs.centy.io/hooks\n\
+#\n\
+# Hooks run bash commands before or after item lifecycle events.\n\
+# Pattern format: {item_type}.{event}  \u{2014} wildcards: *.created, issue.*, *.*\n\
+#\n\
+# Events (before): creating, updating, deleting, soft-deleting, restoring, moving, duplicating\n\
+# Events (after):  created,  updated,  deleted,  soft-deleted,  restored,  moved,  duplicated\n\
+#\n\
+# hooks:\n\
+#   - pattern: \"issue.created\"\n\
+#     command: \"echo Issue created: $CENTY_ITEM_TITLE\"\n\
+#   - pattern: \"issue.creating\"\n\
+#     command: \"echo pre-create hook: $CENTY_ITEM_TYPE\"\n\
+#   - pattern: \"*.deleted\"\n\
+#     command: \"notify.sh\"\n\
+#     async: true\n\
+#     timeout: 10\n\
+#   - pattern: \"*.*\"\n\
+#     command: \"audit-log.sh\"\n\
+";
 
 /// `CSpell` configuration content
 pub const CSPELL_JSON_CONTENT: &str = r#"{

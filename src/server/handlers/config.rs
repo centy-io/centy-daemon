@@ -37,7 +37,6 @@ pub async fn get_config(req: GetConfigRequest) -> Result<Response<GetConfigRespo
                 priority_colors: std::collections::HashMap::new(),
                 custom_link_types: vec![],
                 default_editor: String::new(),
-                hooks: vec![],
                 workspace: None,
                 user_values: std::collections::HashMap::new(),
             }),

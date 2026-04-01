@@ -50,35 +50,5 @@ pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
     validate_colors(&config.state_colors, "state")?;
     validate_colors(&config.priority_colors, "priority")?;
 
-    for hook in &config.hooks {
-        if hook.command.is_empty() {
-            return Err(format!(
-                "hook with pattern '{}' has an empty command",
-                hook.pattern
-            ));
-        }
-        if hook.timeout == 0 || hook.timeout > 300 {
-            return Err(format!(
-                "hook '{}' timeout must be between 1 and 300 seconds, got {}",
-                hook.pattern, hook.timeout
-            ));
-        }
-        if let Err(e) = crate::hooks::config::ParsedPattern::parse(&hook.pattern) {
-            return Err(format!("invalid hook pattern '{}': {e}", hook.pattern));
-        }
-        if hook.is_async {
-            let parsed = crate::hooks::config::ParsedPattern::parse(&hook.pattern)
-                .map_err(|e| format!("invalid hook pattern: {e}"))?;
-            if let crate::hooks::config::PatternSegment::Exact(phase) = &parsed.phase {
-                if phase == "pre" {
-                    return Err(format!(
-                        "hook '{}' cannot be async: pre-hooks must be synchronous",
-                        hook.pattern
-                    ));
-                }
-            }
-        }
-    }
-
     Ok(())
 }

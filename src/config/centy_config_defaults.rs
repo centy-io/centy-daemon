@@ -15,7 +15,6 @@ fn test_centy_config_default() {
     assert!(config.state_colors.is_empty());
     assert!(config.priority_colors.is_empty());
     assert!(config.custom_link_types.is_empty());
-    assert!(config.hooks.is_empty());
     assert!(config.workspace.update_status_on_open.is_none());
 }
 

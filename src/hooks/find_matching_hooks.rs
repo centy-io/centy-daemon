@@ -10,7 +10,7 @@ fn test_find_matching_hooks_empty() {
 #[test]
 fn test_find_matching_hooks_exact_match() {
     let hooks = vec![HookDefinition {
-        pattern: "pre:issue:create".to_string(),
+        pattern: "issue.creating".to_string(),
         command: "echo test".to_string(),
         is_async: false,
         timeout: 30,
@@ -23,7 +23,7 @@ fn test_find_matching_hooks_exact_match() {
 #[test]
 fn test_find_matching_hooks_no_match() {
     let hooks = vec![HookDefinition {
-        pattern: "pre:issue:create".to_string(),
+        pattern: "issue.creating".to_string(),
         command: "echo test".to_string(),
         is_async: false,
         timeout: 30,
@@ -36,7 +36,7 @@ fn test_find_matching_hooks_no_match() {
 #[test]
 fn test_find_matching_hooks_disabled_skipped() {
     let hooks = vec![HookDefinition {
-        pattern: "pre:issue:create".to_string(),
+        pattern: "issue.creating".to_string(),
         command: "echo test".to_string(),
         is_async: false,
         timeout: 30,

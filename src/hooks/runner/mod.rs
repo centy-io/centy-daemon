@@ -3,6 +3,7 @@ mod post_hooks;
 mod pre_hooks;
 pub use super::config::{HookDefinition, HookOperation, Phase};
 pub use common::find_matching_hooks;
+pub use common::load_hooks_config;
 pub use post_hooks::run_post_hooks;
 pub use pre_hooks::run_pre_hooks;
 #[cfg(test)]

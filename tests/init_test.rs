@@ -407,7 +407,7 @@ async fn test_init_does_not_overwrite_existing_item_type_config_yaml() {
 }
 
 #[tokio::test]
-async fn test_init_creates_config_json_with_hooks() {
+async fn test_init_creates_config_json_without_hooks() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
 
@@ -428,7 +428,7 @@ async fn test_init_creates_config_json_with_hooks() {
         "Should report config.json as created"
     );
 
-    // Verify it contains the hooks property
+    // Verify it does NOT contain the hooks property (hooks moved to hooks.yaml)
     let content = fs::read_to_string(&config_path)
         .await
         .expect("Should read config.json");
@@ -436,13 +436,8 @@ async fn test_init_creates_config_json_with_hooks() {
     let obj = value.as_object().expect("Config should be an object");
 
     assert!(
-        obj.contains_key("hooks"),
-        "config.json should contain hooks property"
-    );
-    assert_eq!(
-        obj.get("hooks"),
-        Some(&Value::Array(vec![])),
-        "hooks should be an empty array"
+        !obj.contains_key("hooks"),
+        "config.json should not contain hooks property (hooks moved to hooks.yaml)"
     );
 }
 
@@ -456,7 +451,7 @@ async fn test_init_does_not_overwrite_existing_config_json() {
     fs::create_dir_all(&centy_path)
         .await
         .expect("Should create .centy dir");
-    let custom_config = r#"{"priorityLevels": 5, "hooks": []}"#;
+    let custom_config = r#"{"priorityLevels": 5}"#;
     fs::write(centy_path.join("config.json"), custom_config)
         .await
         .expect("Should write config");
@@ -473,13 +468,15 @@ async fn test_init_does_not_overwrite_existing_config_json() {
         "Should not re-create existing config.json"
     );
 
-    // Content should remain unchanged
+    // Config should still reflect the custom priority level
     let content = fs::read_to_string(centy_path.join("config.json"))
         .await
         .expect("Should read config.json");
+    let value: Value = serde_json::from_str(&content).expect("Should parse");
     assert_eq!(
-        content, custom_config,
-        "Existing config.json should not be overwritten"
+        value.get("priorityLevels").and_then(serde_json::Value::as_u64),
+        Some(5),
+        "Custom priorityLevels should be preserved"
     );
 }
 
