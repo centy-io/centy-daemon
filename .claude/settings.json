@@ -186,7 +186,12 @@
       "Bash(cargo locate-project:*)",
       "Bash(cargo:*)",
       "Bash(cargo fetch:*)",
-      "Bash(cargo metadata:*)"
+      "Bash(cargo metadata:*)",
+      "mcp__centy__centy_v1_CentyDaemon_ListProjects",
+      "mcp__centy__centy_v1_CentyDaemon_ListOrganizations",
+      "mcp__centy__centy_v1_CentyDaemon_CreateOrgIssue",
+      "mcp__centy__centy_v1_CentyDaemon_DeleteOrgIssue",
+      "mcp__centy__centy_v1_CentyDaemon_CreateItem"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
