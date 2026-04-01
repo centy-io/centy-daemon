@@ -145,7 +145,7 @@ fn test_issue_error_title_required_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_a.rs: IssueCrudError ────────────────────────────────────────────────
+// ── issue_crud.rs: IssueCrudError ────────────────────────────────────────────
 
 #[test]
 fn test_issue_crud_error_all_variants() {
@@ -245,7 +245,7 @@ fn test_issue_crud_error_target_not_initialized_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_b.rs: OrganizationError ────────────────────────────────────────────
+// ── infra.rs: OrganizationError ──────────────────────────────────────────────
 
 #[test]
 fn test_organization_error_all_variants() {
@@ -290,7 +290,7 @@ fn test_organization_error_all_variants() {
     }
 }
 
-// ── impls_b.rs: RegistryError ─────────────────────────────────────────────────
+// ── infra.rs: RegistryError ───────────────────────────────────────────────────
 
 #[test]
 fn test_registry_error_all_variants() {
@@ -319,7 +319,7 @@ fn test_registry_error_all_variants() {
     }
 }
 
-// ── impls_b.rs: ConfigError ───────────────────────────────────────────────────
+// ── infra.rs: ConfigError ─────────────────────────────────────────────────────
 
 #[test]
 fn test_config_error_all_variants() {
@@ -347,7 +347,7 @@ fn test_config_error_all_variants() {
     }
 }
 
-// ── impls_b.rs: ManifestError ─────────────────────────────────────────────────
+// ── infra.rs: ManifestError ───────────────────────────────────────────────────
 
 #[test]
 fn test_manifest_error_all_variants() {
@@ -371,7 +371,7 @@ fn test_manifest_error_all_variants() {
     }
 }
 
-// ── impls_b.rs: WorkspaceError ────────────────────────────────────────────────
+// ── infra.rs: WorkspaceError ──────────────────────────────────────────────────
 
 #[test]
 fn test_workspace_error_all_variants() {
@@ -399,7 +399,7 @@ fn test_workspace_error_all_variants() {
     }
 }
 
-// ── impls_b.rs: LinkError ─────────────────────────────────────────────────────
+// ── infra.rs: LinkError ───────────────────────────────────────────────────────
 
 #[test]
 fn test_link_error_all_variants() {
@@ -437,7 +437,7 @@ fn test_link_error_self_link_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_c.rs: HookError ────────────────────────────────────────────────────
+// ── hooks_org.rs: HookError ──────────────────────────────────────────────────
 
 #[test]
 fn test_hook_error_all_variants() {
@@ -478,7 +478,7 @@ fn test_hook_error_all_variants() {
     }
 }
 
-// ── impls_c.rs: OrgIssueError ────────────────────────────────────────────────
+// ── hooks_org.rs: OrgIssueError ──────────────────────────────────────────────
 
 #[test]
 fn test_org_issue_error_all_variants() {
@@ -516,7 +516,7 @@ fn test_org_issue_error_title_required_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_c.rs: OrgConfigError ───────────────────────────────────────────────
+// ── hooks_org.rs: OrgConfigError ─────────────────────────────────────────────
 
 #[test]
 fn test_org_config_error_all_variants() {
@@ -540,7 +540,7 @@ fn test_org_config_error_all_variants() {
     }
 }
 
-// ── impls_d.rs: UserError ────────────────────────────────────────────────────
+// ── user_assets.rs: UserError ────────────────────────────────────────────────
 
 #[test]
 fn test_user_error_all_variants() {
@@ -594,7 +594,7 @@ fn test_user_error_not_git_repository_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_d.rs: AssetError ───────────────────────────────────────────────────
+// ── user_assets.rs: AssetError ───────────────────────────────────────────────
 
 #[test]
 fn test_asset_error_all_variants() {
@@ -637,7 +637,7 @@ fn test_asset_error_not_initialized_has_tip() {
     assert!(tip.is_some());
 }
 
-// ── impls_d.rs: PlanError ────────────────────────────────────────────────────
+// ── user_assets.rs: PlanError ────────────────────────────────────────────────
 
 #[test]
 fn test_plan_error_all_variants() {
@@ -647,7 +647,7 @@ fn test_plan_error_all_variants() {
     assert_eq!(code, "IO_ERROR");
 }
 
-// ── impls_d.rs: ExecuteError ─────────────────────────────────────────────────
+// ── user_assets.rs: ExecuteError ─────────────────────────────────────────────
 
 #[test]
 fn test_execute_error_all_variants() {
