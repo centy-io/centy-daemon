@@ -10,7 +10,7 @@ const binName = isWin ? 'centy-mcp.exe' : 'centy-mcp';
 const binPath = path.join(__dirname, binName);
 
 if (!fs.existsSync(binPath)) {
-  console.error('[centy-mcp] Binary not found. Try reinstalling: npm install -g centy-mcp');
+  console.error('[centy-mcp] Binary not found. Try: npx centy-mcp@latest');
   process.exit(1);
 }
 

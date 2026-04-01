@@ -29,6 +29,12 @@ By default the MCP server connects to `127.0.0.1:50051`. Override with `CENTY_DA
 CENTY_DAEMON_ADDR=127.0.0.1:9090 centy-mcp
 ```
 
+## Claude Code configuration
+
+```bash
+claude mcp add centy -s user -- npx -y centy-mcp
+```
+
 ## Claude Desktop configuration
 
 Add this to your `claude_desktop_config.json`:
@@ -38,7 +44,7 @@ Add this to your `claude_desktop_config.json`:
   "mcpServers": {
     "centy": {
       "command": "npx",
-      "args": ["centy-mcp"]
+      "args": ["-y", "centy-mcp"]
     }
   }
 }

@@ -34,7 +34,7 @@ if (fs.existsSync(binPath)) {
 }
 
 const url = `https://github.com/${repo}/releases/download/${version}/${assetName}`;
-console.log(`[centy-mcp] Downloading ${assetName}...`);
+console.error(`[centy-mcp] Downloading ${assetName}...`);
 
 function download(url, dest, redirects) {
   if (redirects === 0) throw new Error('Too many redirects');
@@ -57,7 +57,7 @@ function download(url, dest, redirects) {
 download(url, binPath, 5)
   .then(() => {
     if (!isWin) fs.chmodSync(binPath, 0o755);
-    console.log('[centy-mcp] Ready.');
+    console.error('[centy-mcp] Ready.');
   })
   .catch((err) => {
     console.error(`[centy-mcp] Download failed: ${err.message}`);
