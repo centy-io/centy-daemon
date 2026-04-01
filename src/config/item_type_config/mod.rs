@@ -7,7 +7,6 @@ mod types;
 
 pub use defaults::{
     default_archived_config, default_comment_config, default_doc_config, default_issue_config,
-    validate_item_type_config,
 };
 pub use io::{
     discover_item_types, discover_item_types_map, read_item_type_config,
@@ -20,9 +19,6 @@ pub use types::{ItemTypeConfig, ItemTypeFeatures};
 #[cfg(test)]
 #[path = "default_configs_tests.rs"]
 mod default_configs_tests;
-#[cfg(test)]
-#[path = "item_type_config_field_validation_tests.rs"]
-mod item_type_config_field_validation_tests;
 #[cfg(test)]
 #[path = "item_type_config_migration.rs"]
 mod item_type_config_migration;
