@@ -191,7 +191,9 @@
       "mcp__centy__centy_v1_CentyDaemon_ListOrganizations",
       "mcp__centy__centy_v1_CentyDaemon_CreateOrgIssue",
       "mcp__centy__centy_v1_CentyDaemon_DeleteOrgIssue",
-      "mcp__centy__centy_v1_CentyDaemon_CreateItem"
+      "mcp__centy__centy_v1_CentyDaemon_CreateItem",
+      "mcp__centy__centy_v1_CentyDaemon_ListItems",
+      "mcp__centy__centy_v1_CentyDaemon_ListItemTypes"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
