@@ -1006,15 +1006,9 @@ export interface UpdateOrgConfigResponse {
 
 // ============ Link Types ============
 
-export enum LinkTargetType {
-  UNSPECIFIED = 0,
-  ISSUE = 1,
-  DOC = 2,
-}
-
 export interface Link {
   targetId: string;
-  targetType: LinkTargetType | string;
+  targetItemType: string;
   linkType: string;
   createdAt: string;
 }
@@ -1022,9 +1016,9 @@ export interface Link {
 export interface CreateLinkRequest {
   projectPath: string;
   sourceId: string;
-  sourceType: LinkTargetType | string;
+  sourceItemType: string;
   targetId: string;
-  targetType: LinkTargetType | string;
+  targetItemType: string;
   linkType: string;
 }
 
@@ -1038,9 +1032,9 @@ export interface CreateLinkResponse {
 export interface DeleteLinkRequest {
   projectPath: string;
   sourceId: string;
-  sourceType: LinkTargetType | string;
+  sourceItemType: string;
   targetId: string;
-  targetType: LinkTargetType | string;
+  targetItemType: string;
   linkType?: string;
 }
 
@@ -1053,7 +1047,7 @@ export interface DeleteLinkResponse {
 export interface ListLinksRequest {
   projectPath: string;
   entityId: string;
-  entityType: LinkTargetType | string;
+  entityItemType: string;
 }
 
 export interface ListLinksResponse {

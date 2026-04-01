@@ -1,9 +1,8 @@
 use crate::config::read_config;
 use crate::hooks::HookOperation;
-use crate::link::CreateLinkOptions;
+use crate::link::{CreateLinkOptions, TargetType};
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_link::resolve_target_type;
 use crate::server::error_mapping::ToStructuredError;
 use crate::server::handlers::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 use crate::server::hooks_helper::maybe_run_pre_hooks;
@@ -48,8 +47,8 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     {
         return Ok(err_resp(&req.project_path, &e));
     }
-    let source_type = resolve_target_type(req.source_type(), &req.source_item_type);
-    let target_type = resolve_target_type(req.target_type(), &req.target_item_type);
+    let source_type = TargetType::new(req.source_item_type.to_lowercase());
+    let target_type = TargetType::new(req.target_item_type.to_lowercase());
 
     // Resolve display numbers to UUIDs, scoped to each item's type.
     let source_id = match resolve_item_type_config(project_path, source_type.as_str()).await {

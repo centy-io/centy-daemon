@@ -1,9 +1,10 @@
 use std::path::Path;
 
 use crate::config::read_config;
+use crate::link::TargetType;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_link::{link_view_to_proto, resolve_target_type};
+use crate::server::convert_link::link_view_to_proto;
 use crate::server::proto::{
     GetAvailableLinkTypesRequest, GetAvailableLinkTypesResponse, LinkTypeInfo, ListLinksRequest,
     ListLinksResponse,
@@ -22,7 +23,7 @@ pub async fn list_links(req: ListLinksRequest) -> Result<Response<ListLinksRespo
         }));
     }
 
-    let entity_type = resolve_target_type(req.entity_type(), &req.entity_item_type);
+    let entity_type = TargetType::new(req.entity_item_type.to_lowercase());
 
     match crate::link::list_links(project_path, &req.entity_id, entity_type).await {
         Ok(views) => Ok(Response::new(ListLinksResponse {
