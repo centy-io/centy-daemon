@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createTempProject, type TempProject } from './fixtures/temp-project.js';
-import { LinkTargetType } from './fixtures/grpc-client.js';
 
 // Skip until links backend is implemented
 describe.skip('Links E2E Tests', () => {
@@ -38,9 +37,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -55,9 +54,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -71,9 +70,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'parent-of',
       });
 
@@ -86,9 +85,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'relates-to',
       });
 
@@ -101,9 +100,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'duplicates',
       });
 
@@ -116,9 +115,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId1,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -131,9 +130,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -141,9 +140,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -155,9 +154,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'invalid-link-type',
       });
 
@@ -169,9 +168,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -199,15 +198,15 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: docSlug,
-        targetType: LinkTargetType.DOC,
+        targetItemType: "doc",
         linkType: 'relates-to',
       });
 
       expect(result.success).toBe(true);
       expect(result.createdLink?.targetId).toBe(docSlug);
-      expect(result.createdLink?.targetType).toBe('LINK_TARGET_TYPE_DOC');
+      expect(result.createdLink?.targetItemType).toBe('doc');
     });
   });
 
@@ -217,9 +216,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -233,9 +232,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issue3.item.id,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'parent-of',
       });
     });
@@ -244,7 +243,7 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(result.links.length).toBe(2);
@@ -256,7 +255,7 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId2,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(result.links.length).toBe(1);
@@ -275,7 +274,7 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.listLinks({
         projectPath: project.path,
         entityId: newIssue.item.id,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(result.links.length).toBe(0);
@@ -289,9 +288,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
     });
@@ -300,9 +299,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.deleteLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -313,7 +312,7 @@ describe.skip('Links E2E Tests', () => {
       const links = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(links.links.length).toBe(0);
@@ -323,9 +322,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.deleteLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -333,7 +332,7 @@ describe.skip('Links E2E Tests', () => {
       const links = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId2,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(links.links.length).toBe(0);
@@ -344,9 +343,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'relates-to',
       });
 
@@ -354,9 +353,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.deleteLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
       });
 
       expect(result.success).toBe(true);
@@ -366,7 +365,7 @@ describe.skip('Links E2E Tests', () => {
       const links = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       const linksToIssue2 = links.links.filter(l => l.targetId === issueId2);
@@ -378,9 +377,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.deleteLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -388,9 +387,9 @@ describe.skip('Links E2E Tests', () => {
       const result = await project.client.deleteLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -449,9 +448,9 @@ describe.skip('Links E2E Tests', () => {
       await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
 
@@ -459,13 +458,13 @@ describe.skip('Links E2E Tests', () => {
       const result1 = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       const result2 = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       expect(result1.links.length).toBe(result2.links.length);
@@ -479,9 +478,9 @@ describe.skip('Links E2E Tests', () => {
       const result1 = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'blocks',
       });
       expect(result1.success).toBe(true);
@@ -490,9 +489,9 @@ describe.skip('Links E2E Tests', () => {
       const result2 = await project.client.createLink({
         projectPath: project.path,
         sourceId: issueId1,
-        sourceType: LinkTargetType.ISSUE,
+        sourceItemType: "issue",
         targetId: issueId2,
-        targetType: LinkTargetType.ISSUE,
+        targetItemType: "issue",
         linkType: 'relates-to',
       });
       expect(result2.success).toBe(true);
@@ -501,7 +500,7 @@ describe.skip('Links E2E Tests', () => {
       const links = await project.client.listLinks({
         projectPath: project.path,
         entityId: issueId1,
-        entityType: LinkTargetType.ISSUE,
+        entityItemType: "issue",
       });
 
       const linkTypes = links.links.map(l => l.linkType);
