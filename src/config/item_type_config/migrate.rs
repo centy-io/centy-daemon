@@ -1,6 +1,7 @@
 //! Migration helpers for item type configs.
-use super::convert::{default_archived_config, default_issue_config};
-use super::defaults::{default_comment_config, default_doc_config};
+use super::defaults::{
+    default_archived_config, default_comment_config, default_doc_config, default_issue_config,
+};
 use super::io::{read_item_type_config, write_item_type_config};
 use crate::config::CentyConfig;
 use std::path::Path;
