@@ -78,9 +78,22 @@ jobs:
       - name: Set version
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
-          npm version "${VERSION#v}" --no-git-tag-version
+          VERSION="${VERSION#v}"
+          npm version "${VERSION}" --no-git-tag-version
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
         working-directory: mcp/npm
 
+      - name: Check if version already published
+        id: npm_check
+        run: |
+          if npm view "centy-mcp@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Version ${VERSION} already on npm, skipping publish"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish
+        if: steps.npm_check.outputs.skip == 'false'
         run: npm publish --provenance --access public
         working-directory: mcp/npm
