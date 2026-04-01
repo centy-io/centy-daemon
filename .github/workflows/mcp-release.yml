@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: mcp/go.sum
 
       - name: Generate
-        run: make generate
+        run: make -C mcp generate
 
       - name: Build binaries
         run: |

@@ -42,7 +42,7 @@ Add this to your `claude_desktop_config.json`:
 
 ## How it works
 
-Code generation is driven by [`protoc-gen-go-mcp`](https://github.com/redpanda-data/protoc-gen-go-mcp). Running `make generate` from the repo root compiles the proto definitions in `proto/` and writes the generated Go stubs to `mcp/gen/` (gitignored). The `main.go` entrypoint wires the generated handlers to a ConnectRPC client that forwards calls to the running daemon over gRPC.
+Code generation is driven by [`protoc-gen-go-mcp`](https://github.com/redpanda-data/protoc-gen-go-mcp). Running `make generate` from the `mcp/` directory compiles the proto definitions in `proto/` and writes the generated Go stubs to `mcp/gen/` (gitignored). The `main.go` entrypoint wires the generated handlers to a ConnectRPC client that forwards calls to the running daemon over gRPC.
 
 ```
 proto/centy/v1/*.proto
@@ -69,9 +69,9 @@ The npm package (`mcp/npm/`) downloads the correct pre-built binary for the curr
 ### Generate and build
 
 ```bash
-# From the repo root
+# From the mcp/ directory
 make generate
 
 # Build the binary
-cd mcp && go build -o centy-mcp .
+go build -o centy-mcp .
 ```
