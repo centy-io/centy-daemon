@@ -91,7 +91,6 @@ describe('gRPC: Config Operations', () => {
       expect(manifest.schemaVersion).toBeGreaterThan(0);
       expect(manifest.centyVersion).toBeDefined();
       expect(manifest.createdAt).toBeDefined();
-      expect(manifest.updatedAt).toBeDefined();
     });
 
     it('should have valid timestamps', async () => {
@@ -101,7 +100,6 @@ describe('gRPC: Config Operations', () => {
 
       // Verify timestamps are valid ISO dates
       expect(() => new Date(manifest.createdAt)).not.toThrow();
-      expect(() => new Date(manifest.updatedAt)).not.toThrow();
     });
   });
 

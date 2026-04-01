@@ -76,6 +76,34 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
     Ok(())
 }
 
+/// Shared process-wide test lock so that all registry unit tests in this
+/// library binary are serialized and share a single stable `CENTY_HOME`.
+///
+/// All test modules that read/write the registry **must** acquire this lock
+/// (via `acquire_registry_test_lock()`) rather than managing `CENTY_HOME`
+/// themselves. This prevents races when multiple modules run concurrently.
+#[cfg(test)]
+#[allow(dead_code)]
+pub static REGISTRY_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Single `CENTY_HOME` `TempDir` initialized once per test-binary run.
+#[cfg(test)]
+#[allow(dead_code)]
+pub static REGISTRY_TEST_HOME: std::sync::OnceLock<tempfile::TempDir> = std::sync::OnceLock::new();
+
+/// Acquire the shared registry test lock, initializing `CENTY_HOME` if needed.
+#[cfg(test)]
+pub fn acquire_registry_test_lock() -> std::sync::MutexGuard<'static, ()> {
+    REGISTRY_TEST_HOME.get_or_init(|| {
+        let dir = tempfile::TempDir::new().expect("registry test home dir");
+        std::env::set_var("CENTY_HOME", dir.path());
+        dir
+    });
+    REGISTRY_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 #[cfg(test)]
 #[path = "storage_tests.rs"]
 mod tests;

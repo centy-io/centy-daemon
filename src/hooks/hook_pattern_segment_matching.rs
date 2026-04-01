@@ -80,3 +80,29 @@ fn test_all_item_types() {
     let p = ParsedPattern::parse("pre:task:create").unwrap();
     assert!(p.matches(Phase::Pre, "task", HookOperation::Create));
 }
+
+#[test]
+fn test_empty_item_type_segment_is_error() {
+    // An empty string between colons should be rejected
+    let err = ParsedPattern::parse("pre::create").unwrap_err();
+    assert!(
+        matches!(err, HookError::InvalidPattern(_)),
+        "Expected InvalidPattern for empty item type segment"
+    );
+}
+
+#[test]
+fn test_wildcard_item_type_matches_any() {
+    let p = ParsedPattern::parse("pre:*:create").unwrap();
+    assert!(p.matches(Phase::Pre, "issue", HookOperation::Create));
+    assert!(p.matches(Phase::Pre, "custom-type", HookOperation::Create));
+    assert!(!p.matches(Phase::Post, "issue", HookOperation::Create));
+}
+
+#[test]
+fn test_segment_matches_exact_false_when_different() {
+    let p = ParsedPattern::parse("pre:issue:create").unwrap();
+    // Verify non-matching exact segments return false
+    assert!(!p.matches(Phase::Pre, "issue", HookOperation::Update));
+    assert!(!p.matches(Phase::Pre, "bug", HookOperation::Create));
+}

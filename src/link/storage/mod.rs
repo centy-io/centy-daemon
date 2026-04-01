@@ -7,3 +7,6 @@ mod links_file_basic_operations;
 #[cfg(test)]
 #[path = "../links_file_persistence.rs"]
 mod links_file_persistence;
+#[cfg(test)]
+#[path = "../storage_io_tests.rs"]
+mod storage_io_tests;

@@ -76,4 +76,104 @@ mod tests {
         let via_enum = resolve_target_type(LinkTargetType::Doc, "");
         assert_eq!(via_string, via_enum);
     }
+
+    // ── proto_link_target_to_internal ─────────────────────────────────────────
+
+    #[test]
+    fn proto_link_target_issue_maps_to_issue() {
+        let ty = proto_link_target_to_internal(LinkTargetType::Issue);
+        assert_eq!(ty, TargetType::issue());
+    }
+
+    #[test]
+    fn proto_link_target_unspecified_maps_to_issue() {
+        let ty = proto_link_target_to_internal(LinkTargetType::Unspecified);
+        assert_eq!(ty, TargetType::issue());
+    }
+
+    #[test]
+    fn proto_link_target_doc_maps_to_doc() {
+        let ty = proto_link_target_to_internal(LinkTargetType::Doc);
+        assert_eq!(ty, TargetType::new("doc"));
+    }
+
+    // ── internal_target_type_to_proto ─────────────────────────────────────────
+
+    #[test]
+    fn internal_target_type_issue_maps_to_proto_issue() {
+        let ty = TargetType::issue();
+        let result = internal_target_type_to_proto(&ty);
+        assert_eq!(result, LinkTargetType::Issue as i32);
+    }
+
+    #[test]
+    fn internal_target_type_doc_maps_to_proto_doc() {
+        let ty = TargetType::new("doc");
+        let result = internal_target_type_to_proto(&ty);
+        assert_eq!(result, LinkTargetType::Doc as i32);
+    }
+
+    #[test]
+    fn internal_target_type_unknown_maps_to_unspecified() {
+        let ty = TargetType::new("plan");
+        let result = internal_target_type_to_proto(&ty);
+        assert_eq!(result, LinkTargetType::Unspecified as i32);
+    }
+
+    // ── link_view_to_proto ────────────────────────────────────────────────────
+
+    #[test]
+    fn link_view_to_proto_issue_type() {
+        use crate::link::{LinkDirection, LinkView};
+        let view = LinkView {
+            id: "link-id".to_string(),
+            target_id: "target-uuid".to_string(),
+            target_type: TargetType::issue(),
+            link_type: "blocks".to_string(),
+            direction: LinkDirection::Source,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        let proto = link_view_to_proto(&view);
+        assert_eq!(proto.id, "link-id");
+        assert_eq!(proto.target_id, "target-uuid");
+        assert_eq!(proto.link_type, "blocks");
+        assert_eq!(proto.target_item_type, "issue");
+        assert_eq!(proto.target_type, LinkTargetType::Issue as i32);
+        assert_eq!(proto.created_at, "2024-01-01T00:00:00Z");
+        assert_eq!(proto.direction, "source");
+    }
+
+    #[test]
+    fn link_view_to_proto_doc_type() {
+        use crate::link::{LinkDirection, LinkView};
+        let view = LinkView {
+            id: "link-id".to_string(),
+            target_id: "doc-uuid".to_string(),
+            target_type: TargetType::new("doc"),
+            link_type: "references".to_string(),
+            direction: LinkDirection::Target,
+            created_at: "2024-06-01T00:00:00Z".to_string(),
+        };
+        let proto = link_view_to_proto(&view);
+        assert_eq!(proto.target_id, "doc-uuid");
+        assert_eq!(proto.target_item_type, "doc");
+        assert_eq!(proto.target_type, LinkTargetType::Doc as i32);
+        assert_eq!(proto.direction, "target");
+    }
+
+    #[test]
+    fn link_view_to_proto_custom_type_maps_to_unspecified_enum() {
+        use crate::link::{LinkDirection, LinkView};
+        let view = LinkView {
+            id: "link-id".to_string(),
+            target_id: "epic-uuid".to_string(),
+            target_type: TargetType::new("epic"),
+            link_type: "relates-to".to_string(),
+            direction: LinkDirection::Source,
+            created_at: "2024-06-01T00:00:00Z".to_string(),
+        };
+        let proto = link_view_to_proto(&view);
+        assert_eq!(proto.target_item_type, "epic");
+        assert_eq!(proto.target_type, LinkTargetType::Unspecified as i32);
+    }
 }

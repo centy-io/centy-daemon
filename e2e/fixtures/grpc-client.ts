@@ -747,6 +747,7 @@ export interface Config {
   defaultEditor: string;
   hooks: HookDefinition[];
   workspace?: WorkspaceConfig;
+  userValues: Record<string, string>;
 }
 
 export interface LinkTypeDefinition {
@@ -794,7 +795,6 @@ export interface Manifest {
   schemaVersion: number;
   centyVersion: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface GetManifestResponse {

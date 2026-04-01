@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use super::*;
 
 #[test]
@@ -50,6 +52,24 @@ fn test_expand_vars_plain_path() {
 }
 
 #[test]
+fn test_expand_vars_known_env_var_with_tail() {
+    // Set a known env var so the `$VAR/tail` branch executes
+    std::env::set_var("CENTY_TEST_EXPAND_VAR", "/base/dir");
+    let result = expand_vars("$CENTY_TEST_EXPAND_VAR/subdir");
+    assert_eq!(result, "/base/dir/subdir");
+    std::env::remove_var("CENTY_TEST_EXPAND_VAR");
+}
+
+#[test]
+fn test_expand_vars_known_env_var_no_tail() {
+    // Set a known env var so the `$VAR` (no tail) branch executes
+    std::env::set_var("CENTY_TEST_EXPAND_VAR2", "/base/dir2");
+    let result = expand_vars("$CENTY_TEST_EXPAND_VAR2");
+    assert_eq!(result, "/base/dir2");
+    std::env::remove_var("CENTY_TEST_EXPAND_VAR2");
+}
+
+#[test]
 fn test_resolve_pattern_strips_glob_star() {
     let result = resolve_pattern("$TMPDIR/*");
     assert!(result.is_some());
@@ -57,6 +77,15 @@ fn test_resolve_pattern_strips_glob_star() {
     assert!(result2.is_some());
     // Both should resolve to the same prefix
     assert_eq!(result, result2);
+}
+
+#[test]
+fn test_resolve_pattern_strips_trailing_slash() {
+    let result1 = resolve_pattern("$TMPDIR");
+    let result2 = resolve_pattern("$TMPDIR/");
+    assert!(result1.is_some());
+    assert!(result2.is_some());
+    assert_eq!(result1, result2);
 }
 
 #[test]
@@ -94,4 +123,12 @@ fn test_is_ignored_path_home_not_ignored() {
         // We can't guarantee IGNORE_PREFIXES state in tests, so just check no panic
         let _ = is_ignored_path(&normal);
     }
+}
+
+#[test]
+fn test_is_ignored_path_with_nonexistent_path() {
+    // Path that doesn't exist — canonicalize falls back to itself
+    let path = std::path::Path::new("/nonexistent/path/for/centy/test");
+    // Just verify no panic
+    let _ = is_ignored_path(path);
 }

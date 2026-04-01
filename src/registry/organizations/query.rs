@@ -60,3 +60,7 @@ pub async fn get_organization(slug: &str) -> Result<Option<OrganizationInfo>, Or
         Ok(None)
     }
 }
+
+#[cfg(test)]
+#[path = "query_tests.rs"]
+mod tests;

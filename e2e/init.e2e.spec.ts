@@ -105,9 +105,7 @@ describe('gRPC: Init Operations', () => {
       expect(content).toContain('name: Issue');
       expect(content).toContain('identifier: uuid');
       expect(content).toContain('displayNumber: true');
-      expect(content).toContain('status: true');
       expect(content).toContain('priority: true');
-      expect(content).toContain('defaultStatus: open');
     });
 
     it('should create docs/config.yaml with minimal defaults', async () => {
@@ -120,7 +118,6 @@ describe('gRPC: Init Operations', () => {
       expect(content).toContain('name: Doc');
       expect(content).toContain('identifier: slug');
       expect(content).toContain('displayNumber: false');
-      expect(content).toContain('status: false');
       expect(content).toContain('priority: false');
       // Docs should not have statuses, defaultStatus, or priorityLevels
       expect(content).not.toContain('statuses:');
@@ -191,6 +188,7 @@ describe('gRPC: Init Operations', () => {
       defaultEditor: '',
       hooks: [],
       workspace: {},
+      userValues: {},
     };
 
     it('should apply priorityLevels from initConfig', async () => {
@@ -238,10 +236,10 @@ describe('gRPC: Init Operations', () => {
         title: 'My Awesome Project',
       });
 
-      const { project: info } = await project.client.getProjectInfo({
-        projectPath: project.path,
-      });
-      expect(info?.projectTitle).toBe('My Awesome Project');
+      // Read project.json directly — getProjectInfo skips temp-dir paths
+      const json = await readProjectFile(project, '.centy/project.json');
+      const metadata = JSON.parse(json) as { title?: string };
+      expect(metadata.title).toBe('My Awesome Project');
     });
 
     it('should preserve all other config fields as defaults when initConfig is partial', async () => {

@@ -24,3 +24,4 @@ coverage/
 .claude-container/
 .claude-revert-backup-*/
 eslint-report.json
+coverage.lcov
