@@ -1,8 +1,8 @@
 graph TB
     subgraph Clients
-        CLI["CLI\n(centy-cli)"]
-        WebApp["Web App\n(Browser)"]
-        MCP["MCP Server\n(Go)"]
+        CLI["CLI<br/>(centy-cli)"]
+        WebApp["Web App<br/>(Browser)"]
+        MCP["MCP Server<br/>(Go)"]
     end
 
     subgraph AIClients["AI Clients"]
@@ -10,16 +10,16 @@ graph TB
     end
 
     subgraph Daemon["centy-daemon (Rust · tonic)"]
-        gRPC["gRPC Gateway\n:50051"]
+        gRPC["gRPC Gateway<br/>:50051"]
         Core["Core Logic"]
-        Storage["mdstore\n(Markdown + YAML)"]
+        Storage["mdstore<br/>(Markdown + YAML)"]
 
         gRPC --> Core
         Core --> Storage
     end
 
     CLI -->|"gRPC (HTTP/2)"| gRPC
-    WebApp -->|"gRPC-Web / Connect\n(HTTP/1.1 or HTTP/2)"| gRPC
+    WebApp -->|"gRPC-Web / Connect<br/>(HTTP/1.1 or HTTP/2)"| gRPC
     MCP -->|"Connect-RPC (HTTP/2)"| gRPC
 
     Claude -->|"MCP Protocol"| MCP
