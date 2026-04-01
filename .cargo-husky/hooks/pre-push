@@ -1,6 +1,29 @@
 #!/bin/sh
 set -e
 
+# ── Changelog gate ────────────────────────────────────────────────────────────
+# Before pushing, confirm that CHANGELOG.md has been updated in the repo root
+# and in every sub-folder that ships its own changelog.
+#
+# If you have done so, re-run with the confirmation flag:
+#
+#   CHANGELOGS_UPDATED=1 git push ...
+#
+# ─────────────────────────────────────────────────────────────────────────────
+if [ -z "$CHANGELOGS_UPDATED" ]; then
+  echo ""
+  echo "CHANGELOG GATE"
+  echo ""
+  echo "  Have you updated CHANGELOG.md in the repo root AND in all"
+  echo "  sub-folders that maintain their own changelog?"
+  echo ""
+  echo "  If yes, re-run your push with the confirmation flag:"
+  echo ""
+  echo "      CHANGELOGS_UPDATED=1 git push ..."
+  echo ""
+  exit 1
+fi
+
 echo "Pre-push checks starting..."
 
 echo "[1/8] Checking formatting..."
