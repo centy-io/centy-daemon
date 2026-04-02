@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Generate `.mcp.json` during `init`: create with centy MCP entry when absent, inject into existing file preserving other servers, no-op if already present, abort on invalid JSON (#381)
 
+### Removed
+- Remove PR as a built-in entity type; users can define custom `pr` item types via `config.yaml` (#368)
+
 ## [0.9.3] — 2026-04-02
 
 ### Changed
