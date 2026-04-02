@@ -1,6 +1,6 @@
 # Roadmap
 
-- We want to let the user configure custom entity types beyond the built-in "issue", "doc", and "pr" types. Users should be able to define new entity types like "feature", "bug", "task", etc. with custom templates and schemas for each type.
+- We want to let the user configure custom entity types beyond the built-in "issue" and "doc" types. Users should be able to define new entity types like "feature", "bug", "task", "pr", etc. with custom templates and schemas for each type.
 
 - We want to make the `.centy` database directory name generic and configurable. Instead of being hardcoded to `.centy`, users should be able to configure the folder name while maintaining backward compatibility with `.centy`.
 
