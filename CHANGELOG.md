@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-04-02
+
 ### Added
 - Generate `.mcp.json` during `init`: create with centy MCP entry when absent, inject into existing file preserving other servers, no-op if already present, abort on invalid JSON (#381)
 - Add `listed` flag to `ItemTypeConfig` to control visibility in `ListItemTypes`; `comments` and `archived` default to `listed: false`
