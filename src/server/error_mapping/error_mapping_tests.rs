@@ -117,7 +117,27 @@ fn test_issue_error_all_variants() {
             "INVALID_STATUS",
             IssueError::InvalidStatus(StatusError::InvalidStatus("bad".into(), "open".into())),
         ),
+        (
+            "TEMPLATE_ERROR",
+            IssueError::TemplateError(crate::template::TemplateError::IoError(
+                std::io::Error::other("x"),
+            )),
+        ),
+        (
+            "RECONCILE_ERROR",
+            IssueError::ReconcileError(
+                crate::item::entities::issue::reconcile::ReconcileError::IoError(
+                    std::io::Error::other("x"),
+                ),
+            ),
+        ),
         ("NO_ORGANIZATION", IssueError::NoOrganization),
+        (
+            "ORG_REGISTRY_ERROR",
+            IssueError::OrgRegistryError(
+                crate::item::entities::issue::org_registry::OrgIssueRegistryError::HomeDirNotFound,
+            ),
+        ),
         ("REGISTRY_ERROR", IssueError::RegistryError("r".into())),
     ];
     for (expected_code, err) in cases {

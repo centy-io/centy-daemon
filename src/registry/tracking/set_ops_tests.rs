@@ -404,3 +404,128 @@ async fn test_set_project_user_title_fallback_path() {
         .expect("Should succeed via fallback path lookup");
     assert_eq!(info.user_title, Some("Fallback Title".to_string()));
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Symlink tests: exercises the `else if` fallback branch
+// canonical_path resolves the symlink → differs from project_path (symlink) →
+// first get_mut(canonical) misses, else-if get_mut(project_path) hits.
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_set_project_favorite_else_if_symlink_branch() {
+    use std::os::unix::fs::symlink;
+    let _lock = acquire_lock();
+
+    let real_dir = TempDir::new().expect("real tempdir");
+    let link_parent = TempDir::new().expect("link parent tempdir");
+    let symlink_path = link_parent.path().join("link_proj");
+    symlink(real_dir.path(), &symlink_path).expect("create symlink");
+    let symlink_str = symlink_path.to_string_lossy().to_string();
+
+    // Verify the symlink resolves to a different canonical path.
+    let resolved = std::path::Path::new(&symlink_str)
+        .canonicalize()
+        .expect("canonicalize symlink");
+    if resolved.to_string_lossy() == symlink_str {
+        // No symlink effect on this platform/config – skip.
+        return;
+    }
+
+    // Store under the symlink path (not the canonical path).
+    insert_tracked_project_locked(&symlink_str, make_tracked_project()).await;
+
+    // canonical_path = resolved ≠ symlink_str → first get_mut misses, else-if hits.
+    let info = set_project_favorite(&symlink_str, true)
+        .await
+        .expect("Should succeed via else-if symlink fallback");
+    assert!(info.is_favorite);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_set_project_archived_else_if_symlink_branch() {
+    use std::os::unix::fs::symlink;
+    let _lock = acquire_lock();
+
+    let real_dir = TempDir::new().expect("real tempdir");
+    let link_parent = TempDir::new().expect("link parent tempdir");
+    let symlink_path = link_parent.path().join("link_arch");
+    symlink(real_dir.path(), &symlink_path).expect("create symlink");
+    let symlink_str = symlink_path.to_string_lossy().to_string();
+
+    let resolved = std::path::Path::new(&symlink_str)
+        .canonicalize()
+        .expect("canonicalize symlink");
+    if resolved.to_string_lossy() == symlink_str {
+        return;
+    }
+
+    insert_tracked_project_locked(&symlink_str, make_tracked_project()).await;
+
+    let info = set_project_archived(&symlink_str, true)
+        .await
+        .expect("Should succeed via else-if symlink fallback");
+    assert!(info.is_archived);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_set_project_user_title_else_if_symlink_branch() {
+    use std::os::unix::fs::symlink;
+    let _lock = acquire_lock();
+
+    let real_dir = TempDir::new().expect("real tempdir");
+    let link_parent = TempDir::new().expect("link parent tempdir");
+    let symlink_path = link_parent.path().join("link_title");
+    symlink(real_dir.path(), &symlink_path).expect("create symlink");
+    let symlink_str = symlink_path.to_string_lossy().to_string();
+
+    let resolved = std::path::Path::new(&symlink_str)
+        .canonicalize()
+        .expect("canonicalize symlink");
+    if resolved.to_string_lossy() == symlink_str {
+        return;
+    }
+
+    insert_tracked_project_locked(&symlink_str, make_tracked_project()).await;
+
+    let info = set_project_user_title(&symlink_str, Some("Symlink Title".to_string()))
+        .await
+        .expect("Should succeed via else-if symlink fallback");
+    assert_eq!(info.user_title, Some("Symlink Title".to_string()));
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Invalid-manifest test: exercises the `_ => (None, false)` arm in enrich_fn.rs
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_enrich_project_invalid_manifest_gives_no_version() {
+    let _lock = acquire_lock();
+
+    let dir = TempDir::new().expect("tempdir");
+    // Create .centy/ dir with an INVALID manifest so initialized=true but read fails.
+    let centy_path = dir.path().join(".centy");
+    std::fs::create_dir_all(&centy_path).expect("create .centy");
+    std::fs::write(centy_path.join(".centy-manifest.json"), b"not valid json { }")
+        .expect("write invalid manifest");
+
+    let path = dir
+        .path()
+        .canonicalize()
+        .expect("canonicalize")
+        .to_string_lossy()
+        .to_string();
+
+    insert_tracked_project_locked(&path, make_tracked_project()).await;
+
+    // set_project_favorite calls enrich_project → hits `_ => (None, false)`
+    let info = set_project_favorite(&path, false)
+        .await
+        .expect("Should succeed despite invalid manifest");
+
+    // project_version should be None (from the `_` arm of the manifest match)
+    assert!(info.project_version.is_none());
+    assert!(!info.project_behind);
+}

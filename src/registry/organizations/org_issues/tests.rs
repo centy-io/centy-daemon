@@ -686,6 +686,36 @@ async fn test_get_org_issue_by_display_number_not_found_empty_dir() {
     assert!(result.is_err());
 }
 
+// ─── error mapping tests for variants requiring private path types ────────────
+
+#[test]
+fn test_org_issue_error_path_error_code() {
+    use crate::registry::OrgIssueError;
+    use crate::server::error_mapping::ToStructuredError as _;
+    let err = OrgIssueError::PathError(super::paths::PathError::HomeDirNotFound);
+    let (code, _) = err.error_code_and_tip();
+    assert_eq!(code, "PATH_ERROR");
+}
+
+#[test]
+fn test_org_issue_error_org_registry_error_code() {
+    use crate::item::entities::issue::org_registry::OrgIssueRegistryError;
+    use crate::registry::OrgIssueError;
+    use crate::server::error_mapping::ToStructuredError as _;
+    let err = OrgIssueError::OrgRegistryError(OrgIssueRegistryError::HomeDirNotFound);
+    let (code, _) = err.error_code_and_tip();
+    assert_eq!(code, "ORG_REGISTRY_ERROR");
+}
+
+#[test]
+fn test_org_config_error_path_error_code() {
+    use crate::registry::OrgConfigError;
+    use crate::server::error_mapping::ToStructuredError as _;
+    let err = OrgConfigError::PathError(super::paths::PathError::HomeDirNotFound);
+    let (code, _) = err.error_code_and_tip();
+    assert_eq!(code, "PATH_ERROR");
+}
+
 #[tokio::test]
 async fn test_get_org_issue_by_display_number_not_found_wrong_number() {
     let _lock = acquire_lock();

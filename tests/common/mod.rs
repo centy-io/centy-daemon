@@ -17,6 +17,11 @@ static ISOLATED_HOME: LazyLock<()> = LazyLock::new(|| {
     // Tests use temp dirs as project paths; initialize with no ignore patterns
     // so is_ignored_path does not fall back to is_in_temp_dir and filter them out.
     centy_daemon::registry::init_ignore_paths(&[]);
+    drop(
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .try_init(),
+    );
 });
 
 /// Create a temporary directory for testing.

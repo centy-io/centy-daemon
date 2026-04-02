@@ -150,6 +150,42 @@ async fn test_write_empty_users_list() {
 }
 
 #[tokio::test]
+async fn test_read_users_invalid_manifest_returns_not_initialized() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+
+    // Create .centy/ dir with invalid manifest JSON → read_manifest returns Err
+    // → map_err closure executes → NotInitialized returned
+    let centy_path = project_path.join(".centy");
+    std::fs::create_dir_all(&centy_path).expect("create .centy");
+    std::fs::write(centy_path.join(".centy-manifest.json"), b"not valid json { }")
+        .expect("write invalid manifest");
+
+    let result = read_users(project_path).await;
+    assert!(
+        matches!(result, Err(UserError::NotInitialized)),
+        "Expected NotInitialized when manifest is invalid"
+    );
+}
+
+#[tokio::test]
+async fn test_read_users_malformed_json_returns_error() {
+    let dir = tempdir().expect("tempdir");
+    let project_path = dir.path();
+    init_project(project_path).await;
+
+    // Write malformed JSON to users.json → serde_json::from_str fails
+    let users_path = project_path.join(".centy").join("users.json");
+    std::fs::write(&users_path, b"{ not: valid json }").expect("write malformed json");
+
+    let result = read_users(project_path).await;
+    assert!(
+        result.is_err(),
+        "Expected error on malformed users.json, got: {result:?}"
+    );
+}
+
+#[tokio::test]
 async fn test_write_users_overwrites_previous() {
     let dir = tempdir().expect("tempdir");
     let project_path = dir.path();

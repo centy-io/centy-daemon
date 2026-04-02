@@ -786,6 +786,56 @@ async fn test_list_projects_dangling_org_slug_triggers_sync() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// enrich_lookups.rs: .or_else fallback (stored under non-canonical symlink path)
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_get_project_info_symlink_path_fallback() {
+    use std::os::unix::fs::symlink;
+    let _lock = acquire_lock();
+
+    let real_dir = TempDir::new().expect("real tempdir");
+    let link_parent = TempDir::new().expect("link parent tempdir");
+    let symlink_path = link_parent.path().join("link_info");
+    symlink(real_dir.path(), &symlink_path).expect("create symlink");
+    let symlink_str = symlink_path.to_string_lossy().to_string();
+
+    let resolved = std::path::Path::new(&symlink_str)
+        .canonicalize()
+        .expect("canonicalize");
+    if resolved.to_string_lossy() == symlink_str {
+        // Symlink resolves to itself on this platform – skip.
+        return;
+    }
+
+    // Store under the symlink path (non-canonical key).
+    let guard = get_lock().lock().await;
+    let mut registry = read_registry().await.expect("read");
+    registry.projects.insert(
+        symlink_str.clone(),
+        crate::registry::types::TrackedProject {
+            first_accessed: "2024-01-01T00:00:00Z".to_string(),
+            last_accessed: "2024-01-01T00:00:00Z".to_string(),
+            is_favorite: false,
+            is_archived: false,
+            organization_slug: None,
+            user_title: None,
+        },
+    );
+    write_registry_unlocked(&registry).await.expect("write");
+    drop(guard);
+
+    // get_project_info canonicalizes the path → canonical != symlink_str
+    // → first get(&canonical) misses, .or_else fallback finds under symlink_str
+    let info = get_project_info(&symlink_str)
+        .await
+        .expect("Should succeed")
+        .expect("Should find project via or_else fallback");
+    assert_eq!(info.path, resolved.to_string_lossy().as_ref());
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // counts.rs: count_issues, count_md_files
 // ──────────────────────────────────────────────────────────────────────────────
 
