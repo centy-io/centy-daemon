@@ -27,6 +27,9 @@ pub struct Args {
     /// Custom log directory (default: ~/.centy/logs)
     #[arg(long, env = "CENTY_LOG_DIR")]
     pub log_dir: Option<String>,
+    /// Maximum number of log files to retain (older files are deleted at startup)
+    #[arg(long, env = "CENTY_LOG_MAX_FILES", default_value = "7")]
+    pub log_max_files: usize,
 }
 pub fn report_server_error(
     addr: std::net::SocketAddr,

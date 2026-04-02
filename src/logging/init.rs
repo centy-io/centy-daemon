@@ -1,5 +1,6 @@
 use super::{LogConfig, LOG_FILENAME};
 use color_eyre::eyre::Result;
+use std::path::Path;
 use tracing::Level;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_error::ErrorLayer;
@@ -52,9 +53,35 @@ fn init_text_layers(env_filter: EnvFilter, file_appender: RollingFileAppender, l
         .with(ErrorLayer::default())
         .init();
 }
+/// Remove old log files from `log_dir` that start with `LOG_FILENAME`, keeping only the
+/// `max_files` most recently modified. Files that cannot be read or removed are silently skipped.
+pub fn cleanup_old_log_files(log_dir: &Path, max_files: usize) {
+    let Ok(entries) = std::fs::read_dir(log_dir) else {
+        return;
+    };
+    let mut log_files: Vec<(std::time::SystemTime, std::path::PathBuf)> = entries
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().starts_with(LOG_FILENAME))
+        .filter_map(|e| {
+            let modified = e.metadata().ok()?.modified().ok()?;
+            Some((modified, e.path()))
+        })
+        .collect();
+    if log_files.len() <= max_files {
+        return;
+    }
+    // Sort oldest first so we delete from the front.
+    log_files.sort_by_key(|(mtime, _)| *mtime);
+    let to_delete = log_files.len().saturating_sub(max_files);
+    for (_, path) in log_files.into_iter().take(to_delete) {
+        drop(std::fs::remove_file(&path));
+    }
+}
+
 /// Initialize the logging system with the given configuration.
 pub fn init_logging(config: LogConfig) -> Result<()> {
     std::fs::create_dir_all(&config.log_dir)?;
+    cleanup_old_log_files(&config.log_dir, config.max_log_files);
     let file_appender = RollingFileAppender::new(config.rotation, &config.log_dir, LOG_FILENAME);
     let env_filter = make_env_filter(config.log_level);
     if config.json_format {
