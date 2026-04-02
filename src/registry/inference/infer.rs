@@ -1,5 +1,5 @@
 use super::super::organizations::{create_organization, get_organization, slugify};
-use crate::common::git::{get_remote_origin_url, is_git_repository};
+use crate::common::git::{get_remote_origin_url, is_git_root};
 use crate::common::remote::parse_remote_url;
 use std::path::Path;
 /// Result of organization inference from git remote
@@ -21,8 +21,8 @@ pub async fn infer_organization_from_remote(
         existing_org_slug: existing_org_slug.map(String::from),
         ..Default::default()
     };
-    if !is_git_repository(project_path) {
-        result.message = Some("Not a git repository".to_string());
+    if !is_git_root(project_path) {
+        result.message = Some("Not a git repository root".to_string());
         return result;
     }
     let Ok(remote_url) = get_remote_origin_url(project_path) else {

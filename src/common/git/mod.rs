@@ -4,7 +4,8 @@ mod error;
 mod git_remote;
 #[allow(unused_imports)]
 pub use branch::{
-    detect_current_branch, get_default_branch, is_git_repository, validate_branch_exists,
+    detect_current_branch, get_default_branch, is_git_repository, is_git_root,
+    validate_branch_exists,
 };
 #[allow(unused_imports)]
 pub use error::GitError;

@@ -42,6 +42,24 @@ pub fn is_git_repository(project_path: &Path) -> bool {
     Repository::discover(project_path).is_ok()
 }
 
+/// Check if the given path is the root of a git repository (not just inside one).
+#[must_use]
+pub fn is_git_root(project_path: &Path) -> bool {
+    let Ok(repo) = Repository::discover(project_path) else {
+        return false;
+    };
+    let Some(workdir) = repo.workdir() else {
+        return false;
+    };
+    let canonical_project = project_path
+        .canonicalize()
+        .unwrap_or_else(|_| project_path.to_path_buf());
+    let canonical_workdir = workdir
+        .canonicalize()
+        .unwrap_or_else(|_| workdir.to_path_buf());
+    canonical_project == canonical_workdir
+}
+
 /// Get the default branch name (main or master).
 #[must_use]
 pub fn get_default_branch(project_path: &Path) -> String {
