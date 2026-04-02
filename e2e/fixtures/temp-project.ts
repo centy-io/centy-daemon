@@ -3,8 +3,32 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { execSync } from 'node:child_process';
+import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process';
 import { createGrpcClient, promisifyClient, type PromisifiedCentyClient } from './grpc-client.js';
+
+/**
+ * Environment for running git commands in temp project directories.
+ * Strips git-hook-injected variables so execSync calls operate on the
+ * temp repo, not the parent worktree (which would happen if GIT_DIR is set).
+ */
+const GIT_ENV: NodeJS.ProcessEnv = Object.fromEntries(
+  Object.entries(process.env).filter(
+    ([k]) => !['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY'].includes(k)
+  )
+);
+
+function gitSync(cmd: string, cwd: string): void {
+  execSync(cmd, { cwd, stdio: 'pipe', env: GIT_ENV });
+}
+
+function gitSyncStr(cmd: string, cwd: string): string {
+  return (execSync(cmd, {
+    cwd,
+    stdio: 'pipe',
+    encoding: 'utf-8',
+    env: GIT_ENV,
+  } as ExecSyncOptionsWithStringEncoding)).trim();
+}
 
 export interface TempProject {
   /** Absolute path to the temp project directory */
@@ -241,15 +265,15 @@ export async function createTempGitProject(
   await mkdir(projectPath, { recursive: true });
 
   // Initialize git repository
-  execSync(`git init -b ${opts.defaultBranch}`, { cwd: projectPath, stdio: 'pipe' });
-  execSync('git config user.email "test@example.com"', { cwd: projectPath, stdio: 'pipe' });
-  execSync('git config user.name "Test User"', { cwd: projectPath, stdio: 'pipe' });
+  gitSync(`git init -b ${opts.defaultBranch}`, projectPath);
+  gitSync('git config user.email "test@example.com"', projectPath);
+  gitSync('git config user.name "Test User"', projectPath);
 
   // Create initial commit if requested
   if (opts.initialCommit) {
     await writeFile(join(projectPath, 'README.md'), '# Test Project\n', 'utf-8');
-    execSync('git add .', { cwd: projectPath, stdio: 'pipe' });
-    execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'pipe' });
+    gitSync('git add .', projectPath);
+    gitSync('git commit -m "Initial commit"', projectPath);
   }
 
   const centyPath = join(projectPath, '.centy');
@@ -284,19 +308,19 @@ export async function createTempGitProject(
  * Create a git branch in a temp project.
  */
 export function createGitBranch(projectPath: string, branchName: string): void {
-  execSync(`git checkout -b ${branchName}`, { cwd: projectPath, stdio: 'pipe' });
+  gitSync(`git checkout -b ${branchName}`, projectPath);
 }
 
 /**
  * Switch to a git branch in a temp project.
  */
 export function switchGitBranch(projectPath: string, branchName: string): void {
-  execSync(`git checkout ${branchName}`, { cwd: projectPath, stdio: 'pipe' });
+  gitSync(`git checkout ${branchName}`, projectPath);
 }
 
 /**
  * Get the current git branch name.
  */
 export function getCurrentGitBranch(projectPath: string): string {
-  return execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectPath, encoding: 'utf-8' }).trim();
+  return gitSyncStr('git rev-parse --abbrev-ref HEAD', projectPath);
 }
