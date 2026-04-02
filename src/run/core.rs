@@ -9,7 +9,6 @@ pub fn setup_logging(
     log_dir_opt: Option<String>,
     log_json: bool,
     log_rotation: &str,
-    log_max_files: usize,
 ) -> Result<PathBuf> {
     let log_dir = log_dir_opt.map_or_else(
         || {
@@ -26,7 +25,6 @@ pub fn setup_logging(
         log_dir,
         json_format: log_json,
         rotation: parse_rotation(log_rotation),
-        max_log_files: log_max_files,
         ..Default::default()
     };
     if let Err(e) = init_logging(log_config) {

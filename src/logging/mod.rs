@@ -1,13 +1,11 @@
 mod init;
-pub use init::{cleanup_old_log_files, init_logging, parse_rotation};
+pub use init::{init_logging, parse_rotation};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_appender::rolling::Rotation;
 /// Log filename used by the daemon.
 pub const LOG_FILENAME: &str = "centy-daemon.log";
-/// Default maximum number of log files to retain.
-pub const DEFAULT_MAX_LOG_FILES: usize = 7;
 /// Global log file path, set once at startup.
 static LOG_FILE_PATH: OnceLock<String> = OnceLock::new();
 /// Store the log file path for later retrieval (e.g., in structured error responses).
@@ -24,8 +22,6 @@ pub struct LogConfig {
     pub log_level: Level,
     pub json_format: bool,
     pub rotation: Rotation,
-    /// Maximum number of log files to retain. Older files are deleted at startup.
-    pub max_log_files: usize,
 }
 impl Default for LogConfig {
     fn default() -> Self {
@@ -38,7 +34,6 @@ impl Default for LogConfig {
             log_level: Level::INFO,
             json_format: false,
             rotation: Rotation::DAILY,
-            max_log_files: DEFAULT_MAX_LOG_FILES,
         }
     }
 }

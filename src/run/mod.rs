@@ -11,12 +11,7 @@ use tracing::{info, warn, Level};
 mod core;
 
 pub async fn run(args: app::Args) -> Result<()> {
-    let log_file = core::setup_logging(
-        args.log_dir,
-        args.log_json,
-        &args.log_rotation,
-        args.log_max_files,
-    )?;
+    let log_file = core::setup_logging(args.log_dir, args.log_json, &args.log_rotation)?;
     let user_cfg = crate::user_config::load_user_config().unwrap_or_else(|e| {
         warn!("Failed to load user config, using defaults: {e}");
         crate::user_config::UserConfig::default()
