@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Log file cleanup at startup: delete oldest log files beyond a configurable limit (default: 7) to prevent unbounded disk growth (#380). Configurable via `--log-max-files` / `CENTY_LOG_MAX_FILES`.
+
 ## [0.9.3] — 2026-04-02
 
 ### Changed
