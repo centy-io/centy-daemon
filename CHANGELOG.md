@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Remove `logging/init` and `logging/mod` from coverage ignore list — these modules are now fully testable after removing the log-file cleanup feature
+
 ## [0.9.3] — 2026-04-02
 
 ### Changed
