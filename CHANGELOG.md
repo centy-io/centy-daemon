@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] — 2026-04-02
+
 ### Changed
 - Remove legacy `LinkTargetType` enum from proto; use string-based `*_item_type` fields directly in link RPCs (#367)
 - Migrate hooks from `config.json` to `hooks.yaml` as the single source of truth (#362)
