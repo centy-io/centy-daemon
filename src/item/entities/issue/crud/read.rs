@@ -29,9 +29,6 @@ pub async fn read_issue_from_frontmatter(
             custom_fields: frontmatter.custom_fields,
             draft: frontmatter.draft,
             deleted_at: frontmatter.deleted_at,
-            is_org_issue: frontmatter.is_org_issue,
-            org_slug: frontmatter.org_slug,
-            org_display_number: frontmatter.org_display_number,
         },
     })
 }
@@ -80,9 +77,6 @@ pub async fn read_issue_from_legacy_folder(
             custom_fields,
             draft: metadata.draft,
             deleted_at: metadata.deleted_at,
-            is_org_issue: metadata.is_org_issue,
-            org_slug: metadata.org_slug,
-            org_display_number: metadata.org_display_number,
         },
     })
 }

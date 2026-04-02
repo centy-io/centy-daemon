@@ -24,9 +24,6 @@ pub async fn migrate_issue_to_new_format(
         updated_at: issue.metadata.updated_at.clone(),
         draft: issue.metadata.draft,
         deleted_at: issue.metadata.deleted_at.clone(),
-        is_org_issue: issue.metadata.is_org_issue,
-        org_slug: issue.metadata.org_slug.clone(),
-        org_display_number: issue.metadata.org_display_number,
         custom_fields: issue.metadata.custom_fields.clone(),
     };
     let body =

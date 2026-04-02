@@ -2,7 +2,7 @@ use super::super::metadata::IssueFrontmatter;
 use super::read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 use super::types::{IssueCrudError, UpdateIssueOptions, UpdateIssueResult};
 use super::update_builders::{build_issue_struct, build_update_body, build_updated_metadata};
-use super::update_helpers::{compute_sync_results, migrate_legacy_format, resolve_update_options};
+use super::update_helpers::{migrate_legacy_format, resolve_update_options};
 use crate::config::read_config;
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
 use crate::utils::{get_centy_path, CENTY_HEADER_YAML};
@@ -62,10 +62,5 @@ pub async fn update_issue(
         &current,
         &updated_metadata.common.updated_at,
     );
-    let sync_results = compute_sync_results(&issue, project_path).await;
-    Ok(UpdateIssueResult {
-        issue,
-        manifest,
-        sync_results,
-    })
+    Ok(UpdateIssueResult { issue, manifest })
 }

@@ -1,4 +1,4 @@
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
+use super::super::metadata::IssueFrontmatter;
 use super::types::IssueError;
 use crate::manifest::{update_manifest, write_manifest, CentyManifest};
 use crate::utils::CENTY_HEADER_YAML;
@@ -13,8 +13,6 @@ pub fn build_frontmatter(
     priority: u32,
     now: &str,
     draft: bool,
-    org_slug: Option<String>,
-    org_display_number: Option<u32>,
     custom_fields: HashMap<String, String>,
 ) -> IssueFrontmatter {
     IssueFrontmatter {
@@ -25,34 +23,7 @@ pub fn build_frontmatter(
         updated_at: now.to_string(),
         draft,
         deleted_at: None,
-        is_org_issue: org_slug.is_some(),
-        org_slug,
-        org_display_number,
         custom_fields,
-    }
-}
-
-pub fn build_issue_metadata(
-    display_number: u32,
-    org_slug: Option<&str>,
-    org_display_number: Option<u32>,
-    status: String,
-    priority: u32,
-    custom_field_values: HashMap<String, serde_json::Value>,
-    draft: bool,
-) -> IssueMetadata {
-    if let Some(org) = org_slug {
-        IssueMetadata::new_org_issue(
-            display_number,
-            org_display_number.unwrap_or(0),
-            status,
-            priority,
-            org,
-            custom_field_values,
-            draft,
-        )
-    } else {
-        IssueMetadata::new_draft(display_number, status, priority, custom_field_values, draft)
     }
 }
 

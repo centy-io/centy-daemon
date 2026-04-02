@@ -189,11 +189,6 @@ fn test_item_error_is_deleted() {
     assert_eq!(format!("{err}"), "Item is deleted: abc-123");
 }
 
-#[test]
-fn test_item_error_org_sync_error() {
-    let err = ItemError::OrgSyncError("sync failed".to_string());
-    assert_eq!(format!("{err}"), "Organization sync error: sync failed");
-}
 
 #[test]
 fn test_item_error_from_io_error() {

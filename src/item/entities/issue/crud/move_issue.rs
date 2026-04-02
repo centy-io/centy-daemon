@@ -21,9 +21,6 @@ fn build_target_frontmatter(issue: &Issue, new_display_number: u32) -> IssueFron
         updated_at: now_iso(),
         draft: issue.metadata.draft,
         deleted_at: issue.metadata.deleted_at.clone(),
-        is_org_issue: issue.metadata.is_org_issue,
-        org_slug: issue.metadata.org_slug.clone(),
-        org_display_number: issue.metadata.org_display_number,
         custom_fields: issue.metadata.custom_fields.clone(),
     }
 }

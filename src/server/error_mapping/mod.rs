@@ -37,7 +37,6 @@ impl ToStructuredError for crate::item::core::error::ItemError {
             ItemError::InvalidPriority { .. } => ("INVALID_PRIORITY", None),
             ItemError::AlreadyExists(_) => ("ALREADY_EXISTS", None),
             ItemError::IsDeleted(_) => ("IS_DELETED", None),
-            ItemError::OrgSyncError(_) => ("ORG_SYNC_ERROR", None),
             ItemError::YamlError(_) => ("YAML_ERROR", None),
             ItemError::FrontmatterError(_) => ("FRONTMATTER_ERROR", None),
             ItemError::ItemTypeNotFound(_) => ("ITEM_TYPE_NOT_FOUND", None),
@@ -70,8 +69,6 @@ impl ToStructuredError for crate::item::entities::issue::IssueError {
             IssueError::InvalidStatus(_) => ("INVALID_STATUS", None),
             IssueError::TemplateError(_) => ("TEMPLATE_ERROR", None),
             IssueError::ReconcileError(_) => ("RECONCILE_ERROR", None),
-            IssueError::NoOrganization => ("NO_ORGANIZATION", None),
-            IssueError::OrgRegistryError(_) => ("ORG_REGISTRY_ERROR", None),
             IssueError::RegistryError(_) => ("REGISTRY_ERROR", None),
         }
     }

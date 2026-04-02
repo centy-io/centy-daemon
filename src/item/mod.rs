@@ -10,13 +10,7 @@ pub mod entities;
 pub mod generic;
 pub mod lifecycle;
 pub mod operations;
-pub mod organization;
 
 // Re-export core types
 pub use core::error::ItemError;
 pub use core::metadata::ItemMetadata;
-
-// Re-export organization types
-pub use organization::org_sync::{
-    sync_to_org_projects, sync_update_to_org_projects, OrgSyncError, OrgSyncResult, OrgSyncable,
-};

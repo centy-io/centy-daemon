@@ -15,12 +15,6 @@ pub struct IssueFrontmatter {
     pub draft: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub is_org_issue: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_display_number: Option<u32>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, String>,
 }
@@ -35,9 +29,6 @@ impl IssueFrontmatter {
             updated_at: metadata.common.updated_at.clone(),
             draft: metadata.draft,
             deleted_at: metadata.deleted_at.clone(),
-            is_org_issue: metadata.is_org_issue,
-            org_slug: metadata.org_slug.clone(),
-            org_display_number: metadata.org_display_number,
             custom_fields,
         }
     }
@@ -58,9 +49,6 @@ impl IssueFrontmatter {
             },
             draft: self.draft,
             deleted_at: self.deleted_at.clone(),
-            is_org_issue: self.is_org_issue,
-            org_slug: self.org_slug.clone(),
-            org_display_number: self.org_display_number,
         }
     }
 }

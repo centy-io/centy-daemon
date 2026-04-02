@@ -20,9 +20,6 @@ pub fn build_updated_metadata(current: &Issue, updates: &AppliedIssueUpdates) ->
         },
         draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
-        is_org_issue: current.metadata.is_org_issue,
-        org_slug: current.metadata.org_slug.clone(),
-        org_display_number: current.metadata.org_display_number,
     }
 }
 
@@ -64,9 +61,6 @@ pub fn build_issue_struct(
             custom_fields: updates.custom_fields.clone(),
             draft: updates.draft,
             deleted_at: current.metadata.deleted_at.clone(),
-            is_org_issue: current.metadata.is_org_issue,
-            org_slug: current.metadata.org_slug.clone(),
-            org_display_number: current.metadata.org_display_number,
         },
     }
 }

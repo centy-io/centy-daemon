@@ -492,32 +492,6 @@ async fn test_resolve_update_options_custom_fields_merge() {
     );
 }
 
-#[tokio::test]
-async fn test_compute_sync_results_non_org_issue() {
-    use crate::item::entities::issue::create::{create_issue, CreateIssueOptions};
-    ensure_test_isolation();
-
-    let temp_dir = tempfile::tempdir().expect("temp dir");
-    let project_path = temp_dir.path();
-    init_project(project_path).await;
-
-    let created = create_issue(
-        project_path,
-        CreateIssueOptions {
-            title: "Non-Org Issue".to_string(),
-            ..Default::default()
-        },
-    )
-    .await
-    .expect("Should create issue");
-
-    let issue = get_issue(project_path, &created.id)
-        .await
-        .expect("Should get issue");
-
-    let sync_results = compute_sync_results(&issue, project_path).await;
-    assert!(sync_results.is_empty());
-}
 
 #[test]
 fn test_parse_issue_md_with_description() {

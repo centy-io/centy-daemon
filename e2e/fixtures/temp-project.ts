@@ -216,17 +216,6 @@ export const testData = {
   },
 
   /**
-   * Generate a random org issue title.
-   */
-  randomOrgIssueTitle(): string {
-    const prefixes = ['Plan', 'Track', 'Coordinate', 'Review', 'Audit'];
-    const subjects = ['Q1 roadmap', 'cross-team sync', 'security review', 'performance', 'deployment'];
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const subject = subjects[Math.floor(Math.random() * subjects.length)];
-    return `${prefix} ${subject} - ${randomUUID().slice(0, 8)}`;
-  },
-
-  /**
    * Generate a random organization name.
    */
   randomOrgName(): string {

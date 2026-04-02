@@ -1,7 +1,6 @@
 use super::super::priority::PriorityError;
 use super::super::reconcile::ReconcileError;
 use super::super::status::StatusError;
-use crate::common::OrgSyncResult;
 use crate::manifest::CentyManifest;
 use mdstore::FrontmatterError;
 use std::collections::HashMap;
@@ -61,9 +60,6 @@ pub struct IssueMetadataFlat {
     pub custom_fields: HashMap<String, String>,
     pub draft: bool,
     pub deleted_at: Option<String>,
-    pub is_org_issue: bool,
-    pub org_slug: Option<String>,
-    pub org_display_number: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -80,5 +76,4 @@ pub struct UpdateIssueOptions {
 pub struct UpdateIssueResult {
     pub issue: Issue,
     pub manifest: CentyManifest,
-    pub sync_results: Vec<OrgSyncResult>,
 }

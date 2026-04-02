@@ -12,11 +12,8 @@ pub use inference::{
     infer_organization_from_remote, try_auto_assign_organization, OrgInferenceResult,
 };
 pub use organizations::{
-    create_org_issue, create_organization, delete_org_issue, delete_organization, get_org_config,
-    get_org_issue, get_org_issue_by_display_number, get_organization, list_org_issues,
-    list_organizations, set_project_organization, update_org_config, update_org_issue,
-    update_organization, ListOrgIssuesOptions, OrgConfigError, OrgCustomFieldDef, OrgIssue,
-    OrgIssueError, OrganizationError, UpdateOrgIssueOptions,
+    create_organization, delete_organization, get_organization, list_organizations,
+    set_project_organization, update_organization, OrganizationError,
 };
 pub use tracking::{
     get_org_projects, get_project_info, list_projects, set_project_archived, set_project_favorite,

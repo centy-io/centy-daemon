@@ -39,8 +39,6 @@ pub enum ItemError {
     AlreadyExists(String),
     #[error("Item is deleted: {0}")]
     IsDeleted(String),
-    #[error("Organization sync error: {0}")]
-    OrgSyncError(String),
     #[error("Cannot move item to same project")]
     SameProject,
     #[error("Target project not initialized")]

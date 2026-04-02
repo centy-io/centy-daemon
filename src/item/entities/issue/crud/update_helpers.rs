@@ -66,13 +66,4 @@ pub async fn migrate_legacy_format(
     Ok(())
 }
 
-pub async fn compute_sync_results(
-    issue: &Issue,
-    project_path: &Path,
-) -> Vec<crate::common::OrgSyncResult> {
-    if issue.metadata.is_org_issue {
-        crate::common::sync_update_to_org_projects(issue, project_path, None).await
-    } else {
-        Vec::new()
-    }
-}
+

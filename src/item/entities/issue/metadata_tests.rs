@@ -17,30 +17,10 @@ fn test_issue_frontmatter_from_metadata_basic() {
     assert_eq!(fm.priority, 2);
     assert!(!fm.draft);
     assert!(fm.deleted_at.is_none());
-    assert!(!fm.is_org_issue);
-    assert!(fm.org_slug.is_none());
-    assert!(fm.org_display_number.is_none());
     assert_eq!(
         fm.custom_fields.get("team").map(String::as_str),
         Some("backend")
     );
-}
-
-#[test]
-fn test_issue_frontmatter_from_metadata_org_issue() {
-    let meta = IssueMetadata::new_org_issue(
-        3,
-        10,
-        "open".to_string(),
-        1,
-        "my-org",
-        HashMap::new(),
-        false,
-    );
-    let fm = IssueFrontmatter::from_metadata(&meta, HashMap::new());
-    assert!(fm.is_org_issue);
-    assert_eq!(fm.org_slug, Some("my-org".to_string()));
-    assert_eq!(fm.org_display_number, Some(10));
 }
 
 #[test]
@@ -53,7 +33,6 @@ fn test_issue_frontmatter_to_metadata_round_trip() {
     assert_eq!(restored.common.priority, 3);
     assert!(!restored.draft);
     assert!(restored.deleted_at.is_none());
-    assert!(!restored.is_org_issue);
 }
 
 #[test]
@@ -74,7 +53,6 @@ fn test_issue_metadata_new_draft() {
     let meta = IssueMetadata::new_draft(2, "open".to_string(), 1, HashMap::new(), true);
     assert_eq!(meta.common.display_number, 2);
     assert!(meta.draft);
-    assert!(!meta.is_org_issue);
     assert!(meta.deleted_at.is_none());
 }
 
@@ -82,25 +60,6 @@ fn test_issue_metadata_new_draft() {
 fn test_issue_metadata_new_draft_false() {
     let meta = IssueMetadata::new_draft(1, "open".to_string(), 2, HashMap::new(), false);
     assert!(!meta.draft);
-}
-
-#[test]
-fn test_issue_metadata_new_org_issue() {
-    let meta = IssueMetadata::new_org_issue(
-        4,
-        20,
-        "in-progress".to_string(),
-        2,
-        "acme-corp",
-        HashMap::new(),
-        false,
-    );
-    assert_eq!(meta.common.display_number, 4);
-    assert_eq!(meta.org_display_number, Some(20));
-    assert_eq!(meta.org_slug, Some("acme-corp".to_string()));
-    assert!(meta.is_org_issue);
-    assert!(!meta.draft);
-    assert!(meta.deleted_at.is_none());
 }
 
 #[test]

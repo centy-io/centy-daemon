@@ -60,7 +60,6 @@ fn test_item_error_all_variants() {
         ),
         ("ALREADY_EXISTS", ItemError::AlreadyExists("a".into())),
         ("IS_DELETED", ItemError::IsDeleted("d".into())),
-        ("ORG_SYNC_ERROR", ItemError::OrgSyncError("e".into())),
         ("SAME_PROJECT", ItemError::SameProject),
         ("TARGET_NOT_INITIALIZED", ItemError::TargetNotInitialized),
         ("CUSTOM_ERROR", ItemError::Custom("c".into())),
@@ -129,13 +128,6 @@ fn test_issue_error_all_variants() {
                 crate::item::entities::issue::reconcile::ReconcileError::IoError(
                     std::io::Error::other("x"),
                 ),
-            ),
-        ),
-        ("NO_ORGANIZATION", IssueError::NoOrganization),
-        (
-            "ORG_REGISTRY_ERROR",
-            IssueError::OrgRegistryError(
-                crate::item::entities::issue::org_registry::OrgIssueRegistryError::HomeDirNotFound,
             ),
         ),
         ("REGISTRY_ERROR", IssueError::RegistryError("r".into())),
@@ -495,68 +487,6 @@ fn test_hook_error_all_variants() {
     for (expected_code, err) in cases {
         let (code, _) = err.error_code_and_tip();
         assert_eq!(code, *expected_code, "Unexpected code for HookError: {err}");
-    }
-}
-
-// ── hooks_org.rs: OrgIssueError ──────────────────────────────────────────────
-
-#[test]
-fn test_org_issue_error_all_variants() {
-    use crate::registry::OrgIssueError;
-    let cases: &[(&str, OrgIssueError)] = &[
-        (
-            "IO_ERROR",
-            OrgIssueError::IoError(std::io::Error::other("x")),
-        ),
-        (
-            "JSON_ERROR",
-            OrgIssueError::JsonError(serde_json::from_str::<()>("bad").unwrap_err()),
-        ),
-        (
-            "FRONTMATTER_ERROR",
-            OrgIssueError::FrontmatterError(mdstore::FrontmatterError::InvalidFormat("x".into())),
-        ),
-        ("ORG_ISSUE_NOT_FOUND", OrgIssueError::NotFound("id".into())),
-        ("TITLE_REQUIRED", OrgIssueError::TitleRequired),
-    ];
-    for (expected_code, err) in cases {
-        let (code, _) = err.error_code_and_tip();
-        assert_eq!(
-            code, *expected_code,
-            "Unexpected code for OrgIssueError: {err}"
-        );
-    }
-}
-
-#[test]
-fn test_org_issue_error_title_required_has_tip() {
-    use crate::registry::OrgIssueError;
-    let err = OrgIssueError::TitleRequired;
-    let (_, tip) = err.error_code_and_tip();
-    assert!(tip.is_some());
-}
-
-// ── hooks_org.rs: OrgConfigError ─────────────────────────────────────────────
-
-#[test]
-fn test_org_config_error_all_variants() {
-    use crate::registry::OrgConfigError;
-    let cases: &[(&str, OrgConfigError)] = &[
-        (
-            "IO_ERROR",
-            OrgConfigError::IoError(std::io::Error::other("x")),
-        ),
-        (
-            "JSON_ERROR",
-            OrgConfigError::JsonError(serde_json::from_str::<()>("bad").unwrap_err()),
-        ),
-    ];
-    for (expected_code, err) in cases {
-        let (code, _) = err.error_code_and_tip();
-        assert_eq!(
-            code, *expected_code,
-            "Unexpected code for OrgConfigError: {err}"
-        );
     }
 }
 

@@ -5,8 +5,6 @@ mod list;
 mod migrate;
 mod move_io;
 mod move_issue;
-mod org_sync;
-mod org_sync_update;
 mod parse;
 mod read;
 mod types;
@@ -26,7 +24,7 @@ pub use update::update_issue;
 #[cfg(test)]
 pub use read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
 #[cfg(test)]
-pub use update_helpers::{compute_sync_results, resolve_update_options};
+pub use update_helpers::resolve_update_options;
 
 #[cfg(test)]
 #[path = "../crud_tests.rs"]
