@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Add `.mcp.json` to project root for centy MCP server discovery (#381)
+- Add `.mcp.json` to project root for centy MCP server discovery: merge `mcpServers.centy` into existing file rather than skip, abort on invalid JSON (#381)
 
 ## [0.9.3] — 2026-04-02
 
