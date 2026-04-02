@@ -200,7 +200,10 @@
       "mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo",
       "mcp__centy__centy_v1_CentyDaemon_IsInitialized",
       "mcp__centy__centy_v1_CentyDaemon_GetConfig",
-      "mcp__centy__centy_v1_CentyDaemon_OpenInTempWorkspace"
+      "mcp__centy__centy_v1_CentyDaemon_OpenInTempWorkspace",
+      "Bash(wait)",
+      "Bash(command -v centy-mcp)",
+      "Bash(centy-mcp --help)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
