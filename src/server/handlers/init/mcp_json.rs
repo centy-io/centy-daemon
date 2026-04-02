@@ -40,15 +40,11 @@ pub async fn ensure_mcp_json(project_path: &Path) -> Result<(), String> {
         .await
         .map_err(|e| format!("Failed to read .mcp.json: {e}"))?;
 
-    let mut doc: Value = serde_json::from_str(&raw)
-        .map_err(|e| format!(".mcp.json contains invalid JSON: {e}"))?;
+    let mut doc: Value =
+        serde_json::from_str(&raw).map_err(|e| format!(".mcp.json contains invalid JSON: {e}"))?;
 
     // If mcpServers.centy already present → no-op
-    if doc
-        .get("mcpServers")
-        .and_then(|s| s.get("centy"))
-        .is_some()
-    {
+    if doc.get("mcpServers").and_then(|s| s.get("centy")).is_some() {
         return Ok(());
     }
 
@@ -62,11 +58,17 @@ pub async fn ensure_mcp_json(project_path: &Path) -> Result<(), String> {
             if let Some(map) = servers.as_object_mut() {
                 map.insert("centy".to_string(), centy_mcp_entry());
             } else {
-                root.insert("mcpServers".to_string(), json!({ "centy": centy_mcp_entry() }));
+                root.insert(
+                    "mcpServers".to_string(),
+                    json!({ "centy": centy_mcp_entry() }),
+                );
             }
         }
         None => {
-            root.insert("mcpServers".to_string(), json!({ "centy": centy_mcp_entry() }));
+            root.insert(
+                "mcpServers".to_string(),
+                json!({ "centy": centy_mcp_entry() }),
+            );
         }
     }
 
