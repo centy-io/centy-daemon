@@ -10,7 +10,7 @@ set -eu
 #   CHANGELOGS_UPDATED=1 git push ...
 #
 # ─────────────────────────────────────────────────────────────────────────────
-if [ -z "$CHANGELOGS_UPDATED" ]; then
+if [ -z "${CHANGELOGS_UPDATED:-}" ]; then
   echo ""
   echo "CHANGELOG GATE"
   echo ""
