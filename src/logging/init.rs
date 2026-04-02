@@ -61,11 +61,7 @@ pub fn cleanup_old_log_files(log_dir: &Path, max_files: usize) {
     };
     let mut log_files: Vec<(std::time::SystemTime, std::path::PathBuf)> = entries
         .flatten()
-        .filter(|e| {
-            e.file_name()
-                .to_string_lossy()
-                .starts_with(LOG_FILENAME)
-        })
+        .filter(|e| e.file_name().to_string_lossy().starts_with(LOG_FILENAME))
         .filter_map(|e| {
             let modified = e.metadata().ok()?.modified().ok()?;
             Some((modified, e.path()))
