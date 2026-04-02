@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-04-02
+
 ### Fixed
 - Prevent org inference for git subdirectories: `infer_organization_from_remote` now requires the path to be the git root, so `organization.json` is not written into subdirectory `.centy` dirs
 
