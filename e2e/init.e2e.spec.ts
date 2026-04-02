@@ -186,7 +186,6 @@ describe('gRPC: Init Operations', () => {
       priorityColors: {},
       customLinkTypes: [],
       defaultEditor: '',
-      hooks: [],
       workspace: {},
       userValues: {},
     };
