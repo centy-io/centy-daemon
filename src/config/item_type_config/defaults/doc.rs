@@ -21,5 +21,6 @@ pub fn default_doc_config() -> ItemTypeConfig {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
+        listed: true,
     }
 }

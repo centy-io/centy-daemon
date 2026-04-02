@@ -35,6 +35,7 @@ fn test_config_to_proto_roundtrip() {
         priority_levels: Some(3),
         custom_fields: vec![],
         template: Some("bug.md".to_string()),
+        listed: true,
     };
     let proto = config_to_proto("bugs", &config);
     assert_eq!(proto.name, "Bug");

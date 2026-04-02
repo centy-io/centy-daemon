@@ -18,6 +18,7 @@ pub async fn list_item_types(
             let item_types: Vec<_> = registry
                 .all()
                 .iter()
+                .filter(|(_, config)| config.listed)
                 .map(|(folder, config)| config_to_proto(folder, config))
                 .collect();
             let total_count = item_types.len().try_into().unwrap_or(i32::MAX);

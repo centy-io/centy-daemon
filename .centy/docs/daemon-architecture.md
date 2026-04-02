@@ -1,12 +1,8 @@
 ---
-createdAt: 2026-02-16T15:04:56.752536+00:00
-updatedAt: 2026-04-02T15:58:27.769291+00:00
-title: Daemon Architecture Overview
+title: "Daemon Architecture Overview"
+createdAt: "2026-02-16T15:04:56.752536+00:00"
+updatedAt: "2026-02-17T10:16:14.633056+00:00"
 ---
-
-# Daemon Architecture Overview
-
-# Daemon Architecture Overview
 
 # Daemon Architecture Overview
 
@@ -44,11 +40,11 @@ ASCII diagram covering the full architecture of centy-daemon: clients, gRPC serv
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                          REQUEST ROUTER  (70+ RPCs)                             │
 │                                                                                 │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────┐ │
-│  │  Init   │ │ Issues  │ │  Docs   │ │ Generic │ │  Registry   │ │
-│  │ Project │ │  CRUD   │ │  CRUD   │ │  Items  │ │  & Config   │ │
-│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └──────┬──────┘ │
-│       │           │           │           │              │         │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────┐ │
+│  │  Init   │ │ Issues  │ │  Docs   │ │   PRs   │ │ Generic │ │  Registry   │ │
+│  │ Project │ │  CRUD   │ │  CRUD   │ │  CRUD   │ │  Items  │ │  & Config   │ │
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └──────┬──────┘ │
+│       │           │           │           │           │              │         │
 │  ┌────┴────┐ ┌────┴────┐ ┌────┴────┐ ┌────┴─────┐ ┌───┴─────┐ ┌────┴──────┐ │
 │  │ Search  │ │  Links  │ │  Users  │ │Workspace │ │  Hooks  │ │ Templates │ │
 │  │ & Query │ │ Manage  │ │  Sync   │ │ Manage   │ │ Pre/Post│ │(Handlebars│ │
@@ -61,12 +57,12 @@ ASCII diagram covering the full architecture of centy-daemon: clients, gRPC serv
                          │  ┌────────────────────────────────────────────────┐  │
                          │  │              ENTITY OPERATIONS                 │  │
                          │  │                                                │  │
-                         │  │  ┌──────────┐  ┌──────────┐    │  │
-                         │  │  │  Issue   │  │   Doc    │    │  │
-                         │  │  │ Module   │  │ Module   │    │  │
-                         │  │  │          │  │          │    │  │
-                         │  │  └────┬─────┘  └────┬─────┘    │  │
-                         │  │       └─────────────┘          │  │
+                         │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐    │  │
+                         │  │  │  Issue   │  │   Doc    │  │    PR    │    │  │
+                         │  │  │ Module   │  │ Module   │  │  Module  │    │  │
+                         │  │  │          │  │          │  │ +git int │    │  │
+                         │  │  └────┬─────┘  └────┬─────┘  └────┬─────┘    │  │
+                         │  │       └─────────────┼─────────────┘          │  │
                          │  │                     ▼                        │  │
                          │  │  ┌──────────────────────────────────────┐    │  │
                          │  │  │     DAEMON THIN WRAPPERS             │    │  │
@@ -89,7 +85,7 @@ ASCII diagram covering the full architecture of centy-daemon: clients, gRPC serv
                          │  │               │  │                 │             │
                          │  │ Query (PEG)   │  │ pre:issue:create│             │
                          │  │   ↓           │  │ post:doc:update │             │
-                         │  │ Parse (Pest)  │  │ pre:item:update   │             │
+                         │  │ Parse (Pest)  │  │ pre:pr:delete   │             │
                          │  │   ↓           │  │       ↓         │             │
                          │  │ AST           │  │ Executes bash   │             │
                          │  │   ↓           │  │ with context    │             │
@@ -101,7 +97,7 @@ ASCII diagram covering the full architecture of centy-daemon: clients, gRPC serv
                          │  │               │  │                 │             │
                          │  │ Bidirectional │  │ Integrity check │             │
                          │  │ entity refs   │  │ SHA-256 hashing │             │
-                         │  │ (issue↔doc,    │  │ Manifest repair │             │
+                         │  │ (issue↔pr,    │  │ Manifest repair │             │
                          │  │  doc↔issue)   │  │ Schema migrate  │             │
                          │  └───────────────┘  └─────────────────┘             │
                          └─────────────────────────────┬───────────────────────┘
@@ -143,6 +139,9 @@ ASCII diagram covering the full architecture of centy-daemon: clients, gRPC serv
 │  │  docs/                   │           └──────────────────────────┘            │
 │  │    ├── {slug}.md         │                                                   │
 │  │    └── {slug}.md         │                                                   │
+│  │  prs/                    │                                                   │
+│  │    ├── {uuid}.md         │                                                   │
+│  │    └── {uuid}.md         │                                                   │
 │  │  assets/                 │                                                   │
 │  │  templates/              │                                                   │
 │  └──────────────────────────┘                                                   │
@@ -206,7 +205,7 @@ The core CRUD and storage logic is extracted into the [`mdstore`](https://crates
 - **Organization sync** — multi-project org-level item syncing
 - **Asset management** — file attachments per entity
 - **Templates** — Handlebars-based content templates
-- **Entity-specific logic** — Issue and Doc modules with custom metadata and behavior
+- **Entity-specific logic** — Issue/Doc/PR modules with custom metadata and behavior
 
 ## Multi-Project & Organization
 
@@ -231,7 +230,7 @@ The core CRUD and storage logic is extracted into the [`mdstore`](https://crates
 - **Completely local-first** — no cloud, no external DB, everything is `.md` files with YAML frontmatter
 - **mdstore library** — core CRUD, frontmatter, validation, and config logic extracted to a standalone crate on crates.io
 - **Daemon as orchestrator** — thin wrappers around mdstore adding manifest sync, hooks, search, links, org sync, and gRPC serving
-- **70+ RPC handlers** for issues, docs, generic items, search, links, users, workspaces, config
+- **70+ RPC handlers** for issues, docs, PRs, generic items, search, links, users, workspaces, config
 - **Custom query engine** using PEG grammar (Pest) → AST → evaluator
 - **Hook system** — pre/post bash hooks on every operation
 - **Multi-project** — global registry with organization grouping inferred from git remotes

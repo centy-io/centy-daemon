@@ -31,5 +31,6 @@ pub fn default_issue_config(config: &CentyConfig) -> ItemTypeConfig {
         priority_levels: Some(config.priority_levels),
         custom_fields: config.custom_fields.clone(),
         template: Some("template.md".to_string()),
+        listed: true,
     }
 }

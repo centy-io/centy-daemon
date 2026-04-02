@@ -47,5 +47,6 @@ pub fn default_comment_config() -> ItemTypeConfig {
             },
         ],
         template: None,
+        listed: false,
     }
 }

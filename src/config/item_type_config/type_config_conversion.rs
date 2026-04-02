@@ -44,6 +44,7 @@ fn test_type_config_conversion_drops_new_fields() {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: Some("task.md".to_string()),
+        listed: true,
     };
     let type_config = TypeConfig::from(&item_config);
     assert_eq!(type_config.name, "Task");

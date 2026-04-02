@@ -63,4 +63,12 @@ pub struct ItemTypeConfig {
     /// Omitted when not set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
+    /// Whether this item type appears in `ListItemTypes` responses.
+    /// Defaults to `true`; set to `false` for internal types like comments and archived.
+    #[serde(default = "default_true")]
+    pub listed: bool,
+}
+
+fn default_true() -> bool {
+    true
 }

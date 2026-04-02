@@ -44,5 +44,6 @@ pub(super) fn build_config(req: CreateItemTypeRequest) -> ItemTypeConfig {
             })
             .collect(),
         template: None,
+        listed: true,
     }
 }

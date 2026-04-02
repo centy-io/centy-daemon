@@ -95,6 +95,7 @@ pub fn config_to_proto(folder: &str, config: &ItemTypeConfig) -> ItemTypeConfigP
             .collect(),
         icon: config.icon.clone().unwrap_or_default(),
         template: config.template.clone().unwrap_or_default(),
+        listed: config.listed,
     }
 }
 

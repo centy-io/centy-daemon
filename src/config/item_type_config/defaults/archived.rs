@@ -31,5 +31,6 @@ pub fn default_archived_config() -> ItemTypeConfig {
             enum_values: Vec::new(),
         }],
         template: None,
+        listed: false,
     }
 }

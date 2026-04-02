@@ -65,6 +65,7 @@ async fn test_registry_resolve_by_folder_case_insensitive() {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
+        listed: true,
     };
     let yaml = serde_yaml::to_string(&epic_config).unwrap();
     fs::write(epics_dir.join("config.yaml"), &yaml)
@@ -107,6 +108,7 @@ async fn test_registry_resolve_by_folder_case_insensitive_fallback() {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
+        listed: true,
     };
     let yaml = serde_yaml::to_string(&bug_config).unwrap();
     fs::write(bugs_dir.join("config.yaml"), &yaml)

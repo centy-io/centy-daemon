@@ -49,6 +49,7 @@ async fn test_registry_build_detects_duplicate_type_names() {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
+        listed: true,
     };
     let yaml = serde_yaml::to_string(&config_a).unwrap();
     fs::write(dir_a.join("config.yaml"), &yaml).await.unwrap();
@@ -64,6 +65,7 @@ async fn test_registry_build_detects_duplicate_type_names() {
         priority_levels: None,
         custom_fields: Vec::new(),
         template: None,
+        listed: true,
     };
     let yaml = serde_yaml::to_string(&config_b).unwrap();
     fs::write(dir_b.join("config.yaml"), &yaml).await.unwrap();

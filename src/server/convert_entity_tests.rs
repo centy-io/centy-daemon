@@ -192,6 +192,7 @@ fn test_config_to_proto_minimal() {
         priority_levels: Some(3),
         custom_fields: vec![],
         template: None,
+        listed: true,
     };
     let proto = config_to_proto("issues", &config);
     assert_eq!(proto.name, "Issue");
@@ -228,6 +229,7 @@ fn test_config_to_proto_no_statuses() {
         priority_levels: None,
         custom_fields: vec![],
         template: Some("default.hbs".to_string()),
+        listed: true,
     };
     let proto = config_to_proto("docs", &config);
     assert_eq!(proto.default_status, "");
@@ -264,6 +266,7 @@ fn test_config_to_proto_with_custom_fields() {
             },
         ],
         template: None,
+        listed: true,
     };
     let proto = config_to_proto("epics", &config);
     assert_eq!(proto.custom_fields.len(), 2);
