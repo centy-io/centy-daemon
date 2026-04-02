@@ -158,8 +158,11 @@ async fn test_read_users_invalid_manifest_returns_not_initialized() {
     // → map_err closure executes → NotInitialized returned
     let centy_path = project_path.join(".centy");
     std::fs::create_dir_all(&centy_path).expect("create .centy");
-    std::fs::write(centy_path.join(".centy-manifest.json"), b"not valid json { }")
-        .expect("write invalid manifest");
+    std::fs::write(
+        centy_path.join(".centy-manifest.json"),
+        b"not valid json { }",
+    )
+    .expect("write invalid manifest");
 
     let result = read_users(project_path).await;
     assert!(

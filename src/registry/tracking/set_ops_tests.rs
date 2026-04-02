@@ -508,8 +508,11 @@ async fn test_enrich_project_invalid_manifest_gives_no_version() {
     // Create .centy/ dir with an INVALID manifest so initialized=true but read fails.
     let centy_path = dir.path().join(".centy");
     std::fs::create_dir_all(&centy_path).expect("create .centy");
-    std::fs::write(centy_path.join(".centy-manifest.json"), b"not valid json { }")
-        .expect("write invalid manifest");
+    std::fs::write(
+        centy_path.join(".centy-manifest.json"),
+        b"not valid json { }",
+    )
+    .expect("write invalid manifest");
 
     let path = dir
         .path()
