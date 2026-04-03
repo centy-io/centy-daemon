@@ -25,8 +25,7 @@ pub fn merge_json_content(
     let mut existing: serde_json::Value = serde_json::from_str(existing_content)?;
     let mut patch: serde_json::Value = serde_json::from_str(template_content)?;
 
-    let (Some(existing_obj), Some(patch_obj)) =
-        (existing.as_object_mut(), patch.as_object_mut())
+    let (Some(existing_obj), Some(patch_obj)) = (existing.as_object_mut(), patch.as_object_mut())
     else {
         // If either is not an object, return the appropriate fallback.
         return if existing.is_object() {
