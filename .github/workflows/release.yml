@@ -507,7 +507,17 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Upgrade npm for OIDC trusted publishing support
-        run: npm install -g npm@latest
+        run: |
+          # The runner's bundled npm can be missing internal deps (e.g. promise-retry),
+          # making `npm install -g npm@latest` fail before it can upgrade itself.
+          # Work around by downloading the tarball directly and bootstrapping with node.
+          curl -sf https://registry.npmjs.org/npm/latest -o /tmp/npm-meta.json
+          LATEST=$(node -e "console.log(require('/tmp/npm-meta.json').version)")
+          TARBALL=$(node -e "console.log(require('/tmp/npm-meta.json').dist.tarball)")
+          curl -fL "$TARBALL" -o /tmp/npm.tgz
+          mkdir -p /tmp/npm-pkg
+          tar -xzf /tmp/npm.tgz -C /tmp/npm-pkg
+          node /tmp/npm-pkg/package/bin/npm-cli.js install -g "npm@${LATEST}"
 
       - name: Set version
         run: |
