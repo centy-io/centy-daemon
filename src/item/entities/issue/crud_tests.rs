@@ -492,7 +492,6 @@ async fn test_resolve_update_options_custom_fields_merge() {
     );
 }
 
-
 #[test]
 fn test_parse_issue_md_with_description() {
     let content = "# My Issue Title\n\nThis is the description.\nWith multiple lines.";

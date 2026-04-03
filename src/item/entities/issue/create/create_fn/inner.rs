@@ -18,14 +18,8 @@ pub async fn build_content(
     options: &CreateIssueOptions,
     custom_fields: HashMap<String, String>,
 ) -> Result<(IssueFrontmatter, String, String), IssueError> {
-    let frontmatter = build_frontmatter(
-        display_number,
-        status,
-        priority,
-        now,
-        draft,
-        custom_fields,
-    );
+    let frontmatter =
+        build_frontmatter(display_number, status, priority, now, draft, custom_fields);
     let (display_title, description) = render_title_and_description(
         project_path,
         options,

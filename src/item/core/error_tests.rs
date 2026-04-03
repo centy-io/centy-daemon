@@ -189,7 +189,6 @@ fn test_item_error_is_deleted() {
     assert_eq!(format!("{err}"), "Item is deleted: abc-123");
 }
 
-
 #[test]
 fn test_item_error_from_io_error() {
     let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");

@@ -17,5 +17,3 @@ pub fn resolve_priority(
             .unwrap_or_else(|| default_priority(priority_levels))),
     }
 }
-
-

@@ -65,5 +65,3 @@ pub async fn migrate_legacy_format(
     fs::remove_dir_all(issue_folder_path).await?;
     Ok(())
 }
-
-
