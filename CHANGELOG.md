@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.4] — 2026-04-03
+
+### Changed
+- Restore registry-url in setup-node for npm OIDC auth to work
+
 ## [0.10.3] — 2026-04-03
 
 ### Changed
