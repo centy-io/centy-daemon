@@ -37,17 +37,6 @@ export interface CentyClient {
     request: InitRequest,
     callback: (error: grpc.ServiceError | null, response: InitResponse) => void
   ): void;
-  getReconciliationPlan(
-    request: GetReconciliationPlanRequest,
-    callback: (
-      error: grpc.ServiceError | null,
-      response: ReconciliationPlan
-    ) => void
-  ): void;
-  executeReconciliation(
-    request: ExecuteReconciliationRequest,
-    callback: (error: grpc.ServiceError | null, response: InitResponse) => void
-  ): void;
   isInitialized(
     request: IsInitializedRequest,
     callback: (
@@ -349,24 +338,6 @@ export interface InitResponse {
   reset: string[];
   skipped: string[];
   manifest?: Manifest;
-}
-
-export interface GetReconciliationPlanRequest {
-  projectPath: string;
-}
-
-export interface ReconciliationPlan {
-  toCreate: FileInfo[];
-  toRestore: FileInfo[];
-  toReset: FileInfo[];
-  upToDate: FileInfo[];
-  userFiles: FileInfo[];
-  needsDecisions: boolean;
-}
-
-export interface ExecuteReconciliationRequest {
-  projectPath: string;
-  decisions: ReconciliationDecisions;
 }
 
 export interface ReconciliationDecisions {
@@ -1094,12 +1065,6 @@ export function promisifyClient(client: CentyClient) {
   return {
     // Init
     init: promisify<InitRequest, InitResponse>(client.init),
-    getReconciliationPlan: promisify<GetReconciliationPlanRequest, ReconciliationPlan>(
-      client.getReconciliationPlan
-    ),
-    executeReconciliation: promisify<ExecuteReconciliationRequest, InitResponse>(
-      client.executeReconciliation
-    ),
     isInitialized: promisify<IsInitializedRequest, IsInitializedResponse>(
       client.isInitialized
     ),

@@ -277,29 +277,4 @@ describe('gRPC: Init Operations', () => {
     });
   });
 
-  describe('GetReconciliationPlan', () => {
-    it('should return plan for uninitialized project', async () => {
-      const plan = await project.client.getReconciliationPlan({
-        projectPath: project.path,
-      });
-
-      expect(plan).toBeDefined();
-      expect(plan.toCreate.length).toBeGreaterThan(0);
-    });
-
-    it('should return empty plan for fully initialized project', async () => {
-      await project.client.init({
-        projectPath: project.path,
-        force: true,
-      });
-
-      const plan = await project.client.getReconciliationPlan({
-        projectPath: project.path,
-      });
-
-      expect(plan.toCreate.length).toBe(0);
-      expect(plan.toRestore.length).toBe(0);
-      expect(plan.needsDecisions).toBe(false);
-    });
-  });
 });
