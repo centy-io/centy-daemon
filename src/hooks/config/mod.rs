@@ -7,8 +7,8 @@ pub use types::{HookDefinition, HookOperation, HooksFile, PatternSegment, Phase}
 #[path = "../hook_pattern_parsing_tests.rs"]
 mod hook_pattern_parsing_tests;
 #[cfg(test)]
-#[path = "../hook_pattern_segment_matching.rs"]
-mod hook_pattern_segment_matching;
+#[path = "../hook_pattern_segment_matching_tests.rs"]
+mod hook_pattern_segment_matching_tests;
 #[cfg(test)]
-#[path = "../hook_phase_and_operation.rs"]
-mod hook_phase_and_operation;
+#[path = "../hook_phase_and_operation_tests.rs"]
+mod hook_phase_and_operation_tests;

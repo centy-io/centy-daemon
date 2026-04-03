@@ -85,11 +85,11 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
     files
 }
 #[cfg(test)]
-#[path = "managed_file_template_struct.rs"]
-mod managed_file_template_struct;
+#[path = "managed_file_template_struct_tests.rs"]
+mod managed_file_template_struct_tests;
 #[cfg(test)]
-#[path = "managed_files_catalog.rs"]
-mod managed_files_catalog;
+#[path = "managed_files_catalog_tests.rs"]
+mod managed_files_catalog_tests;
 #[cfg(test)]
 #[path = "managed_files_json_merge.rs"]
 mod managed_files_json_merge;
@@ -97,5 +97,5 @@ mod managed_files_json_merge;
 #[path = "managed_files_json_sorting.rs"]
 mod managed_files_json_sorting;
 #[cfg(test)]
-#[path = "managed_files_readme_content.rs"]
-mod managed_files_readme_content;
+#[path = "managed_files_readme_content_tests.rs"]
+mod managed_files_readme_content_tests;

@@ -20,11 +20,11 @@ pub use move_ops::{generic_duplicate, generic_rename_slug};
 #[cfg(test)]
 use tokio::fs;
 #[cfg(test)]
-#[path = "create_and_get.rs"]
-mod create_and_get;
+#[path = "create_and_get_tests.rs"]
+mod create_and_get_tests;
 #[cfg(test)]
-#[path = "deletion_constraints.rs"]
-mod deletion_constraints;
+#[path = "deletion_constraints_tests.rs"]
+mod deletion_constraints_tests;
 #[cfg(test)]
 #[path = "helpers_tests.rs"]
 mod helpers_tests;
@@ -32,8 +32,8 @@ mod helpers_tests;
 #[path = "move_ops_tests.rs"]
 mod move_ops_tests;
 #[cfg(test)]
-#[path = "priority_validation.rs"]
-mod priority_validation;
+#[path = "priority_validation_tests.rs"]
+mod priority_validation_tests;
 #[cfg(test)]
-#[path = "soft_delete.rs"]
-mod soft_delete;
+#[path = "soft_delete_tests.rs"]
+mod soft_delete_tests;

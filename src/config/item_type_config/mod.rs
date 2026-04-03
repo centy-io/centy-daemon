@@ -20,8 +20,8 @@ pub use types::{ItemTypeConfig, ItemTypeFeatures};
 #[path = "default_configs_tests.rs"]
 mod default_configs_tests;
 #[cfg(test)]
-#[path = "item_type_config_migration.rs"]
-mod item_type_config_migration;
+#[path = "item_type_config_migration_tests.rs"]
+mod item_type_config_migration_tests;
 #[cfg(test)]
 #[path = "item_type_config_validation_tests.rs"]
 mod item_type_config_validation_tests;
@@ -32,14 +32,14 @@ mod item_type_config_yaml_serialization_tests;
 #[path = "item_type_registry_build_tests.rs"]
 mod item_type_registry_build_tests;
 #[cfg(test)]
-#[path = "item_type_registry_error_handling.rs"]
-mod item_type_registry_error_handling;
+#[path = "item_type_registry_error_handling_tests.rs"]
+mod item_type_registry_error_handling_tests;
 #[cfg(test)]
-#[path = "item_type_registry_lookup.rs"]
-mod item_type_registry_lookup;
+#[path = "item_type_registry_lookup_tests.rs"]
+mod item_type_registry_lookup_tests;
 #[cfg(test)]
-#[path = "item_type_registry_resolve.rs"]
-mod item_type_registry_resolve;
+#[path = "item_type_registry_resolve_tests.rs"]
+mod item_type_registry_resolve_tests;
 #[cfg(test)]
-#[path = "type_config_conversion.rs"]
-mod type_config_conversion;
+#[path = "type_config_conversion_tests.rs"]
+mod type_config_conversion_tests;

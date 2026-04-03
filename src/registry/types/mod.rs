@@ -8,5 +8,5 @@ pub use stored::{
 #[path = "../organization_types.rs"]
 mod organization_types;
 #[cfg(test)]
-#[path = "../project_registry_types.rs"]
-mod project_registry_types;
+#[path = "../project_registry_types_tests.rs"]
+mod project_registry_types_tests;
