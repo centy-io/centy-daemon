@@ -505,7 +505,9 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-          token: ''
+
+      - name: Upgrade npm for OIDC trusted publishing support
+        run: npm install -g npm@latest
 
       - name: Set version
         run: |
