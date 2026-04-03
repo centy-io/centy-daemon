@@ -4,19 +4,6 @@ use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::CreateItemTypeRequest;
 use mdstore::IdStrategy;
 #[test]
-fn test_is_valid_plural() {
-    let valid = |s: &str| !s.is_empty() && slug::slugify(s) == s;
-    assert!(valid("bugs"));
-    assert!(valid("user-stories"));
-    assert!(valid("epics123"));
-    assert!(!valid(""));
-    assert!(!valid("Bugs"));
-    assert!(!valid("bug_reports"));
-    assert!(!valid("-bugs"));
-    assert!(!valid("bugs-"));
-    assert!(!valid("my bugs"));
-}
-#[test]
 fn test_config_to_proto_roundtrip() {
     let config = ItemTypeConfig {
         name: "Bug".to_string(),
