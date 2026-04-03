@@ -62,9 +62,16 @@ fn test_cspell_has_merge_strategy() {
 #[test]
 fn test_non_cspell_files_have_no_merge_strategy() {
     let files = get_managed_files();
-    let files_without_merge = ["README.md", "issues/README.md", "templates/README.md", "hooks.yaml"];
+    let files_without_merge = [
+        "README.md",
+        "issues/README.md",
+        "templates/README.md",
+        "hooks.yaml",
+    ];
     for path in files_without_merge {
-        let template = files.get(path).unwrap_or_else(|| panic!("Should have {path}"));
+        let template = files
+            .get(path)
+            .unwrap_or_else(|| panic!("Should have {path}"));
         assert!(
             template.merge_strategy.is_none(),
             "{path} should not have a merge strategy"
