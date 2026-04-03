@@ -105,6 +105,7 @@ which = "6"
 # Shell escaping for command construction
 shell-escape = "0.1"
 slug = "0.1.6"
+json-patch = "4.1.0"
 
 
 [build-dependencies]

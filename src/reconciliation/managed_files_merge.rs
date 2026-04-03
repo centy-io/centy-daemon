@@ -15,56 +15,66 @@ pub fn merge_lines_content(existing_content: &str, template_content: &str) -> St
 }
 
 /// Merge existing JSON with template using `JsonArrayMerge` strategy.
+///
+/// Uses JSON Merge Patch (RFC 7396) via `json-patch` for scalar fields, with
+/// custom union logic for `words` and `ignorePaths` arrays.
 pub fn merge_json_content(
     existing_content: &str,
     template_content: &str,
 ) -> Result<String, serde_json::Error> {
     let mut existing: serde_json::Value = serde_json::from_str(existing_content)?;
-    let template: serde_json::Value = serde_json::from_str(template_content)?;
-    let Some(existing_obj) = existing.as_object_mut() else {
-        return serde_json::to_string_pretty(&template).map(|mut s| {
-            s.push('\n');
-            s
-        });
+    let mut patch: serde_json::Value = serde_json::from_str(template_content)?;
+
+    let (Some(existing_obj), Some(patch_obj)) =
+        (existing.as_object_mut(), patch.as_object_mut())
+    else {
+        // If either is not an object, return the appropriate fallback.
+        return if existing.is_object() {
+            format_json_value(&existing)
+        } else {
+            format_json_value(&patch)
+        };
     };
-    let Some(template_obj) = template.as_object() else {
-        return serde_json::to_string_pretty(&existing).map(|mut s| {
-            s.push('\n');
-            s
-        });
-    };
-    for key in &["version", "language"] {
-        if let Some(value) = template_obj.get(*key) {
-            existing_obj.insert((*key).to_string(), value.clone());
-        }
-    }
+
+    // Pre-compute union arrays for special keys and remove them from the patch
+    // so that json_patch::merge does not replace them.
     for key in &["words", "ignorePaths"] {
-        let mut merged: std::collections::HashSet<String> = std::collections::HashSet::new();
-        if let Some(serde_json::Value::Array(arr)) = existing_obj.get(*key) {
-            for item in arr {
-                if let Some(s) = item.as_str() {
-                    merged.insert(s.to_string());
-                }
-            }
-        }
-        if let Some(serde_json::Value::Array(arr)) = template_obj.get(*key) {
-            for item in arr {
-                if let Some(s) = item.as_str() {
-                    merged.insert(s.to_string());
-                }
-            }
-        }
-        if !merged.is_empty() {
-            let mut words: Vec<String> = merged.into_iter().collect();
-            words.sort_by_key(|w| w.to_lowercase());
-            let json_words: Vec<serde_json::Value> =
-                words.into_iter().map(serde_json::Value::String).collect();
-            existing_obj.insert((*key).to_string(), serde_json::Value::Array(json_words));
+        let union_arr = union_string_arrays(existing_obj.get(*key), patch_obj.get(*key));
+        patch_obj.remove(*key);
+        if !union_arr.is_empty() {
+            existing_obj.insert((*key).to_string(), serde_json::Value::Array(union_arr));
         }
     }
-    let mut output = serde_json::to_string_pretty(&existing)?;
-    output.push('\n');
-    Ok(output)
+
+    // Apply JSON Merge Patch: template scalars override existing, user-added keys preserved.
+    json_patch::merge(&mut existing, &patch);
+
+    format_json_value(&existing)
+}
+
+fn union_string_arrays(
+    a: Option<&serde_json::Value>,
+    b: Option<&serde_json::Value>,
+) -> Vec<serde_json::Value> {
+    let mut set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for val in [a, b].into_iter().flatten() {
+        if let serde_json::Value::Array(items) = val {
+            for item in items {
+                if let Some(s) = item.as_str() {
+                    set.insert(s.to_string());
+                }
+            }
+        }
+    }
+    let mut sorted: Vec<String> = set.into_iter().collect();
+    sorted.sort_by_key(|w| w.to_lowercase());
+    sorted.into_iter().map(serde_json::Value::String).collect()
+}
+
+fn format_json_value(v: &serde_json::Value) -> Result<String, serde_json::Error> {
+    let mut s = serde_json::to_string_pretty(v)?;
+    s.push('\n');
+    Ok(s)
 }
 
 /// Tests for `merge_json_content` edge cases.
