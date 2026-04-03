@@ -1,4 +1,6 @@
-use super::super::managed_files::{merge_json_content, ManagedFileTemplate, MergeStrategy};
+use super::super::managed_files::{
+    merge_json_content, merge_lines_content, ManagedFileTemplate, MergeStrategy,
+};
 use super::types::ExecuteError;
 use crate::manifest::ManagedFileType;
 use std::collections::HashMap;
@@ -44,6 +46,11 @@ pub async fn merge_file(
             let existing_content = fs::read_to_string(&full_path).await?;
             let merged = merge_json_content(&existing_content, template_content)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+            fs::write(&full_path, merged).await?;
+        }
+        Some(MergeStrategy::LineEnsureMerge) => {
+            let existing_content = fs::read_to_string(&full_path).await.unwrap_or_default();
+            let merged = merge_lines_content(&existing_content, template_content);
             fs::write(&full_path, merged).await?;
         }
         None => {

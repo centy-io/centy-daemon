@@ -1,3 +1,19 @@
+/// Merge existing file content with template using `LineEnsureMerge` strategy.
+/// Appends any template lines not already present in the existing content.
+pub fn merge_lines_content(existing_content: &str, template_content: &str) -> String {
+    let mut result = existing_content.to_string();
+    for line in template_content.lines() {
+        if !line.is_empty() && !existing_content.lines().any(|l| l == line) {
+            if !result.ends_with('\n') && !result.is_empty() {
+                result.push('\n');
+            }
+            result.push_str(line);
+            result.push('\n');
+        }
+    }
+    result
+}
+
 /// Merge existing JSON with template using `JsonArrayMerge` strategy.
 pub fn merge_json_content(
     existing_content: &str,

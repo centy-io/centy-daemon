@@ -8,13 +8,14 @@ mod managed_files_content_alt;
 mod managed_files_merge;
 use managed_files_content::{ISSUES_README_CONTENT, README_CONTENT};
 use managed_files_content_alt::{
-    CSPELL_JSON_CONTENT, HOOKS_YAML_CONTENT, TEMPLATES_README_CONTENT,
+    CSPELL_JSON_CONTENT, GITIGNORE_CONTENT, HOOKS_YAML_CONTENT, TEMPLATES_README_CONTENT,
 };
-pub use managed_files_merge::merge_json_content;
+pub use managed_files_merge::{merge_json_content, merge_lines_content};
 /// Strategy for how a managed file should be updated when it already exists
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergeStrategy {
     JsonArrayMerge,
+    LineEnsureMerge,
 }
 /// Template for a managed file
 #[derive(Debug, Clone)]
@@ -75,6 +76,12 @@ pub fn get_managed_files() -> HashMap<String, ManagedFileTemplate> {
         Some(MergeStrategy::JsonArrayMerge),
     );
     file(&mut files, "hooks.yaml", HOOKS_YAML_CONTENT, None);
+    file(
+        &mut files,
+        ".gitignore",
+        GITIGNORE_CONTENT,
+        Some(MergeStrategy::LineEnsureMerge),
+    );
     files
 }
 #[cfg(test)]

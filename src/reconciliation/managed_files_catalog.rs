@@ -20,6 +20,7 @@ fn test_get_managed_files_returns_expected_files() {
     assert!(files.contains_key("templates/README.md"));
     assert!(files.contains_key("cspell.json"));
     assert!(files.contains_key("hooks.yaml"));
+    assert!(files.contains_key(".gitignore"));
 }
 
 #[test]
@@ -134,8 +135,8 @@ fn test_comments_directory_has_no_content() {
 #[test]
 fn test_managed_file_template_count() {
     let files = get_managed_files();
-    // Should have at least 8 directories + 5 files = 13 entries
-    assert!(files.len() >= 13);
+    // Should have at least 8 directories + 6 files = 14 entries
+    assert!(files.len() >= 14);
 }
 
 #[test]

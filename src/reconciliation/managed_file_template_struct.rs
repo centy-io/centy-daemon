@@ -4,8 +4,8 @@ use super::*;
 fn test_get_managed_files_count() {
     let files = get_managed_files();
 
-    // 8 directories + 5 files = 13 total
-    assert_eq!(files.len(), 13);
+    // 8 directories + 6 files = 14 total
+    assert_eq!(files.len(), 14);
 }
 
 #[test]
@@ -62,12 +62,12 @@ fn test_cspell_has_merge_strategy() {
 #[test]
 fn test_non_cspell_files_have_no_merge_strategy() {
     let files = get_managed_files();
-    for (path, template) in &files {
-        if path != "cspell.json" {
-            assert!(
-                template.merge_strategy.is_none(),
-                "{path} should not have a merge strategy"
-            );
-        }
+    let files_without_merge = ["README.md", "issues/README.md", "templates/README.md", "hooks.yaml"];
+    for path in files_without_merge {
+        let template = files.get(path).unwrap_or_else(|| panic!("Should have {path}"));
+        assert!(
+            template.merge_strategy.is_none(),
+            "{path} should not have a merge strategy"
+        );
     }
 }

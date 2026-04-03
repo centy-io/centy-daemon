@@ -89,3 +89,6 @@ pub const TEMPLATES_README_CONTENT: &str = concat!(
     "{{/each}}\n",
     "```\n",
 );
+
+/// `.gitignore` content for the `.centy` folder
+pub const GITIGNORE_CONTENT: &str = "*.local.*\n";
