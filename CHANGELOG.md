@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Consolidate MCP release into main release workflow; delete `mcp-release.yml`
+
 ## [0.10.1] — 2026-04-02
 
 ### Fixed
