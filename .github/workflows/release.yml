@@ -504,7 +504,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Set version
         run: |
@@ -526,5 +525,5 @@ jobs:
 
       - name: Publish
         if: steps.npm_check.outputs.skip == 'false'
-        run: npm publish --provenance --access public
+        run: npm publish --provenance
         working-directory: mcp/npm

@@ -7,6 +7,10 @@
     "url": "git+https://github.com/centy-io/centy-daemon.git"
   },
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "bin": {
     "centy-mcp": "bin/centy-mcp.js"
   },
