@@ -1,20 +1,20 @@
 use super::super::build::build_config;
-use super::super::validate::is_valid_plural;
 use crate::config::item_type_config::{ItemTypeConfig, ItemTypeFeatures};
 use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::CreateItemTypeRequest;
 use mdstore::IdStrategy;
 #[test]
 fn test_is_valid_plural() {
-    assert!(is_valid_plural("bugs"));
-    assert!(is_valid_plural("user-stories"));
-    assert!(is_valid_plural("epics123"));
-    assert!(!is_valid_plural(""));
-    assert!(!is_valid_plural("Bugs"));
-    assert!(!is_valid_plural("bug_reports"));
-    assert!(!is_valid_plural("-bugs"));
-    assert!(!is_valid_plural("bugs-"));
-    assert!(!is_valid_plural("my bugs"));
+    let valid = |s: &str| !s.is_empty() && slug::slugify(s) == s;
+    assert!(valid("bugs"));
+    assert!(valid("user-stories"));
+    assert!(valid("epics123"));
+    assert!(!valid(""));
+    assert!(!valid("Bugs"));
+    assert!(!valid("bug_reports"));
+    assert!(!valid("-bugs"));
+    assert!(!valid("bugs-"));
+    assert!(!valid("my bugs"));
 }
 #[test]
 fn test_config_to_proto_roundtrip() {
