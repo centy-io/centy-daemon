@@ -1,10 +1,9 @@
 use crate::item::entities::issue::AssetInfo;
-use crate::manifest::ManagedFileType as InternalFileType;
 use crate::registry::{OrgInferenceResult, OrganizationInfo, ProjectInfo};
 use crate::utils::format_display_path;
 
 use super::proto::{
-    Asset, FileInfo, FileType, Manifest, OrgInferenceResult as ProtoOrgInferenceResult,
+    Asset, Manifest, OrgInferenceResult as ProtoOrgInferenceResult,
     Organization as ProtoOrganization,
 };
 use crate::manifest::CentyManifest as InternalManifest;
@@ -68,17 +67,5 @@ pub fn manifest_to_proto(manifest: &InternalManifest) -> Manifest {
         schema_version: i32::try_from(manifest.schema_version).unwrap_or(i32::MAX),
         centy_version: manifest.centy_version.clone(),
         created_at: manifest.created_at.clone(),
-    }
-}
-
-pub fn file_info_to_proto(info: crate::reconciliation::FileInfo) -> FileInfo {
-    FileInfo {
-        path: info.path,
-        file_type: match info.file_type {
-            InternalFileType::File => FileType::File as i32,
-            InternalFileType::Directory => FileType::Directory as i32,
-        },
-        hash: info.hash,
-        content_preview: info.content_preview.unwrap_or_default(),
     }
 }

@@ -13,18 +13,6 @@ impl CentyDaemon for CentyDaemonService {
         let _t = OperationTimer::new("init");
         handlers::init::init(request.into_inner()).await
     }
-    async fn get_reconciliation_plan(
-        &self,
-        request: Request<GetReconciliationPlanRequest>,
-    ) -> Result<Response<ReconciliationPlan>, Status> {
-        handlers::reconciliation::get_reconciliation_plan(request.into_inner()).await
-    }
-    async fn execute_reconciliation(
-        &self,
-        request: Request<ExecuteReconciliationRequest>,
-    ) -> Result<Response<InitResponse>, Status> {
-        handlers::reconciliation::execute_reconciliation_handler(request.into_inner()).await
-    }
     async fn get_manifest(
         &self,
         request: Request<GetManifestRequest>,
