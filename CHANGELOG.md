@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replace hand-rolled `merge_json_content` JSON merge logic with `json-patch` crate (RFC 7396 JSON Merge Patch)
+
 ## [0.10.5] — 2026-04-03
 
 ### Changed
