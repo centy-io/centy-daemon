@@ -203,7 +203,8 @@
       "mcp__centy__centy_v1_CentyDaemon_OpenInTempWorkspace",
       "Bash(wait)",
       "Bash(command -v centy-mcp)",
-      "Bash(centy-mcp --help)"
+      "Bash(centy-mcp --help)",
+      "Bash(gh workflow:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
