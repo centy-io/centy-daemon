@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `include_organization_items` field on `ListItemsRequest` proto (stub for upcoming org-wide list support)
 - `projects` field on `CreateItemRequest` proto (stub for upcoming multi-project association)
 - `projects: Vec<String>` field on `IssueFrontmatter` for proper roundtrip through issue-specific code paths (reconcile, CRUD, move)
+- `ListItems` now merges org-wide items via `include_organization_items` flag (default `true`); org items are filtered by the current project's slug and carry `source: "org"` while project-local items carry `source: "project"`
 - `GetItem` falls back to the org repo when the requested item is not found in the project's own `.centy/`; returned item carries `source: "org"` on both `GenericItem` and `GetItemResponse`
 
 ### Removed
