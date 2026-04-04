@@ -1,6 +1,7 @@
 use super::super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 use super::operation::{build_update_options, do_update};
 use crate::hooks::HookOperation;
+use crate::item::core::error::ItemError;
 use crate::registry::track_project_async;
 use crate::server::assert_service::assert_initialized;
 use crate::server::hooks_helper::maybe_run_pre_hooks;
@@ -29,8 +30,12 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         Err(e) => return Ok(err_response(&req.project_path, &e)),
     };
     let hook_type = config.name.to_lowercase();
+    // If the display-number lookup fails because the item is absent from the
+    // project, fall through with the original identifier so that `do_update`
+    // can attempt the org-repo fallback.
     let item_id = match resolve_item_id(project_path, &item_type, &config, &req.item_id).await {
         Ok(id) => id,
+        Err(ItemError::NotFound(_)) => req.item_id.clone(),
         Err(e) => return Ok(err_response(&req.project_path, &e)),
     };
     let hook_project_path = req.project_path.clone();
