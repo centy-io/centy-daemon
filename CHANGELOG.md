@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `projects` field on `GenericItemMetadata` proto (surfaces org project associations)
 - `include_organization_items` field on `ListItemsRequest` proto (stub for upcoming org-wide list support)
 - `projects` field on `CreateItemRequest` proto (stub for upcoming multi-project association)
+- `projects: Vec<String>` field on `IssueFrontmatter` for proper roundtrip through issue-specific code paths (reconcile, CRUD, move)
 
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)

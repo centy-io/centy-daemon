@@ -16,6 +16,7 @@ pub fn build_updated_frontmatter(
         updated_at: now_iso(),
         draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
+        projects: current.metadata.projects.clone(),
         custom_fields: updates.custom_fields.clone(),
     }
 }
@@ -58,6 +59,7 @@ pub fn build_issue_struct(
             custom_fields: updates.custom_fields.clone(),
             draft: updates.draft,
             deleted_at: current.metadata.deleted_at.clone(),
+            projects: current.metadata.projects.clone(),
         },
     }
 }

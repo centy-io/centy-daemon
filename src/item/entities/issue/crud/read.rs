@@ -27,6 +27,7 @@ pub async fn read_issue_from_frontmatter(
             custom_fields: frontmatter.custom_fields,
             draft: frontmatter.draft,
             deleted_at: frontmatter.deleted_at,
+            projects: frontmatter.projects,
         },
     })
 }
