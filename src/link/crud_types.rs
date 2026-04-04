@@ -39,6 +39,14 @@ pub struct DeleteLinkOptions {
 pub struct DeleteLinkResult {
     pub deleted_count: u32,
 }
+/// Options for updating a link (by UUID)
+#[derive(Debug, Clone)]
+pub struct UpdateLinkOptions {
+    /// UUID of the link file to update (from `Link.id` in the proto response).
+    pub link_id: String,
+    /// New link type to set.
+    pub link_type: String,
+}
 /// Information about a link type
 #[derive(Debug, Clone)]
 pub struct LinkTypeInfo {

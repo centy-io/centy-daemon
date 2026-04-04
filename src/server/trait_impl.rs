@@ -197,6 +197,12 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<GetAvailableLinkTypesResponse>, Status> {
         handlers::link_read::get_available_link_types(request.into_inner()).await
     }
+    async fn update_link(
+        &self,
+        request: Request<UpdateLinkRequest>,
+    ) -> Result<Response<UpdateLinkResponse>, Status> {
+        handlers::link_update::update_link(request.into_inner()).await
+    }
     async fn create_user(
         &self,
         request: Request<CreateUserRequest>,

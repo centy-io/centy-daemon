@@ -25,6 +25,7 @@ pub mod item_update;
 pub mod link_create;
 pub mod link_delete;
 pub mod link_read;
+pub mod link_update;
 pub mod manifest;
 pub mod organization;
 pub mod organization_write;
