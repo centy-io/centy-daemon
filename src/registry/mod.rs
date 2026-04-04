@@ -1,6 +1,7 @@
 mod ignore;
 mod inference;
 mod migrations;
+mod org_repo;
 mod organizations;
 mod storage;
 mod tracking;
@@ -11,6 +12,7 @@ pub use ignore::init_ignore_paths;
 pub use inference::{
     infer_organization_from_remote, try_auto_assign_organization, OrgInferenceResult,
 };
+pub use org_repo::find_org_repo;
 pub use organizations::{
     create_organization, delete_organization, get_organization, list_organizations,
     set_project_organization, update_organization, OrganizationError,
@@ -25,6 +27,10 @@ pub use types::{
 };
 
 use thiserror::Error;
+
+#[cfg(test)]
+#[path = "org_repo_tests.rs"]
+mod org_repo_tests;
 
 #[derive(Error, Debug)]
 pub enum RegistryError {

@@ -52,6 +52,7 @@ fn create_req(
         tags: vec![],
         custom_fields,
         projects: vec![],
+        org_wide: false,
     }
 }
 

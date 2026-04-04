@@ -22,11 +22,13 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                 success: true,
                 error: String::new(),
                 item: Some(user_to_generic_item_proto(&user)),
+                source: String::new(),
             })),
             Err(e) => Ok(Response::new(GetItemResponse {
                 success: false,
                 error: to_error_json(&req.project_path, &e),
                 item: None,
+                source: String::new(),
             })),
         };
     }
@@ -38,6 +40,7 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                 success: false,
                 error: to_error_json(&req.project_path, &e),
                 item: None,
+                source: String::new(),
             }));
         }
     };
@@ -62,11 +65,13 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
             success: true,
             error: String::new(),
             item: Some(generic_item_to_proto(&item, &item_type)),
+            source: String::new(),
         })),
         Err(e) => Ok(Response::new(GetItemResponse {
             success: false,
             error: to_error_json(&req.project_path, &e),
             item: None,
+            source: String::new(),
         })),
     }
 }

@@ -10,6 +10,7 @@ pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGene
         item_type: item_type.to_string(),
         title: item.title.clone(),
         body: item.body.clone(),
+        source: String::new(),
         metadata: Some(GenericItemMetadata {
             display_number: item.frontmatter.display_number.unwrap_or(0),
             status: item.frontmatter.status.clone().unwrap_or_default(),
@@ -63,6 +64,7 @@ pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem 
         item_type: "user".to_string(),
         title: user.name.clone(),
         body: String::new(),
+        source: String::new(),
         metadata: Some(GenericItemMetadata {
             display_number: 0,
             status,
