@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Split `init/mcp_json.rs`: pure JSON logic stays in `mcp_json.rs`; async file I/O extracted into new `mcp_io.rs`
+- Refactored `workspace_temp` handler into focused modules: `hooks.rs` (status update), `operations/create.rs` (workspace creation), `operations/editor.rs` (editor invocation), with `handler.rs` as thin orchestration
 
 ### Added
 - `UpdateLink` gRPC endpoint for changing the link type of an existing link
