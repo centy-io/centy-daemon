@@ -119,6 +119,7 @@ cargo-husky = { version = "1", default-features = false, features = [
     "user-hooks",
 ] }
 submodule-kit = "0.1.0"
+mdstore = "1.1.1"
 
 [lints.rust]
 unsafe_code = "forbid"

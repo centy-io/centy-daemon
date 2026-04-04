@@ -2,6 +2,7 @@ mod ignore;
 mod inference;
 mod migrations;
 mod organizations;
+pub mod org_repo;
 mod storage;
 mod tracking;
 mod types;
@@ -15,6 +16,7 @@ pub use organizations::{
     create_organization, delete_organization, get_organization, list_organizations,
     set_project_organization, update_organization, OrganizationError,
 };
+pub use storage::{read_registry, write_registry_unlocked};
 pub use tracking::{
     get_org_projects, get_project_info, list_projects, set_project_archived, set_project_favorite,
     set_project_user_title, track_project, track_project_async, untrack_project,
