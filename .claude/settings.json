@@ -216,7 +216,8 @@
       "mcp__plugin_playwright_playwright__browser_run_code",
       "mcp__plugin_playwright_playwright__browser_press_key",
       "mcp__centy__centy_v1_CentyDaemon_CreateLink",
-      "mcp__centy__centy_v1_CentyDaemon_ListLinks"
+      "mcp__centy__centy_v1_CentyDaemon_ListLinks",
+      "Bash(go build:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },

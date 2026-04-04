@@ -50,6 +50,8 @@
     "bufbuild",
     "bytecount",
     "centy",
+    "centyv",
+    "Setpgid",
     "cfgs",
     "checksums",
     "choosealicense",
