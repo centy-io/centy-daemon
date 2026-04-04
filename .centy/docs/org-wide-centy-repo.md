@@ -1,7 +1,7 @@
 ---
 # This file is managed by Centy. Use the Centy CLI to modify it.
 createdAt: 2026-04-03T08:38:14.470466+00:00
-updatedAt: 2026-04-03T08:38:14.470466+00:00
+updatedAt: 2026-04-04T00:40:57.586809+00:00
 ---
 
 # Org-Wide .centy Repo
@@ -22,9 +22,7 @@ The `.centy` repo is a plain git repository. Its **root directory is the data ro
 ```
 ~/dev/acme/.centy/          ← git repo root AND data root
   issues/
-    <id>/
-      issue.md
-      metadata.json
+    <id>.md
   config.json
   organization.json
 ```
@@ -35,6 +33,7 @@ Regular projects store data one level in:
 ~/dev/acme/frontend/
   .centy/                   ← data root is here
     issues/
+      <id>.md
     config.json
 ```
 
@@ -42,77 +41,87 @@ The daemon resolves the data root differently depending on whether it is operati
 
 ## Org Repo Discovery
 
-Given a `project_path`, the daemon resolves the org repo path as follows:
+The org repo is a normal tracked project whose path ends in `/.centy`. Given a `project_path`, the daemon discovers the org repo as follows:
 
-1. Read `.centy/config.json` for an `org_repo_path` field. If present, use that path as the org repo data root.
-2. If missing, check for a sibling directory named `.centy` at the parent level (e.g., `~/dev/acme/frontend` → `~/dev/acme/.centy`).
-3. If neither exists, no org repo is available. Cross-repo operations are silently skipped (for reads) or return a clear error (for writes).
+1. Determine the project's organization slug from the registry.
+2. Scan tracked projects for one in the same org whose path ends in `/.centy`.
+3. Return it, or `None` if not found. Cross-repo operations are silently skipped (for reads) or return a clear error (for writes).
 
-The resolved path is computed per-request. It is not cached or persisted to the global registry.
+Discovery is computed per-request. It is not cached.
 
 ## Item Metadata: `projects` Field
 
-Org-wide items carry a `projects` field in their metadata — a list of project slugs that the item is relevant to:
+Items carry a `projects` field in their frontmatter — a list of project slugs that the item is associated with:
 
-```json
-{
-  "projects": ["frontend"]
-}
+```markdown
+---
+projects: ["frontend", "backend"]
+---
 ```
-
-At creation time, the daemon automatically sets `projects` to `[<originating_project_slug>]`. Managing the full list (adding/removing projects) is out of scope for this iteration.
 
 ## Proto Changes
 
 ### `CreateItemRequest`
 
-Add `org_wide: bool`. When true, the item is written to the org repo instead of the project's own `.centy/`.
+Add `projects: repeated string`. This field serves two purposes:
+
+1. **Routing**: if `len(projects) > 1`, the item is written to the org repo instead of the project's own `.centy/`.
+2. **Association**: the value is stored as-is in the item's `projects` frontmatter field.
 
 ```protobuf
-bool org_wide = N;
+repeated string projects = N;
 ```
+
+If `projects` is empty or has a single entry, the item is written to the project's own `.centy/` as normal.
 
 ### `ListItemsRequest`
 
-Add `include_org_items: optional bool`. The server treats missing or unset as `true`.
+Add `include_organization_items: optional bool`. The server treats missing or unset as `true`.
 
 ```protobuf
-optional bool include_org_items = N;
+optional bool include_organization_items = N;
+```
+
+### `GenericItemMetadata`
+
+Add `projects: repeated string` to carry associated project slugs:
+
+```protobuf
+repeated string projects = N;
 ```
 
 ## Daemon Logic
 
-### `CreateItem` with `org_wide: true`
+### `CreateItem`
 
-1. Resolve the org repo path for the given `project_path`.
-2. If no org repo is found, return a clear error.
-3. Derive the originating project's slug from `project_path`.
-4. Write the item to the org repo's data root (e.g., `<org_repo>/issues/<id>/`).
-5. Set `projects: [<slug>]` in the item's metadata.
+1. If `len(projects) > 1`:
+   - Discover the org repo via the registry.
+   - If no org repo is tracked, return a clear error.
+   - Write the item to the org repo's data root.
+2. Otherwise, write to the project's own `.centy/` as normal.
+3. Store `projects` in the item's frontmatter.
+
+Data-root resolution for the org repo: for a project whose path ends in `/.centy`, the data root is the repo root itself (no nested `.centy/` subfolder).
 
 ### `ListItems`
 
 1. Read items from the project's own `.centy/` as normal.
-2. If `include_org_items` is true (default):
-   - Resolve the org repo path.
-   - Scan org repo items for those whose `projects` field contains the current project's slug.
+2. If `include_organization_items` is true (default):
+   - Discover the org repo via the registry.
+   - Scan org repo items for those whose `projects` frontmatter field contains the current project's slug.
    - Merge matched items into the result set.
-3. Org-wide items in the response carry a `source: "org"` indicator so clients can render them as read-only.
 
 ### `GetItem`
 
 1. Look in the project's own `.centy/` first.
-2. If not found and an org repo exists, look in the org repo.
+2. If not found and an org repo is tracked, look in the org repo.
 
-### Write operations on org-wide items from a non-org project
+### `UpdateItem` / `DeleteItem`
 
-`UpdateItem` and `DeleteItem` called on an org-wide item from outside the `.centy` repo return a clear error:
-
-> "This item belongs to the org repo and cannot be modified from this project."
+Write operations on org-wide items are fully supported. The daemon checks whether the item lives in the org repo and routes the write there automatically — the caller does not need to know or specify where the item is stored.
 
 ## Out of Scope (This Iteration)
 
 - Adding/removing projects from an item's `projects` field after creation
 - Reading org-wide items that are not linked to the current project
-- Write access to org-wide items from non-org projects
 - Caching or pre-indexing of the org repo
