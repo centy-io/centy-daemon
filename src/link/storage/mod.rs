@@ -1,5 +1,5 @@
 mod io;
-pub use io::{create_link_file, delete_link_file, list_all_link_records};
+pub use io::{create_link_file, delete_link_file, list_all_link_records, update_link_file};
 
 #[cfg(test)]
 #[path = "../links_file_basic_operations_tests.rs"]

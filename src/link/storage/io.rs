@@ -75,6 +75,31 @@ pub async fn create_link_file(
     })
 }
 
+/// Update an existing link file — currently supports updating `link_type`.
+pub async fn update_link_file(
+    project_path: &Path,
+    link_id: &str,
+    link_type: &str,
+) -> Result<LinkRecord, mdstore::StoreError> {
+    let config = link_type_config();
+    let dir = links_dir(project_path);
+    let mut fields = std::collections::HashMap::new();
+    fields.insert("linkType".to_string(), json!(link_type));
+    let options = mdstore::UpdateOptions {
+        title: None,
+        body: None,
+        status: None,
+        priority: None,
+        tags: None,
+        custom_fields: fields,
+        comment: None,
+    };
+    let item = mdstore::update(&dir, &config, link_id, options).await?;
+    item_to_link_record(item).ok_or_else(|| {
+        mdstore::StoreError::custom("Updated link item is missing required custom fields")
+    })
+}
+
 /// Hard-delete a link file by UUID.
 pub async fn delete_link_file(
     project_path: &Path,
