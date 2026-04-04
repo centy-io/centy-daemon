@@ -1,5 +1,28 @@
 use super::*;
 
+// ── extract_project_slug ──────────────────────────────────────────────────────
+
+#[test]
+fn test_extract_project_slug_normal_path() {
+    let slug = extract_project_slug("/home/user/dev/my-project");
+    assert_eq!(slug, Some("my-project".to_string()));
+}
+
+#[test]
+fn test_extract_project_slug_centy_repo() {
+    let slug = extract_project_slug("/home/user/dev/acme/.centy");
+    assert_eq!(slug, Some(".centy".to_string()));
+}
+
+#[test]
+fn test_extract_project_slug_empty() {
+    // A lone "/" has no file_name
+    let slug = extract_project_slug("/");
+    assert_eq!(slug, None);
+}
+
+// ── filter tests ─────────────────────────────────────────────────────────────
+
 #[test]
 fn test_empty_filter_returns_defaults() {
     let f = build_filters_from_mql("", 0, 0);
