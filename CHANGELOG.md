@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `projects: Vec<String>` field on `IssueFrontmatter` for proper roundtrip through issue-specific code paths (reconcile, CRUD, move)
 - `ListItems` now merges org-wide items via `include_organization_items` flag (default `true`); org items are filtered by the current project's slug and carry `source: "org"` while project-local items carry `source: "project"`
 - `GetItem` falls back to the org repo when the requested item is not found in the project's own `.centy/`; returned item carries `source: "org"` on both `GenericItem` and `GetItemResponse`
+- `UpdateItem` and `DeleteItem` transparently route writes to the org repo when the target item lives there; project-local items are unaffected; display-number resolution also falls back to the org repo
 
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)
