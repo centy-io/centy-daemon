@@ -12,3 +12,9 @@ mod links_file_persistence_tests;
 #[cfg(test)]
 #[path = "../storage_io_tests.rs"]
 mod storage_io_tests;
+#[cfg(test)]
+#[path = "../storage_serialization_tests.rs"]
+mod storage_serialization_tests;
+#[cfg(test)]
+#[path = "../storage_validation_tests.rs"]
+mod storage_validation_tests;
