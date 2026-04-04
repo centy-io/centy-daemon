@@ -176,5 +176,8 @@ async fn test_find_org_repo_not_found_different_org() {
     }
 
     let result = find_org_repo(project).await.unwrap();
-    assert_eq!(result, None, "expected None when org repo is in a different org");
+    assert_eq!(
+        result, None,
+        "expected None when org repo is in a different org"
+    );
 }
