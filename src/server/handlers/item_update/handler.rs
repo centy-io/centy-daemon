@@ -65,6 +65,7 @@ pub async fn update_item(req: UpdateItemRequest) -> Result<Response<UpdateItemRe
         req.tags,
         req.clear_tags,
         req.custom_fields,
+        req.projects,
     );
     Ok(Response::new(
         do_update(
