@@ -205,7 +205,16 @@
       "Bash(command -v centy-mcp)",
       "Bash(centy-mcp --help)",
       "Bash(gh workflow:*)",
-      "mcp__centy__centy_v1_CentyDaemon_SearchItems"
+      "mcp__centy__centy_v1_CentyDaemon_SearchItems",
+      "mcp__centy__centy_v1_CentyDaemon_UpdateItem",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(npm run:*)",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_run_code",
+      "mcp__plugin_playwright_playwright__browser_press_key"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },

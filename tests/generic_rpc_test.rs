@@ -51,6 +51,7 @@ fn create_req(
         priority,
         tags: vec![],
         custom_fields,
+        projects: vec![],
     }
 }
 
@@ -189,6 +190,7 @@ async fn test_list_with_filters() {
         filter: String::new(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -203,6 +205,7 @@ async fn test_list_with_filters() {
         filter: r#"{"status":"open"}"#.to_string(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -216,6 +219,7 @@ async fn test_list_with_filters() {
         filter: r#"{"priority":1}"#.to_string(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -229,6 +233,7 @@ async fn test_list_with_filters() {
         filter: String::new(),
         limit: 1,
         offset: 1,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -378,6 +383,7 @@ async fn test_soft_delete_and_restore() {
         filter: String::new(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -391,6 +397,7 @@ async fn test_soft_delete_and_restore() {
         filter: r#"{"deletedAt":{"$exists":true}}"#.to_string(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()
@@ -417,6 +424,7 @@ async fn test_soft_delete_and_restore() {
         filter: String::new(),
         limit: 0,
         offset: 0,
+        include_organization_items: None,
     })
     .await
     .unwrap()

@@ -24,6 +24,7 @@ pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGene
                 .map(|(k, v)| (k.clone(), v.to_string()))
                 .collect(),
             tags: item.frontmatter.tags.clone().unwrap_or_default(),
+            projects: vec![],
         }),
     }
 }
@@ -60,6 +61,7 @@ pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem 
             deleted_at: user.deleted_at.clone().unwrap_or_default(),
             custom_fields: std::collections::HashMap::new(),
             tags: vec![],
+            projects: vec![],
         }),
     }
 }
