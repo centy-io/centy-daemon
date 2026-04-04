@@ -10,6 +10,10 @@ graph TB
         Claude["Claude / AI Agent"]
     end
 
+    subgraph HumanUsers["Human Users"]
+        Human["Human"]
+    end
+
     subgraph Daemon["centy-daemon (Rust · tonic)"]
         gRPC["gRPC Gateway<br/>:50051"]
         Core["Core Logic"]
@@ -25,15 +29,18 @@ graph TB
     ExternalTools -->|"gRPC (HTTP/2)"| gRPC
 
     Claude -->|"MCP Protocol"| MCP
+    Human -->|"Browser"| WebApp
 
     classDef gateway fill:#4f6bed,color:#fff,stroke:#3451c7
     classDef client fill:#2d8a6e,color:#fff,stroke:#1f6450
     classDef ai fill:#7c3aed,color:#fff,stroke:#5b21b6
     classDef internal fill:#374151,color:#fff,stroke:#1f2937
     classDef storage fill:#92400e,color:#fff,stroke:#6b2d0a
+    classDef human fill:#b45309,color:#fff,stroke:#92400e
 
     class gRPC gateway
     class CLI,WebApp,MCP,ExternalTools client
     class Claude ai
+    class Human human
     class Core internal
     class Storage storage
