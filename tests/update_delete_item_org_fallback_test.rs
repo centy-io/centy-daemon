@@ -96,7 +96,6 @@ async fn test_update_project_item_unchanged() {
         clear_tags: false,
         custom_fields: HashMap::new(),
         projects: vec![],
-        clear_projects: false,
     })
     .await
     .unwrap()
@@ -142,7 +141,6 @@ async fn test_update_org_item_routes_to_org_repo() {
         clear_tags: false,
         custom_fields: HashMap::new(),
         projects: vec![],
-        clear_projects: false,
     })
     .await
     .unwrap()
@@ -206,7 +204,6 @@ async fn test_update_item_not_found_in_either() {
         clear_tags: false,
         custom_fields: HashMap::new(),
         projects: vec![],
-        clear_projects: false,
     })
     .await
     .unwrap()
@@ -236,7 +233,6 @@ async fn test_update_item_no_org_repo_unchanged_behavior() {
         clear_tags: false,
         custom_fields: HashMap::new(),
         projects: vec![],
-        clear_projects: false,
     })
     .await
     .unwrap()
