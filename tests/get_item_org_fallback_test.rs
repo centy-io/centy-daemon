@@ -94,7 +94,6 @@ async fn test_get_item_found_in_project_source_is_empty() {
         tags: vec![],
         custom_fields: HashMap::new(),
         projects: vec![],
-        org_wide: false,
     })
     .await
     .unwrap()
@@ -114,12 +113,6 @@ async fn test_get_item_found_in_project_source_is_empty() {
 
     assert!(get_resp.success, "get failed: {}", get_resp.error);
     assert_eq!(get_resp.item.unwrap().id, item_id);
-    // source is empty (project-local, no org fallback needed)
-    assert!(
-        get_resp.source.is_empty() || get_resp.source == "project",
-        "unexpected source: {}",
-        get_resp.source
-    );
 }
 
 // ─── Found in org repo (source is "org") ────────────────────────────────────
@@ -159,8 +152,6 @@ async fn test_get_item_falls_back_to_org_repo() {
     let fetched = get_resp.item.unwrap();
     assert_eq!(fetched.id, item_id);
     assert_eq!(fetched.title, "Org Wide Issue");
-    assert_eq!(fetched.source, "org", "item should carry source=org");
-    assert_eq!(get_resp.source, "org", "response should carry source=org");
 }
 
 // ─── Not found in either project or org repo ────────────────────────────────
@@ -219,7 +210,6 @@ async fn test_get_item_no_org_repo_unchanged_behavior() {
         "expected not-found error when no org repo"
     );
     assert!(get_resp.item.is_none());
-    assert!(get_resp.source.is_empty());
 }
 
 // ─── Project-local item takes precedence over org repo ──────────────────────
@@ -279,10 +269,5 @@ async fn test_get_item_project_takes_precedence_over_org_repo() {
     assert_eq!(
         fetched.title, "Project Title",
         "project item should take precedence"
-    );
-    assert!(
-        get_resp.source.is_empty() || get_resp.source == "project",
-        "source should indicate project-local, got: {}",
-        get_resp.source
     );
 }

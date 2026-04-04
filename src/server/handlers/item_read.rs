@@ -4,9 +4,7 @@ use crate::item::core::error::ItemError;
 use crate::item::generic::storage::{generic_get, generic_get_by_display_number};
 use crate::registry::find_org_repo;
 use crate::registry::track_project_async;
-use crate::server::convert_entity::{
-    generic_item_to_proto, generic_item_to_proto_with_source, user_to_generic_item_proto,
-};
+use crate::server::convert_entity::{generic_item_to_proto, user_to_generic_item_proto};
 use crate::server::proto::{GetItemRequest, GetItemResponse};
 use crate::server::structured_error::to_error_json;
 use crate::user::get_user;
@@ -27,13 +25,11 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                 success: true,
                 error: String::new(),
                 item: Some(user_to_generic_item_proto(&user)),
-                source: String::new(),
             })),
             Err(e) => Ok(Response::new(GetItemResponse {
                 success: false,
                 error: to_error_json(&req.project_path, &e),
                 item: None,
-                source: String::new(),
             })),
         };
     }
@@ -45,7 +41,6 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                 success: false,
                 error: to_error_json(&req.project_path, &e),
                 item: None,
-                source: String::new(),
             }));
         }
     };
@@ -70,7 +65,6 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
             success: true,
             error: String::new(),
             item: Some(generic_item_to_proto(&item, &item_type)),
-            source: String::new(),
         })),
         Err(e) if matches!(e, ItemError::NotFound(_)) => {
             // Not found in project — try org repo fallback.
@@ -89,14 +83,12 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                         Ok(item) => Ok(Response::new(GetItemResponse {
                             success: true,
                             error: String::new(),
-                            item: Some(generic_item_to_proto_with_source(&item, &item_type, "org")),
-                            source: "org".to_string(),
+                            item: Some(generic_item_to_proto(&item, &item_type)),
                         })),
                         Err(org_err) => Ok(Response::new(GetItemResponse {
                             success: false,
                             error: to_error_json(&req.project_path, &org_err),
                             item: None,
-                            source: String::new(),
                         })),
                     }
                 }
@@ -105,7 +97,6 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
                     success: false,
                     error: to_error_json(&req.project_path, &e),
                     item: None,
-                    source: String::new(),
                 })),
             }
         }
@@ -113,7 +104,6 @@ pub async fn get_item(req: GetItemRequest) -> Result<Response<GetItemResponse>, 
             success: false,
             error: to_error_json(&req.project_path, &e),
             item: None,
-            source: String::new(),
         })),
     }
 }

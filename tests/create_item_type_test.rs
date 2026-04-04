@@ -120,7 +120,6 @@ async fn test_create_item_with_custom_type() {
         tags: vec![],
         custom_fields: HashMap::new(),
         projects: vec![],
-        org_wide: false,
     })
     .await
     .unwrap()
