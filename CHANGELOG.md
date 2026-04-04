@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `UpdateLink` gRPC endpoint for changing the link type of an existing link
+
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)
 
