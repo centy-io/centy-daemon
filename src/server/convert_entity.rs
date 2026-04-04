@@ -5,14 +5,6 @@ use super::proto::{
 };
 
 pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGenericItem {
-    generic_item_to_proto_with_source(item, item_type, "project")
-}
-
-pub fn generic_item_to_proto_with_source(
-    item: &mdstore::Item,
-    item_type: &str,
-    source: &str,
-) -> ProtoGenericItem {
     ProtoGenericItem {
         id: item.id.clone(),
         item_type: item_type.to_string(),

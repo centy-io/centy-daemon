@@ -3,7 +3,7 @@ use super::filters::{build_filters_from_mql, parse_custom_field_filters};
 use crate::item::generic::storage::generic_list;
 use crate::registry::{get_org_projects, get_project_info, track_project_async};
 use crate::server::assert_service::assert_initialized;
-use crate::server::convert_entity::generic_item_to_proto_with_source;
+use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::proto::{GenericItem as ProtoGenericItem, ListItemsRequest, ListItemsResponse};
 use crate::server::structured_error::to_error_json;
 use mdstore::Filters;
@@ -39,7 +39,7 @@ pub async fn list_items(req: ListItemsRequest) -> Result<Response<ListItemsRespo
             apply_custom_field_filters(&mut project_items, &custom_field_filters);
             let mut proto_items: Vec<ProtoGenericItem> = project_items
                 .iter()
-                .map(|item| generic_item_to_proto_with_source(item, &item_type, "project"))
+                .map(|item| generic_item_to_proto(item, &item_type))
                 .collect();
 
             let include_org = req.include_organization_items.unwrap_or(true);
@@ -123,7 +123,7 @@ async fn fetch_org_items(
     apply_custom_field_filters(&mut org_items, custom_field_filters);
     org_items
         .iter()
-        .map(|item| generic_item_to_proto_with_source(item, item_type, "org"))
+        .map(|item| generic_item_to_proto(item, item_type))
         .collect()
 }
 

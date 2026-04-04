@@ -66,7 +66,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
             hook_data,
             &req.project_path,
             options,
-            req.org_wide,
+            false,
         )
         .await,
     ))

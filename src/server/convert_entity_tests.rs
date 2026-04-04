@@ -37,26 +37,11 @@ fn test_generic_item_to_proto_basic() {
     assert_eq!(proto.item_type, "issue");
     assert_eq!(proto.title, "Test Item");
     assert_eq!(proto.body, "Body content");
-    assert_eq!(proto.source, "project");
     let meta = proto.metadata.unwrap();
     assert_eq!(meta.display_number, 42);
     assert_eq!(meta.status, "open");
     assert_eq!(meta.priority, 2);
     assert_eq!(meta.deleted_at, "");
-}
-
-#[test]
-fn test_generic_item_to_proto_with_source_org() {
-    let item = make_item(None, None, None, None, None, HashMap::new());
-    let proto = generic_item_to_proto_with_source(&item, "issues", "org");
-    assert_eq!(proto.source, "org");
-}
-
-#[test]
-fn test_generic_item_to_proto_default_source_is_project() {
-    let item = make_item(None, None, None, None, None, HashMap::new());
-    let proto = generic_item_to_proto(&item, "issues");
-    assert_eq!(proto.source, "project");
 }
 
 #[test]
