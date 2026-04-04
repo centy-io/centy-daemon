@@ -1,5 +1,5 @@
-use super::editor::open_editor_with_hooks;
 use super::super::response::err_response;
+use super::editor::open_editor_with_hooks;
 use crate::item::entities::issue::Issue;
 use crate::server::proto::OpenInTempWorkspaceResponse;
 use crate::server::structured_error::to_error_json;
