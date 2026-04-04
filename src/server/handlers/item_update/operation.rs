@@ -55,14 +55,15 @@ pub(super) async fn do_update(
     project_path_str: &str,
     options: UpdateOptions,
 ) -> UpdateItemResponse {
-    let result = match generic_update(project_path, item_type, config, item_id, options.clone()).await {
-        Ok(item) => Ok(item),
-        Err(ItemError::NotFound(_)) => {
-            // Not found in project — try org repo fallback.
-            update_in_org_repo(project_path_str, item_type, config, item_id, options).await
-        }
-        Err(e) => Err(e),
-    };
+    let result =
+        match generic_update(project_path, item_type, config, item_id, options.clone()).await {
+            Ok(item) => Ok(item),
+            Err(ItemError::NotFound(_)) => {
+                // Not found in project — try org repo fallback.
+                update_in_org_repo(project_path_str, item_type, config, item_id, options).await
+            }
+            Err(e) => Err(e),
+        };
     match result {
         Ok(item) => {
             maybe_run_post_hooks(

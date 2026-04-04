@@ -21,9 +21,7 @@ use centy_daemon::registry::{create_organization, set_project_organization};
 use centy_daemon::server::handlers::item_delete::delete_item;
 use centy_daemon::server::handlers::item_read::get_item;
 use centy_daemon::server::handlers::item_update::update_item;
-use centy_daemon::server::proto::{
-    DeleteItemRequest, GetItemRequest, UpdateItemRequest,
-};
+use centy_daemon::server::proto::{DeleteItemRequest, GetItemRequest, UpdateItemRequest};
 use centy_daemon::CentyConfig;
 use common::create_test_dir;
 use mdstore::{CreateOptions, TypeConfig};
@@ -151,7 +149,10 @@ async fn test_update_org_item_routes_to_org_repo() {
 
     // The updated file must live in the org repo, not the project.
     let org_file = issues_dir.join(format!("{item_id}.md"));
-    let proj_file = project_path.join(".centy").join("issues").join(format!("{item_id}.md"));
+    let proj_file = project_path
+        .join(".centy")
+        .join("issues")
+        .join(format!("{item_id}.md"));
     assert!(org_file.exists(), "item should be in org repo");
     assert!(!proj_file.exists(), "item should NOT be in project .centy");
 
@@ -165,7 +166,11 @@ async fn test_update_org_item_routes_to_org_repo() {
     .await
     .unwrap()
     .into_inner();
-    assert!(get_resp.success, "get after update failed: {}", get_resp.error);
+    assert!(
+        get_resp.success,
+        "get after update failed: {}",
+        get_resp.error
+    );
     assert_eq!(get_resp.item.unwrap().title, "Updated Org Title");
 }
 
