@@ -13,6 +13,9 @@ pub struct IssueFrontmatter {
     pub draft: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
+    /// Project slugs this item belongs to. Empty for single-project items.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub projects: Vec<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, String>,
 }

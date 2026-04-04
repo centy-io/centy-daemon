@@ -9,8 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `UpdateLink` gRPC endpoint for changing the link type of an existing link
+- `org_wide` flag on `CreateItem`: when set, writes the item to the org-wide `.centy` repo and tags it with the originating project's slug via `projects` metadata field
+- `find_org_repo` registry helper: discovers the org-wide repo for a project by scanning tracked projects in the same org whose path ends with `/.centy`
+- `projects` field on `GenericItemMetadata` proto (surfaces org project associations)
+- `include_organization_items` field on `ListItemsRequest` proto (stub for upcoming org-wide list support)
+- `projects` field on `CreateItemRequest` proto (stub for upcoming multi-project association)
+- `projects: Vec<String>` field on `IssueFrontmatter` for proper roundtrip through issue-specific code paths (reconcile, CRUD, move)
 - `GetItem` falls back to the org repo when the requested item is not found in the project's own `.centy/`; returned item carries `source: "org"` on both `GenericItem` and `GetItemResponse`
-- `find_org_repo` registry helper for discovering the org-wide `.centy` repo for a given project
 
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)

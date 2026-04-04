@@ -60,6 +60,7 @@ pub struct IssueMetadataFlat {
     pub custom_fields: HashMap<String, String>,
     pub draft: bool,
     pub deleted_at: Option<String>,
+    pub projects: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]

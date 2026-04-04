@@ -1,112 +1,180 @@
-//! Tests for `org_repo::find_org_repo`.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::await_holding_lock)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::await_holding_lock)]
 
-use super::find_org_repo;
-use crate::registry::storage::{
+use super::org_repo::find_org_repo;
+use super::storage::{
     acquire_registry_test_lock, get_lock, read_registry, write_registry_unlocked,
 };
-use crate::registry::types::{Organization, TrackedProject};
+use super::types::{Organization, TrackedProject};
 use crate::utils::now_iso;
 
-fn make_project(org_slug: Option<&str>) -> TrackedProject {
-    TrackedProject {
-        first_accessed: now_iso(),
-        last_accessed: now_iso(),
-        is_favorite: false,
-        is_archived: false,
-        organization_slug: org_slug.map(String::from),
-        user_title: None,
-    }
-}
+async fn setup_registry_with_org_repo(project_path: &str, org_repo_path: &str, org_slug: &str) {
+    let _guard = get_lock().lock().await;
+    let mut registry = read_registry().await.unwrap();
+    let now = now_iso();
 
-async fn setup_registry(projects: &[(&str, Option<&str>)], orgs: &[(&str, &str)]) {
-    let guard = get_lock().lock().await;
-    let mut registry = read_registry().await.expect("read registry");
-    for (slug, name) in orgs {
-        registry.organizations.insert(
-            slug.to_string(),
-            Organization {
-                name: name.to_string(),
-                description: None,
-                created_at: now_iso(),
-                updated_at: now_iso(),
-            },
-        );
-    }
-    for (path, org_slug) in projects {
-        registry
-            .projects
-            .insert(path.to_string(), make_project(*org_slug));
-    }
-    write_registry_unlocked(&registry)
-        .await
-        .expect("write registry");
-    drop(guard);
+    registry.organizations.insert(
+        org_slug.to_string(),
+        Organization {
+            name: org_slug.to_string(),
+            description: None,
+            created_at: now.clone(),
+            updated_at: now.clone(),
+        },
+    );
+    registry.projects.insert(
+        project_path.to_string(),
+        TrackedProject {
+            first_accessed: now.clone(),
+            last_accessed: now.clone(),
+            is_favorite: false,
+            is_archived: false,
+            organization_slug: Some(org_slug.to_string()),
+            user_title: None,
+        },
+    );
+    registry.projects.insert(
+        org_repo_path.to_string(),
+        TrackedProject {
+            first_accessed: now.clone(),
+            last_accessed: now.clone(),
+            is_favorite: false,
+            is_archived: false,
+            organization_slug: Some(org_slug.to_string()),
+            user_title: None,
+        },
+    );
+    registry.updated_at = now;
+    write_registry_unlocked(&registry).await.unwrap();
 }
 
 #[tokio::test]
 async fn test_find_org_repo_found() {
     let _lock = acquire_registry_test_lock();
-    let project = "/tmp/test-387-project-found";
-    let org_repo = "/tmp/test-387-org/.centy";
-    setup_registry(
-        &[
-            (project, Some("org-387-found")),
-            (org_repo, Some("org-387-found")),
-        ],
-        &[("org-387-found", "Org 387 Found")],
-    )
-    .await;
 
-    let result = find_org_repo(project).await.expect("find_org_repo");
-    assert_eq!(result.as_deref(), Some(org_repo));
-}
+    let project = "/home/user/myorg/my-project";
+    let org_repo = "/home/user/myorg/.centy";
+    setup_registry_with_org_repo(project, org_repo, "myorg").await;
 
-#[tokio::test]
-async fn test_find_org_repo_not_found_no_org() {
-    let _lock = acquire_registry_test_lock();
-    let project = "/tmp/test-387-no-org-project";
-    setup_registry(&[(project, None)], &[]).await;
-
-    let result = find_org_repo(project).await.expect("find_org_repo");
-    assert!(result.is_none(), "expected None when project has no org");
+    let result = find_org_repo(project).await.unwrap();
+    assert_eq!(result, Some(org_repo.to_string()));
 }
 
 #[tokio::test]
 async fn test_find_org_repo_not_found_no_centy_project() {
     let _lock = acquire_registry_test_lock();
-    let project = "/tmp/test-387-lonely-project";
-    let other = "/tmp/test-387-other-project";
-    setup_registry(
-        &[
-            (project, Some("org-387-lonely")),
-            (other, Some("org-387-lonely")),
-        ],
-        &[("org-387-lonely", "Org 387 Lonely")],
-    )
-    .await;
 
-    let result = find_org_repo(project).await.expect("find_org_repo");
-    assert!(
-        result.is_none(),
-        "expected None when no project ends with /.centy"
-    );
+    let project = "/home/user/anotherorg/my-project";
+    // Register the project but no org repo
+    {
+        let _guard = get_lock().lock().await;
+        let mut registry = read_registry().await.unwrap();
+        let now = now_iso();
+        registry.organizations.insert(
+            "anotherorg".to_string(),
+            Organization {
+                name: "anotherorg".to_string(),
+                description: None,
+                created_at: now.clone(),
+                updated_at: now.clone(),
+            },
+        );
+        registry.projects.insert(
+            project.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: Some("anotherorg".to_string()),
+                user_title: None,
+            },
+        );
+        registry.updated_at = now;
+        write_registry_unlocked(&registry).await.unwrap();
+    }
+
+    let result = find_org_repo(project).await.unwrap();
+    assert_eq!(result, None);
+}
+
+#[tokio::test]
+async fn test_find_org_repo_not_found_no_org() {
+    let _lock = acquire_registry_test_lock();
+
+    let project = "/home/user/noorg/my-project";
+    // Register project with no org
+    {
+        let _guard = get_lock().lock().await;
+        let mut registry = read_registry().await.unwrap();
+        let now = now_iso();
+        registry.projects.insert(
+            project.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: None,
+                user_title: None,
+            },
+        );
+        registry.updated_at = now;
+        write_registry_unlocked(&registry).await.unwrap();
+    }
+
+    let result = find_org_repo(project).await.unwrap();
+    assert_eq!(result, None);
 }
 
 #[tokio::test]
 async fn test_find_org_repo_not_found_different_org() {
     let _lock = acquire_registry_test_lock();
-    let project = "/tmp/test-387-org-a-project";
-    let org_repo = "/tmp/test-387-org-b/.centy";
-    setup_registry(
-        &[(project, Some("org-387-a")), (org_repo, Some("org-387-b"))],
-        &[("org-387-a", "Org A"), ("org-387-b", "Org B")],
-    )
-    .await;
 
-    let result = find_org_repo(project).await.expect("find_org_repo");
-    assert!(
-        result.is_none(),
-        "expected None when org repo is in a different org"
-    );
+    let project = "/home/user/org-a/my-project";
+    let org_repo = "/home/user/org-b/.centy";
+    // Project is in org-a, org repo is in org-b
+    {
+        let _guard = get_lock().lock().await;
+        let mut registry = read_registry().await.unwrap();
+        let now = now_iso();
+        for slug in ["org-a-387", "org-b-387"] {
+            registry.organizations.insert(
+                slug.to_string(),
+                Organization {
+                    name: slug.to_string(),
+                    description: None,
+                    created_at: now.clone(),
+                    updated_at: now.clone(),
+                },
+            );
+        }
+        registry.projects.insert(
+            project.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: Some("org-a-387".to_string()),
+                user_title: None,
+            },
+        );
+        registry.projects.insert(
+            org_repo.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: Some("org-b-387".to_string()),
+                user_title: None,
+            },
+        );
+        registry.updated_at = now;
+        write_registry_unlocked(&registry).await.unwrap();
+    }
+
+    let result = find_org_repo(project).await.unwrap();
+    assert_eq!(result, None, "expected None when org repo is in a different org");
 }

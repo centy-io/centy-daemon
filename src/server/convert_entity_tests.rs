@@ -113,6 +113,16 @@ fn test_generic_item_to_proto_with_projects() {
 }
 
 #[test]
+fn test_generic_item_to_proto_projects_non_array_returns_empty() {
+    let custom_fields =
+        HashMap::from([("projects".to_string(), serde_json::json!("not-an-array"))]);
+    let item = make_item(None, None, None, None, None, custom_fields);
+    let proto = generic_item_to_proto(&item, "issue");
+    let meta = proto.metadata.unwrap();
+    assert!(meta.projects.is_empty());
+}
+
+#[test]
 fn test_generic_item_to_proto_projects_default_empty() {
     let item = make_item(None, None, None, None, None, HashMap::new());
     let proto = generic_item_to_proto(&item, "issue");

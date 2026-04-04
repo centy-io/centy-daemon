@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::item::core::error::ItemError;
 use crate::item::generic::storage::{generic_get, generic_get_by_display_number};
-use crate::registry::org_repo::find_org_repo;
+use crate::registry::find_org_repo;
 use crate::registry::track_project_async;
 use crate::server::convert_entity::{generic_item_to_proto, user_to_generic_item_proto};
 use crate::server::proto::{GetItemRequest, GetItemResponse};

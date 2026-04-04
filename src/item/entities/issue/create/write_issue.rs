@@ -23,6 +23,7 @@ pub fn build_frontmatter(
         updated_at: now.to_string(),
         draft,
         deleted_at: None,
+        projects: vec![],
         custom_fields,
     }
 }
