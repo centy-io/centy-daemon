@@ -1,5 +1,7 @@
 use crate::hooks::HookOperation;
-use crate::item::generic::storage::generic_create;
+use crate::item::core::error::ItemError;
+use crate::registry::find_org_repo;
+use crate::utils::get_centy_path;
 use crate::server::convert_entity::generic_item_to_proto;
 use crate::server::hooks_helper::maybe_run_post_hooks;
 use crate::server::proto::CreateItemResponse;
@@ -8,6 +10,7 @@ use crate::utils::CENTY_HEADER_YAML;
 use mdstore::{CreateOptions, TypeConfig};
 use std::collections::HashMap;
 use std::path::Path;
+
 pub(super) async fn do_create(
     project_path: &Path,
     item_type: &str,
@@ -16,9 +19,56 @@ pub(super) async fn do_create(
     hook_project_path: &str,
     hook_data: serde_json::Value,
     project_path_str: &str,
-    options: CreateOptions,
+    mut options: CreateOptions,
+    org_wide: bool,
 ) -> CreateItemResponse {
-    match generic_create(project_path, item_type, config, options).await {
+    // Resolve the actual data root: org repo (direct) or normal project (.centy subdir).
+    let write_path: std::path::PathBuf = if org_wide {
+        match find_org_repo(project_path_str).await {
+            Err(e) => {
+                return CreateItemResponse {
+                    success: false,
+                    error: to_error_json(
+                        project_path_str,
+                        &ItemError::Custom(format!("Failed to look up org repo: {e}")),
+                    ),
+                    item: None,
+                }
+            }
+            Ok(None) => {
+                return CreateItemResponse {
+                    success: false,
+                    error: to_error_json(
+                        project_path_str,
+                        &ItemError::Custom(
+                            "No org-wide repo is tracked for this project's organization. \
+                             Run `centy init` inside your org's `.centy` directory first."
+                                .to_string(),
+                        ),
+                    ),
+                    item: None,
+                }
+            }
+            Ok(Some(org_repo_path)) => {
+                // Tag the item with the originating project's slug.
+                let project_slug = project_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                if !project_slug.is_empty() {
+                    options
+                        .custom_fields
+                        .insert("projects".to_string(), serde_json::json!([project_slug]));
+                }
+                // Org repo root IS the data root — no .centy subfolder.
+                Path::new(&org_repo_path).join(item_type)
+            }
+        }
+    } else {
+        get_centy_path(project_path).join(item_type)
+    };
+
+    match mdstore::create(&write_path, config, options).await {
         Ok(item) => {
             maybe_run_post_hooks(
                 project_path,
@@ -49,12 +99,13 @@ pub(super) async fn do_create(
             .await;
             CreateItemResponse {
                 success: false,
-                error: to_error_json(project_path_str, &e),
+                error: to_error_json(project_path_str, &ItemError::from(e)),
                 item: None,
             }
         }
     }
 }
+
 pub(super) fn build_options(
     title: String,
     body: String,
