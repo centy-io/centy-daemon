@@ -1,10 +1,10 @@
 ---
 # This file is managed by Centy. Use the Centy CLI to modify it.
 displayNumber: 386
-status: open
+status: in-progress
 priority: 1
 createdAt: 2026-04-04T00:23:54.625494+00:00
-updatedAt: 2026-04-04T00:23:54.625494+00:00
+updatedAt: 2026-04-04T10:06:53.962808+00:00
 ---
 
 # ListItems: merge org-wide items via include_org_items

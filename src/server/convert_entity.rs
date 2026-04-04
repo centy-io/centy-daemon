@@ -18,7 +18,6 @@ pub fn generic_item_to_proto_with_source(
         item_type: item_type.to_string(),
         title: item.title.clone(),
         body: item.body.clone(),
-        source: source.to_string(),
         metadata: Some(GenericItemMetadata {
             display_number: item.frontmatter.display_number.unwrap_or(0),
             status: item.frontmatter.status.clone().unwrap_or_default(),
@@ -72,7 +71,6 @@ pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem 
         item_type: "user".to_string(),
         title: user.name.clone(),
         body: String::new(),
-        source: "project".to_string(),
         metadata: Some(GenericItemMetadata {
             display_number: 0,
             status,
