@@ -47,4 +47,3 @@ pub async fn find_org_repo(project_path: &str) -> Result<Option<String>, Registr
 
     Ok(None)
 }
-

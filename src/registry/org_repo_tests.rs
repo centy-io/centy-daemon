@@ -2,15 +2,13 @@
 #![allow(clippy::await_holding_lock)]
 
 use super::org_repo::find_org_repo;
-use super::storage::{acquire_registry_test_lock, get_lock, read_registry, write_registry_unlocked};
+use super::storage::{
+    acquire_registry_test_lock, get_lock, read_registry, write_registry_unlocked,
+};
 use super::types::{Organization, TrackedProject};
 use crate::utils::now_iso;
 
-async fn setup_registry_with_org_repo(
-    project_path: &str,
-    org_repo_path: &str,
-    org_slug: &str,
-) {
+async fn setup_registry_with_org_repo(project_path: &str, org_repo_path: &str, org_slug: &str) {
     let _guard = get_lock().lock().await;
     let mut registry = read_registry().await.unwrap();
     let now = now_iso();
