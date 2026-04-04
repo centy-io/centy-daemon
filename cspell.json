@@ -236,6 +236,13 @@
     "worktrees",
     "writeln",
     "writeln",
-    "yonib"
+    "yonib",
+    "sasl",
+    "SASL",
+    "specversion",
+    "datacontenttype",
+    "rdkafka",
+    "librdkafka",
+    "rskafka"
   ]
 }
