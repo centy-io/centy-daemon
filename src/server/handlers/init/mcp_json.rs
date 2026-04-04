@@ -16,8 +16,7 @@ pub fn initial_mcp_json() -> String {
             "centy": centy_mcp_entry()
         }
     });
-    let mut formatted = serde_json::to_string_pretty(&content)
-        .unwrap_or_default();
+    let mut formatted = serde_json::to_string_pretty(&content).unwrap_or_default();
     formatted.push('\n');
     formatted
 }
