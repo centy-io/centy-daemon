@@ -132,9 +132,7 @@ async fn fetch_org_items(
 async fn resolve_org_repo_path(project_path: &str) -> Option<String> {
     let project_info = get_project_info(project_path).await.ok()??;
     let org_slug = project_info.organization_slug?;
-    let org_projects = get_org_projects(&org_slug, Some(project_path))
-        .await
-        .ok()?;
+    let org_projects = get_org_projects(&org_slug, Some(project_path)).await.ok()?;
     org_projects
         .into_iter()
         .find(|p| p.path.ends_with("/.centy"))
