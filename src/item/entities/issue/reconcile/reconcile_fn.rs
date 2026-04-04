@@ -1,5 +1,5 @@
 //! Display number reconciliation for resolving conflicts.
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
+use super::super::metadata::IssueFrontmatter;
 use super::scan::scan_issues;
 use super::types::{IssueInfo, ReconcileError};
 use crate::utils::CENTY_HEADER_YAML;
@@ -48,25 +48,15 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
     }
     let reassignment_count = reassignments.len().try_into().unwrap_or(u32::MAX);
     for (issue_info, new_display_number) in reassignments {
-        if issue_info.is_new_format {
-            let file_path = issues_path.join(format!("{}.md", issue_info.id));
-            let content = fs::read_to_string(&file_path).await?;
-            let (mut frontmatter, title, body): (IssueFrontmatter, String, String) =
-                parse_frontmatter(&content)?;
-            frontmatter.display_number = new_display_number;
-            frontmatter.updated_at = crate::utils::now_iso();
-            let new_content =
-                generate_frontmatter(&frontmatter, &title, &body, Some(CENTY_HEADER_YAML));
-            fs::write(&file_path, &new_content).await?;
-        } else {
-            let metadata_path = issues_path.join(&issue_info.id).join("metadata.json");
-            let content = fs::read_to_string(&metadata_path).await?;
-            let mut metadata: IssueMetadata = serde_json::from_str(&content)?;
-            metadata.common.display_number = new_display_number;
-            metadata.common.updated_at = crate::utils::now_iso();
-            let new_content = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&metadata_path, new_content).await?;
-        }
+        let file_path = issues_path.join(format!("{}.md", issue_info.id));
+        let content = fs::read_to_string(&file_path).await?;
+        let (mut frontmatter, title, body): (IssueFrontmatter, String, String) =
+            parse_frontmatter(&content)?;
+        frontmatter.display_number = new_display_number;
+        frontmatter.updated_at = crate::utils::now_iso();
+        let new_content =
+            generate_frontmatter(&frontmatter, &title, &body, Some(CENTY_HEADER_YAML));
+        fs::write(&file_path, &new_content).await?;
     }
     Ok(reassignment_count)
 }

@@ -1,8 +1,7 @@
-use super::super::id::{is_uuid, is_valid_issue_file, is_valid_issue_folder};
+use super::super::id::{is_uuid, is_valid_issue_file};
 use super::super::reconcile::reconcile_display_numbers;
 use super::extra_types::{GetIssuesByUuidResult, IssueWithProject};
 use super::get::get_issue;
-use super::migrate::migrate_issue_to_new_format;
 use super::read::read_issue_from_frontmatter;
 use super::types::{Issue, IssueCrudError};
 use crate::manifest::read_manifest;
@@ -32,15 +31,11 @@ pub async fn list_issues(
     while let Some(entry) = entries.next_entry().await? {
         let file_type = entry.file_type().await?;
         if let Some(name) = entry.file_name().to_str() {
-            let read_result = if !file_type.is_dir() && is_valid_issue_file(name) {
-                let issue_id = name.trim_end_matches(".md");
-                read_issue_from_frontmatter(&entry.path(), issue_id).await
-            } else if file_type.is_dir() && is_valid_issue_folder(name) {
-                migrate_issue_to_new_format(&issues_path, &entry.path(), name).await
-            } else {
+            if file_type.is_dir() || !is_valid_issue_file(name) {
                 continue;
-            };
-            if let Ok(issue) = read_result {
+            }
+            let issue_id = name.trim_end_matches(".md");
+            if let Ok(issue) = read_issue_from_frontmatter(&entry.path(), issue_id).await {
                 let status_match = status_filter.is_none_or(|s| issue.metadata.status == s);
                 let priority_match = priority_filter.is_none_or(|p| issue.metadata.priority == p);
                 let draft_match = draft_filter.is_none_or(|d| issue.metadata.draft == d);

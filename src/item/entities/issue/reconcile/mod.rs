@@ -5,7 +5,8 @@
 mod reconcile_fn;
 mod scan;
 mod types;
-pub use super::metadata::IssueMetadata;
+#[cfg(test)]
+pub use super::metadata::IssueFrontmatter;
 pub use reconcile_fn::reconcile_display_numbers;
 pub use scan::get_next_display_number;
 pub use std::path::Path;

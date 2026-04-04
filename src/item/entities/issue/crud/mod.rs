@@ -2,7 +2,6 @@ mod extra_types;
 mod get;
 mod get_matchers;
 mod list;
-mod migrate;
 mod move_io;
 mod move_issue;
 mod parse;
@@ -22,7 +21,7 @@ pub use types::{IssueCrudError, IssueMetadataFlat, UpdateIssueOptions, UpdateIss
 pub use update::update_issue;
 
 #[cfg(test)]
-pub use read::{read_issue_from_frontmatter, read_issue_from_legacy_folder};
+pub use read::read_issue_from_frontmatter;
 #[cfg(test)]
 pub use update_helpers::resolve_update_options;
 

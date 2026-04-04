@@ -21,7 +21,7 @@ pub use crud::{
     MoveIssueResult, UpdateIssueOptions, UpdateIssueResult,
 };
 pub use id::is_uuid;
-pub use metadata::{IssueFrontmatter, IssueMetadata};
+pub use metadata::IssueFrontmatter;
 pub use planning::{
     add_planning_note, has_planning_note, is_planning_status, remove_planning_note, PLANNING_NOTE,
     PLANNING_STATUS,

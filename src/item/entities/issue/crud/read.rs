@@ -1,10 +1,8 @@
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
+use super::super::metadata::IssueFrontmatter;
 use super::super::planning::remove_planning_note;
-use super::parse::parse_issue_md;
 use super::types::{Issue, IssueCrudError, IssueMetadataFlat};
 use crate::utils::strip_centy_md_header;
 use mdstore::parse_frontmatter;
-use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
@@ -29,54 +27,6 @@ pub async fn read_issue_from_frontmatter(
             custom_fields: frontmatter.custom_fields,
             draft: frontmatter.draft,
             deleted_at: frontmatter.deleted_at,
-        },
-    })
-}
-
-pub async fn read_issue_from_legacy_folder(
-    issue_folder_path: &Path,
-    issue_id: &str,
-) -> Result<Issue, IssueCrudError> {
-    let issue_md_path = issue_folder_path.join("issue.md");
-    let metadata_path = issue_folder_path.join("metadata.json");
-    if !issue_md_path.exists() || !metadata_path.exists() {
-        return Err(IssueCrudError::InvalidIssueFormat(format!(
-            "Issue {issue_id} is missing required files"
-        )));
-    }
-    let md_content = fs::read_to_string(&issue_md_path).await?;
-    let (title, description) = parse_issue_md(&md_content);
-    let metadata_content = fs::read_to_string(&metadata_path).await?;
-    let metadata: IssueMetadata = serde_json::from_str(&metadata_content)?;
-    let custom_fields: HashMap<String, String> = metadata
-        .common
-        .custom_fields
-        .into_iter()
-        .map(|(k, v)| {
-            let str_val = match v {
-                serde_json::Value::String(s) => s,
-                other @ (serde_json::Value::Null
-                | serde_json::Value::Bool(_)
-                | serde_json::Value::Number(_)
-                | serde_json::Value::Array(_)
-                | serde_json::Value::Object(_)) => other.to_string(),
-            };
-            (k, str_val)
-        })
-        .collect();
-    Ok(Issue {
-        id: issue_id.to_string(),
-        title,
-        description,
-        metadata: IssueMetadataFlat {
-            display_number: metadata.common.display_number,
-            status: metadata.common.status,
-            priority: metadata.common.priority,
-            created_at: metadata.common.created_at,
-            updated_at: metadata.common.updated_at,
-            custom_fields,
-            draft: metadata.draft,
-            deleted_at: metadata.deleted_at,
         },
     })
 }

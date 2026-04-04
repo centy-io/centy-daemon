@@ -1,11 +1,11 @@
-use super::super::id::{is_valid_issue_file, is_valid_issue_folder};
-use super::super::metadata::{IssueFrontmatter, IssueMetadata};
+use super::super::id::is_valid_issue_file;
+use super::super::metadata::IssueFrontmatter;
 use super::types::{IssueInfo, ReconcileError};
 use crate::utils::strip_centy_md_header;
 use mdstore::parse_frontmatter;
 use std::path::Path;
 use tokio::fs;
-/// Scan the issues directory and collect issue info from both formats.
+/// Scan the issues directory and collect issue info.
 pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, ReconcileError> {
     let mut issues: Vec<IssueInfo> = Vec::new();
     let mut entries = fs::read_dir(issues_path).await?;
@@ -15,49 +15,29 @@ pub async fn scan_issues(issues_path: &Path) -> Result<Vec<IssueInfo>, Reconcile
             Some(n) => n.to_string(),
             None => continue,
         };
-        if !file_type.is_dir() && is_valid_issue_file(&name) {
-            let Ok(content) = fs::read_to_string(entry.path()).await else {
-                continue;
-            };
-            let frontmatter: IssueFrontmatter =
-                match parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content)) {
-                    Ok((fm, _, _)) => fm,
-                    Err(_) => continue,
-                };
-            let issue_id = name.trim_end_matches(".md").to_string();
-            issues.push(IssueInfo {
-                id: issue_id,
-                is_new_format: true,
-                display_number: frontmatter.display_number,
-                created_at: frontmatter.created_at,
-            });
-        } else if file_type.is_dir() && is_valid_issue_folder(&name) {
-            let metadata_path = entry.path().join("metadata.json");
-            if !metadata_path.exists() {
-                continue;
-            }
-            let Ok(content) = fs::read_to_string(&metadata_path).await else {
-                continue;
-            };
-            let metadata: IssueMetadata = match serde_json::from_str(&content) {
-                Ok(m) => m,
+        if file_type.is_dir() || !is_valid_issue_file(&name) {
+            continue;
+        }
+        let Ok(content) = fs::read_to_string(entry.path()).await else {
+            continue;
+        };
+        let frontmatter: IssueFrontmatter =
+            match parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content)) {
+                Ok((fm, _, _)) => fm,
                 Err(_) => continue,
             };
-            issues.push(IssueInfo {
-                id: name,
-                is_new_format: false,
-                display_number: metadata.common.display_number,
-                created_at: metadata.common.created_at,
-            });
-        } else {
-            // not a valid issue entry — skip
-        }
+        let issue_id = name.trim_end_matches(".md").to_string();
+        issues.push(IssueInfo {
+            id: issue_id,
+            display_number: frontmatter.display_number,
+            created_at: frontmatter.created_at,
+        });
     }
     Ok(issues)
 }
 /// Get the next available display number.
 ///
-/// Scans all existing issues (both formats) and returns max + 1.
+/// Scans all existing issues and returns max + 1.
 pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, ReconcileError> {
     if !issues_path.exists() {
         return Ok(1);
@@ -70,26 +50,15 @@ pub async fn get_next_display_number(issues_path: &Path) -> Result<u32, Reconcil
             Some(n) => n.to_string(),
             None => continue,
         };
-        if !file_type.is_dir() && is_valid_issue_file(&name) {
-            if let Ok(content) = fs::read_to_string(entry.path()).await {
-                if let Ok((frontmatter, _, _)) =
-                    parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
-                {
-                    max_number = max_number.max(frontmatter.display_number);
-                }
+        if file_type.is_dir() || !is_valid_issue_file(&name) {
+            continue;
+        }
+        if let Ok(content) = fs::read_to_string(entry.path()).await {
+            if let Ok((frontmatter, _, _)) =
+                parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
+            {
+                max_number = max_number.max(frontmatter.display_number);
             }
-        } else if file_type.is_dir() && is_valid_issue_folder(&name) {
-            let metadata_path = entry.path().join("metadata.json");
-            if !metadata_path.exists() {
-                continue;
-            }
-            if let Ok(content) = fs::read_to_string(&metadata_path).await {
-                if let Ok(metadata) = serde_json::from_str::<IssueMetadata>(&content) {
-                    max_number = max_number.max(metadata.common.display_number);
-                }
-            }
-        } else {
-            // not a valid issue entry — skip
         }
     }
     Ok(max_number.saturating_add(1))
