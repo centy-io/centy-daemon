@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ListItems` now merges org-wide items via `include_organization_items` flag (default `true`); org items are filtered by the current project's slug and carry `source: "org"` while project-local items carry `source: "project"`
 - `GetItem` falls back to the org repo when the requested item is not found in the project's own `.centy/`; returned item carries `source: "org"` on both `GenericItem` and `GetItemResponse`
 
+### Changed
+- Split `link/storage/io.rs` into `io.rs` (file operations), `serialization.rs` (deserialization logic), and `validation.rs` (link validation rules)
+
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)
 - `source` field from `GenericItem` and `GetItemResponse`, and `org_wide` flag from `CreateItemRequest` (V1 org-wide design leftovers; V2 routes writes transparently so clients no longer need these)
