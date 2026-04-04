@@ -43,7 +43,13 @@ pub async fn create_link_file(
         status: None,
         priority: None,
         tags: None,
-        custom_fields: create_link_fields(source_id, source_type, target_id, target_type, link_type),
+        custom_fields: create_link_fields(
+            source_id,
+            source_type,
+            target_id,
+            target_type,
+            link_type,
+        ),
         comment: None,
     };
     let item = mdstore::create(&dir, &config, options).await?;
