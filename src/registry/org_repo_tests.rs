@@ -126,3 +126,58 @@ async fn test_find_org_repo_not_found_no_org() {
     let result = find_org_repo(project).await.unwrap();
     assert_eq!(result, None);
 }
+
+#[tokio::test]
+async fn test_find_org_repo_not_found_different_org() {
+    let _lock = acquire_registry_test_lock();
+
+    let project = "/home/user/org-a/my-project";
+    let org_repo = "/home/user/org-b/.centy";
+    // Project is in org-a, org repo is in org-b
+    {
+        let _guard = get_lock().lock().await;
+        let mut registry = read_registry().await.unwrap();
+        let now = now_iso();
+        for slug in ["org-a-387", "org-b-387"] {
+            registry.organizations.insert(
+                slug.to_string(),
+                Organization {
+                    name: slug.to_string(),
+                    description: None,
+                    created_at: now.clone(),
+                    updated_at: now.clone(),
+                },
+            );
+        }
+        registry.projects.insert(
+            project.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: Some("org-a-387".to_string()),
+                user_title: None,
+            },
+        );
+        registry.projects.insert(
+            org_repo.to_string(),
+            TrackedProject {
+                first_accessed: now.clone(),
+                last_accessed: now.clone(),
+                is_favorite: false,
+                is_archived: false,
+                organization_slug: Some("org-b-387".to_string()),
+                user_title: None,
+            },
+        );
+        registry.updated_at = now;
+        write_registry_unlocked(&registry).await.unwrap();
+    }
+
+    let result = find_org_repo(project).await.unwrap();
+    assert_eq!(
+        result, None,
+        "expected None when org repo is in a different org"
+    );
+}
