@@ -204,7 +204,8 @@
       "Bash(wait)",
       "Bash(command -v centy-mcp)",
       "Bash(centy-mcp --help)",
-      "Bash(gh workflow:*)"
+      "Bash(gh workflow:*)",
+      "mcp__centy__centy_v1_CentyDaemon_SearchItems"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
