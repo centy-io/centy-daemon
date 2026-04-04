@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Legacy `metadata.json` folder-based issue format and all related code (`IssueMetadata` struct, `migrate.rs`, `read_issue_from_legacy_folder`, and compatibility shims)
+- `source` field from `GenericItem` and `GetItemResponse`, and `org_wide` flag from `CreateItemRequest` (V1 org-wide design leftovers; V2 routes writes transparently so clients no longer need these)
 
 ## [0.11.1] — 2026-04-04
 
