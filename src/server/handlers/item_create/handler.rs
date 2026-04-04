@@ -66,7 +66,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
             hook_data,
             &req.project_path,
             options,
-            false,
+            req.projects.len() > 1,
         )
         .await,
     ))
