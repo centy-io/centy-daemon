@@ -214,7 +214,10 @@ async fn test_get_item_no_org_repo_unchanged_behavior() {
     .unwrap()
     .into_inner();
 
-    assert!(!get_resp.success, "expected not-found error when no org repo");
+    assert!(
+        !get_resp.success,
+        "expected not-found error when no org repo"
+    );
     assert!(get_resp.item.is_none());
     assert!(get_resp.source.is_empty());
 }

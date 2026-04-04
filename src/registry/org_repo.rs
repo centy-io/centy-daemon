@@ -14,9 +14,10 @@ use std::path::Path;
 pub async fn find_org_repo(project_path: &str) -> Result<Option<String>, RegistryError> {
     let registry = read_registry().await?;
 
-    let canonical = Path::new(project_path)
-        .canonicalize()
-        .map_or_else(|_| project_path.to_string(), |p| p.to_string_lossy().to_string());
+    let canonical = Path::new(project_path).canonicalize().map_or_else(
+        |_| project_path.to_string(),
+        |p| p.to_string_lossy().to_string(),
+    );
 
     let org_slug = match registry
         .projects

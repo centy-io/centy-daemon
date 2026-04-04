@@ -2,7 +2,9 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::await_holding_lock)]
 
 use super::find_org_repo;
-use crate::registry::storage::{acquire_registry_test_lock, get_lock, read_registry, write_registry_unlocked};
+use crate::registry::storage::{
+    acquire_registry_test_lock, get_lock, read_registry, write_registry_unlocked,
+};
 use crate::registry::types::{Organization, TrackedProject};
 use crate::utils::now_iso;
 
@@ -32,9 +34,13 @@ async fn setup_registry(projects: &[(&str, Option<&str>)], orgs: &[(&str, &str)]
         );
     }
     for (path, org_slug) in projects {
-        registry.projects.insert(path.to_string(), make_project(*org_slug));
+        registry
+            .projects
+            .insert(path.to_string(), make_project(*org_slug));
     }
-    write_registry_unlocked(&registry).await.expect("write registry");
+    write_registry_unlocked(&registry)
+        .await
+        .expect("write registry");
     drop(guard);
 }
 
@@ -44,9 +50,13 @@ async fn test_find_org_repo_found() {
     let project = "/tmp/test-387-project-found";
     let org_repo = "/tmp/test-387-org/.centy";
     setup_registry(
-        &[(project, Some("org-387-found")), (org_repo, Some("org-387-found"))],
+        &[
+            (project, Some("org-387-found")),
+            (org_repo, Some("org-387-found")),
+        ],
         &[("org-387-found", "Org 387 Found")],
-    ).await;
+    )
+    .await;
 
     let result = find_org_repo(project).await.expect("find_org_repo");
     assert_eq!(result.as_deref(), Some(org_repo));
@@ -68,12 +78,19 @@ async fn test_find_org_repo_not_found_no_centy_project() {
     let project = "/tmp/test-387-lonely-project";
     let other = "/tmp/test-387-other-project";
     setup_registry(
-        &[(project, Some("org-387-lonely")), (other, Some("org-387-lonely"))],
+        &[
+            (project, Some("org-387-lonely")),
+            (other, Some("org-387-lonely")),
+        ],
         &[("org-387-lonely", "Org 387 Lonely")],
-    ).await;
+    )
+    .await;
 
     let result = find_org_repo(project).await.expect("find_org_repo");
-    assert!(result.is_none(), "expected None when no project ends with /.centy");
+    assert!(
+        result.is_none(),
+        "expected None when no project ends with /.centy"
+    );
 }
 
 #[tokio::test]
@@ -84,8 +101,12 @@ async fn test_find_org_repo_not_found_different_org() {
     setup_registry(
         &[(project, Some("org-387-a")), (org_repo, Some("org-387-b"))],
         &[("org-387-a", "Org A"), ("org-387-b", "Org B")],
-    ).await;
+    )
+    .await;
 
     let result = find_org_repo(project).await.expect("find_org_repo");
-    assert!(result.is_none(), "expected None when org repo is in a different org");
+    assert!(
+        result.is_none(),
+        "expected None when org repo is in a different org"
+    );
 }

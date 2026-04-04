@@ -1,8 +1,8 @@
 mod ignore;
 mod inference;
 mod migrations;
-mod organizations;
 pub mod org_repo;
+mod organizations;
 mod storage;
 mod tracking;
 mod types;
