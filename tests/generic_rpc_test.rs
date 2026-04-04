@@ -276,6 +276,8 @@ async fn test_update_item() {
         tags: vec![],
         clear_tags: false,
         custom_fields: HashMap::new(),
+        projects: vec![],
+        clear_projects: false,
     })
     .await
     .unwrap()
