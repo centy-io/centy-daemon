@@ -1,8 +1,8 @@
 use super::super::types::{LinkRecord, TargetType};
+use super::serialization::{create_link_fields, item_to_link_record, update_link_fields};
+use super::validation::{validate_link_ids, validate_link_type};
 use crate::utils::get_centy_path;
 use mdstore::{CreateOptions, Filters, IdStrategy, TypeConfig, TypeFeatures};
-use serde_json::json;
-use std::collections::HashMap;
 use std::path::Path;
 
 const LINKS_FOLDER: &str = "links";
@@ -23,25 +23,6 @@ fn links_dir(project_path: &Path) -> std::path::PathBuf {
     get_centy_path(project_path).join(LINKS_FOLDER)
 }
 
-fn item_to_link_record(item: mdstore::Item) -> Option<LinkRecord> {
-    let cf = &item.frontmatter.custom_fields;
-    let source_id = cf.get("sourceId")?.as_str()?.to_string();
-    let source_type = TargetType::new(cf.get("sourceType")?.as_str()?);
-    let target_id = cf.get("targetId")?.as_str()?.to_string();
-    let target_type = TargetType::new(cf.get("targetType")?.as_str()?);
-    let link_type = cf.get("linkType")?.as_str()?.to_string();
-    Some(LinkRecord {
-        id: item.id,
-        source_id,
-        source_type,
-        target_id,
-        target_type,
-        link_type,
-        created_at: item.frontmatter.created_at,
-        updated_at: item.frontmatter.updated_at,
-    })
-}
-
 /// Create a new link file in `.centy/links/` and return the full `LinkRecord`.
 pub async fn create_link_file(
     project_path: &Path,
@@ -51,14 +32,10 @@ pub async fn create_link_file(
     target_type: &TargetType,
     link_type: &str,
 ) -> Result<LinkRecord, mdstore::StoreError> {
+    validate_link_ids(source_id, target_id)?;
+    validate_link_type(link_type)?;
     let config = link_type_config();
     let dir = links_dir(project_path);
-    let mut fields = HashMap::new();
-    fields.insert("sourceId".to_string(), json!(source_id));
-    fields.insert("sourceType".to_string(), json!(source_type.as_str()));
-    fields.insert("targetId".to_string(), json!(target_id));
-    fields.insert("targetType".to_string(), json!(target_type.as_str()));
-    fields.insert("linkType".to_string(), json!(link_type));
     let options = CreateOptions {
         title: String::new(),
         body: String::new(),
@@ -66,7 +43,13 @@ pub async fn create_link_file(
         status: None,
         priority: None,
         tags: None,
-        custom_fields: fields,
+        custom_fields: create_link_fields(
+            source_id,
+            source_type,
+            target_id,
+            target_type,
+            link_type,
+        ),
         comment: None,
     };
     let item = mdstore::create(&dir, &config, options).await?;
@@ -81,17 +64,16 @@ pub async fn update_link_file(
     link_id: &str,
     link_type: &str,
 ) -> Result<LinkRecord, mdstore::StoreError> {
+    validate_link_type(link_type)?;
     let config = link_type_config();
     let dir = links_dir(project_path);
-    let mut fields = std::collections::HashMap::new();
-    fields.insert("linkType".to_string(), json!(link_type));
     let options = mdstore::UpdateOptions {
         title: None,
         body: None,
         status: None,
         priority: None,
         tags: None,
-        custom_fields: fields,
+        custom_fields: update_link_fields(link_type),
         comment: None,
     };
     let item = mdstore::update(&dir, &config, link_id, options).await?;
