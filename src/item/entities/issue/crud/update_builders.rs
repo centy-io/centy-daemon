@@ -1,25 +1,19 @@
-use super::super::metadata::IssueMetadata;
+use super::super::metadata::IssueFrontmatter;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
 use super::types::{Issue, IssueMetadataFlat};
 use super::update_helpers::AppliedIssueUpdates;
 use crate::utils::now_iso;
 
-pub fn build_updated_metadata(current: &Issue, updates: &AppliedIssueUpdates) -> IssueMetadata {
-    IssueMetadata {
-        common: mdstore::CommonMetadata {
-            display_number: current.metadata.display_number,
-            status: updates.status.clone(),
-            priority: updates.priority,
-            created_at: current.metadata.created_at.clone(),
-            updated_at: now_iso(),
-            custom_fields: updates
-                .custom_fields
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                .collect(),
-        },
+pub fn build_updated_frontmatter(current: &Issue, updates: &AppliedIssueUpdates) -> IssueFrontmatter {
+    IssueFrontmatter {
+        display_number: current.metadata.display_number,
+        status: updates.status.clone(),
+        priority: updates.priority,
+        created_at: current.metadata.created_at.clone(),
+        updated_at: now_iso(),
         draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
+        custom_fields: updates.custom_fields.clone(),
     }
 }
 

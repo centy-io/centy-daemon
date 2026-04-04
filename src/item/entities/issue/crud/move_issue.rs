@@ -35,7 +35,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         .await?
         .ok_or(IssueCrudError::TargetNotInitialized)?;
     let src_issues = source_issues_path(&options.source_project_path);
-    let (source_is_new_format, source_issue, source_file_path, source_folder_path) =
+    let (source_issue, source_file_path, source_assets_path) =
         load_source_issue(&src_issues, &options.issue_id).await?;
     let old_display_number = source_issue.metadata.display_number;
     validate_issue_move(&source_issue, &options.target_project_path).await?;
@@ -52,11 +52,6 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
         Some(CENTY_HEADER_YAML),
     );
     fs::write(&target_issue_file, &issue_content).await?;
-    let source_assets_path = if source_is_new_format {
-        src_issues.join("assets").join(&options.issue_id)
-    } else {
-        source_folder_path.join("assets")
-    };
     let target_assets_path = target_issues_path.join("assets").join(&options.issue_id);
     if source_assets_path.exists() {
         fs::create_dir_all(&target_assets_path).await?;
@@ -64,13 +59,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
             .await
             .map_err(|e| IssueCrudError::IoError(std::io::Error::other(e.to_string())))?;
     }
-    remove_source_issue(
-        source_is_new_format,
-        &source_file_path,
-        &source_assets_path,
-        &source_folder_path,
-    )
-    .await?;
+    remove_source_issue(&source_file_path, &source_assets_path).await?;
     update_manifest(&mut source_manifest);
     update_manifest(&mut target_manifest);
     write_manifest(&options.source_project_path, &source_manifest).await?;

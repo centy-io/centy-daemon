@@ -3,29 +3,14 @@ use tempfile::TempDir;
 
 async fn create_test_issue_2(
     issues_path: &Path,
-    folder_name: &str,
+    issue_id: &str,
     display_number: u32,
     created_at: &str,
 ) {
-    let issue_path = issues_path.join(folder_name);
-    fs::create_dir_all(&issue_path).await.unwrap();
-
-    let metadata = serde_json::json!({
-        "displayNumber": display_number,
-        "status": "open",
-        "priority": 2i32,
-        "createdAt": created_at,
-        "updatedAt": created_at
-    });
-
-    fs::write(
-        issue_path.join("metadata.json"),
-        serde_json::to_string_pretty(&metadata).unwrap(),
-    )
-    .await
-    .unwrap();
-
-    fs::write(issue_path.join("issue.md"), "# Test Issue\n")
+    let frontmatter = format!(
+        "---\ndisplayNumber: {display_number}\nstatus: open\npriority: 2\ncreatedAt: {created_at}\nupdatedAt: {created_at}\n---\n# Test Issue\n"
+    );
+    fs::write(issues_path.join(format!("{issue_id}.md")), frontmatter)
         .await
         .unwrap();
 }

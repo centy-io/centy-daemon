@@ -1,6 +1,5 @@
 use super::super::reconcile::reconcile_display_numbers;
 use super::get_matchers::match_entry_by_display_number;
-use super::migrate::migrate_issue_to_new_format;
 use super::read::read_issue_from_frontmatter;
 use super::types::{Issue, IssueCrudError};
 use crate::manifest::read_manifest;
@@ -17,10 +16,6 @@ pub async fn get_issue(project_path: &Path, issue_number: &str) -> Result<Issue,
     let issue_file_path = issues_path.join(format!("{issue_number}.md"));
     if issue_file_path.exists() {
         return read_issue_from_frontmatter(&issue_file_path, issue_number).await;
-    }
-    let issue_folder_path = issues_path.join(issue_number);
-    if issue_folder_path.exists() {
-        return migrate_issue_to_new_format(&issues_path, &issue_folder_path, issue_number).await;
     }
     Err(IssueCrudError::IssueNotFound(issue_number.to_string()))
 }

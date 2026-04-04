@@ -1,8 +1,6 @@
-use super::IssueMetadata;
-use mdstore::CommonMetadata;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-/// Frontmatter metadata for the new YAML-based issue format.
+/// Frontmatter metadata for the YAML-based issue format.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueFrontmatter {
@@ -17,38 +15,4 @@ pub struct IssueFrontmatter {
     pub deleted_at: Option<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_fields: HashMap<String, String>,
-}
-impl IssueFrontmatter {
-    #[must_use]
-    pub fn from_metadata(metadata: &IssueMetadata, custom_fields: HashMap<String, String>) -> Self {
-        Self {
-            display_number: metadata.common.display_number,
-            status: metadata.common.status.clone(),
-            priority: metadata.common.priority,
-            created_at: metadata.common.created_at.clone(),
-            updated_at: metadata.common.updated_at.clone(),
-            draft: metadata.draft,
-            deleted_at: metadata.deleted_at.clone(),
-            custom_fields,
-        }
-    }
-    #[must_use]
-    pub fn to_metadata(&self) -> IssueMetadata {
-        IssueMetadata {
-            common: CommonMetadata {
-                display_number: self.display_number,
-                status: self.status.clone(),
-                priority: self.priority,
-                created_at: self.created_at.clone(),
-                updated_at: self.updated_at.clone(),
-                custom_fields: self
-                    .custom_fields
-                    .iter()
-                    .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                    .collect(),
-            },
-            draft: self.draft,
-            deleted_at: self.deleted_at.clone(),
-        }
-    }
 }

@@ -4,137 +4,49 @@ use super::*;
 // --- IssueFrontmatter tests ---
 
 #[test]
-fn test_issue_frontmatter_from_metadata_basic() {
-    let meta = IssueMetadata::new(5, "open".to_string(), 2, std::collections::HashMap::new());
-    let custom: HashMap<String, String> = {
-        let mut m = HashMap::new();
-        m.insert("team".to_string(), "backend".to_string());
-        m
-    };
-    let fm = IssueFrontmatter::from_metadata(&meta, custom);
+fn test_issue_frontmatter_deserialize() {
+    use mdstore::parse_frontmatter;
+    let yaml = "---\ndisplayNumber: 5\nstatus: open\npriority: 2\ncreatedAt: 2024-01-01T00:00:00Z\nupdatedAt: 2024-01-01T00:00:00Z\n---\n# Title\n\nBody";
+    let (fm, title, _): (IssueFrontmatter, String, String) =
+        parse_frontmatter(yaml).unwrap();
     assert_eq!(fm.display_number, 5);
     assert_eq!(fm.status, "open");
     assert_eq!(fm.priority, 2);
+    assert_eq!(title, "Title");
     assert!(!fm.draft);
     assert!(fm.deleted_at.is_none());
-    assert_eq!(
-        fm.custom_fields.get("team").map(String::as_str),
-        Some("backend")
-    );
 }
 
 #[test]
-fn test_issue_frontmatter_to_metadata_round_trip() {
-    let meta = IssueMetadata::new(7, "closed".to_string(), 3, HashMap::new());
-    let fm = IssueFrontmatter::from_metadata(&meta, HashMap::new());
-    let restored = fm.to_metadata();
-    assert_eq!(restored.common.display_number, 7);
-    assert_eq!(restored.common.status, "closed");
-    assert_eq!(restored.common.priority, 3);
-    assert!(!restored.draft);
-    assert!(restored.deleted_at.is_none());
+fn test_issue_frontmatter_serialize_skips_draft_when_false() {
+    use mdstore::generate_frontmatter;
+    let fm = IssueFrontmatter {
+        display_number: 1,
+        status: "open".to_string(),
+        priority: 1,
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+        updated_at: "2024-01-01T00:00:00Z".to_string(),
+        draft: false,
+        deleted_at: None,
+        custom_fields: std::collections::HashMap::new(),
+    };
+    let output = generate_frontmatter(&fm, "Test", "Body", None);
+    assert!(!output.contains("draft"));
 }
 
 #[test]
-fn test_issue_frontmatter_to_metadata_with_custom_fields() {
-    let meta = IssueMetadata::new(1, "open".to_string(), 1, HashMap::new());
-    let mut custom: HashMap<String, String> = HashMap::new();
-    custom.insert("sprint".to_string(), "12".to_string());
-    let fm = IssueFrontmatter::from_metadata(&meta, custom);
-    let restored = fm.to_metadata();
-    let val = restored.common.custom_fields.get("sprint");
-    assert!(matches!(val, Some(serde_json::Value::String(s)) if s == "12"));
-}
-
-// --- IssueMetadata constructor tests ---
-
-#[test]
-fn test_issue_metadata_new_draft() {
-    let meta = IssueMetadata::new_draft(2, "open".to_string(), 1, HashMap::new(), true);
-    assert_eq!(meta.common.display_number, 2);
-    assert!(meta.draft);
-    assert!(meta.deleted_at.is_none());
-}
-
-#[test]
-fn test_issue_metadata_new_draft_false() {
-    let meta = IssueMetadata::new_draft(1, "open".to_string(), 2, HashMap::new(), false);
-    assert!(!meta.draft);
-}
-
-#[test]
-fn test_deserialize_priority_number() {
-    let json =
-        r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
-    let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
-    assert_eq!(metadata.common.priority, 1);
-}
-
-#[test]
-fn test_deserialize_priority_string_high() {
-    let json =
-        r#"{"status":"open","priority":"high","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
-    let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
-    assert_eq!(metadata.common.priority, 1);
-}
-
-#[test]
-fn test_deserialize_priority_string_medium() {
-    let json = r#"{"status":"open","priority":"medium","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
-    let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
-    assert_eq!(metadata.common.priority, 2);
-}
-
-#[test]
-fn test_deserialize_priority_string_low() {
-    let json =
-        r#"{"status":"open","priority":"low","createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
-    let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
-    assert_eq!(metadata.common.priority, 3);
-}
-
-#[test]
-fn test_serialize_priority_as_number() {
-    let metadata = IssueMetadata::new(1, "open".to_string(), 2, HashMap::new());
-    let json = serde_json::to_string(&metadata).unwrap();
-    assert!(json.contains(r#""priority":2"#));
-}
-
-#[test]
-fn test_metadata_new() {
-    let metadata = IssueMetadata::new(1, "open".to_string(), 1, HashMap::new());
-    assert_eq!(metadata.common.display_number, 1);
-    assert_eq!(metadata.common.status, "open");
-    assert_eq!(metadata.common.priority, 1);
-    assert!(!metadata.common.created_at.is_empty());
-    assert!(!metadata.common.updated_at.is_empty());
-}
-
-#[test]
-fn test_deserialize_legacy_without_display_number() {
-    // Legacy issues without display_number should default to 0
-    let json =
-        r#"{"status":"open","priority":1,"createdAt":"2024-01-01","updatedAt":"2024-01-01"}"#;
-    let metadata: IssueMetadata = serde_json::from_str(json).unwrap();
-    assert_eq!(metadata.common.display_number, 0);
-}
-
-#[test]
-fn test_serialize_display_number() {
-    let metadata = IssueMetadata::new(42, "open".to_string(), 1, HashMap::new());
-    let json = serde_json::to_string(&metadata).unwrap();
-    assert!(json.contains(r#""displayNumber":42"#));
-}
-
-#[test]
-fn test_flatten_produces_flat_json() {
-    // Verify that #[serde(flatten)] produces flat JSON, not nested under "common"
-    let metadata = IssueMetadata::new(1, "open".to_string(), 2, HashMap::new());
-    let json = serde_json::to_string(&metadata).unwrap();
-    // Should NOT contain "common" as a key
-    assert!(!json.contains(r#""common""#));
-    // Should contain flattened fields directly
-    assert!(json.contains(r#""displayNumber""#));
-    assert!(json.contains(r#""status""#));
-    assert!(json.contains(r#""priority""#));
+fn test_issue_frontmatter_serialize_includes_draft_when_true() {
+    use mdstore::generate_frontmatter;
+    let fm = IssueFrontmatter {
+        display_number: 1,
+        status: "open".to_string(),
+        priority: 1,
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+        updated_at: "2024-01-01T00:00:00Z".to_string(),
+        draft: true,
+        deleted_at: None,
+        custom_fields: std::collections::HashMap::new(),
+    };
+    let output = generate_frontmatter(&fm, "Test", "Body", None);
+    assert!(output.contains("draft: true"));
 }

@@ -14,8 +14,6 @@ pub enum ReconcileError {
 pub struct IssueInfo {
     /// Issue ID (UUID)
     pub id: String,
-    /// Whether this is a new format (.md file) or old format (folder)
-    pub is_new_format: bool,
     pub display_number: u32,
     pub created_at: String,
 }

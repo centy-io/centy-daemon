@@ -55,58 +55,6 @@ async fn test_read_issue_from_frontmatter_valid_file() {
     assert_eq!(issue.metadata.display_number, 1);
 }
 
-#[tokio::test]
-async fn test_read_issue_from_legacy_folder_missing_files() {
-    ensure_test_isolation();
-
-    let temp_dir = tempfile::tempdir().expect("temp dir");
-    let fake_folder = temp_dir.path().join("fake-issue");
-    tokio::fs::create_dir_all(&fake_folder).await.unwrap();
-
-    let result = read_issue_from_legacy_folder(&fake_folder, "fake-uuid").await;
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        IssueCrudError::InvalidIssueFormat(_)
-    ));
-}
-
-#[tokio::test]
-async fn test_read_issue_from_legacy_folder_valid() {
-    ensure_test_isolation();
-
-    let temp_dir = tempfile::tempdir().expect("temp dir");
-    let issue_folder = temp_dir.path().join("legacy-issue");
-    tokio::fs::create_dir_all(&issue_folder).await.unwrap();
-
-    // Write a legacy issue.md and metadata.json
-    let issue_md = "# Legacy Issue\n\nLegacy description.";
-    tokio::fs::write(issue_folder.join("issue.md"), issue_md)
-        .await
-        .unwrap();
-    let metadata_json = r#"{
-        "displayNumber": 5,
-        "status": "open",
-        "priority": 2,
-        "createdAt": "2024-01-01T00:00:00Z",
-        "updatedAt": "2024-01-01T00:00:00Z"
-    }"#;
-    tokio::fs::write(issue_folder.join("metadata.json"), metadata_json)
-        .await
-        .unwrap();
-
-    let issue = read_issue_from_legacy_folder(&issue_folder, "legacy-uuid")
-        .await
-        .expect("Should read legacy issue");
-
-    assert_eq!(issue.id, "legacy-uuid");
-    assert_eq!(issue.title, "Legacy Issue");
-    assert_eq!(issue.description, "Legacy description.");
-    assert_eq!(issue.metadata.display_number, 5);
-    assert_eq!(issue.metadata.status, "open");
-    assert_eq!(issue.metadata.priority, 2);
-}
-
 // --- get.rs: get_issue and get_issue_by_display_number tests ---
 
 #[tokio::test]
