@@ -61,15 +61,19 @@ pub(super) fn build_options(
     status: Option<String>,
     priority: Option<u32>,
     tags: Vec<String>,
+    projects: &[String],
     custom_fields_raw: HashMap<String, String>,
 ) -> CreateOptions {
-    let custom_fields = custom_fields_raw
+    let mut custom_fields: HashMap<String, serde_json::Value> = custom_fields_raw
         .into_iter()
         .map(|(k, v)| {
             let val = serde_json::from_str(&v).unwrap_or(serde_json::Value::String(v));
             (k, val)
         })
         .collect();
+    if !projects.is_empty() {
+        custom_fields.insert("projects".to_string(), serde_json::json!(projects));
+    }
     CreateOptions {
         title,
         body,
