@@ -30,7 +30,11 @@ pub async fn copy_issue_data_to_workspace(
     if source_issue_file.exists() {
         let target_issues_dir = target_centy.join("issues");
         fs::create_dir_all(&target_issues_dir).await?;
-        fs::copy(&source_issue_file, target_issues_dir.join(format!("{issue_id}.md"))).await?;
+        fs::copy(
+            &source_issue_file,
+            target_issues_dir.join(format!("{issue_id}.md")),
+        )
+        .await?;
     }
 
     // Copy shared assets folder

@@ -4,7 +4,10 @@ use super::types::{Issue, IssueMetadataFlat};
 use super::update_helpers::AppliedIssueUpdates;
 use crate::utils::now_iso;
 
-pub fn build_updated_frontmatter(current: &Issue, updates: &AppliedIssueUpdates) -> IssueFrontmatter {
+pub fn build_updated_frontmatter(
+    current: &Issue,
+    updates: &AppliedIssueUpdates,
+) -> IssueFrontmatter {
     IssueFrontmatter {
         display_number: current.metadata.display_number,
         status: updates.status.clone(),

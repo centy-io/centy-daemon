@@ -46,20 +46,16 @@ async fn test_reconcile_with_conflict() {
     let reassigned = reconcile_display_numbers(&issues_path).await.unwrap();
     assert_eq!(reassigned, 1);
 
-    let content1 = fs::read_to_string(
-        issues_path.join("550e8400-e29b-41d4-a716-446655440001.md"),
-    )
-    .await
-    .unwrap();
+    let content1 = fs::read_to_string(issues_path.join("550e8400-e29b-41d4-a716-446655440001.md"))
+        .await
+        .unwrap();
     let (fm1, _, _): (IssueFrontmatter, String, String) =
         mdstore::parse_frontmatter(&content1).unwrap();
     assert_eq!(fm1.display_number, 4);
 
-    let content2 = fs::read_to_string(
-        issues_path.join("550e8400-e29b-41d4-a716-446655440002.md"),
-    )
-    .await
-    .unwrap();
+    let content2 = fs::read_to_string(issues_path.join("550e8400-e29b-41d4-a716-446655440002.md"))
+        .await
+        .unwrap();
     let (fm2, _, _): (IssueFrontmatter, String, String) =
         mdstore::parse_frontmatter(&content2).unwrap();
     assert_eq!(fm2.display_number, 6);

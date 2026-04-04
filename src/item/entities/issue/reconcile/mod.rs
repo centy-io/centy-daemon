@@ -5,13 +5,13 @@
 mod reconcile_fn;
 mod scan;
 mod types;
+#[cfg(test)]
+pub use super::metadata::IssueFrontmatter;
 pub use reconcile_fn::reconcile_display_numbers;
 pub use scan::get_next_display_number;
 pub use std::path::Path;
 pub use tokio::fs;
 pub use types::ReconcileError;
-#[cfg(test)]
-pub use super::metadata::IssueFrontmatter;
 #[cfg(test)]
 #[path = "../reconcile_basic_tests.rs"]
 mod reconcile_basic_tests;

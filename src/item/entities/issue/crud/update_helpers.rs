@@ -46,4 +46,3 @@ pub async fn resolve_update_options(
         draft: options.draft.unwrap_or(current.metadata.draft),
     })
 }
-

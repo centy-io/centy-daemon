@@ -39,11 +39,6 @@ pub async fn update_issue(
     fs::write(&issue_file_path, &issue_content).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;
-    let issue = build_issue_struct(
-        issue_number,
-        &updates,
-        &current,
-        &frontmatter.updated_at,
-    );
+    let issue = build_issue_struct(issue_number, &updates, &current, &frontmatter.updated_at);
     Ok(UpdateIssueResult { issue, manifest })
 }

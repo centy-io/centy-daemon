@@ -21,8 +21,7 @@ pub(super) async fn match_entry_by_display_number(
         let Ok(content) = fs::read_to_string(entry.path()).await else {
             return Ok(None);
         };
-        let Ok((fm, _, _)) =
-            parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
+        let Ok((fm, _, _)) = parse_frontmatter::<IssueFrontmatter>(strip_centy_md_header(&content))
         else {
             return Ok(None);
         };

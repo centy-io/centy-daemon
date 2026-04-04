@@ -7,8 +7,7 @@ use super::*;
 fn test_issue_frontmatter_deserialize() {
     use mdstore::parse_frontmatter;
     let yaml = "---\ndisplayNumber: 5\nstatus: open\npriority: 2\ncreatedAt: 2024-01-01T00:00:00Z\nupdatedAt: 2024-01-01T00:00:00Z\n---\n# Title\n\nBody";
-    let (fm, title, _): (IssueFrontmatter, String, String) =
-        parse_frontmatter(yaml).unwrap();
+    let (fm, title, _): (IssueFrontmatter, String, String) = parse_frontmatter(yaml).unwrap();
     assert_eq!(fm.display_number, 5);
     assert_eq!(fm.status, "open");
     assert_eq!(fm.priority, 2);
