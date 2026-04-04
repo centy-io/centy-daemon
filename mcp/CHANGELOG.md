@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-04-04
+
 ### Added
 - Version is now injected via `-ldflags` at build time and defaults to `"dev"`; `mcp/npm/package.json` version is reset to `0.0.0` and set from the git tag at publish time
 

@@ -7,9 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Split `init/mcp_json.rs`: pure JSON logic stays in `mcp_json.rs`; async file I/O extracted into new `mcp_io.rs`
-- Refactored `workspace_temp` handler into focused modules: `hooks.rs` (status update), `operations/create.rs` (workspace creation), `operations/editor.rs` (editor invocation), with `handler.rs` as thin orchestration
+## [0.12.0] — 2026-04-04
 
 ### Added
 - `UpdateLink` gRPC endpoint for changing the link type of an existing link
@@ -24,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UpdateItem` and `DeleteItem` transparently route writes to the org repo when the target item lives there; project-local items are unaffected; display-number resolution also falls back to the org repo
 
 ### Changed
+- Split `init/mcp_json.rs`: pure JSON logic stays in `mcp_json.rs`; async file I/O extracted into new `mcp_io.rs`
+- Refactored `workspace_temp` handler into focused modules: `hooks.rs` (status update), `operations/create.rs` (workspace creation), `operations/editor.rs` (editor invocation), with `handler.rs` as thin orchestration
 - Split `link/storage/io.rs` into `io.rs` (file operations), `serialization.rs` (deserialization logic), and `validation.rs` (link validation rules)
 
 ### Removed
