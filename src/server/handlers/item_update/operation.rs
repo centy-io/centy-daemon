@@ -18,6 +18,7 @@ pub(super) fn build_update_options(
     tags: Vec<String>,
     clear_tags: bool,
     raw_fields: HashMap<String, String>,
+    _projects: Vec<String>,
 ) -> UpdateOptions {
     let custom_fields = raw_fields
         .into_iter()
