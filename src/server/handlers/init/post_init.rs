@@ -1,5 +1,5 @@
 use super::config_merge::apply_init_config;
-use super::mcp_json::ensure_mcp_json;
+use super::mcp_io::ensure_mcp_json;
 use crate::config::set_project_title;
 use crate::reconciliation::ReconciliationResult;
 use crate::registry::{get_project_info, infer_organization_from_remote, set_project_organization};
