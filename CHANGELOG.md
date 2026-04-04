@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Split `init/mcp_json.rs`: pure JSON logic stays in `mcp_json.rs`; async file I/O extracted into new `mcp_io.rs`
+
 ### Added
 - `UpdateLink` gRPC endpoint for changing the link type of an existing link
 - `org_wide` flag on `CreateItem`: when set, writes the item to the org-wide `.centy` repo and tags it with the originating project's slug via `projects` metadata field
