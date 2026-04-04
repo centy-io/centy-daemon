@@ -53,6 +53,7 @@ pub async fn create_item(req: CreateItemRequest) -> Result<Response<CreateItemRe
         nonempty(req.status),
         nonzero_u32(req.priority),
         req.tags,
+        &req.projects,
         req.custom_fields,
     );
     Ok(Response::new(

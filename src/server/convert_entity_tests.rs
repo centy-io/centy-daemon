@@ -99,6 +99,28 @@ fn test_generic_item_to_proto_with_custom_fields() {
 }
 
 #[test]
+fn test_generic_item_to_proto_with_projects() {
+    let custom_fields = HashMap::from([(
+        "projects".to_string(),
+        serde_json::json!(["frontend", "backend"]),
+    )]);
+    let item = make_item(None, None, None, None, None, custom_fields);
+    let proto = generic_item_to_proto(&item, "issue");
+    let meta = proto.metadata.unwrap();
+    assert_eq!(meta.projects, vec!["frontend", "backend"]);
+    // projects must not leak into the custom_fields map
+    assert!(!meta.custom_fields.contains_key("projects"));
+}
+
+#[test]
+fn test_generic_item_to_proto_projects_default_empty() {
+    let item = make_item(None, None, None, None, None, HashMap::new());
+    let proto = generic_item_to_proto(&item, "issue");
+    let meta = proto.metadata.unwrap();
+    assert!(meta.projects.is_empty());
+}
+
+#[test]
 fn test_user_to_proto_with_email() {
     let user = crate::user::User {
         id: "alice".to_string(),

@@ -21,10 +21,21 @@ pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGene
                 .frontmatter
                 .custom_fields
                 .iter()
+                .filter(|(k, _)| k.as_str() != "projects")
                 .map(|(k, v)| (k.clone(), v.to_string()))
                 .collect(),
             tags: item.frontmatter.tags.clone().unwrap_or_default(),
-            projects: vec![],
+            projects: item
+                .frontmatter
+                .custom_fields
+                .get("projects")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(str::to_string))
+                        .collect()
+                })
+                .unwrap_or_default(),
         }),
     }
 }
