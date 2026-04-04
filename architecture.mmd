@@ -3,6 +3,7 @@ graph TB
         CLI["CLI<br/>(centy-cli)"]
         WebApp["Web App<br/>(Browser)"]
         MCP["MCP Server<br/>(Go)"]
+        ExternalTools["External Tools"]
     end
 
     subgraph AIClients["AI Clients"]
@@ -21,6 +22,7 @@ graph TB
     CLI -->|"gRPC (HTTP/2)"| gRPC
     WebApp -->|"gRPC-Web / Connect<br/>(HTTP/1.1 or HTTP/2)"| gRPC
     MCP -->|"Connect-RPC (HTTP/2)"| gRPC
+    ExternalTools -->|"gRPC (HTTP/2)"| gRPC
 
     Claude -->|"MCP Protocol"| MCP
 
@@ -31,7 +33,7 @@ graph TB
     classDef storage fill:#92400e,color:#fff,stroke:#6b2d0a
 
     class gRPC gateway
-    class CLI,WebApp,MCP client
+    class CLI,WebApp,MCP,ExternalTools client
     class Claude ai
     class Core internal
     class Storage storage
