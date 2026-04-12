@@ -2,6 +2,7 @@
   "cleanup": {},
   "customFields": [],
   "defaults": {},
+  "hooks": [],
   "priorityColors": {},
   "priorityLevels": 3,
   "stateColors": {},

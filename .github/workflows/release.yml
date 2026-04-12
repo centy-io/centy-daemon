@@ -489,6 +489,55 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ============================================================================
+  # CLI: Build binaries and upload to release
+  # ============================================================================
+  build-cli:
+    name: Build CLI binaries
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: cli/go.sum
+
+      - name: Generate
+        run: make -C cli generate
+
+      - name: Build binaries
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          cd cli
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-linux-x86_64   .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-linux-aarch64  .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-darwin-x86_64  .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-darwin-aarch64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-windows-x86_64.exe .
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            centy-cli-linux-x86_64
+            centy-cli-linux-aarch64
+            centy-cli-darwin-x86_64
+            centy-cli-darwin-aarch64
+            centy-cli-windows-x86_64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
   # MCP: Publish npm package (after binaries are on the release)
   # ============================================================================
   publish-mcp-npm:
