@@ -5,6 +5,7 @@ use color_eyre::eyre::Result;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tonic::transport::Server;
+use tonic_health::server::health_reporter;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing::{info, warn, Level};
 
@@ -26,7 +27,12 @@ pub async fn run(args: app::Args) -> Result<()> {
     let service = CentyDaemonService::new(Arc::clone(&shutdown_tx), exe_path, user_cfg);
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(app::FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(tonic_health::pb::FILE_DESCRIPTOR_SET)
         .build_v1()?;
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<CentyDaemonServer<CentyDaemonService>>()
+        .await;
     info!("Starting Centy daemon on {} (gRPC + gRPC-Web)", addr);
     let server_result = Server::builder()
         .accept_http1(true)
@@ -34,6 +40,7 @@ pub async fn run(args: app::Args) -> Result<()> {
         .layer(cors)
         .layer(tonic_web::GrpcWebLayer::new())
         .add_service(reflection_service)
+        .add_service(health_service)
         .add_service(CentyDaemonServer::new(service))
         .serve_with_shutdown(addr, async move {
             loop {
@@ -42,10 +49,16 @@ pub async fn run(args: app::Args) -> Result<()> {
                 match signal {
                     ShutdownSignal::Shutdown => {
                         info!("Received shutdown signal, stopping server...");
+                        health_reporter
+                            .set_not_serving::<CentyDaemonServer<CentyDaemonService>>()
+                            .await;
                         break;
                     }
                     ShutdownSignal::Restart => {
                         info!("Received restart signal, stopping server...");
+                        health_reporter
+                            .set_not_serving::<CentyDaemonServer<CentyDaemonService>>()
+                            .await;
                         break;
                     }
                     ShutdownSignal::None => {}
