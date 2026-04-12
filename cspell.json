@@ -246,6 +246,8 @@
     "datacontenttype",
     "rdkafka",
     "librdkafka",
-    "rskafka"
+    "rskafka",
+    "Getenv",
+    "Fprintln"
   ]
 }
