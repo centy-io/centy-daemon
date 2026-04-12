@@ -25,6 +25,7 @@
     "MADRC",
     "Microtask",
     "ENOTEMPTY",
+    "errno",
     "NOFILE",
     "Polyrepo",
     "Procfile",
