@@ -39,7 +39,7 @@ echo "[3/9] Type checking..."
 cargo check --all-targets
 
 echo "[4/9] Building project..."
-cargo build --all-targets
+make build
 
 echo "[5/9] Running tests..."
 CENTY_HOME="$CENTY_HOME_TEST" cargo test --all-targets
