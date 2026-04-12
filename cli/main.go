@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/NathanBaulch/protoc-gen-cobra/client"
-	"github.com/spf13/cobra"
 
 	centyv1 "github.com/centy-io/centy-daemon/cli/gen/centy/v1"
 )
@@ -18,14 +17,12 @@ func main() {
 		addr = "127.0.0.1:50051"
 	}
 
-	root := &cobra.Command{
-		Use:     "centy",
-		Short:   "CLI client for the centy daemon",
-		Version: version,
-	}
-	root.AddCommand(centyv1.CentyDaemonClientCommand(
-		client.WithServerAddr(addr),
-	))
+	root := centyv1.CentyDaemonClientCommand(client.WithServerAddr(addr))
+	root.Use = "centy"
+	root.Short = "CLI client for the centy daemon"
+	root.Long = ""
+	root.Version = version
+
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -11,11 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `release.yml` now builds and uploads `centy-cli` binaries for all 5 platforms (linux-x86_64, linux-aarch64, darwin-x86_64, darwin-aarch64, windows-x86_64) as part of the GitHub release
 - Root `Makefile` with a `build` target that builds all components (`cargo build --release` for the daemon, `cli/Makefile`, and `mcp/Makefile`)
 - `centy-mcp` now checks version compatibility with the daemon on startup and emits a clear error if they are incompatible (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`)
-- New `cli/` module: auto-generated gRPC CLI (`centy`) built from proto definitions via `protoc-gen-cobra`, exposing all 80+ RPCs as `centy centy-daemon <rpc>` subcommands with full flag and JSON I/O support
+- New `cli/` module: auto-generated gRPC CLI (`centy`) built from proto definitions via `protoc-gen-cobra`, exposing all 80+ RPCs as `centy <rpc>` subcommands with full flag and JSON I/O support
 - `cli/README.md` documenting installation, usage, and regeneration workflow
+- `test` and `coverage` targets to the root `Makefile`; the pre-push hook now delegates to `make test` and `make coverage` instead of calling `cargo` directly
 
 ### Changed
+- CLI RPCs are now invocable as `centy <rpc>` instead of `centy centy-daemon <rpc>`; the redundant `centy-daemon` subcommand level has been removed
 - Pre-commit hook now uses `lint-staged` to run `cspell` only on staged files, replacing the manual `git diff --cached` + `xargs` approach
+- Extracted `lint-staged` configuration from `package.json` into a dedicated `.lintstagedrc.mjs` file
+- Updated `CONTRIBUTING.md` to reflect the current project state: corrected project structure tree (`daemon/src/`), fixed integration test import path, updated Rust prerequisite to 1.85+, and revised the "Adding a New Feature" gRPC workflow
 
 ## [0.12.1] — 2026-04-12
 
