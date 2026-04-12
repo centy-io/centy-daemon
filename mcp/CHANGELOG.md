@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Startup version-compatibility check: if `centy-mcp` and the running daemon have different major or minor versions, a human-readable error is printed to stderr and the process exits (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`). The check is skipped for `dev` builds or when the daemon is unreachable.
+
 ## [0.12.0] — 2026-04-04
 
 ### Added
