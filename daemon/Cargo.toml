@@ -25,6 +25,7 @@ mdstore = "1.1.1"
 
 # gRPC
 tonic = "0.12"
+tonic-health = "0.12"
 tonic-reflection = "0.12"
 tonic-web = "0.12"
 prost = "0.13"
