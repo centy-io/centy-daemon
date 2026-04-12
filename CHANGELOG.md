@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `centy-mcp` now checks version compatibility with the daemon on startup and emits a clear error if they are incompatible (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`)
+
 ## [0.12.1] — 2026-04-12
 
 ### Changed

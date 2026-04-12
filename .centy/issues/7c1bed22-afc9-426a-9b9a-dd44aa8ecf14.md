@@ -1,10 +1,10 @@
 ---
 # This file is managed by Centy. Use the Centy CLI to modify it.
 displayNumber: 403
-status: open
+status: closed
 priority: 2
 createdAt: 2026-04-12T20:17:31.203612+00:00
-updatedAt: 2026-04-12T20:17:31.203612+00:00
+updatedAt: 2026-04-12T20:31:17.156781+00:00
 ---
 
 # MCP server should emit a clear error when its version is incompatible with the daemon

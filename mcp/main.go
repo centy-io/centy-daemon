@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -18,6 +20,7 @@ import (
 	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime/mark3labs"
 	"golang.org/x/net/http2"
 
+	centyv1 "github.com/centy-io/centy-daemon/mcp/gen/centy/v1"
 	"github.com/centy-io/centy-daemon/mcp/gen/centy/v1/centyv1connect"
 	"github.com/centy-io/centy-daemon/mcp/gen/centy/v1/centyv1mcp"
 )
@@ -31,6 +34,60 @@ func isDaemonRunning(addr string) bool {
 	}
 	conn.Close()
 	return true
+}
+
+// semverMajorMinor extracts the major and minor integers from a semver string
+// like "1.2.3". Returns (-1, -1, false) if the string is not parseable.
+func semverMajorMinor(v string) (int, int, bool) {
+	v = strings.TrimPrefix(v, "v")
+	parts := strings.SplitN(v, ".", 3)
+	if len(parts) < 2 {
+		return -1, -1, false
+	}
+	major, err1 := strconv.Atoi(parts[0])
+	minor, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return -1, -1, false
+	}
+	return major, minor, true
+}
+
+// checkDaemonCompatibility calls GetDaemonInfo and exits with a clear error if
+// the daemon version is incompatible with this MCP server version.
+// Compatibility policy: major and minor versions must match.
+// The check is skipped when either version is "dev" or when the daemon is unreachable.
+func checkDaemonCompatibility(client centyv1connect.CentyDaemonClient, mcpVersion string) {
+	if mcpVersion == "dev" {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	resp, err := client.GetDaemonInfo(ctx, connect.NewRequest(&centyv1.GetDaemonInfoRequest{}))
+	if err != nil {
+		// Daemon unreachable — skip version check, tools will fail gracefully at call time.
+		return
+	}
+
+	daemonVersion := resp.Msg.GetVersion()
+	if daemonVersion == "dev" {
+		return
+	}
+
+	mcpMaj, mcpMin, mcpOK := semverMajorMinor(mcpVersion)
+	daeMaj, daeMin, daeOK := semverMajorMinor(daemonVersion)
+
+	if !mcpOK || !daeOK {
+		return
+	}
+
+	if mcpMaj != daeMaj || mcpMin != daeMin {
+		fmt.Fprintf(os.Stderr,
+			"centy-mcp v%s is incompatible with centy-daemon v%s. Please update centy-mcp.\n",
+			mcpVersion, daemonVersion)
+		os.Exit(1)
+	}
 }
 
 func findDaemonBinary() (string, error) {
@@ -70,6 +127,8 @@ func main() {
 		"http://"+addr,
 		connect.WithGRPC(),
 	)
+
+	checkDaemonCompatibility(client, version)
 
 	raw, s := mark3labs.NewServer("centy-daemon", version)
 	centyv1mcp.ForwardToConnectCentyDaemonClient(s, client)
