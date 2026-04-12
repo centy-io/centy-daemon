@@ -1,0 +1,10 @@
+set -e
+
+echo "Running cspell on staged files..."
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=d | grep -E '\.(rs|md|toml|yml|yaml|json|ts|js|sh|txt)$' || true)
+if [ -n "$STAGED_FILES" ]; then
+    echo "$STAGED_FILES" | xargs cspell --no-progress
+fi
+
+echo "Running Clippy with pedantic lints..."
+cargo clippy --all-targets -- -D warnings

@@ -1,0 +1,12 @@
+{
+  "name": "@centy-io/centy-daemon",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "cspell": "^9.0.0",
+    "husky": "^9.0.0"
+  },
+  "packageManager": "pnpm@10.21.0"
+}
