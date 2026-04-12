@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `centy-mcp` now checks version compatibility with the daemon on startup and emits a clear error if they are incompatible (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`)
+- New `cli/` module: auto-generated gRPC CLI (`centy-cli`) built from proto definitions via `protoc-gen-cobra`, exposing all 80+ RPCs as `centy-cli centy-daemon <rpc>` subcommands with full flag and JSON I/O support
 
 ### Changed
 - Pre-commit hook now uses `lint-staged` to run `cspell` only on staged files, replacing the manual `git diff --cached` + `xargs` approach
