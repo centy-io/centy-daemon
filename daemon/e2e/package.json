@@ -12,8 +12,8 @@
     "docker:watch": "./scripts/run-docker.sh --watch",
     "docker:build": "./scripts/run-docker.sh --build-only",
     "docker:clean": "./scripts/run-docker.sh --clean",
-    "daemon:build": "cd .. && cargo build --release",
-    "daemon:start": "cd .. && cargo run --release"
+    "daemon:build": "cd ../.. && cargo build --release -p centy-daemon",
+    "daemon:start": "cd ../.. && cargo run --release -p centy-daemon"
   },
   "devDependencies": {
     "@grpc/grpc-js": "^1.12.2",

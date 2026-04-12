@@ -5,16 +5,23 @@ RUN apk add --no-cache musl-dev protobuf-dev
 
 WORKDIR /app
 
-# Copy manifests
+# Copy workspace manifest and lock
 COPY Cargo.toml Cargo.lock ./
 
-# Copy source
-COPY src ./src
+# Copy daemon package
+COPY daemon/Cargo.toml ./daemon/
+COPY daemon/src ./daemon/src
+COPY daemon/build.rs ./daemon/
+COPY daemon/build ./daemon/build
+
+# Copy proto definitions
 COPY proto ./proto
-COPY build.rs ./
+
+# Copy xtask (workspace member — manifest only needed for resolution)
+COPY xtask/Cargo.toml ./xtask/
 
 # Build release binary
-RUN cargo build --release
+RUN cargo build --release -p centy-daemon
 
 # Runtime stage
 FROM alpine:3.19

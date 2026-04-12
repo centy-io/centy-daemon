@@ -56,6 +56,6 @@ echo "[8/9] Validating submodule state..."
 cargo run -q -p xtask -- is populated synced clean all-up-to-date
 
 echo "[9/9] Running e2e tests..."
-(cd e2e && pnpm test)
+(cd daemon/e2e && pnpm test)
 
 echo "Pre-push checks passed!"

@@ -1,9 +1,13 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Proto path is relative to the e2e directory - go up one level to find proto/
-const PROTO_PATH = join(process.cwd(), '../proto/centy/v1/centy.proto');
+// Resolve proto path relative to this file so it works regardless of cwd.
+// This file lives at daemon/e2e/fixtures/ (3 levels below proto/ in the repo
+// and in Docker where daemon/e2e/ is copied to /app/daemon/e2e/).
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROTO_PATH = join(__dirname, '../../../proto/centy/v1/centy.proto');
 
 // Load proto definition
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -12,7 +16,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   enums: String,
   defaults: true,
   oneofs: true,
-  includeDirs: [join(process.cwd(), '../proto')],
+  includeDirs: [join(__dirname, '../../../proto')],
 });
 
 interface CentyProtoDescriptor extends grpc.GrpcObject {

@@ -22,7 +22,7 @@ export interface DaemonManagerOptions {
 }
 
 const DEFAULT_OPTIONS: Required<DaemonManagerOptions> = {
-  daemonBinaryPath: join(process.cwd(), 'target/release/centy-daemon'),
+  daemonBinaryPath: join(process.cwd(), '../../target/release/centy-daemon'),
   basePort: 50100,
   startupTimeout: 10000,
 };

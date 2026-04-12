@@ -29,10 +29,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .file_descriptor_set_path(out_dir.join("centy_descriptor.bin"))
         .compile_protos(
             &[
-                "proto/centy/v1/centy.proto",
-                "proto/centy/v1/generic_item.proto",
+                "../proto/centy/v1/centy.proto",
+                "../proto/centy/v1/generic_item.proto",
             ],
-            &["proto"],
+            &["../proto"],
         )?;
 
     // Split the generated centy.v1.rs into chunks of <=99 lines each so that
