@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Root `Makefile` with a `build` target that builds all components (`cargo build --release` for the daemon, `cli/Makefile`, and `mcp/Makefile`)
 - `centy-mcp` now checks version compatibility with the daemon on startup and emits a clear error if they are incompatible (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`)
-- New `cli/` module: auto-generated gRPC CLI (`centy`) built from proto definitions via `protoc-gen-cobra`, exposing all 80+ RPCs as `centy centy-daemon <rpc>` subcommands with full flag and JSON I/O support
+- New `cli/` module: auto-generated gRPC CLI (`centy`) built from proto definitions via `protoc-gen-cobra`, exposing all 80+ RPCs as `centy <rpc>` subcommands with full flag and JSON I/O support
 - `cli/README.md` documenting installation, usage, and regeneration workflow
 - `test` and `coverage` targets to the root `Makefile`; the pre-push hook now delegates to `make test` and `make coverage` instead of calling `cargo` directly
 
 ### Changed
+- CLI RPCs are now invocable as `centy <rpc>` instead of `centy centy-daemon <rpc>`; the redundant `centy-daemon` subcommand level has been removed
 - Pre-commit hook now uses `lint-staged` to run `cspell` only on staged files, replacing the manual `git diff --cached` + `xargs` approach
 - Extracted `lint-staged` configuration from `package.json` into a dedicated `.lintstagedrc.mjs` file
 
