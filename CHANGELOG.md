@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Updated `CONTRIBUTING.md` to reflect the current project state: corrected project structure tree (`daemon/src/`), fixed integration test import path, updated Rust prerequisite to 1.85+, and revised the "Adding a New Feature" gRPC workflow
-
 ### Added
 - Root `Makefile` with a `build` target that builds all components (`cargo build --release` for the daemon, `cli/Makefile`, and `mcp/Makefile`)
 - `centy-mcp` now checks version compatibility with the daemon on startup and emits a clear error if they are incompatible (e.g. `centy-mcp v0.9.2 is incompatible with centy-daemon v0.10.5. Please update centy-mcp.`)
