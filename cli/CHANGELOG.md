@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release: auto-generated gRPC CLI via `protoc-gen-cobra`
-- All 80+ `CentyDaemon` RPCs exposed as kebab-case subcommands under `centy-cli centy-daemon <rpc>`
+- All 80+ `CentyDaemon` RPCs exposed as kebab-case subcommands under `centy centy-daemon <rpc>`
 - Flags auto-mapped from proto request message fields
 - JSON/XML request input and multiple prettified response output formats
 - Default server address `127.0.0.1:50051` with `CENTY_DAEMON_ADDR` env-var override
