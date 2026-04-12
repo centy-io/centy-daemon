@@ -217,7 +217,19 @@
       "mcp__plugin_playwright_playwright__browser_press_key",
       "mcp__centy__centy_v1_CentyDaemon_CreateLink",
       "mcp__centy__centy_v1_CentyDaemon_ListLinks",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(pnpm --version)",
+      "Bash(npm exec:*)",
+      "Bash(pnpm install:*)",
+      "Bash(bash:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm exec:*)",
+      "Bash(gh run:*)",
+      "WebFetch(domain:docs.npmjs.com)",
+      "WebFetch(domain:blog.npmjs.org)",
+      "WebFetch(domain:docs.pypi.org)",
+      "Bash(gh search:*)",
+      "WebFetch(domain:dev.to)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
