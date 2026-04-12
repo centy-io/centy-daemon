@@ -11,8 +11,5 @@
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0"
   },
-  "lint-staged": {
-    "*.{rs,md,toml,yml,yaml,json,ts,js,sh,txt}": "cspell --no-progress"
-  },
   "packageManager": "pnpm@10.21.0"
 }

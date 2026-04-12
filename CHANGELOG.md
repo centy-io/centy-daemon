@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Pre-commit hook now uses `lint-staged` to run `cspell` only on staged files, replacing the manual `git diff --cached` + `xargs` approach
+- Extracted `lint-staged` configuration from `package.json` into a dedicated `.lintstagedrc.mjs` file
 
 ## [0.12.1] — 2026-04-12
 
