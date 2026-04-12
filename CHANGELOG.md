@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI RPCs are now invocable as `centy <rpc>` instead of `centy centy-daemon <rpc>`; the redundant `centy-daemon` subcommand level has been removed
 - Pre-commit hook now uses `lint-staged` to run `cspell` only on staged files, replacing the manual `git diff --cached` + `xargs` approach
 - Extracted `lint-staged` configuration from `package.json` into a dedicated `.lintstagedrc.mjs` file
+- Updated `CONTRIBUTING.md` to reflect the current project state: corrected project structure tree (`daemon/src/`), fixed integration test import path, updated Rust prerequisite to 1.85+, and revised the "Adding a New Feature" gRPC workflow
 
 ## [0.12.1] — 2026-04-12
 
