@@ -1,0 +1,28 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/centy-io/centy-daemon/cli/gen
+plugins:
+  - local:
+      - go
+      - run
+      - google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    out: gen
+    opt:
+      - paths=source_relative
+  - local:
+      - go
+      - run
+      - google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    out: gen
+    opt:
+      - paths=source_relative
+  - local:
+      - go
+      - run
+      - github.com/NathanBaulch/protoc-gen-cobra@latest
+    out: gen
+    opt:
+      - paths=source_relative
