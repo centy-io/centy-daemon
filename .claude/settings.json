@@ -229,7 +229,8 @@
       "WebFetch(domain:blog.npmjs.org)",
       "WebFetch(domain:docs.pypi.org)",
       "Bash(gh search:*)",
-      "WebFetch(domain:dev.to)"
+      "WebFetch(domain:dev.to)",
+      "Bash(claude mcp:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
