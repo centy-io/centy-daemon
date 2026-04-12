@@ -19,7 +19,7 @@ func main() {
 	}
 
 	root := &cobra.Command{
-		Use:     "centy-cli",
+		Use:     "centy",
 		Short:   "CLI client for the centy daemon",
 		Version: version,
 	}

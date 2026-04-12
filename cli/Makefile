@@ -8,4 +8,4 @@ generate-cli:
 	buf generate --template buf.gen.yaml ../proto
 
 build-cli: generate-cli
-	go build -ldflags "-X main.version=$(VERSION)" -o centy-cli .
+	go build -ldflags "-X main.version=$(VERSION)" -o centy .
