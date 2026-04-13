@@ -5,3 +5,4 @@
 [submodule "installer"]
 	path = installer
 	url = https://github.com/centy-io/installer.git
+	branch = main
