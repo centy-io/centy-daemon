@@ -251,6 +251,7 @@
     "Fprintln",
     "lstrip",
     "isfile",
-    "getsize"
+    "getsize",
+    "promisified"
   ]
 }

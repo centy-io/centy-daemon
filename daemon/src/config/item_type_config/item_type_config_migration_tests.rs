@@ -21,22 +21,27 @@ async fn test_migrate_creates_both_configs() {
     fs::create_dir_all(centy_dir.join("comments"))
         .await
         .expect("create comments/");
+    fs::create_dir_all(centy_dir.join("user_stories"))
+        .await
+        .expect("create user_stories/");
 
     let config = CentyConfig::default();
     let created = migrate_to_item_type_configs(temp.path(), &config, None)
         .await
         .expect("Should migrate");
 
-    assert_eq!(created.len(), 4);
+    assert_eq!(created.len(), 5);
     assert!(created.contains(&"issues/config.yaml".to_string()));
     assert!(created.contains(&"docs/config.yaml".to_string()));
     assert!(created.contains(&"archived/config.yaml".to_string()));
     assert!(created.contains(&"comments/config.yaml".to_string()));
+    assert!(created.contains(&"user_stories/config.yaml".to_string()));
 
     assert!(centy_dir.join("issues").join("config.yaml").exists());
     assert!(centy_dir.join("docs").join("config.yaml").exists());
     assert!(centy_dir.join("archived").join("config.yaml").exists());
     assert!(centy_dir.join("comments").join("config.yaml").exists());
+    assert!(centy_dir.join("user_stories").join("config.yaml").exists());
 }
 
 #[tokio::test]
@@ -55,6 +60,9 @@ async fn test_migrate_skips_existing_configs() {
     fs::create_dir_all(centy_dir.join("comments"))
         .await
         .expect("create comments/");
+    fs::create_dir_all(centy_dir.join("user_stories"))
+        .await
+        .expect("create user_stories/");
 
     fs::write(
         centy_dir.join("issues").join("config.yaml"),
@@ -68,10 +76,11 @@ async fn test_migrate_skips_existing_configs() {
         .await
         .expect("Should migrate");
 
-    assert_eq!(created.len(), 3);
+    assert_eq!(created.len(), 4);
     assert!(created.contains(&"docs/config.yaml".to_string()));
     assert!(created.contains(&"archived/config.yaml".to_string()));
     assert!(created.contains(&"comments/config.yaml".to_string()));
+    assert!(created.contains(&"user_stories/config.yaml".to_string()));
 
     let content = fs::read_to_string(centy_dir.join("issues").join("config.yaml"))
         .await

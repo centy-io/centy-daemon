@@ -1,6 +1,7 @@
 //! Migration helpers for item type configs.
 use super::defaults::{
     default_archived_config, default_comment_config, default_doc_config, default_issue_config,
+    default_user_story_config,
 };
 use super::io::{read_item_type_config, write_item_type_config};
 use crate::config::CentyConfig;
@@ -68,6 +69,13 @@ pub async fn migrate_to_item_type_configs(
         let comment_config = default_comment_config();
         write_item_type_config(project_path, "comments", &comment_config).await?;
         created.push("comments/config.yaml".to_string());
+    }
+    // User Stories
+    let user_stories_config_path = centy_path.join("user_stories").join("config.yaml");
+    if !user_stories_config_path.exists() {
+        let user_story_config = default_user_story_config(config);
+        write_item_type_config(project_path, "user_stories", &user_story_config).await?;
+        created.push("user_stories/config.yaml".to_string());
     }
     Ok(created)
 }
