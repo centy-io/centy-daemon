@@ -1,9 +1,13 @@
 {
+  "name": "centy-daemon",
+  "owner": {
+    "name": "centy-io"
+  },
   "plugins": [
     {
       "name": "centy",
       "description": "Skills for installing centy-daemon and interacting with the Centy MCP server from Claude Code",
-      "path": "./plugins/centy"
+      "source": "./plugins/centy"
     }
   ]
 }
