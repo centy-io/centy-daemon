@@ -232,11 +232,11 @@
       "WebFetch(domain:dev.to)",
       "Bash(claude mcp:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs"
+      "mcp__plugin_context7_context7__query-docs",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(npm list:*)"
     ],
-    "deny": [
-      "Bash(gh issue create:*)"
-    ]
+    "deny": ["Bash(gh issue create:*)"]
   },
   "hooks": {
     "PreToolUse": [

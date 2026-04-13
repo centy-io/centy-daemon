@@ -1,7 +1,7 @@
 ---
 name: compact
 description: This skill should be used when the user asks to "compact issues", "consolidate issues", "merge issues into an epic", "roll up related issues", or wants to group completed issues under a feature item and soft-delete the ones that are done.
-version: 1.0.0
+allowed-tools: mcp__centy__IsRunning mcp__centy__StartDaemon mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItems mcp__centy__centy_v1_CentyDaemon_GetItem mcp__centy__centy_v1_CentyDaemon_ListLinks mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_CreateItem mcp__centy__centy_v1_CentyDaemon_UpdateItem mcp__centy__centy_v1_CentyDaemon_CreateLink mcp__centy__centy_v1_CentyDaemon_SoftDeleteItem
 ---
 
 # compact

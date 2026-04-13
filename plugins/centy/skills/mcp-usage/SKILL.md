@@ -1,7 +1,7 @@
 ---
 name: mcp-usage
 description: This skill should be used when the user asks "how do I use centy", "what centy MCP tools are available", "how do I start or stop the daemon", "how do I create issues with centy", or needs a reference for any Centy MCP operation.
-version: 1.0.0
+allowed-tools: mcp__centy__IsRunning mcp__centy__StartDaemon mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_GetConfig mcp__centy__centy_v1_CentyDaemon_ListProjects
 ---
 
 # Centy MCP Usage
