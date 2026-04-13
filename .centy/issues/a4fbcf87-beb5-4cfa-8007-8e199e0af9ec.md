@@ -3,7 +3,8 @@ displayNumber: 188
 status: closed
 priority: 2
 createdAt: 2026-02-15T18:09:48.637151+00:00
-updatedAt: 2026-03-03T20:23:41.422696+00:00
+updatedAt: 2026-04-13T17:52:02.919846+00:00
+deletedAt: 2026-04-13T17:52:02.919846+00:00
 ---
 
 # Create an assert service to enforce preconditions before each command
