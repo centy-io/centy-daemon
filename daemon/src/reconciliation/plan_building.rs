@@ -30,7 +30,7 @@ async fn test_scan_centy_folder_empty() {
     use tempfile::tempdir;
     let temp_dir = tempdir().expect("Should create temp dir");
     let centy_path = temp_dir.path().join(".centy");
-    let files = helpers::scan_centy_folder(&centy_path);
+    let files = user_files::scan_centy_folder(&centy_path);
     assert!(files.is_empty());
 }
 
@@ -49,7 +49,7 @@ async fn test_scan_centy_folder_with_files() {
     fs::create_dir_all(centy_path.join("subdir"))
         .await
         .expect("Should create subdir");
-    let files = helpers::scan_centy_folder(&centy_path);
+    let files = user_files::scan_centy_folder(&centy_path);
     assert!(files.contains("test.txt"));
     assert!(files.contains("subdir/"));
 }
@@ -69,7 +69,7 @@ async fn test_scan_centy_folder_skips_manifest() {
     fs::write(centy_path.join("README.md"), "content")
         .await
         .expect("Should write readme");
-    let files = helpers::scan_centy_folder(&centy_path);
+    let files = user_files::scan_centy_folder(&centy_path);
     assert!(files.contains("README.md"));
     assert!(!files.contains(".centy-manifest.json"));
 }
