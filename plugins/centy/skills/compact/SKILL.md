@@ -8,9 +8,11 @@ version: 1.0.0
 
 Consolidate a set of related issues that share a feature domain into a single feature item (epic), then soft-delete the issues that have already been completed. Use this skill whenever the user asks to compact, consolidate, merge, or roll up a group of related issues.
 
+When called with no arguments, the skill discovers which issues to compact on its own — it never asks the user to provide a list.
+
 ## What this skill does
 
-1. Reads every issue the user identifies
+1. Discovers issues to compact (from user input, or automatically from the project)
 2. Synthesizes the underlying feature from their content
 3. Finds an existing epic for that feature — or creates one
 4. Creates/updates the epic body with a full implementation summary
@@ -30,7 +32,7 @@ Ensure the daemon is running and the project is initialized. Resolve `project_pa
 ### 1–4 — Research phase (run in an Agent)
 
 Launch a **sub-agent** whose sole job is to research and synthesize — it must not write anything. Hand it:
-- The list of issue IDs or display numbers
+- The list of issue IDs or display numbers **if the user provided any**, otherwise an empty list meaning "discover everything"
 - `project_path`
 
 **Sub-agent prompt template:**
@@ -40,12 +42,27 @@ You are performing the research phase of a "compact" workflow.
 Do NOT create, update, or delete any items — read only.
 
 project_path: <project_path>
-Issues to research: <id or display number list>
+Issues to research: <id or display number list, or "discover" if none given>
 
 Steps:
 
+0. DISCOVER ISSUES (only when "Issues to research" is "discover")
+   List ALL issues in the project (item_type: "issues").
+   From that full list, select candidates for compacting:
+   - Prefer issues that are "closed", "done", or "resolved" — these are prime
+     candidates to be rolled up and soft-deleted.
+   - Also include any open/in-progress issues that clearly belong to the same
+     feature domain as the closed ones.
+   - Exclude issues that already have a parent link to an existing feature item
+     (they were already compacted).
+   - Group the candidates into one or more feature clusters based on subject
+     matter. Each cluster will become one report. If there are multiple distinct
+     clusters, return a separate REPORT block for each.
+   - If no candidates are found, return a single report with
+     issues: [] and a warning explaining why.
+
 1. READ EVERY ISSUE
-   Fetch the full content and existing links for each issue.
+   Fetch the full content and existing links for each issue in the cluster.
    If a display number was given instead of a UUID, resolve it to a UUID first.
    Classify each issue:
    - Done   → status is "closed", "done", or "resolved"
@@ -63,8 +80,8 @@ Steps:
 
 3. DISCOVER THE FEATURE ITEM TYPE
    List the available item types for this project.
-   Pick the first available type from: epics → features → stories.
-   If none of these exist, set feature_type to null.
+   Pick the first available type from: epics → features → stories → issues.
+   feature_type will always be set — there is always an "issues" fallback.
 
 4. CHECK FOR AN EXISTING FEATURE ITEM
    a. Search for a feature item whose title matches key terms from feature_name.
@@ -77,10 +94,11 @@ Steps:
      to null and note the mismatch as a warning
    - If no candidate found → set existing_feature_id to null
 
-Return a structured report with ALL of the following fields — no fields omitted:
+Return one REPORT block per feature cluster. Each block must contain ALL of the
+following fields — no fields omitted:
 
 REPORT:
-  feature_type: <"epics" | "features" | "stories" | null>
+  feature_type: <"epics" | "features" | "stories" | "issues">
   feature_name: <string>
   feature_summary: <string>
   done_items: [<string>, …]
@@ -99,9 +117,13 @@ REPORT:
   warnings: [<string>, …]   # not-found issues, domain mismatches, etc.
 ```
 
-Wait for the agent to return its report before continuing. If `feature_type` is `null`, ask the user which item type to use before proceeding.
+Wait for the agent to return its report(s) before continuing.
 
 ---
+
+### 5–8 — Execute for each report
+
+Run steps 5–8 independently for every REPORT block the sub-agent returned.
 
 ### 5 — Create or update the feature item
 
@@ -155,7 +177,7 @@ Linked (active): #N1 <title>, #N2 <title>, …
 Soft-deleted (done): #N3 <title>, #N4 <title>, …
 ```
 
-Surface any warnings the agent returned.
+If multiple clusters were processed, print one block per cluster. Surface any warnings the agent returned.
 
 ---
 
@@ -163,9 +185,12 @@ Surface any warnings the agent returned.
 
 | Situation | Handling |
 |-----------|----------|
+| No input given | Auto-discover all issues eligible for compact in the project (step 0) |
+| No eligible issues found | Report to user and stop — nothing to do |
 | All issues are already closed | Feature status → `"closed"`; soft-delete all |
 | All issues are open | Feature status → `"in-progress"`; link all, delete none |
 | An issue is not found | Agent records a warning; skip it, continue with the rest |
 | Issue already linked to a different feature item | Note the conflict; link to the new feature anyway unless user says otherwise |
-| `feature_type` is null | Ask the user which item type to use before proceeding to step 5 |
+| `feature_type` is null | Cannot happen — "issues" is always the final fallback |
+| Multiple distinct feature clusters discovered | Run steps 5–8 once per cluster |
 | User provides mixed project paths | Group issues by project; run the full workflow per project |
