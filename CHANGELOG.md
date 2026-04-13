@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] — 2026-04-13
+
 ### Changed
 - `compact` skill now auto-discovers issues when called with no arguments — groups them into feature clusters and runs the full compact workflow without requiring any user input
 - Compacted 113 closed lint/code-quality issues into new epic #413 (Rust Lint & Code Quality Hardening); all soft-deleted
