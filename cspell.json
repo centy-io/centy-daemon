@@ -248,6 +248,9 @@
     "librdkafka",
     "rskafka",
     "Getenv",
-    "Fprintln"
+    "Fprintln",
+    "lstrip",
+    "isfile",
+    "getsize"
   ]
 }
