@@ -227,6 +227,8 @@ async fn test_delete_links_for_entity_no_links() {
         .await
         .unwrap();
 
-    let deleted = delete_links_for_entity(temp.path(), "ghost-id").await.unwrap();
+    let deleted = delete_links_for_entity(temp.path(), "ghost-id")
+        .await
+        .unwrap();
     assert_eq!(deleted, 0);
 }

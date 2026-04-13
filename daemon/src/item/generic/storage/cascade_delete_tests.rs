@@ -34,7 +34,9 @@ async fn create_issue(temp: &std::path::Path, title: &str) -> mdstore::Item {
         custom_fields: HashMap::new(),
         comment: None,
     };
-    generic_create(temp, "issues", &config, options).await.unwrap()
+    generic_create(temp, "issues", &config, options)
+        .await
+        .unwrap()
 }
 
 #[tokio::test]
@@ -135,7 +137,11 @@ async fn test_hard_delete_item_preserves_unrelated_links() {
         .unwrap();
 
     let links_after = list_all_links(temp.path()).await.unwrap();
-    assert_eq!(links_after.len(), 1, "Unrelated link B->C should be preserved");
+    assert_eq!(
+        links_after.len(),
+        1,
+        "Unrelated link B->C should be preserved"
+    );
     assert_eq!(links_after[0].source_id, b.id);
     assert_eq!(links_after[0].target_id, c.id);
 }
@@ -178,7 +184,9 @@ async fn test_soft_delete_does_not_cascade_links() {
 #[tokio::test]
 async fn test_cascade_delete_entity_links_public_api() {
     let temp = tempfile::tempdir().unwrap();
-    fs::create_dir_all(temp.path().join(".centy")).await.unwrap();
+    fs::create_dir_all(temp.path().join(".centy"))
+        .await
+        .unwrap();
     crate::manifest::write_manifest(temp.path(), &crate::manifest::create_manifest())
         .await
         .unwrap();

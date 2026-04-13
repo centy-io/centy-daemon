@@ -1,7 +1,9 @@
 use super::*;
 use crate::config::item_type_config::{default_issue_config, write_item_type_config};
 use crate::config::CentyConfig;
-use crate::item::generic::storage::{generic_create, generic_delete, generic_list, generic_soft_delete};
+use crate::item::generic::storage::{
+    generic_create, generic_delete, generic_list, generic_soft_delete,
+};
 use crate::link::{create_link, list_all_links, CreateLinkOptions, TargetType};
 use crate::manifest;
 use chrono::Duration;
@@ -189,11 +191,7 @@ async fn test_cleanup_no_op_for_empty_project() {
 
 // ─── clean_orphan_links_for_project ──────────────────────────────────────────
 
-async fn create_issue_link(
-    project_path: &std::path::Path,
-    source_id: &str,
-    target_id: &str,
-) {
+async fn create_issue_link(project_path: &std::path::Path, source_id: &str, target_id: &str) {
     create_link(
         project_path,
         CreateLinkOptions {
@@ -259,7 +257,10 @@ async fn test_orphan_links_removed_when_target_deleted() {
     clean_orphan_links_for_project(temp.path()).await;
 
     let links_after = list_all_links(temp.path()).await.unwrap();
-    assert!(links_after.is_empty(), "Orphan link should have been removed");
+    assert!(
+        links_after.is_empty(),
+        "Orphan link should have been removed"
+    );
 }
 
 #[tokio::test]

@@ -20,6 +20,9 @@ pub use move_ops::{generic_duplicate, generic_rename_slug};
 #[cfg(test)]
 use tokio::fs;
 #[cfg(test)]
+#[path = "cascade_delete_tests.rs"]
+mod cascade_delete_tests;
+#[cfg(test)]
 #[path = "create_and_get_tests.rs"]
 mod create_and_get_tests;
 #[cfg(test)]
@@ -34,9 +37,6 @@ mod move_ops_tests;
 #[cfg(test)]
 #[path = "priority_validation_tests.rs"]
 mod priority_validation_tests;
-#[cfg(test)]
-#[path = "cascade_delete_tests.rs"]
-mod cascade_delete_tests;
 #[cfg(test)]
 #[path = "soft_delete_tests.rs"]
 mod soft_delete_tests;
