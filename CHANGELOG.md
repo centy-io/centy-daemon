@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-04-13
+
 ### Added
 - Cascade hard-delete of link items when a linked item is deleted: all link records referencing
   the deleted item (as source or target) are now hard-deleted atomically in the same operation
