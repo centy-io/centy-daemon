@@ -121,9 +121,9 @@ Wait for the agent to return its report(s) before continuing.
 
 ---
 
-### 5–8 — Execute for each report
+### 5–8 — Execute one cluster at a time
 
-Run steps 5–8 independently for every REPORT block the sub-agent returned.
+If the sub-agent returned multiple REPORT blocks, process them one at a time: complete steps 5–8 for the first cluster, report the result to the user, then move on to the next cluster. Do not start a new cluster until the previous one is fully done.
 
 ### 5 — Create or update the feature item
 
@@ -177,7 +177,7 @@ Linked (active): #N1 <title>, #N2 <title>, …
 Soft-deleted (done): #N3 <title>, #N4 <title>, …
 ```
 
-If multiple clusters were processed, print one block per cluster. Surface any warnings the agent returned.
+Surface any warnings the agent returned. If more clusters remain, proceed to the next one after reporting this result.
 
 ---
 
@@ -192,5 +192,5 @@ If multiple clusters were processed, print one block per cluster. Surface any wa
 | An issue is not found | Agent records a warning; skip it, continue with the rest |
 | Issue already linked to a different feature item | Note the conflict; link to the new feature anyway unless user says otherwise |
 | `feature_type` is null | Cannot happen — "issues" is always the final fallback |
-| Multiple distinct feature clusters discovered | Run steps 5–8 once per cluster |
+| Multiple distinct feature clusters discovered | Process one cluster at a time — finish and report before starting the next |
 | User provides mixed project paths | Group issues by project; run the full workflow per project |
