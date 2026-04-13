@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] — 2026-04-13
+
 ### Added
 - gRPC Health Checking Protocol support (`grpc.health.v1`) via `tonic-health`: the daemon now exposes a standard `Health` service (Check + Watch) that reports `SERVING` on startup and `NOT_SERVING` on shutdown/restart, enabling `grpc_health_probe`, load balancers, and orchestrators to query daemon liveness without custom logic
 - `release.yml` now builds and uploads `centy-cli` binaries for all 5 platforms (linux-x86_64, linux-aarch64, darwin-x86_64, darwin-aarch64, windows-x86_64) as part of the GitHub release
