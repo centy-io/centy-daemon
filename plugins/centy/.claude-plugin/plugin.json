@@ -12,6 +12,11 @@
       "name": "mcp-usage",
       "description": "Reference guide for all Centy MCP tools, daemon lifecycle, and common workflows",
       "path": "./skills/mcp-usage"
+    },
+    {
+      "name": "compact",
+      "description": "Consolidate a set of related issues into a feature item (epic), then soft-delete the issues that are already done",
+      "path": "./skills/compact"
     }
   ]
 }
