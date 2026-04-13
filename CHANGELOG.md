@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Cascade hard-delete of link items when a linked item is deleted: all link records referencing
+  the deleted item (as source or target) are now hard-deleted atomically in the same operation
+- Orphan link sweep in the regular cleanup pass: pre-existing orphan links are hard-deleted at
+  the end of each cleanup cycle
+- `cascade_delete_entity_links` — public API to remove all links for an entity
+- `list_all_links` — public API to list every link record in the project
+- `clean_orphan_links_for_project` — public API for an on-demand orphan sweep
+
 ## [0.12.4] — 2026-04-13
 
 ### Changed

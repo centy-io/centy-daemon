@@ -1,5 +1,7 @@
-pub use super::crud_fns::{create_link, delete_link, delete_link_by_id, update_link};
-pub use super::crud_read::{get_available_link_types, list_links};
+pub use super::crud_fns::{
+    cascade_delete_entity_links, create_link, delete_link, delete_link_by_id, update_link,
+};
+pub use super::crud_read::{get_available_link_types, list_all_links, list_links};
 #[cfg(test)]
 pub use super::crud_types::LinkTypeInfo;
 pub use super::crud_types::{CreateLinkOptions, DeleteLinkOptions, LinkError, UpdateLinkOptions};
