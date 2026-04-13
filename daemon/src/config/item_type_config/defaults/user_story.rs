@@ -3,8 +3,7 @@ use crate::config::CentyConfig;
 use mdstore::IdStrategy;
 
 /// Default user story statuses for agile/product workflows.
-pub const DEFAULT_USER_STORY_STATUSES: &[&str] =
-    &["backlog", "ready", "in-progress", "done"];
+pub const DEFAULT_USER_STORY_STATUSES: &[&str] = &["backlog", "ready", "in-progress", "done"];
 
 /// Build the default user stories config from the project's `CentyConfig`.
 #[must_use]
