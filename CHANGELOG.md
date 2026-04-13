@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.4] — 2026-04-13
+
 ### Changed
-- Split `reconciliation/plan/mod.rs` into focused submodules: `builder.rs` (orchestration), `managed_files.rs` (template file handling), `user_files.rs` (file discovery and categorization), and `hashing.rs` (hash utilities); removed `helpers.rs`
+- User stories no longer have default statuses — the `user_stories` item type is now status-free out of the box
 
 ## [0.12.3] — 2026-04-13
 

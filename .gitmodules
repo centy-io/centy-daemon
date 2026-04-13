@@ -2,3 +2,6 @@
 	path = proto
 	url = git@github.com:centy-io/proto.git
 	branch = main
+[submodule "installer"]
+	path = installer
+	url = https://github.com/centy-io/installer.git
