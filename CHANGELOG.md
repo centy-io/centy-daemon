@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/workflows/validate-plugins.yml` — CI workflow that validates plugin JSON manifests and SKILL.md presence
 - `.claude-plugin/README.md` — documents the marketplace layout, installation from another repo, and skill invocation syntax (`/centy:<skill>`)
 
+### Fixed
+- `plugins/centy/.claude-plugin/plugin.json` — removed invalid `skills` array (skills are auto-discovered; the field is not part of the manifest schema)
+- All three `SKILL.md` files now include required YAML frontmatter (`name`, `description`, `version`) so the plugin validator can parse skill metadata
+
 ## [0.12.2] — 2026-04-13
 
 ### Added
