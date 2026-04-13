@@ -8,8 +8,9 @@ mod storage;
 mod types;
 
 pub use crud::{
-    create_link, delete_link, delete_link_by_id, get_available_link_types, list_links, update_link,
-    CreateLinkOptions, DeleteLinkOptions, LinkError, UpdateLinkOptions,
+    cascade_delete_entity_links, create_link, delete_link, delete_link_by_id,
+    get_available_link_types, list_all_links, list_links, update_link, CreateLinkOptions,
+    DeleteLinkOptions, LinkError, UpdateLinkOptions,
 };
 pub use link_types::{is_valid_link_type, BUILTIN_LINK_TYPES};
 pub use types::{CustomLinkTypeDefinition, LinkDirection, LinkRecord, LinkView, TargetType};

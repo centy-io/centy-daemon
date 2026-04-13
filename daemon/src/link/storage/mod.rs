@@ -1,7 +1,10 @@
 mod io;
 pub mod serialization;
 pub mod validation;
-pub use io::{create_link_file, delete_link_file, list_all_link_records, update_link_file};
+pub use io::{
+    create_link_file, delete_link_file, delete_links_for_entity, list_all_link_records,
+    update_link_file,
+};
 
 #[cfg(test)]
 #[path = "../links_file_basic_operations_tests.rs"]

@@ -4,7 +4,7 @@ mod parse;
 mod project;
 
 pub use parse::parse_retention_duration;
-pub use project::run_cleanup_for_project;
+pub use project::{clean_orphan_links_for_project, run_cleanup_for_project};
 
 use crate::config::read_config;
 use crate::registry::{list_projects, ListProjectsOptions};

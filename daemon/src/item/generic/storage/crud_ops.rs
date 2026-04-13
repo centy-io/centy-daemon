@@ -5,6 +5,7 @@ use crate::utils::get_centy_path;
 use mdstore::{CreateOptions, Filters, TypeConfig, UpdateOptions};
 use std::path::Path;
 use tokio::fs;
+use tracing::warn;
 /// Create a new generic item.
 pub async fn generic_create(
     project_path: &Path,
@@ -68,6 +69,13 @@ pub async fn generic_delete(
     force: bool,
 ) -> Result<(), ItemError> {
     let type_dir = type_storage_path(project_path, folder);
+    if force {
+        // Cascade-delete all links referencing this entity before removing the
+        // item itself so no orphan link records are ever left behind.
+        if let Err(e) = crate::link::cascade_delete_entity_links(project_path, id).await {
+            warn!(id = %id, folder = %folder, error = %e, "Failed to cascade-delete entity links");
+        }
+    }
     mdstore::delete(&type_dir, id, force).await?;
     if force && config.features.assets {
         delete_item_assets(project_path, folder, id).await?;

@@ -20,6 +20,9 @@ pub use move_ops::{generic_duplicate, generic_rename_slug};
 #[cfg(test)]
 use tokio::fs;
 #[cfg(test)]
+#[path = "cascade_delete_tests.rs"]
+mod cascade_delete_tests;
+#[cfg(test)]
 #[path = "create_and_get_tests.rs"]
 mod create_and_get_tests;
 #[cfg(test)]

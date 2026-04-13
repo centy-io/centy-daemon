@@ -1,7 +1,7 @@
 //! Tests for link/storage/io.rs covering all branches.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use super::{create_link_file, delete_link_file, list_all_link_records};
+use super::{create_link_file, delete_link_file, delete_links_for_entity, list_all_link_records};
 use crate::link::TargetType;
 
 // ─── create_link_file ────────────────────────────────────────────────────────
@@ -129,4 +129,106 @@ async fn test_delete_link_file_specific_record() {
     assert_eq!(records.len(), 1);
     assert_eq!(records[0].id, r2.id);
     assert_eq!(records[0].link_type, "relates-to");
+}
+
+// ─── delete_links_for_entity ─────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_delete_links_for_entity_as_source() {
+    let temp = tempfile::tempdir().unwrap();
+    tokio::fs::create_dir_all(temp.path().join(".centy"))
+        .await
+        .unwrap();
+
+    // entity "a" is source in both links
+    create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "b",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
+    create_link_file(
+        temp.path(),
+        "a",
+        &TargetType::issue(),
+        "c",
+        &TargetType::issue(),
+        "relates-to",
+    )
+    .await
+    .unwrap();
+    // unrelated link
+    create_link_file(
+        temp.path(),
+        "b",
+        &TargetType::issue(),
+        "c",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
+
+    let deleted = delete_links_for_entity(temp.path(), "a").await.unwrap();
+    assert_eq!(deleted, 2);
+
+    let remaining = list_all_link_records(temp.path()).await.unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].source_id, "b");
+    assert_eq!(remaining[0].target_id, "c");
+}
+
+#[tokio::test]
+async fn test_delete_links_for_entity_as_target() {
+    let temp = tempfile::tempdir().unwrap();
+    tokio::fs::create_dir_all(temp.path().join(".centy"))
+        .await
+        .unwrap();
+
+    // entity "z" is target in one link
+    create_link_file(
+        temp.path(),
+        "x",
+        &TargetType::issue(),
+        "z",
+        &TargetType::issue(),
+        "blocks",
+    )
+    .await
+    .unwrap();
+    // unrelated
+    create_link_file(
+        temp.path(),
+        "x",
+        &TargetType::issue(),
+        "y",
+        &TargetType::issue(),
+        "relates-to",
+    )
+    .await
+    .unwrap();
+
+    let deleted = delete_links_for_entity(temp.path(), "z").await.unwrap();
+    assert_eq!(deleted, 1);
+
+    let remaining = list_all_link_records(temp.path()).await.unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].target_id, "y");
+}
+
+#[tokio::test]
+async fn test_delete_links_for_entity_no_links() {
+    let temp = tempfile::tempdir().unwrap();
+    tokio::fs::create_dir_all(temp.path().join(".centy"))
+        .await
+        .unwrap();
+
+    let deleted = delete_links_for_entity(temp.path(), "ghost-id")
+        .await
+        .unwrap();
+    assert_eq!(deleted, 0);
 }
