@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] — 2026-04-13
+
 ### Added
 - Initial release: auto-generated gRPC CLI via `protoc-gen-cobra`
 - All 80+ `CentyDaemon` RPCs exposed as kebab-case subcommands directly under `centy <rpc>`
