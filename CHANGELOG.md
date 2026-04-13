@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Compacted 113 closed lint/code-quality issues into new epic #413 (Rust Lint & Code Quality Hardening); all soft-deleted
+- Updated epic #1 (Generic & Config-Driven Item Type System) with progress summary; linked 19 active child issues; soft-deleted 4 completed issues
+
 ### Added
 - Claude Code plugin marketplace scaffold: users can now install the `centy` plugin via `/plugin marketplace add centy-io/centy-daemon`
 - `plugins/centy/skills/install/SKILL.md` — guided install skill (clone → build → start daemon → register MCP server)
