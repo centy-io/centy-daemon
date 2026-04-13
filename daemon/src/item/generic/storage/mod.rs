@@ -35,5 +35,8 @@ mod move_ops_tests;
 #[path = "priority_validation_tests.rs"]
 mod priority_validation_tests;
 #[cfg(test)]
+#[path = "cascade_delete_tests.rs"]
+mod cascade_delete_tests;
+#[cfg(test)]
 #[path = "soft_delete_tests.rs"]
 mod soft_delete_tests;

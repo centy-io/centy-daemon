@@ -1,7 +1,8 @@
 use super::*;
 use crate::config::item_type_config::{default_issue_config, write_item_type_config};
 use crate::config::CentyConfig;
-use crate::item::generic::storage::{generic_create, generic_list, generic_soft_delete};
+use crate::item::generic::storage::{generic_create, generic_delete, generic_list, generic_soft_delete};
+use crate::link::{create_link, list_all_links, CreateLinkOptions, TargetType};
 use crate::manifest;
 use chrono::Duration;
 use mdstore::{CreateOptions, Filters, TypeConfig};
@@ -184,4 +185,130 @@ async fn test_cleanup_no_op_for_empty_project() {
 
     // Should complete without errors when there are no items at all
     run_cleanup_for_project(temp.path(), Duration::days(30)).await;
+}
+
+// ─── clean_orphan_links_for_project ──────────────────────────────────────────
+
+async fn create_issue_link(
+    project_path: &std::path::Path,
+    source_id: &str,
+    target_id: &str,
+) {
+    create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: source_id.to_string(),
+            source_type: TargetType::issue(),
+            target_id: target_id.to_string(),
+            target_type: TargetType::issue(),
+            link_type: "blocks".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn test_orphan_links_removed_when_source_deleted() {
+    let temp = tempfile::tempdir().unwrap();
+    setup_project(temp.path()).await;
+    write_issue_type_config(temp.path()).await;
+
+    let a = create_issue(temp.path(), "Issue A").await;
+    let b = create_issue(temp.path(), "Issue B").await;
+
+    create_issue_link(temp.path(), &a.id, &b.id).await;
+
+    // Hard-delete A directly via mdstore to simulate an orphan (bypassing cascade)
+    let issues_dir = temp.path().join(".centy").join("issues");
+    tokio::fs::remove_file(issues_dir.join(format!("{}.md", a.id)))
+        .await
+        .unwrap();
+
+    // Links should still exist (one orphan)
+    let links_before = list_all_links(temp.path()).await.unwrap();
+    assert_eq!(links_before.len(), 1);
+
+    clean_orphan_links_for_project(temp.path()).await;
+
+    let links_after = list_all_links(temp.path()).await.unwrap();
+    assert!(
+        links_after.is_empty(),
+        "Orphan link should have been removed"
+    );
+}
+
+#[tokio::test]
+async fn test_orphan_links_removed_when_target_deleted() {
+    let temp = tempfile::tempdir().unwrap();
+    setup_project(temp.path()).await;
+    write_issue_type_config(temp.path()).await;
+
+    let a = create_issue(temp.path(), "Issue A").await;
+    let b = create_issue(temp.path(), "Issue B").await;
+
+    create_issue_link(temp.path(), &a.id, &b.id).await;
+
+    // Hard-delete B to create an orphan link
+    let issues_dir = temp.path().join(".centy").join("issues");
+    tokio::fs::remove_file(issues_dir.join(format!("{}.md", b.id)))
+        .await
+        .unwrap();
+
+    clean_orphan_links_for_project(temp.path()).await;
+
+    let links_after = list_all_links(temp.path()).await.unwrap();
+    assert!(links_after.is_empty(), "Orphan link should have been removed");
+}
+
+#[tokio::test]
+async fn test_valid_links_not_removed_by_orphan_cleanup() {
+    let temp = tempfile::tempdir().unwrap();
+    setup_project(temp.path()).await;
+    write_issue_type_config(temp.path()).await;
+
+    let a = create_issue(temp.path(), "Issue A").await;
+    let b = create_issue(temp.path(), "Issue B").await;
+
+    create_issue_link(temp.path(), &a.id, &b.id).await;
+
+    clean_orphan_links_for_project(temp.path()).await;
+
+    let links_after = list_all_links(temp.path()).await.unwrap();
+    assert_eq!(
+        links_after.len(),
+        1,
+        "Valid link must not be removed by orphan cleanup"
+    );
+}
+
+#[tokio::test]
+async fn test_orphan_links_swept_during_regular_cleanup() {
+    let temp = tempfile::tempdir().unwrap();
+    setup_project(temp.path()).await;
+    write_issue_type_config(temp.path()).await;
+
+    let a = create_issue(temp.path(), "Issue A").await;
+    let b = create_issue(temp.path(), "Issue B").await;
+
+    create_issue_link(temp.path(), &a.id, &b.id).await;
+
+    // Simulate orphan by removing source file directly
+    tokio::fs::remove_file(
+        temp.path()
+            .join(".centy")
+            .join("issues")
+            .join(format!("{}.md", a.id)),
+    )
+    .await
+    .unwrap();
+
+    run_cleanup_for_project(temp.path(), Duration::days(30)).await;
+
+    let links_after = list_all_links(temp.path()).await.unwrap();
+    assert!(
+        links_after.is_empty(),
+        "Regular cleanup pass should sweep orphan links"
+    );
 }

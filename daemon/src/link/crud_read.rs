@@ -1,8 +1,13 @@
 use super::crud_types::{LinkError, LinkTypeInfo};
 use super::storage::list_all_link_records;
-use super::types::{CustomLinkTypeDefinition, LinkView, TargetType};
+use super::types::{CustomLinkTypeDefinition, LinkRecord, LinkView, TargetType};
 use super::BUILTIN_LINK_TYPES;
 use std::path::Path;
+
+/// List every link record in the project, regardless of entity.
+pub async fn list_all_links(project_path: &Path) -> Result<Vec<LinkRecord>, LinkError> {
+    Ok(list_all_link_records(project_path).await?)
+}
 
 /// List all links for an entity, returning a view for each (with direction set).
 pub async fn list_links(
