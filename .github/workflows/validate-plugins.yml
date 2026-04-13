@@ -1,0 +1,118 @@
+name: Validate Plugins
+
+on:
+  push:
+    paths:
+      - '.claude-plugin/**'
+      - 'plugins/**'
+  pull_request:
+    paths:
+      - '.claude-plugin/**'
+      - 'plugins/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate marketplace manifest
+        run: |
+          echo "Checking .claude-plugin/marketplace.json..."
+          if [ ! -f .claude-plugin/marketplace.json ]; then
+            echo "ERROR: .claude-plugin/marketplace.json not found"
+            exit 1
+          fi
+          python3 -c "import json, sys; json.load(open('.claude-plugin/marketplace.json'))"
+          echo "marketplace.json is valid JSON"
+
+      - name: Validate plugin manifests
+        run: |
+          for plugin_dir in plugins/*/; do
+            name=$(basename "$plugin_dir")
+            manifest="$plugin_dir.claude-plugin/plugin.json"
+
+            echo "Checking plugin: $name"
+
+            if [ ! -f "$manifest" ]; then
+              echo "ERROR: $manifest not found"
+              exit 1
+            fi
+
+            python3 -c "import json, sys; json.load(open('$manifest'))"
+            echo "  $manifest is valid JSON"
+
+            python3 - <<'EOF'
+import json, sys
+
+manifest_path = "$manifest"
+data = json.load(open(manifest_path))
+
+required = ["name", "version", "description", "skills"]
+for field in required:
+    if field not in data:
+        print(f"ERROR: missing required field '{field}' in {manifest_path}")
+        sys.exit(1)
+
+for skill in data["skills"]:
+    for sf in ["name", "path"]:
+        if sf not in skill:
+            print(f"ERROR: skill entry missing '{sf}' in {manifest_path}")
+            sys.exit(1)
+
+print(f"  plugin.json fields OK: {list(data.keys())}")
+EOF
+          done
+
+      - name: Validate skill SKILL.md files
+        run: |
+          for plugin_dir in plugins/*/; do
+            manifest="$plugin_dir.claude-plugin/plugin.json"
+            if [ ! -f "$manifest" ]; then
+              continue
+            fi
+
+            python3 - "$plugin_dir" "$manifest" <<'EOF'
+import json, sys, os
+
+plugin_dir = sys.argv[1]
+manifest_path = sys.argv[2]
+data = json.load(open(manifest_path))
+
+for skill in data["skills"]:
+    skill_path = os.path.join(plugin_dir, skill["path"].lstrip("./"), "SKILL.md")
+    if not os.path.isfile(skill_path):
+        print(f"ERROR: SKILL.md not found at {skill_path}")
+        sys.exit(1)
+    size = os.path.getsize(skill_path)
+    if size == 0:
+        print(f"ERROR: SKILL.md is empty at {skill_path}")
+        sys.exit(1)
+    print(f"  skill '{skill['name']}': SKILL.md present ({size} bytes)")
+
+print("All skills valid")
+EOF
+          done
+
+      - name: Verify marketplace entries match plugin directories
+        run: |
+          python3 - <<'EOF'
+import json, os, sys
+
+marketplace = json.load(open(".claude-plugin/marketplace.json"))
+errors = []
+
+for entry in marketplace["plugins"]:
+    plugin_path = entry.get("path", "")
+    resolved = plugin_path.lstrip("./")
+    manifest = os.path.join(resolved, ".claude-plugin", "plugin.json")
+    if not os.path.isfile(manifest):
+        errors.append(f"marketplace.json references '{plugin_path}' but {manifest} not found")
+
+if errors:
+    for e in errors:
+        print(f"ERROR: {e}")
+    sys.exit(1)
+
+print(f"All {len(marketplace['plugins'])} marketplace entries are consistent")
+EOF
