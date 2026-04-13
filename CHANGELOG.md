@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Claude Code plugin marketplace scaffold: users can now install the `centy` plugin via `/plugin marketplace add centy-io/centy-daemon`
+- `plugins/centy/skills/install/SKILL.md` — guided install skill (clone → build → start daemon → register MCP server)
+- `plugins/centy/skills/mcp-usage/SKILL.md` — MCP tools reference skill covering daemon lifecycle, CRUD operations, query language, and common workflows
+- `plugins/centy/.mcp.json` — auto-wires `centy-mcp` when the plugin is installed
+- `.github/workflows/validate-plugins.yml` — CI workflow that validates plugin JSON manifests and SKILL.md presence
+
 ## [0.12.2] — 2026-04-13
 
 ### Added
