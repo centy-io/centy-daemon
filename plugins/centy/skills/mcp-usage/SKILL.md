@@ -1,3 +1,9 @@
+---
+name: mcp-usage
+description: This skill should be used when the user asks "how do I use centy", "what centy MCP tools are available", "how do I start or stop the daemon", "how do I create issues with centy", or needs a reference for any Centy MCP operation.
+version: 1.0.0
+---
+
 # Centy MCP Usage
 
 Reference guide for working with the Centy MCP server from within Claude Code. Use this skill when the user asks how to manage issues, start/stop the daemon, or perform any Centy operation via Claude.

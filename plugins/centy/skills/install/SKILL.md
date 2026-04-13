@@ -1,3 +1,9 @@
+---
+name: install
+description: This skill should be used when the user asks to "install centy-daemon", "set up centy", "clone and build centy-daemon", "wire up the centy MCP server", or needs help getting centy-daemon running for the first time.
+version: 1.0.0
+---
+
 # Install centy-daemon
 
 Guide the user step-by-step through setting up `centy-daemon` locally and wiring it up as an MCP server inside Claude Code. Work through each step in order, confirming success before moving on. If a step fails, diagnose and fix before continuing.

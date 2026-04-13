@@ -1,22 +1,5 @@
 {
   "name": "centy",
   "version": "1.0.0",
-  "description": "Install and use centy-daemon — the local-first, file-based project management engine for Claude Code",
-  "skills": [
-    {
-      "name": "install",
-      "description": "Walk through cloning, building, and wiring up centy-daemon as an MCP server in Claude Code",
-      "path": "./skills/install"
-    },
-    {
-      "name": "mcp-usage",
-      "description": "Reference guide for all Centy MCP tools, daemon lifecycle, and common workflows",
-      "path": "./skills/mcp-usage"
-    },
-    {
-      "name": "compact",
-      "description": "Consolidate a set of related issues into a feature item (epic), then soft-delete the issues that are already done",
-      "path": "./skills/compact"
-    }
-  ]
+  "description": "Install and use centy-daemon — the local-first, file-based project management engine for Claude Code"
 }

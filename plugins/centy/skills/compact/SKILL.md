@@ -1,3 +1,9 @@
+---
+name: compact
+description: This skill should be used when the user asks to "compact issues", "consolidate issues", "merge issues into an epic", "roll up related issues", or wants to group completed issues under a feature item and soft-delete the ones that are done.
+version: 1.0.0
+---
+
 # compact
 
 Consolidate a set of related issues that share a feature domain into a single feature item (epic), then soft-delete the issues that have already been completed. Use this skill whenever the user asks to compact, consolidate, merge, or roll up a group of related issues.
