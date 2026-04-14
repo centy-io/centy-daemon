@@ -252,6 +252,11 @@
     "lstrip",
     "isfile",
     "getsize",
-    "promisified"
+    "promisified",
+    "nslookup",
+    "networksetup",
+    "listallnetworkservices",
+    "getinfo",
+    "getdnsservers"
   ]
 }
