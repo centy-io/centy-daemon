@@ -6,3 +6,6 @@ resolver = "2"
 libraries = [
     { git = "https://github.com/tupe12334/agent_dylint_lints" },
 ]
+
+[patch.crates-io]
+worktree-io = { path = "worktree-io-patch" }

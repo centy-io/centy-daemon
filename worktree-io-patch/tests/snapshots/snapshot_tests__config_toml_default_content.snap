@@ -1,0 +1,20 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 25
+expression: "Config::default().to_toml_with_comments()"
+---
+# runner — https://worktree.io
+
+# Editor configuration.
+[editor]
+
+# Workspace open behavior.
+[open]
+# Whether to launch the configured editor when opening a workspace.
+editor = true
+
+# Hook scripts run around the open command.
+[hooks]
+
+# Workspace lifecycle configuration.
+[workspace]
