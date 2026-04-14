@@ -16,13 +16,13 @@ pub async fn create_link(
     if options.source_id == options.target_id && options.source_type == options.target_type {
         return Err(LinkError::SelfLink);
     }
-    if !entity_exists(project_path, &options.source_id, &options.source_type) {
+    if !entity_exists(project_path, &options.source_id, &options.source_type).await {
         return Err(LinkError::SourceNotFound(
             options.source_id.clone(),
             options.source_type.clone(),
         ));
     }
-    if !entity_exists(project_path, &options.target_id, &options.target_type) {
+    if !entity_exists(project_path, &options.target_id, &options.target_type).await {
         return Err(LinkError::TargetNotFound(
             options.target_id.clone(),
             options.target_type.clone(),
