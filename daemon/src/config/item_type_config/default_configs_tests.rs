@@ -2,6 +2,32 @@ use super::*;
 use crate::config::CentyConfig;
 use mdstore::IdStrategy;
 
+// ─── Epic default config tests ────────────────────────────────────────────
+
+#[test]
+fn test_default_epic_config_is_statusless() {
+    let config = CentyConfig {
+        priority_levels: 3,
+        ..CentyConfig::default()
+    };
+    let epic = default_epic_config(&config);
+
+    assert_eq!(epic.name, "Epic");
+    assert_eq!(epic.icon, Some("map".to_string()));
+    assert_eq!(epic.identifier, IdStrategy::Uuid);
+    assert!(epic.statuses.is_empty(), "epics must be statusless");
+    assert_eq!(epic.priority_levels, Some(3));
+    assert_eq!(epic.template, Some("template.md".to_string()));
+    assert!(epic.listed);
+    assert!(epic.features.display_number);
+    assert!(epic.features.priority);
+    assert!(epic.features.soft_delete);
+    assert!(epic.features.assets);
+    assert!(epic.features.org_sync);
+    assert!(epic.features.move_item);
+    assert!(epic.features.duplicate);
+}
+
 // ─── Default config tests ─────────────────────────────────────────────────
 
 #[test]
