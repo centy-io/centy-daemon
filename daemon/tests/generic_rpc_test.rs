@@ -10,6 +10,9 @@
 
 mod common;
 
+use centy_daemon::config::item_type_config::{
+    write_item_type_config, ItemTypeConfig, ItemTypeFeatures,
+};
 use centy_daemon::server::handlers::item_create::create_item;
 use centy_daemon::server::handlers::item_delete::delete_item;
 use centy_daemon::server::handlers::item_list::list_items;
@@ -18,7 +21,9 @@ use centy_daemon::server::handlers::item_restore::restore_item;
 use centy_daemon::server::handlers::item_soft_delete::soft_delete_item;
 use centy_daemon::server::handlers::item_update::update_item;
 use common::{create_test_dir, init_centy_project};
+use mdstore::IdStrategy;
 use std::collections::HashMap;
+use std::path::Path;
 use tokio::fs;
 
 /// Initialize a minimal project for handler tests.
@@ -545,4 +550,157 @@ async fn test_custom_fields_roundtrip() {
     let fetched_meta = get_resp.item.unwrap().metadata.unwrap();
     assert_eq!(&fetched_meta.custom_fields["env"], "\"production\"");
     assert_eq!(&fetched_meta.custom_fields["count"], "42");
+}
+
+// ─── Regression tests for issue #417: slug-based delete (softDelete: false) ──
+
+/// Helper to register a minimal slug-based "story" type with `softDelete: false`.
+async fn setup_story_type_for_delete(project_path: &Path) {
+    let config = ItemTypeConfig {
+        name: "story".to_string(),
+        icon: None,
+        identifier: IdStrategy::Slug,
+        features: ItemTypeFeatures {
+            display_number: false,
+            priority: false,
+            soft_delete: false,
+            assets: false,
+            org_sync: false,
+            move_item: false,
+            duplicate: false,
+        },
+        statuses: vec!["draft".to_string(), "ready".to_string()],
+        priority_levels: None,
+        custom_fields: vec![],
+        template: None,
+        listed: true,
+    };
+    write_item_type_config(project_path, "stories", &config)
+        .await
+        .expect("Should write stories config");
+}
+
+/// When an item type has `softDelete: false`, `DeleteItem` with `force: false`
+/// should still hard-delete the file (i.e. the file must not remain on disk).
+#[tokio::test]
+async fn test_delete_slug_type_with_soft_delete_disabled_removes_file() {
+    let temp = create_test_dir();
+    let project_path = temp.path();
+    init_centy_project(project_path).await;
+    setup_story_type_for_delete(project_path).await;
+    let pp = project_path.to_str().unwrap();
+
+    // Create a story (slug-based)
+    let create_resp = create_item(centy_daemon::server::proto::CreateItemRequest {
+        project_path: pp.to_string(),
+        item_type: "stories".to_string(),
+        title: "Test Story".to_string(),
+        body: String::new(),
+        status: "draft".to_string(),
+        priority: 0,
+        tags: vec![],
+        custom_fields: HashMap::new(),
+        projects: vec![],
+    })
+    .await
+    .unwrap()
+    .into_inner();
+    assert!(create_resp.success, "create failed: {}", create_resp.error);
+    let item = create_resp.item.unwrap();
+    let story_id = item.id.clone(); // should be "test-story" (slugified)
+
+    // Verify the file exists on disk
+    let story_file = project_path
+        .join(".centy")
+        .join("stories")
+        .join(format!("{story_id}.md"));
+    assert!(story_file.exists(), "Story file should exist before delete");
+
+    // Delete without --force; for softDelete:false types this must hard-delete
+    let del_resp = delete_item(centy_daemon::server::proto::DeleteItemRequest {
+        project_path: pp.to_string(),
+        item_type: "stories".to_string(),
+        item_id: story_id.clone(),
+        force: false,
+    })
+    .await
+    .unwrap()
+    .into_inner();
+    assert!(del_resp.success, "delete failed: {}", del_resp.error);
+
+    // File must be gone — not just soft-deleted
+    assert!(
+        !story_file.exists(),
+        "Story file must be removed from disk after delete on a type with softDelete:false"
+    );
+}
+
+/// Deleting a slug-based item with `force: false` on a type that has
+/// `softDelete: true` (the default) should soft-delete (file remains with
+/// `deleted_at` set) and not appear in subsequent list results.
+#[tokio::test]
+async fn test_delete_slug_type_with_soft_delete_enabled_soft_deletes() {
+    let temp = create_test_dir();
+    let project_path = temp.path();
+    init_centy_project(project_path).await;
+    let pp = project_path.to_str().unwrap();
+
+    // docs use IdStrategy::Slug and softDelete: false by default too
+    // so use issues (uuid, softDelete: true) to verify soft-delete still works
+    let create_resp = create_item(centy_daemon::server::proto::CreateItemRequest {
+        project_path: pp.to_string(),
+        item_type: "issues".to_string(),
+        title: "Soft Delete Me".to_string(),
+        body: String::new(),
+        status: "open".to_string(),
+        priority: 2,
+        tags: vec![],
+        custom_fields: HashMap::new(),
+        projects: vec![],
+    })
+    .await
+    .unwrap()
+    .into_inner();
+    assert!(create_resp.success);
+    let item_id = create_resp.item.unwrap().id;
+
+    // Soft-delete via delete with force:false — issue type has softDelete:true
+    let del_resp = delete_item(centy_daemon::server::proto::DeleteItemRequest {
+        project_path: pp.to_string(),
+        item_type: "issues".to_string(),
+        item_id: item_id.clone(),
+        force: false,
+    })
+    .await
+    .unwrap()
+    .into_inner();
+    assert!(del_resp.success, "delete failed: {}", del_resp.error);
+
+    // File should still exist (soft-deleted)
+    let issue_file = project_path
+        .join(".centy")
+        .join("issues")
+        .join(format!("{item_id}.md"));
+    assert!(
+        issue_file.exists(),
+        "Issue file should remain on disk after soft-delete"
+    );
+
+    // But must not appear in list results
+    let list_resp = list_items(centy_daemon::server::proto::ListItemsRequest {
+        project_path: pp.to_string(),
+        item_type: "issues".to_string(),
+        filter: String::new(),
+        limit: 0,
+        offset: 0,
+        include_organization_items: Some(false),
+    })
+    .await
+    .unwrap()
+    .into_inner();
+    assert!(list_resp.success);
+    assert!(
+        list_resp.items.iter().all(|i| i.id != item_id),
+        "Soft-deleted issue must not appear in list results"
+    );
 }

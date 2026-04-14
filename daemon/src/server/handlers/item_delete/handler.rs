@@ -1,5 +1,6 @@
 use super::super::item_type_resolve::{resolve_item_id, resolve_item_type_config};
 use super::operation::do_delete;
+use crate::config::item_type_config::ItemTypeRegistry;
 use crate::hooks::HookOperation;
 use crate::item::core::error::ItemError;
 use crate::registry::track_project_async;
@@ -48,10 +49,21 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
         Err(ItemError::NotFound(_)) => req.item_id.clone(),
         Err(e) => return Ok(err_resp(&req.project_path, &e)),
     };
+    // When the item type has soft-delete disabled, always hard-delete regardless
+    // of the client's force flag.
+    let soft_delete_enabled = ItemTypeRegistry::build(project_path)
+        .await
+        .ok()
+        .and_then(|r| {
+            r.resolve(&req.item_type)
+                .map(|(_, c)| c.features.soft_delete)
+        })
+        .unwrap_or(true);
+    let force = req.force || !soft_delete_enabled;
     let hook_project_path = req.project_path.clone();
     let hook_item_id = item_id.clone();
     let hook_data =
-        serde_json::json!({"item_type": &item_type, "item_id": &item_id, "force": req.force});
+        serde_json::json!({"item_type": &item_type, "item_id": &item_id, "force": force});
     if let Err(e) = maybe_run_pre_hooks(
         project_path,
         &hook_type,
@@ -70,7 +82,7 @@ pub async fn delete_item(req: DeleteItemRequest) -> Result<Response<DeleteItemRe
             &item_type,
             &config,
             &item_id,
-            req.force,
+            force,
             &hook_type,
             &hook_project_path,
             &hook_item_id,

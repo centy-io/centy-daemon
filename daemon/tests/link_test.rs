@@ -3,7 +3,9 @@
 
 mod common;
 
-use centy_daemon::config::item_type_config::default_doc_config;
+use centy_daemon::config::item_type_config::{
+    default_doc_config, write_item_type_config, ItemTypeConfig, ItemTypeFeatures,
+};
 use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use centy_daemon::item::generic::storage::generic_create;
 use centy_daemon::link::{
@@ -11,7 +13,39 @@ use centy_daemon::link::{
     CustomLinkTypeDefinition, DeleteLinkOptions, LinkDirection, LinkError, TargetType,
 };
 use common::{create_test_dir, init_centy_project};
-use mdstore::{CreateOptions, TypeConfig};
+use mdstore::{CreateOptions, IdStrategy, TypeConfig};
+
+/// Create a slug-based "story" item type config (mirrors real `.centy/stories/config.yaml`).
+fn story_item_type_config() -> ItemTypeConfig {
+    ItemTypeConfig {
+        name: "story".to_string(),
+        icon: None,
+        identifier: IdStrategy::Slug,
+        features: ItemTypeFeatures {
+            display_number: false,
+            priority: false,
+            soft_delete: false,
+            assets: false,
+            org_sync: false,
+            move_item: false,
+            duplicate: false,
+        },
+        statuses: vec!["draft".to_string(), "ready".to_string(), "done".to_string()],
+        priority_levels: None,
+        custom_fields: vec![],
+        template: None,
+        listed: true,
+    }
+}
+
+/// Register the story type and return its `TypeConfig` for use with mdstore.
+async fn setup_story_type(project_path: &std::path::Path) -> TypeConfig {
+    let config = story_item_type_config();
+    write_item_type_config(project_path, "stories", &config)
+        .await
+        .expect("Should write stories config");
+    TypeConfig::from(&config)
+}
 
 #[tokio::test]
 async fn test_create_link_between_issues() {
@@ -861,4 +895,198 @@ async fn test_link_record_has_id_for_deletion() {
         .await
         .unwrap();
     assert_eq!(links[0].id, record.id);
+}
+
+// ─── Regression tests for issue #417: slug-based item type linking ──────────
+
+/// A slug-based type whose folder name is NOT simply `name + "s"` (e.g. "story"
+/// → "stories") must still be linkable.  The naive `folder_name()` helper would
+/// produce the wrong folder name, pointing to a non-existent directory and causing a false
+/// `LINK_SOURCE_NOT_FOUND` / `LINK_TARGET_NOT_FOUND` error.
+#[tokio::test]
+async fn test_create_link_with_slug_based_story_type() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let story_config = setup_story_type(project_path).await;
+
+    // Create the story (slug-based identifier → id = slugified title)
+    let story = generic_create(
+        project_path,
+        "stories",
+        &story_config,
+        CreateOptions {
+            title: "My Test Story".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("draft".to_string()),
+            priority: None,
+            tags: None,
+            custom_fields: std::collections::HashMap::new(),
+            comment: None,
+        },
+    )
+    .await
+    .expect("Should create story");
+
+    // The slug-based id should be the slugified title
+    assert_eq!(story.id, "my-test-story");
+
+    // Create an issue to link the story to
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Parent Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should create issue");
+
+    // Link story → issue: story is the source with a slug id
+    let record = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: story.id.clone(),
+            source_type: TargetType::new("story"),
+            target_id: issue.id.clone(),
+            target_type: TargetType::issue(),
+            link_type: "child-of".to_string(),
+        },
+        &[],
+    )
+    .await
+    .expect("Link from slug-based story to issue should succeed");
+
+    assert_eq!(record.source_view().target_id, issue.id);
+    assert_eq!(record.source_view().link_type, "child-of");
+
+    // Link issue → story: story is the target with a slug id
+    let issue2 = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Second Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let record2 = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue2.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: story.id.clone(),
+            target_type: TargetType::new("story"),
+            link_type: "parent-of".to_string(),
+        },
+        &[],
+    )
+    .await
+    .expect("Link from issue to slug-based story should succeed");
+
+    assert_eq!(record2.source_view().target_id, story.id);
+}
+
+/// When the entity type is not in the item-type registry, `entity_exists`
+/// falls back to the naive `folder_name()` helper (appends "s").  The link
+/// creation still terminates with the expected `TargetNotFound` error rather
+/// than a panic.  This exercises the fallback branch in `resolve_folder`.
+#[tokio::test]
+async fn test_entity_exists_fallback_for_unregistered_type() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    // "widget" has no config.yaml in .centy → registry.resolve("widget") → None
+    // → fallback to folder_name() → "widgets" (doesn't exist) → TargetNotFound
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Source".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let err = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: "some-widget".to_string(),
+            target_type: TargetType::new("widget"),
+            link_type: "relates-to".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap_err();
+
+    assert!(
+        matches!(err, LinkError::TargetNotFound(_, _)),
+        "Expected TargetNotFound for unregistered type, got {err:?}"
+    );
+}
+
+/// Linking a slug-based story that does not exist should return
+/// `SourceNotFound` / `TargetNotFound` (not a spurious `NotFound` caused by
+/// checking the wrong folder).
+#[tokio::test]
+async fn test_link_nonexistent_slug_story_returns_not_found() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+    setup_story_type(project_path).await;
+
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    // Source does not exist
+    let err = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: "nonexistent-story".to_string(),
+            source_type: TargetType::new("story"),
+            target_id: issue.id.clone(),
+            target_type: TargetType::issue(),
+            link_type: "child-of".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        matches!(err, LinkError::SourceNotFound(_, _)),
+        "Expected SourceNotFound, got {err:?}"
+    );
+
+    // Target does not exist
+    let err = create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: issue.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: "nonexistent-story".to_string(),
+            target_type: TargetType::new("story"),
+            link_type: "parent-of".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        matches!(err, LinkError::TargetNotFound(_, _)),
+        "Expected TargetNotFound, got {err:?}"
+    );
 }
