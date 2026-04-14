@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Issue #417: linking slug-based item types (e.g. `story`) now resolves the correct storage folder via the item type registry instead of naively appending "s", fixing spurious `LINK_SOURCE_NOT_FOUND` / `LINK_TARGET_NOT_FOUND` errors
+- Issue #417: deleting an item of a type with `softDelete: false` now always hard-deletes the file in a single operation, regardless of whether `--force` was passed
+
 ### Added
 - `gap-analyze` skill: inspects an epic's stated goals, creates or updates user stories to cover any gaps, and raises issues for stories that fail the quality bar (missing body, user-story statement, acceptance criteria, or non-draft status)
 - `future-man` skill: analyzes the project (codebase structure, docs, existing Centy items) and seeds a custom `ideas` item type with forward-thinking, context-grounded ideas spanning quick wins to moonshots; ideas carry structured metadata — `category`, `horizon`, `impact`, and `inspiration` — and flow through a `raw → promising → validated → shelved` lifecycle
