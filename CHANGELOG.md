@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Issue #418: `worktree open centy:<uuid>` now works — `parse_centy` accepts both display numbers (`centy:42`) and internal UUIDs (`centy:6f4853a9-…`); UUIDs are resolved to their display number via the matching `.centy/issues/<uuid>.md` file
+- `resolve_issue` in the daemon now strips an optional `centy:` prefix before resolving, so callers may pass `centy:42`, `centy:<uuid>`, or bare IDs interchangeably
+
 ### Added
 - `gap-analyze` skill: inspects an epic's stated goals, creates or updates user stories to cover any gaps, and raises issues for stories that fail the quality bar (missing body, user-story statement, acceptance criteria, or non-draft status)
 - `future-man` skill: analyzes the project (codebase structure, docs, existing Centy items) and seeds a custom `ideas` item type with forward-thinking, context-grounded ideas spanning quick wins to moonshots; ideas carry structured metadata — `category`, `horizon`, `impact`, and `inspiration` — and flow through a `raw → promising → validated → shelved` lifecycle
