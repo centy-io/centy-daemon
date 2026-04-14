@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `gap-analyze` skill: inspects an epic's stated goals, creates or updates user stories to cover any gaps, and raises issues for stories that fail the quality bar (missing body, user-story statement, acceptance criteria, or non-draft status)
+
 ## [0.13.0] — 2026-04-13
 
 ### Added
