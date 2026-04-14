@@ -254,6 +254,7 @@
     "isfile",
     "getsize",
     "promisified",
-    "statusless"
+    "statusless",
+    "Statusless"
   ]
 }

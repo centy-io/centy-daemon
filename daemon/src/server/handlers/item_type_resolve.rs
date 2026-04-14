@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_archived_config, default_comment_config, default_issue_config, read_item_type_config,
-    ItemTypeRegistry,
+    default_archived_config, default_comment_config, default_epic_config, default_issue_config,
+    read_item_type_config, ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
@@ -61,6 +61,17 @@ pub async fn resolve_item_type_config(
             "comments".to_string(),
             TypeConfig::from(&default_comment_config()),
         )),
+        "epics" | "epic" => {
+            let config = read_config(project_path)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_default();
+            Ok((
+                "epics".to_string(),
+                TypeConfig::from(&default_epic_config(&config)),
+            ))
+        }
         _ => Err(ItemError::ItemTypeNotFound(item_type.to_string())),
     }
 }
