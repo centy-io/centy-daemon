@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `gap-analyze` skill: inspects an epic's stated goals, creates or updates user stories to cover any gaps, and raises issues for stories that fail the quality bar (missing body, user-story statement, acceptance criteria, or non-draft status)
+- `future-man` skill: analyzes the project (codebase structure, docs, existing Centy items) and seeds a custom `ideas` item type with forward-thinking, context-grounded ideas spanning quick wins to moonshots; ideas carry structured metadata — `category`, `horizon`, `impact`, and `inspiration` — and flow through a `raw → promising → validated → shelved` lifecycle
 
 ## [0.13.0] — 2026-04-13
 

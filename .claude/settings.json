@@ -241,7 +241,8 @@
       "Bash(nslookup github.com)",
       "Bash(networksetup -listallnetworkservices)",
       "Bash(networksetup -getinfo Wi-Fi)",
-      "Bash(networksetup -getdnsservers Wi-Fi)"
+      "Bash(networksetup -getdnsservers Wi-Fi)",
+      "Skill(centy:mcp-usage)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
