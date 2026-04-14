@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 49
+expression: suffix.to_str().unwrap()
+---
+.config/worktree/config.toml

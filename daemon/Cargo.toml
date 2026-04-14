@@ -12,7 +12,7 @@ categories = ["development-tools", "database-implementations"]
 
 [dependencies]
 # Git worktree workspace management
-worktree-io = "0.17.4"
+worktree-io = "0.17.5"
 
 # Git native bindings
 git2 = { version = "0.20", features = ["vendored-openssl"] }

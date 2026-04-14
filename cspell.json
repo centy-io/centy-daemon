@@ -4,7 +4,8 @@
     "**/pnpm-lock.yaml",
     "**/Cargo.lock",
     "**/__snapshots__/**",
-    "target/**"
+    "target/**",
+    "worktree-io-patch/**"
   ],
   "words": [
     "anotherorg",

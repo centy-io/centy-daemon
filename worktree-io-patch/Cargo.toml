@@ -1,0 +1,47 @@
+[package]
+name = "worktree-io"
+version = "0.17.5"
+edition = "2021"
+description = "A CLI tool to open GitHub issues as git worktree workspaces"
+license = "MIT"
+repository = "https://github.com/worktree-io/runner"
+keywords = ["worktree", "github", "issues", "cli", "git"]
+categories = ["command-line-utilities", "development-tools"]
+
+[workspace]
+
+[lib]
+name = "worktree_io"
+path = "src/lib.rs"
+
+[[bin]]
+name = "worktree"
+path = "src/main.rs"
+
+[dev-dependencies]
+cargo-husky = { version = "1", default-features = false, features = ["user-hooks"] }
+insta       = "1"
+tempfile    = "3"
+
+[dependencies]
+clap             = { version = "4", features = ["derive"] }
+serde            = { version = "1", features = ["derive"] }
+toml             = "1"
+anyhow           = "1"
+url              = "2"
+dirs             = "6"
+uuid             = { version = "1", features = ["v4"] }
+humantime        = "2"
+humantime-serde  = "1"
+which = "8.0.2"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+# Cannot control transitive dependency version conflicts
+multiple_crate_versions = "allow"
