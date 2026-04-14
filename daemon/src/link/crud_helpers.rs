@@ -21,10 +21,9 @@ pub(super) async fn entity_exists(
 /// registry. Falls back to the naive `folder_name()` (append "s") if the
 /// registry lookup fails or the type is not found.
 async fn resolve_folder(project_path: &Path, entity_type: &TargetType) -> String {
-    if let Ok(registry) = ItemTypeRegistry::build(project_path).await {
-        if let Some((folder, _)) = registry.resolve(entity_type.as_str()) {
-            return folder.clone();
-        }
-    }
-    entity_type.folder_name()
+    ItemTypeRegistry::build(project_path)
+        .await
+        .ok()
+        .and_then(|r| r.resolve(entity_type.as_str()).map(|(f, _)| f.clone()))
+        .unwrap_or_else(|| entity_type.folder_name())
 }
