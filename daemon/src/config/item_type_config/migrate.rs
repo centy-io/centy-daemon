@@ -1,7 +1,7 @@
 //! Migration helpers for item type configs.
 use super::defaults::{
-    default_archived_config, default_comment_config, default_doc_config, default_issue_config,
-    default_user_story_config,
+    default_archived_config, default_comment_config, default_doc_config, default_epic_config,
+    default_issue_config, default_user_story_config,
 };
 use super::io::{read_item_type_config, write_item_type_config};
 use crate::config::CentyConfig;
@@ -76,6 +76,13 @@ pub async fn migrate_to_item_type_configs(
         let user_story_config = default_user_story_config(config);
         write_item_type_config(project_path, "user_stories", &user_story_config).await?;
         created.push("user_stories/config.yaml".to_string());
+    }
+    // Epics
+    let epics_config_path = centy_path.join("epics").join("config.yaml");
+    if !epics_config_path.exists() {
+        let epic_config = default_epic_config(config);
+        write_item_type_config(project_path, "epics", &epic_config).await?;
+        created.push("epics/config.yaml".to_string());
     }
     Ok(created)
 }
