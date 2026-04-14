@@ -29,7 +29,19 @@ A story **fails** if it violates ANY of the above.
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running and the project is initialized. Resolve `project_path` from the current working directory. Start the daemon with `StartDaemon` if `IsRunning` returns false.
+**a. Check for MCP tools.**
+Try to call `IsRunning`. If the `mcp__centy__*` tools are not available (not in the tool list / return a tool-not-found error), fall back to the CLI for all operations: use `pnpm dlx centy` for every read and write action throughout this workflow. Note the degraded mode in the final report. Do not abort — continue with the CLI fallback.
+
+**b. Check version compatibility.**
+After confirming the daemon is reachable, run `pnpm dlx centy config` (or `GetDaemonInfo` via MCP) and compare the project version against the daemon version. If they differ, stop and tell the user:
+
+> Version mismatch detected: project is at X, daemon is at Y.
+> Run `pnpm dlx centy init` to migrate, then re-run gap-analyze.
+
+Do not proceed past step 0 until versions match.
+
+**c. Start the daemon if needed.**
+If `IsRunning` returns false, call `StartDaemon`. Resolve `project_path` from the current working directory. Confirm `IsInitialized` before continuing.
 
 ---
 
@@ -38,6 +50,7 @@ Ensure the daemon is running and the project is initialized. Resolve `project_pa
 Launch a **read-only sub-agent**. It must not create, update, or delete anything. Hand it:
 - `epic_id` or `epic_display_number` if one was provided; otherwise `"discover"`
 - `project_path`
+- `mcp_available`: true or false (from step 0a above)
 
 **Sub-agent prompt template:**
 
@@ -47,6 +60,9 @@ Do NOT create, update, or delete any items — read only.
 
 project_path: <project_path>
 Epic to analyze: <epic_id | epic_display_number | "discover">
+MCP available: <true | false>
+
+If MCP is not available, use `pnpm dlx centy` CLI commands for all reads.
 
 Steps:
 
@@ -62,30 +78,45 @@ Steps:
    - id, display_number, title, body, status, tags, custom_fields
 
 2. EXTRACT INTENDED SCOPE FROM THE EPIC BODY
-   Parse the epic body for any of these signals (each becomes a "scope item"):
+   If the epic body contains explicit "Done" / "Pending" (or "Complete" / "Remaining",
+   or "## Done" / "## Pending") sections, extract scope items ONLY from the Pending
+   section — items in Done are already shipped and require no story coverage.
+
+   Otherwise, parse the full body for any of these signals (each becomes a "scope item"):
    - Numbered or bulleted lists describing features, goals, or capabilities
    - Headings (##, ###) naming areas of functionality
    - Sentences starting with "The system should…", "Users should be able to…",
      "Support…", "Enable…", "Allow…", "As a…"
    - Acceptance criteria blocks already written into the epic
+
+   If there are more than 5 pending scope items, group related items by theme into
+   at most 3 thematic groups. Each group becomes one scope item in the report, with
+   the constituent items listed under it. This keeps story count manageable.
+
    If the epic body is empty or too vague to extract scope, record a single
    scope item: "(no structured scope found — generic story needed)".
 
 3. DISCOVER LINKED USER STORIES
-   a. Call ListLinks for the epic ID.
-   b. For each link where link_type is "parent-of" and target_item_type is "story":
-      - Fetch the story with GetItem (item_type: "stories").
-      - Record: id, display_number (if any), title, body, status.
-      - Classify the story:
+   a. Call ListLinks for the epic ID (or `pnpm dlx centy list links --item epic:<id>`).
+   b. For each link returned, read the `linkType` AND `targetType` (or `sourceType`)
+      fields verbatim from the link record. Only proceed with items where:
+        - linkType  = "parent-of"  AND  targetType = "story"   (epic → story), OR
+        - linkType  = "child-of"   AND  sourceType = "story"   (story → epic)
+      Do NOT classify items of other targetTypes (e.g. "issue", "doc") as stories,
+      even if they appear in a parent-of link.
+   c. For each qualifying story link, fetch the story with GetItem (item_type: "stories")
+      using the story's identifier (UUID or slug, whichever the targetId contains).
+      Record: id, title, body, status (empty status = "draft").
+   d. Classify each story:
           PASS  — meets all four passing criteria (body present, user-story
                   statement, acceptance criteria section, status != "draft")
           FAIL  — violates one or more criteria; list which ones
 
 4. MAP COVERAGE
-   For each scope item, decide if an existing (linked) story covers it:
+   For each scope item (or thematic group), decide if an existing linked story covers it:
    - COVERED   — at least one linked story's title or body clearly addresses
-                 this scope item
-   - UNCOVERED — no linked story addresses this scope item
+                 this scope item or group
+   - UNCOVERED — no linked story addresses this scope item or group
 
 Return a single REPORT block:
 
@@ -95,15 +126,15 @@ REPORT:
   epic_title: <string>
   scope_items:
     - text: <string>
+      grouped_items: [<string>, …]     # constituent items if this is a thematic group
       covered: <true | false>
-      covering_story_ids: [<UUID>, …]   # empty if uncovered
+      covering_story_ids: [<id>, …]    # empty if uncovered
   existing_stories:
-    - id: <UUID>
-      display_number: <N | null>
+    - id: <id>                         # UUID or slug
       title: <string>
-      status: <string>
+      status: <string>                 # treat empty as "draft"
       result: <"pass" | "fail">
-      fail_reasons: [<string>, …]       # empty if pass
+      fail_reasons: [<string>, …]      # empty if pass
   warnings: [<string>, …]
 ```
 
@@ -115,10 +146,10 @@ Wait for all REPORT blocks before continuing. If the sub-agent returned multiple
 
 Using the REPORT, build an action list:
 
-**For each UNCOVERED scope item:**
+**For each UNCOVERED scope item (or thematic group):**
 - Check if any existing story (even one that failed) partially covers it.
-  - If yes → mark that story for **UPDATE** with the uncovered scope item merged in.
-  - If no  → plan to **CREATE** a new story for this scope item.
+  - If yes → mark that story for **UPDATE** with the uncovered scope merged in.
+  - If no  → plan to **CREATE** one new story covering the entire scope item or group.
 
 **For each existing story with result `fail`:**
 - If it is already marked for UPDATE (from the step above) → the update will also fix the failing fields.
@@ -135,7 +166,7 @@ For each planned CREATE:
 ```markdown
 ## User story
 
-As a [inferred persona from epic context], I want [capability derived from scope item], so that [benefit derived from epic goals].
+As a [inferred persona from epic context], I want [capability derived from scope item or group], so that [benefit derived from epic goals].
 
 ## Acceptance criteria
 
@@ -143,21 +174,24 @@ As a [inferred persona from epic context], I want [capability derived from scope
 - [ ] [Criterion 2]
 - [ ] [Add more as needed]
 
-## Notes
+## Scope
 
-Scope item: <verbatim scope item text>
 Epic: #<epic_display_number> <epic_title>
+Covers: <verbatim scope item text, or list of grouped items>
 ```
 
 Steps:
 1. `CreateItem` with `item_type: "stories"`, `title`, `body` (filled from template), `status: "ready"`.
+   - Via CLI fallback: `pnpm dlx centy create story --title "..." --status ready --body "..."`
 2. `CreateLink` from the epic to the new story:
    - `source_id`: epic UUID
-   - `target_id`: new story UUID
+   - `target_id`: new story id (UUID or slug)
    - `link_type`: `"parent-of"`
    - `source_item_type`: `"epic"`
    - `target_item_type`: `"story"`
-3. Verify the story passes all four criteria. If it does, mark it `result: "pass"`.
+   - Via CLI fallback: `pnpm dlx centy update epic <display_number> --link parent-of:story:<slug>`
+3. **Verify the link was actually created.** Fetch the story's links and confirm the epic appears. If the link is absent, log a warning: "Link creation reported success but link was not found — story `<id>` is unlinked." Do not raise an issue for this; it is an infrastructure bug, not a story quality failure.
+4. Verify the story passes all four criteria. If it does, mark it `result: "pass"`.
 
 ---
 
@@ -168,12 +202,13 @@ For each planned UPDATE:
 Merge in any missing content:
 - If missing the user-story statement → prepend it above the existing body.
 - If missing acceptance criteria → append an `## Acceptance criteria` section with generated criteria based on the scope item and epic context.
-- If status is `"draft"` → set `status: "ready"`.
+- If status is `"draft"` or empty → set `status: "ready"`.
 
 Steps:
-1. `UpdateItem` with `item_type: "stories"`, the story UUID, and the revised `body` and/or `status`.
+1. `UpdateItem` with `item_type: "stories"`, the story id, and the revised `body` and/or `status`.
+   - Via CLI fallback: `pnpm dlx centy update story <slug> --status ready --body "..."`
 2. Re-evaluate the story against the four passing criteria.
-3. If the story now passes, mark `result: "pass"`. If it still fails (e.g., body content was too ambiguous to generate good ACs), mark `result: "fail"` and record the remaining fail reasons.
+3. If the story now passes, mark `result: "pass"`. If it still fails, mark `result: "fail"` and record the remaining fail reasons.
 
 ---
 
@@ -184,14 +219,14 @@ For each story that still has `result: "fail"` after steps 5–6:
 Create one issue per failing story using the template:
 
 **Issue title:**
-`User story #<display_number> "<title>" does not meet quality bar`
+`User story "<title>" does not meet quality bar`
 
 **Issue body template:**
 
 ```markdown
 ## Problem
 
-User story #<display_number> linked to epic #<epic_display_number> **<epic_title>** does not meet the story quality bar.
+User story "<title>" linked to epic #<epic_display_number> **<epic_title>** does not meet the story quality bar.
 
 ## Failing criteria
 
@@ -207,7 +242,7 @@ Review and update the story so it satisfies all failing criteria above.
 
 ## Links
 
-- Story: #<display_number> <title>
+- Story: <id> <title>
 - Parent epic: #<epic_display_number> <epic_title>
 ```
 
@@ -215,7 +250,7 @@ Steps:
 1. `CreateItem` with `item_type: "issues"`, `title`, `body`, `status: "open"`, `priority: 2`.
 2. `CreateLink` from the new issue to the story:
    - `source_id`: issue UUID
-   - `target_id`: story UUID
+   - `target_id`: story id
    - `link_type`: `"blocks"`
    - `source_item_type`: `"issue"`
    - `target_item_type`: `"story"`
@@ -230,23 +265,23 @@ Print a summary using this format:
 Gap analysis: Epic #<N> — <title>
 
 Scope coverage
-  Covered (<X> items): ✓ <scope item text> → #<story_N> <story_title>
+  Covered (<X> items): ✓ <scope item text> → <story_id> <story_title>
                         …
   Uncovered (<Y> items): ✗ <scope item text>
                           …
 
 Stories
-  Created  (<A>): #<N> <title>
-  Updated  (<B>): #<N> <title>
-  Passed   (<C>): #<N> <title>  [already passing — no changes needed]
-  Failed   (<D>): #<N> <title>  → issue #<M> raised
+  Created  (<A>): <id> <title>
+  Updated  (<B>): <id> <title>
+  Passed   (<C>): <id> <title>  [already passing — no changes needed]
+  Failed   (<D>): <id> <title>  → issue #<M> raised
 
 Issues raised
   #<M> <issue_title>
   …
 ```
 
-Surface any `warnings` from the sub-agent. If no gaps were found and all stories already pass, report that the epic is fully covered and no changes were made.
+Surface any `warnings` from the sub-agent and any link-verification failures from step 5. If no gaps were found and all stories already pass, report that the epic is fully covered and no changes were made.
 
 ---
 
@@ -254,12 +289,17 @@ Surface any `warnings` from the sub-agent. If no gaps were found and all stories
 
 | Situation | Handling |
 |-----------|----------|
+| MCP tools unavailable | Fall back to `pnpm dlx centy` CLI; note degraded mode in report |
+| Version mismatch (project vs daemon) | Stop at step 0; tell user to run `centy init` |
 | No epic ID given | Auto-discover all open/in-progress epics; process each one |
-| Epic body is empty | Generate one generic story covering the epic title; note the lack of scope detail in the issue if the story can't meet the bar |
-| Epic has no linked stories at all | Create one story per extracted scope item (or one generic story if scope is empty) |
+| Epic body is empty | Generate one generic story covering the epic title; note the lack of scope detail |
+| Epic has Done/Pending sections | Extract scope only from Pending; ignore Done items |
+| More than 5 pending scope items | Group by theme into ≤ 3 thematic groups; create one story per group |
+| Epic has no linked stories at all | Create one story per scope item/group (or one generic story if scope is empty) |
 | All stories already pass | Report "fully covered — no changes needed"; skip steps 5–7 |
 | A story passes after update | Do not raise an issue for it |
 | A scope item maps to multiple stories | Mark as COVERED; no new story needed |
+| Link verification fails after create/update | Log as warning; do not raise a quality issue |
 | Story type not available in project | Fall back to `item_type: "issues"` and note the fallback in the report |
 | Epic not found | Report the error and stop |
-| Link creation fails | Log the failure as a warning and continue; do not abort the whole run |
+| Stories use slug identifiers (not UUIDs) | Use the slug wherever an id is required; verify link creation explicitly (slugs may not resolve in all daemon versions) |
