@@ -56,7 +56,6 @@ pub struct IssueMetadataFlat {
     pub status: String,
     pub priority: u32,
     pub created_at: String,
-    pub updated_at: String,
     pub custom_fields: HashMap<String, String>,
     pub draft: bool,
     pub deleted_at: Option<String>,

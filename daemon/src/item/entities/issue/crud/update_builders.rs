@@ -2,7 +2,6 @@ use super::super::metadata::IssueFrontmatter;
 use super::super::planning::{add_planning_note, has_planning_note, is_planning_status};
 use super::types::{Issue, IssueMetadataFlat};
 use super::update_helpers::AppliedIssueUpdates;
-use crate::utils::now_iso;
 
 pub fn build_updated_frontmatter(
     current: &Issue,
@@ -13,7 +12,7 @@ pub fn build_updated_frontmatter(
         status: updates.status.clone(),
         priority: updates.priority,
         created_at: current.metadata.created_at.clone(),
-        updated_at: now_iso(),
+        updated_at: current.metadata.created_at.clone(),
         draft: updates.draft,
         deleted_at: current.metadata.deleted_at.clone(),
         projects: current.metadata.projects.clone(),
@@ -44,7 +43,6 @@ pub fn build_issue_struct(
     issue_number: &str,
     updates: &AppliedIssueUpdates,
     current: &Issue,
-    updated_at: &str,
 ) -> Issue {
     Issue {
         id: issue_number.to_string(),
@@ -55,7 +53,6 @@ pub fn build_issue_struct(
             status: updates.status.clone(),
             priority: updates.priority,
             created_at: current.metadata.created_at.clone(),
-            updated_at: updated_at.to_string(),
             custom_fields: updates.custom_fields.clone(),
             draft: updates.draft,
             deleted_at: current.metadata.deleted_at.clone(),

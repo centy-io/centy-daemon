@@ -53,7 +53,6 @@ pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, Reconc
         let (mut frontmatter, title, body): (IssueFrontmatter, String, String) =
             parse_frontmatter(&content)?;
         frontmatter.display_number = new_display_number;
-        frontmatter.updated_at = crate::utils::now_iso();
         let new_content =
             generate_frontmatter(&frontmatter, &title, &body, Some(CENTY_HEADER_YAML));
         fs::write(&file_path, &new_content).await?;

@@ -15,7 +15,6 @@ pub fn generic_item_to_proto(item: &mdstore::Item, item_type: &str) -> ProtoGene
             status: item.frontmatter.status.clone().unwrap_or_default(),
             priority: item.frontmatter.priority.unwrap_or(0),
             created_at: item.frontmatter.created_at.clone(),
-            updated_at: item.frontmatter.updated_at.clone(),
             deleted_at: item.frontmatter.deleted_at.clone().unwrap_or_default(),
             custom_fields: item
                 .frontmatter
@@ -68,7 +67,6 @@ pub fn user_to_generic_item_proto(user: &crate::user::User) -> ProtoGenericItem 
             status,
             priority: 0,
             created_at: user.created_at.clone(),
-            updated_at: user.updated_at.clone(),
             deleted_at: user.deleted_at.clone().unwrap_or_default(),
             custom_fields: std::collections::HashMap::new(),
             tags: vec![],
