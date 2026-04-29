@@ -156,8 +156,8 @@ describe('gRPC: Item Type Operations', () => {
     it('should create a new item type with statuses', async () => {
       const result = await project.client.createItemType({
         projectPath: project.path,
-        name: 'Epic',
-        plural: 'epics',
+        name: 'Initiative',
+        plural: 'initiatives',
         identifier: 'uuid',
         statuses: ['backlog', 'active', 'done'],
         defaultStatus: 'backlog',

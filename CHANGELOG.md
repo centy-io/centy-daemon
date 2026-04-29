@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Items no longer expose an `updated_at` timestamp via the API. `GenericItemMetadata.updated_at` (proto field 5) is reserved, and `IssueMetadataFlat` no longer carries it. The on-disk YAML still writes `updatedAt` (set to `created_at`) for upstream `mdstore::Frontmatter` compatibility, but the value is no longer refreshed on update or surfaced through gRPC.
+
 ### Fixed
 - Issue #417: linking slug-based item types (e.g. `story`) now resolves the correct storage folder via the item type registry instead of naively appending "s", fixing spurious `LINK_SOURCE_NOT_FOUND` / `LINK_TARGET_NOT_FOUND` errors
 - Issue #417: deleting an item of a type with `softDelete: false` now always hard-deletes the file in a single operation, regardless of whether `--force` was passed

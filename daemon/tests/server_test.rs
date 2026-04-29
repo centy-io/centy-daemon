@@ -344,15 +344,8 @@ async fn test_issue_metadata_timestamps() {
 
     let issue = get_issue(project_path, &result.id).await.unwrap();
 
-    // Timestamps should be set
+    // created_at should be set
     assert!(!issue.metadata.created_at.is_empty());
-    assert!(!issue.metadata.updated_at.is_empty());
-
-    // created_at and updated_at should be equal initially
-    assert_eq!(issue.metadata.created_at, issue.metadata.updated_at);
-
-    // Wait a bit and update
-    tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
     update_issue(
         project_path,
@@ -369,9 +362,6 @@ async fn test_issue_metadata_timestamps() {
 
     // created_at should be unchanged
     assert_eq!(updated_issue.metadata.created_at, issue.metadata.created_at);
-
-    // updated_at should be changed (or same due to timing)
-    assert!(!updated_issue.metadata.updated_at.is_empty());
 }
 
 // Test custom fields

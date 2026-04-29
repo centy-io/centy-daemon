@@ -8,7 +8,7 @@ use super::move_io::{
 use super::read::read_issue_from_frontmatter;
 use super::types::{Issue, IssueCrudError};
 use crate::manifest::{read_manifest, update_manifest, write_manifest};
-use crate::utils::{get_centy_path, now_iso, CENTY_HEADER_YAML};
+use crate::utils::{get_centy_path, CENTY_HEADER_YAML};
 use mdstore::generate_frontmatter;
 use tokio::fs;
 
@@ -18,7 +18,7 @@ fn build_target_frontmatter(issue: &Issue, new_display_number: u32) -> IssueFron
         status: issue.metadata.status.clone(),
         priority: issue.metadata.priority,
         created_at: issue.metadata.created_at.clone(),
-        updated_at: now_iso(),
+        updated_at: issue.metadata.created_at.clone(),
         draft: issue.metadata.draft,
         deleted_at: issue.metadata.deleted_at.clone(),
         projects: issue.metadata.projects.clone(),

@@ -8,6 +8,7 @@ pub struct IssueFrontmatter {
     pub status: String,
     pub priority: u32,
     pub created_at: String,
+    /// Retained for on-disk compatibility with mdstore Frontmatter; not surfaced via API.
     pub updated_at: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub draft: bool,

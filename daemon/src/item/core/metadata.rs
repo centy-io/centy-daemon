@@ -7,14 +7,8 @@ pub trait ItemMetadata: Sized + Clone + Send + Sync {
     /// Get the creation timestamp
     fn created_at(&self) -> &str;
 
-    /// Get the last update timestamp
-    fn updated_at(&self) -> &str;
-
     /// Get the deletion timestamp if soft-deleted
     fn deleted_at(&self) -> Option<&str>;
-
-    /// Set the update timestamp
-    fn set_updated_at(&mut self, timestamp: String);
 
     /// Set the deletion timestamp (for soft delete)
     fn set_deleted_at(&mut self, timestamp: Option<String>);
@@ -69,7 +63,6 @@ mod tests {
     #[derive(Clone)]
     struct MockItem {
         created_at: String,
-        updated_at: String,
         deleted_at: Option<String>,
     }
 
@@ -77,14 +70,8 @@ mod tests {
         fn created_at(&self) -> &str {
             &self.created_at
         }
-        fn updated_at(&self) -> &str {
-            &self.updated_at
-        }
         fn deleted_at(&self) -> Option<&str> {
             self.deleted_at.as_deref()
-        }
-        fn set_updated_at(&mut self, timestamp: String) {
-            self.updated_at = timestamp;
         }
         fn set_deleted_at(&mut self, timestamp: Option<String>) {
             self.deleted_at = timestamp;
@@ -95,7 +82,6 @@ mod tests {
     fn test_is_deleted_returns_false_when_no_deleted_at() {
         let item = MockItem {
             created_at: "2024-01-01".to_string(),
-            updated_at: "2024-01-01".to_string(),
             deleted_at: None,
         };
         assert!(!item.is_deleted());
@@ -105,7 +91,6 @@ mod tests {
     fn test_is_deleted_returns_true_when_deleted_at_set() {
         let item = MockItem {
             created_at: "2024-01-01".to_string(),
-            updated_at: "2024-01-01".to_string(),
             deleted_at: Some("2024-06-01T00:00:00Z".to_string()),
         };
         assert!(item.is_deleted());

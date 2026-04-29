@@ -365,7 +365,6 @@ export interface GenericItemMetadata {
   status: string;
   priority: number;
   createdAt: string;
-  updatedAt: string;
   deletedAt: string;
   customFields: Record<string, string>;
 }

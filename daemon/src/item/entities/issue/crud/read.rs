@@ -23,7 +23,6 @@ pub async fn read_issue_from_frontmatter(
             status: frontmatter.status,
             priority: frontmatter.priority,
             created_at: frontmatter.created_at,
-            updated_at: frontmatter.updated_at,
             custom_fields: frontmatter.custom_fields,
             draft: frontmatter.draft,
             deleted_at: frontmatter.deleted_at,
