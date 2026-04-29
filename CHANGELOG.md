@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-04-29
+
 ### Changed
 - Items no longer expose an `updated_at` timestamp via the API. `GenericItemMetadata.updated_at` (proto field 5) is reserved, and `IssueMetadataFlat` no longer carries it. The on-disk YAML still writes `updatedAt` (set to `created_at`) for upstream `mdstore::Frontmatter` compatibility, but the value is no longer refreshed on update or surfaced through gRPC.
 
