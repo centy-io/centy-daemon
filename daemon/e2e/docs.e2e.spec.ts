@@ -52,7 +52,6 @@ describe('gRPC: Doc Operations', () => {
 
       expect(result.success).toBe(true);
       expect(result.item.metadata.createdAt).toBeDefined();
-      expect(result.item.metadata.updatedAt).toBeDefined();
     });
   });
 
@@ -91,7 +90,6 @@ describe('gRPC: Doc Operations', () => {
 
       expect(result.item.metadata).toBeDefined();
       expect(result.item.metadata.createdAt).toBeDefined();
-      expect(result.item.metadata.updatedAt).toBeDefined();
     });
   });
 

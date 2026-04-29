@@ -109,7 +109,6 @@ describe('gRPC: Issue Operations', () => {
       expect(result.item.metadata.status).toBe('open');
       expect(result.item.metadata.priority).toBe(2);
       expect(result.item.metadata.createdAt).toBeDefined();
-      expect(result.item.metadata.updatedAt).toBeDefined();
     });
   });
 
@@ -282,15 +281,12 @@ describe('gRPC: Issue Operations', () => {
       expect(result.item.body).toContain('Updated description');
     });
 
-    it('should update updatedAt timestamp', async () => {
+    it('should preserve createdAt across updates', async () => {
       const created = await project.client.createItem({
         projectPath: project.path,
         itemType: 'issues',
         title: 'Timestamp Test',
       });
-
-      // Small delay to ensure different timestamp
-      await new Promise((r) => setTimeout(r, 100));
 
       const result = await project.client.updateItem({
         projectPath: project.path,
@@ -299,8 +295,7 @@ describe('gRPC: Issue Operations', () => {
         title: 'Updated Timestamp Test',
       });
 
-      // Just verify updatedAt is a valid date
-      expect(result.item.metadata.updatedAt).toBeDefined();
+      expect(result.item.metadata.createdAt).toBe(created.item.metadata.createdAt);
     });
   });
 
