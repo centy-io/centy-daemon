@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `get_centy_path` no longer creates a nested `.centy/.centy` folder when `centy init` is run from inside an org's `.centy` repo
+
 ### Changed
 - Upgrade mdstore to 1.0.0 with native frontmatter comment injection (#259)
 
