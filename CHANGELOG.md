@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Deny three more zero-violation Rust standard lints: `let_underscore_drop`, `dangling_pointers_from_temporaries`, `unnecessary_transmutes`; replace `let _ = result` with `drop(result)` at four call sites for explicit intent
+
 ## [0.14.0] — 2026-04-29
 
 ### Changed
