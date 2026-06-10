@@ -61,6 +61,26 @@ fn test_get_centy_path_relative() {
 }
 
 #[test]
+fn test_get_centy_path_already_centy_folder() {
+    let project_path = Path::new("/home/user/org/.centy");
+    let centy_path = get_centy_path(project_path);
+
+    assert_eq!(centy_path, Path::new("/home/user/org/.centy"));
+    assert_ne!(centy_path, Path::new("/home/user/org/.centy/.centy"));
+}
+
+#[test]
+fn test_get_manifest_path_already_centy_folder() {
+    let project_path = Path::new("/home/user/org/.centy");
+    let manifest_path = get_manifest_path(project_path);
+
+    assert_eq!(
+        manifest_path,
+        Path::new("/home/user/org/.centy/.centy-manifest.json")
+    );
+}
+
+#[test]
 fn test_paths_are_consistent() {
     let project_path = Path::new("/test");
     let centy_path = get_centy_path(project_path);
