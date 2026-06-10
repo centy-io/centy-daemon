@@ -44,7 +44,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
     if needs_org_inference {
         let path_for_inference = canonical_path;
         tokio::spawn(async move {
-            let _ = try_auto_assign_organization(&path_for_inference, None).await;
+            drop(try_auto_assign_organization(&path_for_inference, None).await);
         });
     }
     Ok(())

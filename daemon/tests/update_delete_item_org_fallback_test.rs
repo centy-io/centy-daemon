@@ -40,7 +40,7 @@ async fn init_project(project_path: &std::path::Path) {
 }
 
 async fn register_with_org(project_path: &str, org_repo_path: &str, org_slug: &str) {
-    let _ = create_organization(Some(org_slug), &format!("Org {org_slug}"), None).await;
+    drop(create_organization(Some(org_slug), &format!("Org {org_slug}"), None).await);
     set_project_organization(project_path, Some(org_slug))
         .await
         .expect("assign project to org");
