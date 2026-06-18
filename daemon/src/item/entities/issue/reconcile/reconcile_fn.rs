@@ -1,0 +1,61 @@
+//! Display number reconciliation for resolving conflicts.
+use super::super::metadata::IssueFrontmatter;
+use super::scan::scan_issues;
+use super::types::{IssueInfo, ReconcileError};
+use crate::utils::CENTY_HEADER_YAML;
+use mdstore::{generate_frontmatter, parse_frontmatter};
+use std::collections::HashMap;
+use std::path::Path;
+use tokio::fs;
+/// Reconcile display numbers to resolve conflicts.
+///
+/// Scans all issues, finds duplicate display numbers, and
+/// reassigns them so each issue has a unique display number.
+/// The oldest issue (by `created_at`) keeps its original number.
+///
+/// Returns the number of issues that were reassigned.
+pub async fn reconcile_display_numbers(issues_path: &Path) -> Result<u32, ReconcileError> {
+    if !issues_path.exists() {
+        return Ok(0);
+    }
+    let issues = scan_issues(issues_path).await?;
+    let mut by_display_number: HashMap<u32, Vec<&IssueInfo>> = HashMap::new();
+    for issue in &issues {
+        by_display_number
+            .entry(issue.display_number)
+            .or_default()
+            .push(issue);
+    }
+    let max_display_number = issues.iter().map(|i| i.display_number).max().unwrap_or(0);
+    let mut reassignments: Vec<(IssueInfo, u32)> = Vec::new();
+    let mut next_available = max_display_number.saturating_add(1);
+    for (display_number, mut group) in by_display_number {
+        if group.len() <= 1 {
+            continue;
+        }
+        if display_number == 0 {
+            for issue in &group {
+                reassignments.push(((*issue).clone(), next_available));
+                next_available = next_available.saturating_add(1);
+            }
+            continue;
+        }
+        group.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        for issue in group.iter().skip(1) {
+            reassignments.push(((*issue).clone(), next_available));
+            next_available = next_available.saturating_add(1);
+        }
+    }
+    let reassignment_count = reassignments.len().try_into().unwrap_or(u32::MAX);
+    for (issue_info, new_display_number) in reassignments {
+        let file_path = issues_path.join(format!("{}.md", issue_info.id));
+        let content = fs::read_to_string(&file_path).await?;
+        let (mut frontmatter, title, body): (IssueFrontmatter, String, String) =
+            parse_frontmatter(&content)?;
+        frontmatter.display_number = new_display_number;
+        let new_content =
+            generate_frontmatter(&frontmatter, &title, &body, Some(CENTY_HEADER_YAML));
+        fs::write(&file_path, &new_content).await?;
+    }
+    Ok(reassignment_count)
+}

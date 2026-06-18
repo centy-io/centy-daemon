@@ -1,7 +1,11 @@
 {
-  "version": "0.2",
+  "ignorePaths": [
+    ".centy-manifest.json"
+  ],
   "language": "en",
+  "version": "0.2",
   "words": [
+    "allowedStates",
     "Centralising",
     "centy",
     "centyVersion",
@@ -26,8 +30,5 @@
     "untracks",
     "updatedAt",
     "updateStatusOnStart"
-  ],
-  "ignorePaths": [
-    ".centy-manifest.json"
   ]
 }

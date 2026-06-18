@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "centy": {
+      "command": "npx",
+      "args": ["-y", "centy-mcp"]
+    }
+  }
+}

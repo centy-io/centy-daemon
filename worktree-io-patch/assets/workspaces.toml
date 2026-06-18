@@ -1,0 +1,6 @@
+# workspaces.toml — registry of open worktrees managed by the worktree CLI.
+# This file is updated automatically; do not edit it by hand.
+
+# [[workspace]]
+# path = "/absolute/path/to/worktree"
+# created_at = "3 weeks"

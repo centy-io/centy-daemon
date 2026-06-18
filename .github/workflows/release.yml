@@ -44,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install protoc
         uses: arduino/setup-protoc@v3
@@ -190,12 +192,12 @@ jobs:
 
       - name: Build .deb package
         run: |
-          cargo deb --no-build --no-strip --target ${{ matrix.target }} \
+          cargo deb -p centy-daemon --no-build --no-strip --target ${{ matrix.target }} \
             --output ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.deb_arch }}.deb
 
       - name: Build .rpm package
         run: |
-          cargo generate-rpm --target ${{ matrix.target }} \
+          cargo generate-rpm -p daemon --target ${{ matrix.target }} \
             --output ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.rpm_arch }}.rpm
 
       - name: Upload .deb artifact
@@ -247,7 +249,7 @@ jobs:
           mkdir -p staging/Library/LaunchDaemons
 
           # Copy launchd plist
-          cp packaging/macos/launchd/com.centy.daemon.plist staging/usr/local/share/centy/
+          cp daemon/packaging/macos/launchd/com.centy.daemon.plist staging/usr/local/share/centy/
 
           # Create installer resources
           mkdir -p resources
@@ -267,18 +269,18 @@ jobs:
             --root staging \
             --identifier com.centy.daemon \
             --version ${{ github.ref_name }} \
-            --scripts packaging/macos/scripts \
+            --scripts daemon/packaging/macos/scripts \
             --install-location / \
             centy-daemon-component.pkg
 
       - name: Update distribution.xml version
         run: |
-          sed -i '' "s/VERSION_PLACEHOLDER/${{ github.ref_name }}/g" packaging/macos/distribution.xml
+          sed -i '' "s/VERSION_PLACEHOLDER/${{ github.ref_name }}/g" daemon/packaging/macos/distribution.xml
 
       - name: Build product package
         run: |
           productbuild \
-            --distribution packaging/macos/distribution.xml \
+            --distribution daemon/packaging/macos/distribution.xml \
             --resources resources \
             --package-path . \
             ${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.arch }}.pkg
@@ -317,7 +319,7 @@ jobs:
       - name: Prepare package contents
         shell: pwsh
         run: |
-          Copy-Item "packaging/windows/winsw/centy-daemon.xml" -Destination "staging/"
+          Copy-Item "daemon/packaging/windows/winsw/centy-daemon.xml" -Destination "staging/"
 
           # Create LICENSE.rtf for WiX
           $license = Get-Content -Path "LICENSE" -ErrorAction SilentlyContinue
@@ -344,7 +346,7 @@ jobs:
         shell: pwsh
         run: |
           # Use wix build command with v5
-          wix build packaging/windows/wix/main.wxs `
+          wix build daemon/packaging/windows/wix/main.wxs `
             -define BinaryPath=staging `
             -define WinSWPath=staging `
             -define ConfigPath=staging `
@@ -381,7 +383,6 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          # Generate checksums for all release files
           sha256sum *.tar.gz *.zip *.deb *.rpm *.pkg *.msi 2>/dev/null > checksums-sha256.txt || true
           echo "=== Checksums ==="
           cat checksums-sha256.txt
@@ -437,3 +438,155 @@ jobs:
             artifacts/checksums-sha256.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # MCP: Build binaries and upload to release
+  # ============================================================================
+  build-mcp:
+    name: Build MCP binaries
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: mcp/go.sum
+
+      - name: Generate
+        run: make -C mcp generate
+
+      - name: Build binaries
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          cd mcp
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-linux-x86_64   .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-linux-aarch64  .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-darwin-x86_64  .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-darwin-aarch64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-mcp-windows-x86_64.exe .
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            centy-mcp-linux-x86_64
+            centy-mcp-linux-aarch64
+            centy-mcp-darwin-x86_64
+            centy-mcp-darwin-aarch64
+            centy-mcp-windows-x86_64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # CLI: Build binaries and upload to release
+  # ============================================================================
+  build-cli:
+    name: Build CLI binaries
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: cli/go.sum
+
+      - name: Generate
+        run: make -C cli generate
+
+      - name: Build binaries
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          cd cli
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-linux-x86_64   .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-linux-aarch64  .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-darwin-x86_64  .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-darwin-aarch64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-windows-x86_64.exe .
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            centy-cli-linux-x86_64
+            centy-cli-linux-aarch64
+            centy-cli-darwin-x86_64
+            centy-cli-darwin-aarch64
+            centy-cli-windows-x86_64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # MCP: Publish npm package (after binaries are on the release)
+  # ============================================================================
+  publish-mcp-npm:
+    name: Publish MCP npm package
+    needs: build-mcp
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm for OIDC trusted publishing support
+        run: |
+          # The runner's bundled npm can be missing internal deps (e.g. promise-retry),
+          # making `npm install -g npm@latest` fail before it can upgrade itself.
+          # Work around by downloading the tarball directly and bootstrapping with node.
+          curl -sf https://registry.npmjs.org/npm/latest -o /tmp/npm-meta.json
+          LATEST=$(node -e "console.log(require('/tmp/npm-meta.json').version)")
+          TARBALL=$(node -e "console.log(require('/tmp/npm-meta.json').dist.tarball)")
+          curl -fL "$TARBALL" -o /tmp/npm.tgz
+          mkdir -p /tmp/npm-pkg
+          tar -xzf /tmp/npm.tgz -C /tmp/npm-pkg
+          node /tmp/npm-pkg/package/bin/npm-cli.js install -g "npm@${LATEST}"
+
+      - name: Set version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          npm version "${VERSION}" --no-git-tag-version
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        working-directory: mcp/npm
+
+      - name: Check if version already published
+        id: npm_check
+        run: |
+          if npm view "centy-mcp@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Version ${VERSION} already on npm, skipping publish"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish
+        if: steps.npm_check.outputs.skip == 'false'
+        run: npm publish --provenance
+        working-directory: mcp/npm

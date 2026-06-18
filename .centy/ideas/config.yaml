@@ -3,7 +3,6 @@ name: idea
 identifier: slug
 features:
   displayNumber: false
-  status: true
   priority: true
   softDelete: false
   assets: false
@@ -15,5 +14,4 @@ statuses:
 - exploring
 - ready
 - rejected
-defaultStatus: raw
 priorityLevels: 3

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <!-- Dark background -->
+  <rect width="1280" height="640" fill="#0d1117"/>
+
+  <!-- Subtle dot texture -->
+  <defs>
+    <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1" fill="#a78bfa" opacity="0.07"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="640" fill="url(#dots)"/>
+
+  <!-- Centered content group -->
+  <g transform="translate(640, 320)">
+
+    <!-- Logo icon mark (rounded square bg + hub/spoke) centered at -235,0 -->
+    <g transform="translate(-235, 0)">
+      <!-- Icon background -->
+      <rect x="-88" y="-88" width="176" height="176" rx="32" fill="#161b27"/>
+      <rect x="-88" y="-88" width="176" height="176" rx="32" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.25"/>
+
+      <!-- Hub/spoke scaled to fit, centered at 0,0 -->
+      <g transform="scale(7.5)">
+        <!-- hub -->
+        <circle cx="0" cy="0" r="2.5" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- spokes -->
+        <line x1="2.5"   y1="0"      x2="8.5"   y2="0"      stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="1.25"  y1="2.17"   x2="4.25"  y2="7.2"    stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-1.25" y1="2.17"   x2="-4.25" y2="7.2"    stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-2.5"  y1="0"      x2="-8.5"  y2="0"      stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-1.25" y1="-2.17"  x2="-4.25" y2="-7.2"   stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="1.25"  y1="-2.17"  x2="4.25"  y2="-7.2"   stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- terminal nodes -->
+        <circle cx="9"     cy="0"    r="1.5" fill="#a78bfa"/>
+        <circle cx="4.75"  cy="7.7"  r="1.5" fill="#a78bfa"/>
+        <circle cx="-4.75" cy="7.7"  r="1.5" fill="#a78bfa"/>
+        <circle cx="-9"    cy="0"    r="1.5" fill="#a78bfa"/>
+        <circle cx="-4.75" cy="-7.7" r="1.5" fill="#a78bfa"/>
+        <circle cx="4.75"  cy="-7.7" r="1.5" fill="#a78bfa"/>
+      </g>
+    </g>
+
+    <!-- Divider -->
+    <line x1="-112" y1="-70" x2="-112" y2="70" stroke="#a78bfa" stroke-width="1" opacity="0.2"/>
+
+    <!-- Wordmark -->
+    <text x="-88" y="22"
+          font-family="'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif"
+          font-size="80"
+          font-weight="700"
+          letter-spacing="-3"
+          fill="#e2e8f0">worktree</text>
+
+    <!-- Tagline -->
+    <text x="-88" y="66"
+          font-family="'SF Mono', 'JetBrains Mono', 'Fira Code', monospace"
+          font-size="22"
+          font-weight="400"
+          fill="#a78bfa"
+          opacity="0.9">open any issue in its own worktree</text>
+
+  </g>
+</svg>

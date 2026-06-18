@@ -1,3 +1,4 @@
+<!-- This file is managed by Centy. Use the Centy CLI to modify it. -->
 # Centy Project
 
 This folder is managed by [Centy](https://github.com/centy-io/centy-cli).
@@ -18,6 +19,7 @@ Use the CLI commands below to interact with the centy system.
 - `issues/` - Project issues
 - `docs/` - Project documentation
 - `assets/` - Shared assets
+- `archived/` - Archived items from any type
 - `templates/` - Custom templates for issues and docs
 
 ## Getting Started

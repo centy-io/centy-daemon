@@ -1,0 +1,30 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 38
+expression: c.to_toml_with_comments()
+---
+# runner — https://worktree.io
+
+# Editor configuration.
+[editor]
+# Command to launch the editor, e.g. "code ." or "nvim ."
+command = "code ."
+
+# Workspace open behavior.
+[open]
+# Whether to launch the configured editor when opening a workspace.
+editor = false
+
+# Hook scripts run around the open command.
+[hooks]
+# Script run before opening the workspace.
+"pre:open" = "cargo build"
+# Script run after opening the workspace.
+"post:open" = "npm install"
+
+# Workspace lifecycle configuration.
+[workspace]
+# Maximum age of a workspace before it is considered expired.
+ttl = "7days"
+# When true, expired worktrees are pruned each time `open` is invoked.
+auto_prune = true

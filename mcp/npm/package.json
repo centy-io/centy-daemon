@@ -1,0 +1,27 @@
+{
+  "name": "centy-mcp",
+  "version": "0.0.0",
+  "description": "MCP server for centy-daemon — expose centy tools to AI clients like Claude",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/centy-io/centy-daemon.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "bin": {
+    "centy-mcp": "bin/centy-mcp.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "files": [
+    "bin/centy-mcp.js",
+    "scripts/install.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

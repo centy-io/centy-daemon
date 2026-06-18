@@ -1,0 +1,15 @@
+# This file is managed by Centy. Use the Centy CLI to modify it.
+name: Archived
+identifier: uuid
+features:
+  displayNumber: false
+  priority: false
+  softDelete: false
+  assets: true
+  orgSync: true
+  move: true
+  duplicate: false
+customFields:
+- name: original_item_type
+  type: string
+  required: false

@@ -1,0 +1,15 @@
+# runner — https://worktree.io
+
+# Editor configuration.
+[editor]
+
+# Workspace open behavior.
+[open]
+# Whether to launch the configured editor when opening a workspace.
+editor = true
+
+# Hook scripts run around the open command.
+[hooks]
+
+# Workspace lifecycle configuration.
+[workspace]

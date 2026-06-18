@@ -4,7 +4,7 @@ rules:
   # Protect centy configuration (read-only)
   - path: ".centy/**"
     access: read
-    reason: "Use the centy cli instead of custom editing"
+    reason: "use pnpm dlx centy"
 
   # Block key files using regex
   - path: "^.*\\.key$"

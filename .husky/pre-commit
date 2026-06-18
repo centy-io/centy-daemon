@@ -1,0 +1,6 @@
+set -e
+
+pnpm exec lint-staged
+
+echo "Running Clippy with pedantic lints..."
+cargo clippy --all-targets -- -D warnings

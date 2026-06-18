@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 target/
+centy-mcp-*
 
 # Testing
 coverage/
@@ -23,3 +24,6 @@ coverage/
 .claude-container/
 .claude-revert-backup-*/
 eslint-report.json
+coverage.lcov
+
+.playwright-mcp

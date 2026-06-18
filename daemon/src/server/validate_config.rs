@@ -1,0 +1,54 @@
+use crate::config::{is_system_key, CentyConfig};
+
+fn is_valid_hex_color(color: &str) -> bool {
+    let Ok(re) = regex::Regex::new("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$") else {
+        return false;
+    };
+    re.is_match(color)
+}
+fn validate_colors<'color>(
+    colors: impl IntoIterator<Item = (&'color String, &'color String)>,
+    kind: &str,
+) -> Result<(), String> {
+    for (name, color) in colors {
+        if !is_valid_hex_color(color) {
+            return Err(format!(
+                "invalid color '{color}' for {kind} '{name}': must be hex format (#RGB or #RRGGBB)"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Validate the config and return an error message if invalid.
+pub fn validate_config(config: &CentyConfig) -> Result<(), String> {
+    if config.priority_levels < 1 || config.priority_levels > 10 {
+        return Err("priority_levels must be between 1 and 10".to_string());
+    }
+
+    let mut field_names = std::collections::HashSet::new();
+    for field in &config.custom_fields {
+        if !field_names.insert(&field.name) {
+            return Err(format!("duplicate custom field name: '{}'", field.name));
+        }
+        if field.field_type == "enum" && field.enum_values.is_empty() {
+            return Err(format!(
+                "custom field '{}' is of type 'enum' but has no enum_values",
+                field.name
+            ));
+        }
+    }
+
+    for key in config.extra.keys() {
+        if is_system_key(key) {
+            return Err(format!(
+                "user_values key '{key}' conflicts with a system-managed config field"
+            ));
+        }
+    }
+
+    validate_colors(&config.state_colors, "state")?;
+    validate_colors(&config.priority_colors, "priority")?;
+
+    Ok(())
+}

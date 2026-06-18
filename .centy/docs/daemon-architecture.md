@@ -6,8 +6,6 @@ updatedAt: "2026-02-17T10:16:14.633056+00:00"
 
 # Daemon Architecture Overview
 
-# Daemon Architecture Overview
-
 ASCII diagram covering the full architecture of centy-daemon: clients, gRPC server, domain layer, storage (powered by mdstore), and integrations.
 
 ```

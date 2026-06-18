@@ -128,11 +128,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
-          cache-dependency-path: e2e/pnpm-lock.yaml
+          cache-dependency-path: daemon/e2e/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install
-        working-directory: e2e
+        working-directory: daemon/e2e
 
       - name: Start daemon
         run: |
@@ -141,4 +141,4 @@ jobs:
 
       - name: Run e2e tests
         run: pnpm test
-        working-directory: e2e
+        working-directory: daemon/e2e

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to centy-daemon — the file-based d
 
 ### Prerequisites
 
-- Rust 1.70+ (2021 edition)
+- Rust 1.85+ (2021 edition)
 - Git
 
 ### Setup
@@ -102,41 +102,53 @@ docs(readme): add grpcui testing instructions
 
 ## Project Structure
 
+This repository is a Cargo workspace. The main crate lives in `daemon/`:
+
 ```
-src/
+daemon/src/
 ├── main.rs              # Entry point, gRPC server setup
+├── app.rs               # Application initialization
 ├── lib.rs               # Public API exports
-├── server/              # gRPC service implementation (all RPC handlers)
+├── server/              # gRPC service implementation
+│   ├── handlers/        # Per-RPC handler modules
+│   └── error_mapping/   # gRPC status code mapping
 ├── item/                # Core entity management
 │   ├── core/            # Shared abstractions (CRUD, errors, metadata)
 │   ├── entities/        # Entity types
-│   │   ├── issue/       # Issue records (CRUD, reconciliation, assets)
-│   │   ├── doc/         # Document records
-│   │   └── pr/          # Pull request records (with git integration)
+│   │   └── issue/       # Issue records (CRUD, reconciliation, assets)
+│   ├── generic/         # Generic item storage layer
 │   ├── lifecycle/       # Soft-delete operations
-│   ├── operations/      # Move and duplicate operations
-│   ├── organization/    # Cross-project organization sync
-│   └── validation/      # Priority and status validation
+│   └── operations/      # Move and duplicate operations
 ├── manifest/            # .centy-manifest.json (schema version, integrity)
 ├── config/              # config.json (database schema and defaults)
 ├── registry/            # Multi-project tracking (~/.centy/projects.json)
+│   ├── inference/       # Organization inference
+│   ├── organizations/   # Cross-project organization sync
+│   ├── tracking/        # Project registration
+│   └── types/           # Registry data types
 ├── reconciliation/      # Database integrity checking and repair
+│   ├── execute/         # Reconciliation execution
+│   └── plan/            # Reconciliation planning
 ├── link/                # Bidirectional entity relationships
 ├── user/                # User records with git history sync
+├── hooks/               # Lifecycle hook execution
+├── cleanup/             # Expired workspace cleanup
+├── logging/             # Structured logging setup
 ├── workspace/           # Temporary workspace management
 ├── template/            # Handlebars template engine
-├── features/            # Issue compaction (WIP)
-├── common/              # Shared utilities (frontmatter, metadata)
+├── run/                 # Daemon startup helpers
+├── user_config/         # Per-user configuration
+├── common/              # Shared utilities (frontmatter, metadata, git)
 └── utils/               # Helpers (hashing, paths, formatting)
 ```
 
 ### Adding a New Feature
 
 1. **Update proto** — add messages/RPCs in `proto/centy.proto`
-2. **Rebuild** — run `cargo build` to regenerate proto code
-3. **Add domain logic** — create/update modules in `src/`
-4. **Implement RPC** — add handler in `src/server/mod.rs`
-5. **Write tests** — add integration tests in `tests/`
+2. **Rebuild** — run `cargo build` to regenerate proto code via `daemon/build.rs`
+3. **Add domain logic** — create/update modules in `daemon/src/`
+4. **Add handler** — add a new handler module under `daemon/src/server/handlers/` and register it in `daemon/src/server/handlers/mod.rs`
+5. **Write tests** — add integration tests in `daemon/tests/`
 6. **Update docs** — update README if needed
 
 ## Code Style
@@ -190,14 +202,14 @@ cargo test -- --nocapture     # Show println output
 ### Writing Tests
 
 - Place unit tests in the same file using `#[cfg(test)]` module
-- Place integration tests in `tests/` directory
+- Place integration tests in `daemon/tests/` directory
 - Use `tempfile` crate for isolated test directories
-- Use the test utilities in `tests/common/mod.rs`
+- Use the test utilities in `daemon/tests/common/mod.rs`
 
 Example integration test:
 
 ```rust
-use centy_daemon::issue::{create_issue, CreateIssueOptions};
+use centy_daemon::item::entities::issue::{create_issue, CreateIssueOptions};
 use common::{create_test_dir, init_centy_project};
 
 #[tokio::test]
