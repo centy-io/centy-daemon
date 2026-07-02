@@ -2,14 +2,7 @@ use super::errors::OrganizationError;
 
 /// Convert a name to a URL-friendly slug (kebab-case)
 pub fn slugify(name: &str) -> String {
-    name.to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
+    slug::slugify(name)
 }
 
 /// Validate a slug (must be non-empty, lowercase alphanumeric with hyphens)
