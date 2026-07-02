@@ -92,6 +92,22 @@ async fn test_create_organization_auto_slug() {
 }
 
 #[tokio::test]
+async fn test_create_organization_auto_slug_non_ascii_name() {
+    let _lock = acquire_lock();
+    let suffix = unique_slug("cafe");
+    let name = format!("Café Müller {suffix}");
+    let result = create_organization(None, &name, None)
+        .await
+        .expect("Should create org from a non-ASCII name");
+
+    assert_eq!(result.slug, format!("cafe-muller-{suffix}"));
+    assert_eq!(result.name, name);
+
+    // Cleanup
+    drop(delete_organization(&result.slug, false).await);
+}
+
+#[tokio::test]
 async fn test_create_organization_already_exists() {
     let _lock = acquire_lock();
     let slug = unique_slug("dup-test");
