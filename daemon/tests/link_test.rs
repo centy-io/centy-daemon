@@ -1090,3 +1090,72 @@ async fn test_link_nonexistent_slug_story_returns_not_found() {
         "Expected TargetNotFound, got {err:?}"
     );
 }
+
+/// Regression test for #239: a `type:` prefix on the link TARGET must resolve
+/// the entity using the prefixed type, even when the request's target item type
+/// defaults to the source type. Mirrors `centy link issue <id> relates-to
+/// story:<id>`, where the CLI sends the target type defaulted to the source.
+#[tokio::test]
+async fn test_create_link_target_type_prefix_overrides_source_type() {
+    use centy_daemon::server::handlers::link_create::create_link as server_create_link;
+    use centy_daemon::server::proto::CreateLinkRequest;
+
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let story_config = setup_story_type(project_path).await;
+    let story = generic_create(
+        project_path,
+        "stories",
+        &story_config,
+        CreateOptions {
+            title: "Prefixed Target Story".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("draft".to_string()),
+            priority: None,
+            tags: None,
+            custom_fields: std::collections::HashMap::new(),
+            comment: None,
+        },
+    )
+    .await
+    .expect("Should create story");
+
+    let issue = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "Source Issue".to_string(),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("Should create issue");
+
+    // target_item_type defaults to the source type ("issue"); the real type is
+    // carried only by the `story:` prefix on target_id.
+    let req = CreateLinkRequest {
+        project_path: project_path.to_string_lossy().into_owned(),
+        source_item_type: "issue".to_string(),
+        source_id: issue.id.clone(),
+        target_item_type: "issue".to_string(),
+        target_id: format!("story:{}", story.id),
+        link_type: "relates-to".to_string(),
+    };
+
+    let resp = server_create_link(req)
+        .await
+        .expect("handler should return a response")
+        .into_inner();
+
+    assert!(
+        resp.success,
+        "cross-type link via `story:` prefix should succeed, got error: {}",
+        resp.error
+    );
+
+    // The created link should point at the story's real id, resolved as a story.
+    let created = resp.created_link.expect("created_link should be present");
+    assert_eq!(created.target_id, story.id);
+}

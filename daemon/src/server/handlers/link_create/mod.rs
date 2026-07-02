@@ -44,12 +44,12 @@ pub async fn create_link(req: CreateLinkRequest) -> Result<Response<CreateLinkRe
     {
         return Ok(err_resp(&req.project_path, &e));
     }
-    let source_type = TargetType::new(req.source_item_type.to_lowercase());
-    let target_type = TargetType::new(req.target_item_type.to_lowercase());
-    let (source_id, target_id) = match resolution::resolve_link_ids(
+    let default_source_type = TargetType::new(req.source_item_type.to_lowercase());
+    let default_target_type = TargetType::new(req.target_item_type.to_lowercase());
+    let (source_id, source_type, target_id, target_type) = match resolution::resolve_link_ids(
         project_path,
-        &source_type,
-        &target_type,
+        &default_source_type,
+        &default_target_type,
         &req.source_id,
         &req.target_id,
     )
