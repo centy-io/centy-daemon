@@ -57,6 +57,36 @@ async fn test_init_creates_manifest_and_structure() {
 }
 
 #[tokio::test]
+async fn test_init_on_org_centy_repo_does_not_nest() {
+    // Regression test for #282: running init with a project_path that is
+    // itself already a `.centy` folder (the org-wide repo convention) must
+    // place managed files directly inside it, not under a nested
+    // `.centy/.centy`.
+    let temp_dir = create_test_dir();
+    let org_centy_path = temp_dir.path().join(".centy");
+    fs::create_dir_all(&org_centy_path)
+        .await
+        .expect("Should create org .centy dir");
+
+    init_centy_project(&org_centy_path).await;
+
+    // Managed files should land directly in org_centy_path, not in
+    // org_centy_path/.centy.
+    assert!(
+        org_centy_path.join(".centy-manifest.json").exists(),
+        "Manifest should be created directly in the org .centy repo"
+    );
+    assert!(
+        org_centy_path.join("issues").is_dir(),
+        "issues/ should be created directly in the org .centy repo"
+    );
+    assert!(
+        !org_centy_path.join(".centy").exists(),
+        "Should NOT create a nested .centy/.centy folder"
+    );
+}
+
+#[tokio::test]
 async fn test_init_idempotent() {
     let temp_dir = create_test_dir();
     let project_path = temp_dir.path();
