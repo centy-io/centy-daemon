@@ -12,6 +12,9 @@ use centy_daemon::link::{
     create_link, delete_link, get_available_link_types, list_links, CreateLinkOptions,
     CustomLinkTypeDefinition, DeleteLinkOptions, LinkDirection, LinkError, TargetType,
 };
+use centy_daemon::server::handlers::item_create::create_item;
+use centy_daemon::server::handlers::link_create::create_link as create_link_handler;
+use centy_daemon::server::proto::{CreateItemRequest, CreateLinkRequest};
 use common::{create_test_dir, init_centy_project};
 use mdstore::{CreateOptions, IdStrategy, TypeConfig};
 
@@ -1089,4 +1092,73 @@ async fn test_link_nonexistent_slug_story_returns_not_found() {
         matches!(err, LinkError::TargetNotFound(_, _)),
         "Expected TargetNotFound, got {err:?}"
     );
+}
+
+/// Helper to build a `CreateItemRequest` for the gRPC create handler.
+fn create_item_req(project_path: &str, item_type: &str, title: &str) -> CreateItemRequest {
+    CreateItemRequest {
+        project_path: project_path.to_string(),
+        item_type: item_type.to_string(),
+        title: title.to_string(),
+        body: String::new(),
+        status: String::new(),
+        priority: 0,
+        tags: vec![],
+        custom_fields: std::collections::HashMap::new(),
+        projects: vec![],
+    }
+}
+
+/// Regression test for #238: two items of different types that happen to share
+/// the same display number (e.g. `issue #1` and `epic #1`) must be linkable by
+/// display number without a false `SELF_LINK` error. Display-number lookup has
+/// to be scoped to the item type, so `issue:1` and `epic:1` resolve to distinct
+/// underlying UUIDs.
+#[tokio::test]
+async fn test_link_same_display_number_across_types_is_not_self_link() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+    let pp = project_path.to_str().unwrap();
+
+    // Both `issues` and `epics` have the display_number feature enabled, so the
+    // first item of each type gets display number 1.
+    let issue = create_item(create_item_req(pp, "issues", "Issue One"))
+        .await
+        .unwrap()
+        .into_inner();
+    assert!(issue.success, "create issue failed: {}", issue.error);
+    let issue = issue.item.unwrap();
+    assert_eq!(issue.metadata.as_ref().unwrap().display_number, 1);
+
+    let epic = create_item(create_item_req(pp, "epics", "Epic One"))
+        .await
+        .unwrap()
+        .into_inner();
+    assert!(epic.success, "create epic failed: {}", epic.error);
+    let epic = epic.item.unwrap();
+    assert_eq!(epic.metadata.as_ref().unwrap().display_number, 1);
+
+    // Link issue:1 -> epic:1 by display number through the gRPC handler, which is
+    // where display-number resolution happens.
+    let resp = create_link_handler(CreateLinkRequest {
+        project_path: pp.to_string(),
+        source_id: "1".to_string(),
+        source_item_type: "issue".to_string(),
+        target_id: "1".to_string(),
+        target_item_type: "epic".to_string(),
+        link_type: "relates-to".to_string(),
+    })
+    .await
+    .unwrap()
+    .into_inner();
+
+    assert!(
+        resp.success,
+        "cross-type link by shared display number should succeed, got error: {}",
+        resp.error
+    );
+    // The display numbers must resolve to the two distinct underlying UUIDs.
+    assert_eq!(resp.created_link.unwrap().target_id, epic.id);
+    assert_eq!(resp.inverse_link.unwrap().target_id, issue.id);
 }
