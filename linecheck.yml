@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tupe12334/linecheck/main/schema/linecheck.schema.json
+
+rules:
+  - pattern: "**/*.rs"
+    warn: 200
+    warn_message: "Getting long — consider splitting into submodules"
+    error: 400
+    error_message: "Too large to review easily; split this file now"
+  - pattern: "**/*.ts"
+    warn: 200
+    error: 400
+  - pattern: "**/*.go"
+    warn: 200
+    error: 400
+  - pattern: "**/*.js"
+    warn: 200
+    error: 400
+
+exclude:
+  - "proto/**"
+  - "installer/**"
+  - "target/**"
+  - "node_modules/**"
+  - ".centy/**"
+  - "**/*.snap"
+  - "**/*.md"
+  - "**/*.json"
+  - "**/*.yaml"
+  - "**/*.yml"
+  - "**/*.toml"
+  - "**/*.lock"
+  # Grandfathered at adoption time (2026-07-17): pre-existing large test/e2e files.
+  # Trim these as they get split up; production code above is fully enforced.
+  - "**/tests/**"
+  - "**/e2e/**"
+  - "**/*_test.rs"
+  - "**/*_tests.rs"
+  - "daemon/src/server/trait_impl.rs"
