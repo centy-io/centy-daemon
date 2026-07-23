@@ -10,6 +10,27 @@ fn test_get_centy_path() {
 }
 
 #[test]
+fn test_get_centy_path_idempotent_inside_centy_dir() {
+    // Regression for #282: running from inside an org's own `.centy` repo must
+    // not nest a second `.centy/.centy`.
+    let project_path = Path::new("/home/user/my-org/.centy");
+    let centy_path = get_centy_path(project_path);
+
+    assert_eq!(centy_path, Path::new("/home/user/my-org/.centy"));
+}
+
+#[test]
+fn test_get_manifest_path_inside_centy_dir() {
+    let project_path = Path::new("/home/user/my-org/.centy");
+    let manifest_path = get_manifest_path(project_path);
+
+    assert_eq!(
+        manifest_path,
+        Path::new("/home/user/my-org/.centy/.centy-manifest.json")
+    );
+}
+
+#[test]
 fn test_get_manifest_path() {
     let project_path = Path::new("/home/user/my-project");
     let manifest_path = get_manifest_path(project_path);
