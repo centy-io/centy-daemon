@@ -15,9 +15,17 @@ pub const MANIFEST_FILE: &str = ".centy-manifest.json";
 /// Current centy version (from Cargo.toml)
 pub const CENTY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Get the path to the .centy folder
+/// Get the path to the .centy folder.
+///
+/// If `project_path` already *is* a `.centy` folder (its final component is
+/// literally `.centy` — the convention used for an org-wide `.centy` repo,
+/// see `registry::org_repo`), it is returned as-is instead of nesting a
+/// second `.centy` inside it.
 #[must_use]
 pub fn get_centy_path(project_path: &Path) -> std::path::PathBuf {
+    if project_path.file_name().is_some_and(|name| name == CENTY_FOLDER) {
+        return project_path.to_path_buf();
+    }
     project_path.join(CENTY_FOLDER)
 }
 

@@ -53,6 +53,17 @@ fn test_now_iso_format() {
 }
 
 #[test]
+fn test_get_centy_path_already_dot_centy_returns_as_is() {
+    // Regression test for #282: an org-wide `.centy` repo (registry
+    // convention: project path ends in `/.centy`) must not get a second
+    // `.centy` nested inside it.
+    let project_path = Path::new("/home/user/my-org/.centy");
+    let centy_path = get_centy_path(project_path);
+
+    assert_eq!(centy_path, Path::new("/home/user/my-org/.centy"));
+}
+
+#[test]
 fn test_get_centy_path_relative() {
     let project_path = Path::new(".");
     let centy_path = get_centy_path(project_path);
