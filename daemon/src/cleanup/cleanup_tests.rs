@@ -284,6 +284,78 @@ async fn test_valid_links_not_removed_by_orphan_cleanup() {
     );
 }
 
+/// A second item type whose folder name is an irregular plural of its type
+/// name ("story" -> "stories", not the naive "storys" you get by appending
+/// "s"). Regression coverage for issue #295: the orphan sweep used to derive
+/// an endpoint's folder with naive pluralization instead of the item type
+/// registry, so cross-type links touching a type like this were wrongly
+/// treated as dangling even though both endpoints existed on disk.
+async fn write_story_type_config(project_path: &std::path::Path) {
+    let mut itc = default_issue_config(&CentyConfig::default());
+    itc.name = "Story".to_string();
+    write_item_type_config(project_path, "stories", &itc)
+        .await
+        .unwrap();
+}
+
+fn story_config() -> TypeConfig {
+    let mut itc = default_issue_config(&CentyConfig::default());
+    itc.name = "Story".to_string();
+    TypeConfig::from(&itc)
+}
+
+async fn create_story(project_path: &std::path::Path, title: &str) -> mdstore::Item {
+    let options = CreateOptions {
+        title: title.to_string(),
+        body: String::new(),
+        id: None,
+        status: Some("open".to_string()),
+        priority: Some(2),
+        tags: None,
+        custom_fields: HashMap::new(),
+        comment: None,
+    };
+    generic_create(project_path, "stories", &story_config(), options)
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn test_valid_cross_type_relates_to_link_survives_orphan_cleanup() {
+    let temp = tempfile::tempdir().unwrap();
+    setup_project(temp.path()).await;
+    write_issue_type_config(temp.path()).await;
+    write_story_type_config(temp.path()).await;
+
+    let issue = create_issue(temp.path(), "Issue A").await;
+    let story = create_story(temp.path(), "Story B").await;
+
+    create_link(
+        temp.path(),
+        CreateLinkOptions {
+            source_id: issue.id.clone(),
+            source_type: TargetType::new("issue"),
+            target_id: story.id.clone(),
+            target_type: TargetType::new("story"),
+            link_type: "relates-to".to_string(),
+        },
+        &[],
+    )
+    .await
+    .unwrap();
+
+    // Both endpoints exist on disk (in "issues/" and "stories/" respectively).
+    clean_orphan_links_for_project(temp.path()).await;
+
+    let links_after = list_all_links(temp.path()).await.unwrap();
+    assert_eq!(
+        links_after.len(),
+        1,
+        "relates-to link between two live items must survive the orphan sweep \
+         even when the target type's folder isn't a naive '+s' plural of its name"
+    );
+}
+
 #[tokio::test]
 async fn test_orphan_links_swept_during_regular_cleanup() {
     let temp = tempfile::tempdir().unwrap();
