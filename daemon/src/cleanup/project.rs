@@ -1,19 +1,34 @@
-use crate::config::item_type_config::discover_item_types_map;
+use crate::config::item_type_config::{discover_item_types_map, ItemTypeRegistry};
 use crate::item::generic::storage::{generic_delete, generic_list};
-use crate::link::{delete_link_by_id, list_all_links};
+use crate::link::{delete_link_by_id, list_all_links, TargetType};
 use crate::utils::get_centy_path;
 use chrono::{DateTime, Duration, Utc};
 use mdstore::{Filters, TypeConfig};
 use std::path::Path;
 use tracing::{debug, error, warn};
 
+/// Resolve an entity type to its actual storage folder using the item type
+/// registry (handles exact folder, case-insensitive name, and case-insensitive
+/// folder matches). Falls back to the naive `folder_name()` (append "s") if
+/// the registry has no matching type — matching the resolution used at link
+/// creation time (see `link::crud_helpers::resolve_folder`).
+fn resolve_folder(registry: Option<&ItemTypeRegistry>, entity_type: &TargetType) -> String {
+    registry
+        .and_then(|r| r.resolve(entity_type.as_str()).map(|(f, _)| f.clone()))
+        .unwrap_or_else(|| entity_type.folder_name())
+}
+
 /// Returns `true` when either the source or the target item file no longer exists on disk.
-fn link_is_orphan(centy_path: &std::path::Path, link: &crate::link::LinkRecord) -> bool {
+fn link_is_orphan(
+    centy_path: &std::path::Path,
+    registry: Option<&ItemTypeRegistry>,
+    link: &crate::link::LinkRecord,
+) -> bool {
     let source_path = centy_path
-        .join(link.source_type.folder_name())
+        .join(resolve_folder(registry, &link.source_type))
         .join(format!("{}.md", link.source_id));
     let target_path = centy_path
-        .join(link.target_type.folder_name())
+        .join(resolve_folder(registry, &link.target_type))
         .join(format!("{}.md", link.target_id));
     !source_path.exists() || !target_path.exists()
 }
@@ -46,8 +61,12 @@ pub async fn clean_orphan_links_for_project(project_path: &Path) {
             return;
         }
     };
+    // Build once and reuse for every link so all configured item-type
+    // directories (not just the naive singular+"s" guess) are considered
+    // when checking whether an endpoint still exists.
+    let registry = ItemTypeRegistry::build(project_path).await.ok();
     for link in links {
-        if link_is_orphan(&centy_path, &link) {
+        if link_is_orphan(&centy_path, registry.as_ref(), &link) {
             remove_orphan_link(project_path, &link).await;
         }
     }
