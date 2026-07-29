@@ -1053,6 +1053,9 @@ get_unwrap = "deny"
 significant_drop_in_scrutinee = "deny"
 single_char_lifetime_names = "deny"
 ref_patterns = "deny"
+# Avoid needless allocations from `.iter().cloned()` where a borrowing
+# iterator adapter would do (e.g. `.iter().cloned().any(..)`)
+redundant_iter_cloned = "deny"
 
 [[bin]]
 name = "centy-daemon"
