@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the Centy web application as the `web` Git submodule, pinned to its current `main` commit for subsequent daemon-owned localhost integration
 - Pin `mdstore` to 1.1.1, the version matching the daemon's current storage API, so the repository builds reproducibly
 - Update source and test idioms for the current Clippy release without weakening the repository's lint policy
+- Align the MCP generator runtime with the version resolved by Buf so the generated Go MCP server builds reproducibly
 - Deny three more zero-violation Rust standard lints: `let_underscore_drop`, `dangling_pointers_from_temporaries`, `unnecessary_transmutes`; replace `let _ = result` with `drop(result)` at four call sites for explicit intent
 
 ### Fixed
