@@ -1123,20 +1123,28 @@ async fn test_link_same_display_number_across_types_is_not_self_link() {
 
     // Both `issues` and `epics` have the display_number feature enabled, so the
     // first item of each type gets display number 1.
-    let issue = create_item(create_item_req(pp, "issues", "Issue One"))
+    let issue_response = create_item(create_item_req(pp, "issues", "Issue One"))
         .await
         .unwrap()
         .into_inner();
-    assert!(issue.success, "create issue failed: {}", issue.error);
-    let issue = issue.item.unwrap();
+    assert!(
+        issue_response.success,
+        "create issue failed: {}",
+        issue_response.error
+    );
+    let issue = issue_response.item.unwrap();
     assert_eq!(issue.metadata.as_ref().unwrap().display_number, 1);
 
-    let epic = create_item(create_item_req(pp, "epics", "Epic One"))
+    let epic_response = create_item(create_item_req(pp, "epics", "Epic One"))
         .await
         .unwrap()
         .into_inner();
-    assert!(epic.success, "create epic failed: {}", epic.error);
-    let epic = epic.item.unwrap();
+    assert!(
+        epic_response.success,
+        "create epic failed: {}",
+        epic_response.error
+    );
+    let epic = epic_response.item.unwrap();
     assert_eq!(epic.metadata.as_ref().unwrap().display_number, 1);
 
     // Link issue:1 -> epic:1 by display number through the gRPC handler, which is

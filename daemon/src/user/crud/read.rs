@@ -36,7 +36,7 @@ pub async fn create_user(
         deleted_at: None,
     };
     users.push(user.clone());
-    users.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    users.sort_by_key(|user| user.name.to_lowercase());
     write_users(project_path, &users).await?;
     update_manifest(&mut manifest);
     write_manifest(project_path, &manifest).await?;

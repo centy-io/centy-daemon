@@ -21,7 +21,7 @@ git2 = { version = "0.20", features = ["vendored-openssl"] }
 git-url-parse = "0.6"
 
 # Storage engine
-mdstore = "1.1.1"
+mdstore = "=1.1.1"
 
 # gRPC
 tonic = "0.12"
@@ -116,7 +116,7 @@ tonic-build = "0.12"
 [dev-dependencies]
 tempfile = "3"
 submodule-kit = "0.1.0"
-mdstore = "1.1.1"
+mdstore = "=1.1.1"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -346,7 +346,6 @@ iter_filter_is_ok = "deny"
 iter_filter_is_some = "deny"
 needless_continue = "deny"
 needless_pass_by_ref_mut = "deny"
-from_iter_instead_of_collect = "deny"
 implicit_clone = "deny"
 range_plus_one = "deny"
 semicolon_if_nothing_returned = "deny"

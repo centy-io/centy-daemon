@@ -86,7 +86,7 @@ pub fn spawn_cleanup_task() {
     tokio::spawn(async {
         run_cleanup_all_projects().await;
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+            tokio::time::sleep(tokio::time::Duration::from_hours(1)).await;
             run_cleanup_all_projects().await;
         }
     });
