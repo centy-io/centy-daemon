@@ -17,8 +17,7 @@ pub fn is_git_repository(project_path: &Path) -> bool {
         .env_remove("GIT_DIR")
         .env_remove("GIT_WORK_TREE")
         .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+        .is_ok_and(|output| output.status.success())
 }
 
 /// Get unique contributors from git history

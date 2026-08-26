@@ -45,7 +45,7 @@ pub async fn move_issue(options: MoveIssueOptions) -> Result<MoveIssueResult, Is
     fs::create_dir_all(&target_issues_path).await?;
     let new_display_number = get_next_display_number(&target_issues_path).await?;
     let frontmatter = build_target_frontmatter(&source_issue, new_display_number);
-    let target_issue_file = target_issues_path.join(format!("{}.md", &options.issue_id));
+    let target_issue_file = target_issues_path.join(format!("{}.md", options.issue_id));
     let issue_content = generate_frontmatter(
         &frontmatter,
         &source_issue.title,

@@ -31,6 +31,6 @@ pub fn find_matching_hooks<'hook>(
                 .map(|p| (h, p.specificity()))
         })
         .collect();
-    matching.sort_by(|a, b| b.1.cmp(&a.1));
+    matching.sort_by_key(|entry| std::cmp::Reverse(entry.1));
     matching.into_iter().map(|(h, _)| h).collect()
 }

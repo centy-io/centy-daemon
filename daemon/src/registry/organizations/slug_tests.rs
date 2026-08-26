@@ -16,11 +16,11 @@ fn test_slugify() {
 fn test_slugify_non_ascii() {
     // Non-ASCII names must transliterate to a valid (ASCII) slug instead of
     // passing accented/non-Latin characters through untouched.
-    let slug = slugify("Café Müller");
+    let slug = slugify("Caf\u{e9} M\u{fc}ller");
     assert!(validate_slug(&slug).is_ok());
     assert_eq!(slug, "cafe-muller");
 
-    let slug = slugify("Zürich Corp");
+    let slug = slugify("Z\u{fc}rich Corp");
     assert!(validate_slug(&slug).is_ok());
     assert_eq!(slug, "zurich-corp");
 }

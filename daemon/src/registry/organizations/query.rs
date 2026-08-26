@@ -30,7 +30,7 @@ pub async fn list_organizations() -> Result<Vec<OrganizationInfo>, OrganizationE
         .collect();
 
     // Sort by name
-    orgs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    orgs.sort_by_key(|org| org.name.to_lowercase());
 
     Ok(orgs)
 }

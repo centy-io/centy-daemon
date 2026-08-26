@@ -522,7 +522,7 @@ async fn test_delete_issue_removes_files() {
     let issue_file = project_path
         .join(".centy")
         .join("issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
     assert!(
         issue_file.exists(),
         "Issue file should exist after creation"
@@ -1044,7 +1044,7 @@ async fn test_create_issue_with_planning_status_adds_note() {
     // Read issue file directly to verify planning note (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
     let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
@@ -1076,7 +1076,7 @@ async fn test_create_issue_without_planning_status_no_note() {
     // Read issue file directly (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
     let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(
@@ -1109,7 +1109,7 @@ async fn test_update_issue_to_planning_adds_note() {
     // Verify no planning note initially (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
     let initial_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(!initial_content.contains("> **Planning Mode**"));
 
@@ -1155,7 +1155,7 @@ async fn test_update_issue_from_planning_removes_note() {
     // Verify planning note exists (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
     let initial_content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
     assert!(initial_content.contains("> **Planning Mode**"));
 
@@ -1206,7 +1206,7 @@ async fn test_planning_note_idempotent() {
     // New format: {id}.md
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &created.id));
+        .join(format!("{}.md", created.id));
 
     // Update multiple times while staying in planning
     for i in 0i32..3i32 {
@@ -1271,7 +1271,7 @@ async fn test_duplicate_issue_preserves_planning_note() {
     // Verify duplicate has planning note (new format: {id}.md)
     let issue_file_path = project_path
         .join(".centy/issues")
-        .join(format!("{}.md", &result.item.id));
+        .join(format!("{}.md", result.item.id));
     let content = tokio::fs::read_to_string(&issue_file_path).await.unwrap();
 
     assert!(

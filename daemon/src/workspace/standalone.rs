@@ -54,7 +54,7 @@ pub async fn remove_workspace(path: &str, force: bool) -> (bool, bool) {
         cmd.arg("--force");
     }
     cmd.arg(path);
-    let worktree_removed = cmd.status().map(|s| s.success()).unwrap_or(false);
+    let worktree_removed = cmd.status().is_ok_and(|status| status.success());
     let path_buf = std::path::Path::new(path);
     let directory_removed = if path_buf.exists() {
         tokio::fs::remove_dir_all(path_buf).await.is_ok()
