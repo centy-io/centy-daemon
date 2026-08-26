@@ -18,6 +18,12 @@ pub struct Args {
         value_delimiter = ','
     )]
     pub cors_origins: Vec<String>,
+    /// Launch the bundled Centy web app on localhost.
+    #[arg(long, env = "CENTY_SERVE_WEB", default_value_t = false)]
+    pub serve_web: bool,
+    /// Address for the bundled Centy web app.
+    #[arg(long, env = "CENTY_WEB_ADDR", default_value = "127.0.0.1:5180")]
+    pub web_addr: String,
     /// Enable JSON log format (for production/log aggregation)
     #[arg(long, env = "CENTY_LOG_JSON", default_value = "false")]
     pub log_json: bool,
