@@ -19,6 +19,8 @@ rules:
 exclude:
   - "proto/**"
   - "installer/**"
+  # The web app is a separately governed Git submodule with its own quality gates.
+  - "web/**"
   - "target/**"
   - "node_modules/**"
   - ".centy/**"
