@@ -6,3 +6,7 @@
 	path = installer
 	url = https://github.com/centy-io/installer.git
 	branch = main
+[submodule "web"]
+	path = web
+	url = https://github.com/centy-io/centy-app.git
+	branch = main
