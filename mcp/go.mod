@@ -5,9 +5,9 @@ go 1.26.1
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/mark3labs/mcp-go v0.37.0
-	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260729122341-6334690a62b6
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260323112146-887f275039cd
 	golang.org/x/net v0.58.0
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.11
 )
 
