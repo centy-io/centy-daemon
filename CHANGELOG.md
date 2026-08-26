@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Pin `mdstore` to 1.1.1, the version matching the daemon's current storage API, so the repository builds reproducibly
 - Deny three more zero-violation Rust standard lints: `let_underscore_drop`, `dangling_pointers_from_temporaries`, `unnecessary_transmutes`; replace `let _ = result` with `drop(result)` at four call sites for explicit intent
 
 ### Fixed
