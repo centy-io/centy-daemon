@@ -142,3 +142,52 @@ jobs:
       - name: Run e2e tests
         run: pnpm test
         working-directory: daemon/e2e
+
+  web-localhost:
+    name: Web localhost contract
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download daemon binary
+        uses: actions/download-artifact@v4
+        with:
+          name: daemon-binary
+          path: target/release
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install web dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+
+      - name: Serve and verify the bundled web app
+        env:
+          CENTY_SERVE_WEB: '1'
+          NEXT_PUBLIC_DAEMON_URL: http://127.0.0.1:50051
+          NEXT_PUBLIC_DOCS_URL: https://docs.centy.io
+          NEXT_PUBLIC_DAEMON_INSTALL_URL: https://example.invalid/install.sh
+          NEXT_PUBLIC_CORS_DOCS_URL: http://127.0.0.1:5180
+          NEXT_PUBLIC_GOOGLE_ANALYTICS_URL: https://example.invalid/analytics.js
+          NEXT_PUBLIC_SENTRY_DSN: https://example.invalid/1
+        run: |
+          chmod +x target/release/centy-daemon
+          target/release/centy-daemon &
+          for attempt in {1..30}; do
+            curl --fail --silent --show-error http://127.0.0.1:5180/ && exit 0
+            sleep 1
+          done
+          exit 1
