@@ -1,5 +1,4 @@
 use super::config_merge::apply_init_config;
-use super::mcp_io::ensure_mcp_json;
 use crate::config::set_project_title;
 use crate::reconciliation::ReconciliationResult;
 use crate::registry::{get_project_info, infer_organization_from_remote, set_project_organization};
@@ -51,18 +50,6 @@ pub(super) async fn post_reconcile(
                 org_inference: None,
             }));
         }
-    }
-    if let Err(e) = ensure_mcp_json(project_path).await {
-        return Ok(Response::new(InitResponse {
-            success: false,
-            error: e,
-            created: vec![],
-            restored: vec![],
-            reset: vec![],
-            skipped: vec![],
-            manifest: None,
-            org_inference: None,
-        }));
     }
     Ok(Response::new(InitResponse {
         success: true,

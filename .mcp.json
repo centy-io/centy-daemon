@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "centy": {
-      "command": "npx",
-      "args": ["-y", "centy-mcp"]
+      "type": "http",
+      "url": "http://127.0.0.1:50052/mcp"
     }
   }
 }

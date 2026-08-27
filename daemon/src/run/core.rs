@@ -1,9 +1,10 @@
 use crate::cors::build_cors_layer;
 use crate::logging::{init_logging, parse_rotation, LogConfig, LOG_FILENAME};
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
+use std::process::Child;
 use tower_http::cors::CorsLayer;
-use tracing::info;
+use tracing::{info, warn};
 
 pub fn setup_logging(
     log_dir_opt: Option<String>,
@@ -27,14 +28,9 @@ pub fn setup_logging(
         rotation: parse_rotation(log_rotation),
         ..Default::default()
     };
-    if let Err(e) = init_logging(log_config) {
-        eprintln!();
-        eprintln!("Error: Failed to initialize logging: {e}");
-        eprintln!();
-        eprintln!("Note: Logging could not be set up.");
-        eprintln!("Logs: {}", log_file.display());
-        eprintln!();
-        return Err(e);
+    if let Err(error) = init_logging(log_config) {
+        eprintln!("\nError: Failed to initialize logging: {error}\n\nNote: Logging could not be set up.\nLogs: {}\n", log_file.display());
+        return Err(error);
     }
     Ok(log_file)
 }
@@ -45,7 +41,7 @@ pub fn build_cors(origins: &[String]) -> CorsLayer {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect();
-    let allow_all_origins = cors_origins.iter().any(|o| o == "*");
+    let allow_all_origins = cors_origins.iter().any(|origin| origin == "*");
     info!(
         "CORS origins: {}",
         if allow_all_origins {
@@ -55,4 +51,27 @@ pub fn build_cors(origins: &[String]) -> CorsLayer {
         }
     );
     build_cors_layer(cors_origins)
+}
+
+pub fn launch_web(enabled: bool, addr: &str) -> Result<Option<Child>> {
+    if !enabled {
+        return Ok(None);
+    }
+    let (host, port) = addr
+        .rsplit_once(':')
+        .ok_or_else(|| eyre!("CENTY_WEB_ADDR must be host:port"))?;
+    let child = std::process::Command::new("pnpm")
+        .args(["--dir", "web", "dev", "--hostname", host, "--port", port])
+        .spawn()
+        .map_err(|error| eyre!("failed to launch bundled web app: {error}"))?;
+    info!(address = %addr, "Starting bundled Centy web app");
+    Ok(Some(child))
+}
+
+pub fn stop_web(web_process: Option<Child>) {
+    if let Some(mut child) = web_process {
+        if let Err(error) = child.kill() {
+            warn!(%error, "Failed to stop bundled Centy web app");
+        }
+    }
 }
