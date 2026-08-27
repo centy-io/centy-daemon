@@ -1,6 +1,6 @@
-use bytes::Buf;
-use color_eyre::eyre::{Result, WrapErr};
-use prost::Message;
+use bytes::Buf as _;
+use color_eyre::eyre::{Result, WrapErr as _};
+use prost::Message as _;
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 use std::net::{IpAddr, SocketAddr};
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};

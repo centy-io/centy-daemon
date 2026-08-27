@@ -3,7 +3,7 @@ mod grpc;
 mod server;
 
 use crate::server::ShutdownSignal;
-use color_eyre::eyre::{bail, Result, WrapErr};
+use color_eyre::eyre::{bail, Result, WrapErr as _};
 use std::net::SocketAddr;
 use tokio::sync::watch;
 
