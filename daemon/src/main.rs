@@ -30,6 +30,7 @@ mod item;
 mod link;
 mod logging;
 mod manifest;
+mod mcp;
 mod metrics;
 mod reconciliation;
 mod registry;

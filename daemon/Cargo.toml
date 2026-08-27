@@ -108,6 +108,10 @@ which = "6"
 shell-escape = "0.1"
 slug = "0.1.6"
 json-patch = "4.1.0"
+rmcp = { version = "3.1.4", features = ["transport-streamable-http-server"] }
+axum = { version = "0.8", features = ["http1", "tokio"] }
+prost-reflect = { version = "0.14.7", features = ["serde"] }
+bytes = "1"
 
 
 [build-dependencies]

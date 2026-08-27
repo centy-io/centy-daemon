@@ -23,6 +23,7 @@ pub async fn run(args: app::Args) -> Result<()> {
     let web_process = core::launch_web(args.serve_web, &args.web_addr)?;
     let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(tx_raw);
+    let mcp_task = crate::mcp::spawn(&args.mcp_addr, addr, shutdown_tx.subscribe()).await?;
     let exe_path = std::env::current_exe().ok();
     crate::cleanup::spawn_cleanup_task();
     let service = CentyDaemonService::new(Arc::clone(&shutdown_tx), exe_path, user_cfg);
@@ -67,6 +68,7 @@ pub async fn run(args: app::Args) -> Result<()> {
             }
         })
         .await;
+    mcp_task.await.map_err(color_eyre::eyre::Report::from)??;
     core::stop_web(web_process);
     if let Err(e) = server_result {
         report_server_error(addr, &log_file, &e);
