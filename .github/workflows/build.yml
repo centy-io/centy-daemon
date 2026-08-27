@@ -176,7 +176,7 @@ jobs:
 
       - name: Serve and verify the bundled web app
         env:
-          CENTY_SERVE_WEB: '1'
+          CENTY_SERVE_WEB: 'true'
           NEXT_PUBLIC_DAEMON_URL: http://127.0.0.1:50051
           NEXT_PUBLIC_DOCS_URL: https://docs.centy.io
           NEXT_PUBLIC_DAEMON_INSTALL_URL: https://example.invalid/install.sh
