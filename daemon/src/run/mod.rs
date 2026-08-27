@@ -20,22 +20,7 @@ pub async fn run(args: app::Args) -> Result<()> {
     crate::registry::init_ignore_paths(&user_cfg.registry.ignore_paths);
     let addr = args.addr.parse()?;
     let cors = core::build_cors(&args.cors_origins);
-    let web_process = if args.serve_web {
-        let (host, port) = args
-            .web_addr
-            .rsplit_once(':')
-            .ok_or_else(|| color_eyre::eyre::eyre!("CENTY_WEB_ADDR must be host:port"))?;
-        let child = std::process::Command::new("pnpm")
-            .args(["--dir", "web", "dev", "--hostname", host, "--port", port])
-            .spawn()
-            .map_err(|error| {
-                color_eyre::eyre::eyre!("failed to launch bundled web app: {error}")
-            })?;
-        info!(address = %args.web_addr, "Starting bundled Centy web app");
-        Some(child)
-    } else {
-        None
-    };
+    let web_process = core::launch_web(args.serve_web, &args.web_addr)?;
     let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(tx_raw);
     let exe_path = std::env::current_exe().ok();
@@ -82,11 +67,7 @@ pub async fn run(args: app::Args) -> Result<()> {
             }
         })
         .await;
-    if let Some(mut child) = web_process {
-        if let Err(error) = child.kill() {
-            warn!(%error, "Failed to stop bundled Centy web app");
-        }
-    }
+    core::stop_web(web_process);
     if let Err(e) = server_result {
         report_server_error(addr, &log_file, &e);
         return Err(e.into());
