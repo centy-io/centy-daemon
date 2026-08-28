@@ -2,8 +2,8 @@ use super::{catalog::Catalog, grpc};
 use color_eyre::eyre::Result;
 use prost_reflect::DynamicMessage;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResponse, CallToolResult, ListToolsResult, ServerCapabilities,
-    ServerInfo,
+    CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, ListToolsResult,
+    ServerCapabilities, ServerInfo,
 };
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
@@ -47,9 +47,14 @@ impl Clone for McpServer {
 
 impl ServerHandler for McpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
-            "Centy's built-in local MCP server. Every CentyDaemon RPC is a tool.",
-        )
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new(
+                "centy-daemon",
+                env!("CARGO_PKG_VERSION"),
+            ))
+            .with_instructions(
+                "Centy's built-in local MCP server. Every CentyDaemon RPC is a tool.",
+            )
     }
 
     fn list_tools(
