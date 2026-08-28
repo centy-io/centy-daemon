@@ -10,6 +10,7 @@ fn acquire_lock() -> std::sync::MutexGuard<'static, ()> {
 
 #[test]
 fn test_get_registry_path() {
+    let _lock = acquire_lock();
     // This test will work if HOME or USERPROFILE is set (or CENTY_HOME for isolated test runs)
     let result = get_registry_path();
     let home_set = std::env::var("HOME").is_ok()
