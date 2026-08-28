@@ -1,6 +1,8 @@
 use clap::Parser;
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("centy_descriptor");
 pub const DEFAULT_ADDR: &str = "127.0.0.1:50051";
+/// Address for the built-in MCP Streamable HTTP endpoint.
+pub const DEFAULT_MCP_ADDR: &str = crate::mcp::DEFAULT_ADDR;
 /// Centy Daemon - Local-first issue and documentation tracker service
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -8,6 +10,9 @@ pub struct Args {
     /// Address to bind the server to
     #[arg(short, long, env = "CENTY_DAEMON_ADDR", default_value = DEFAULT_ADDR)]
     pub addr: String,
+    /// Address to bind the built-in MCP Streamable HTTP endpoint (always loopback-only)
+    #[arg(long, env = "CENTY_MCP_ADDR", default_value = DEFAULT_MCP_ADDR)]
+    pub mcp_addr: String,
     /// Comma-separated list of allowed CORS origins.
     /// Use "*" to allow all origins (not recommended for production).
     /// Example: --cors-origins=https://app.centy.io,http://localhost:5180
