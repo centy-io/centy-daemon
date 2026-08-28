@@ -10,11 +10,11 @@ use tokio::sync::watch;
 pub const DEFAULT_ADDR: &str = "127.0.0.1:50052";
 
 pub async fn spawn(
-    addr: &str,
+    bind_addr: &str,
     grpc_addr: SocketAddr,
     mut shutdown: watch::Receiver<ShutdownSignal>,
 ) -> Result<tokio::task::JoinHandle<Result<()>>> {
-    let addr: SocketAddr = addr.parse().wrap_err("invalid MCP bind address")?;
+    let addr: SocketAddr = bind_addr.parse().wrap_err("invalid MCP bind address")?;
     if !addr.ip().is_loopback() {
         bail!("MCP endpoint must bind to a loopback address, got {addr}");
     }

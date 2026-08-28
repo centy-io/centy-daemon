@@ -30,7 +30,7 @@ impl McpServer {
     pub fn into_service(self) -> StreamableHttpService<Self, LocalSessionManager> {
         StreamableHttpService::new(
             move || Ok(self.clone()),
-            Default::default(),
+            Arc::default(),
             StreamableHttpServerConfig::default(),
         )
     }
@@ -57,71 +57,68 @@ impl ServerHandler for McpServer {
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListToolsResult, ErrorData>> + Send + '_ {
-        let tools = self.catalog.tools();
-        async move {
-            let mut result = ListToolsResult::default();
-            result.tools = tools;
-            Ok(result)
-        }
+        std::future::ready(Ok(ListToolsResult {
+            tools: self.catalog.tools(),
+            ..Default::default()
+        }))
     }
 
-    fn call_tool(
+    async fn call_tool(
         &self,
         request: CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = std::result::Result<CallToolResponse, ErrorData>> + Send + '_ {
-        async move {
-            let result = match self.catalog.method(&request.name).cloned() {
-                Some(method) => {
-                    self.call(method, request.arguments.unwrap_or_default())
-                        .await
-                }
-                None => CallToolResult::structured_error(
-                    serde_json::json!({"error": "unknown Centy RPC tool"}),
-                ),
-            };
-            Ok(result.into())
-        }
+    ) -> std::result::Result<CallToolResponse, ErrorData> {
+        let result = match self.catalog.method(&request.name).cloned() {
+            Some(method) => {
+                call(
+                    &self.grpc_endpoint,
+                    method,
+                    request.arguments.unwrap_or_default(),
+                )
+                .await
+            }
+            None => CallToolResult::structured_error(
+                serde_json::json!({"error": "unknown Centy RPC tool"}),
+            ),
+        };
+        Ok(result.into())
     }
 }
 
-impl McpServer {
-    async fn call(
-        &self,
-        method: prost_reflect::MethodDescriptor,
-        arguments: serde_json::Map<String, Value>,
-    ) -> CallToolResult {
-        let json = Value::Object(arguments).to_string();
-        let mut deserializer = serde_json::Deserializer::from_str(&json);
-        let input = match DynamicMessage::deserialize(method.input(), &mut deserializer) {
-            Ok(value) => value,
-            Err(error) => {
-                return CallToolResult::structured_error(
-                    serde_json::json!({"error": error.to_string()}),
-                )
-            }
-        };
-        let path = format!("/{}/{}", method.parent_service().full_name(), method.name());
-        let response = match grpc::unary(
-            &self.grpc_endpoint,
-            path.parse().expect("valid gRPC path"),
-            input,
-            method.output(),
-        )
-        .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                return CallToolResult::structured_error(
-                    serde_json::json!({"error": error.to_string()}),
-                )
-            }
-        };
-        serde_json::to_value(response).map_or_else(
-            |error| {
-                CallToolResult::structured_error(serde_json::json!({"error": error.to_string()}))
-            },
-            CallToolResult::structured,
-        )
-    }
+async fn call(
+    grpc_endpoint: &str,
+    method: prost_reflect::MethodDescriptor,
+    arguments: serde_json::Map<String, Value>,
+) -> CallToolResult {
+    let json = Value::Object(arguments).to_string();
+    let mut deserializer = serde_json::Deserializer::from_str(&json);
+    let input = match DynamicMessage::deserialize(method.input(), &mut deserializer) {
+        Ok(value) => value,
+        Err(error) => {
+            return CallToolResult::structured_error(
+                serde_json::json!({"error": error.to_string()}),
+            )
+        }
+    };
+    let rpc_path = format!("/{}/{}", method.parent_service().full_name(), method.name());
+    let path: http::uri::PathAndQuery = match rpc_path.parse() {
+        Ok(value) => value,
+        Err(error) => {
+            return CallToolResult::structured_error(
+                serde_json::json!({"error": error.to_string()}),
+            );
+        }
+    };
+    let response = match grpc::unary(grpc_endpoint, path, input, method.output()).await {
+        Ok(response) => response,
+        Err(error) => {
+            return CallToolResult::structured_error(
+                serde_json::json!({"error": error.to_string()}),
+            )
+        }
+    };
+    serde_json::to_value(response).map_or_else(
+        |error| CallToolResult::structured_error(serde_json::json!({"error": error.to_string()})),
+        CallToolResult::structured,
+    )
 }

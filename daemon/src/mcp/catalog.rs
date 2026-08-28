@@ -1,6 +1,6 @@
 use prost_reflect::{DescriptorPool, MethodDescriptor};
 use rmcp::model::{Tool, ToolAnnotations};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -64,12 +64,16 @@ fn is_read_only(name: &str) -> bool {
 }
 
 fn input_schema() -> Map<String, Value> {
-    json!({
-        "type": "object",
-        "additionalProperties": true,
-        "description": "Use protobuf JSON field names and values for this RPC request."
-    })
-    .as_object()
-    .expect("JSON literal is an object")
-    .clone()
+    [
+        ("type".to_owned(), Value::String("object".to_owned())),
+        ("additionalProperties".to_owned(), Value::Bool(true)),
+        (
+            "description".to_owned(),
+            Value::String(
+                "Use protobuf JSON field names and values for this RPC request.".to_owned(),
+            ),
+        ),
+    ]
+    .into_iter()
+    .collect()
 }
