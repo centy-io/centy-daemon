@@ -69,7 +69,7 @@ async fn test_create_organization_success() {
     assert_eq!(result.name, "Test Organization");
     assert_eq!(result.description, Some("A test org".to_string()));
     assert_eq!(result.project_count, 0);
-    assert!(!result.created_at.is_empty());
+    assert_ne!(result.created_at.len(), 0);
 
     // Cleanup
     drop(delete_organization(&slug, false).await);

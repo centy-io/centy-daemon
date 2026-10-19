@@ -252,7 +252,7 @@ async fn test_create_item_type_slug_identifier() {
     assert!(resp.success, "create failed: {}", resp.error);
     let config = resp.config.unwrap();
     assert_eq!(config.identifier, "slug");
-    assert!(config.statuses.is_empty());
-    assert!(config.default_status.is_empty());
+    assert_eq!(config.statuses.len(), 0);
+    assert_eq!(config.default_status.len(), 0);
     assert_eq!(config.priority_levels, 0);
 }

@@ -91,8 +91,8 @@ async fn test_create_and_get_issue_type() {
     assert_eq!(meta.display_number, 1);
     assert_eq!(meta.status, "open");
     assert_eq!(meta.priority, 2);
-    assert!(!meta.created_at.is_empty());
-    assert!(meta.deleted_at.is_empty());
+    assert_ne!(meta.created_at.len(), 0);
+    assert_eq!(meta.deleted_at.len(), 0);
 
     // Get it back
     let get_resp = get_item(centy_daemon::server::proto::GetItemRequest {
@@ -140,7 +140,7 @@ async fn test_create_and_get_doc_type() {
     let meta = item.metadata.unwrap();
     // Docs have no display_number, status, or priority
     assert_eq!(meta.display_number, 0);
-    assert!(meta.status.is_empty());
+    assert_eq!(meta.status.len(), 0);
     assert_eq!(meta.priority, 0);
 
     // Get by slug

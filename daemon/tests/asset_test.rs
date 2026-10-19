@@ -81,7 +81,7 @@ async fn test_add_asset_to_issue_success() {
     assert_eq!(result.asset.mime_type, "image/png");
     assert_eq!(result.asset.size, png_data.len() as u64);
     assert!(!result.asset.is_shared);
-    assert!(!result.asset.hash.is_empty());
+    assert_ne!(result.asset.hash.len(), 0);
 
     // Verify file exists (new asset path: .centy/issues/assets/{id}/)
     let asset_path = project_path

@@ -35,7 +35,7 @@ async fn test_soft_delete_and_restore() {
     let items = generic_list(temp.path(), "issues", Filters::default())
         .await
         .unwrap();
-    assert!(items.is_empty());
+    assert_eq!(items.len(), 0);
     let items = generic_list(temp.path(), "issues", Filters::new().include_deleted())
         .await
         .unwrap();
