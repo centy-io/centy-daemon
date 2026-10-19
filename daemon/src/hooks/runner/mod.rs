@@ -1,6 +1,7 @@
 mod common;
 mod post_hooks;
 mod pre_hooks;
+mod record;
 pub use super::config::{HookDefinition, HookOperation, Phase};
 pub use common::find_matching_hooks;
 pub use common::load_hooks_config;
