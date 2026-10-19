@@ -92,7 +92,7 @@ If the daemon uses a different MCP port, start it with `centy-daemon --mcp-addr 
 Restart Claude Code (or reload the MCP servers) then confirm the tools are available:
 
 - Run `/mcp` in Claude Code — you should see the `centy` server listed.
-- Ask Claude to call `IsRunning` — it should report the daemon address.
+- Ask Claude to call `centy_v1_CentyDaemon_GetDaemonInfo` — it should return the daemon version.
 
 ## Troubleshooting
 

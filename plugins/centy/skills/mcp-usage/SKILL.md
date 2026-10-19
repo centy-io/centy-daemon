@@ -1,7 +1,7 @@
 ---
 name: mcp-usage
 description: This skill should be used when the user asks "how do I use centy", "what centy MCP tools are available", "how do I start or stop the daemon", "how do I create issues with centy", or needs a reference for any Centy MCP operation.
-allowed-tools: mcp__centy__IsRunning mcp__centy__StartDaemon mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_GetConfig mcp__centy__centy_v1_CentyDaemon_ListProjects
+allowed-tools: mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_GetConfig mcp__centy__centy_v1_CentyDaemon_ListProjects
 ---
 
 # Centy MCP Usage
@@ -10,18 +10,13 @@ Reference guide for working with the Centy MCP server from within Claude Code. U
 
 ## Daemon lifecycle
 
-The Centy MCP endpoint (`http://127.0.0.1:50052/mcp`, served by `centy-daemon`) exposes two lifecycle tools that do not require the daemon to already be running:
+The Centy MCP endpoint is served by `centy-daemon` at `http://127.0.0.1:50052/mcp`. No tool works while the daemon is down. Start the daemon first:
 
-| Tool | Description |
-|------|-------------|
-| `IsRunning` | Returns whether `centy-daemon` is currently listening on the configured address |
-| `StartDaemon` | Spawns the daemon as a background process if it is not already running |
-
-**Typical pattern** — always call `IsRunning` first, then `StartDaemon` if needed, before calling any other tool:
-
+```bash
+centy-daemon &
 ```
-IsRunning → (if not running) StartDaemon → <desired tool>
-```
+
+The endpoint has no start or status tools. If the `centy` server is not connected, check `/mcp` in Claude Code and confirm the daemon is running.
 
 ## Core operations
 
@@ -90,7 +85,7 @@ Workspaces are temporary scoped environments used by Claude Code sessions.
 ### Create a new issue
 
 ```
-1. IsRunning (start daemon if needed)
+1. Confirm `centy-daemon` is running (`centy-daemon &` if not)
 2. IsInitialized { project_path } (init if needed)
 3. CreateItem { item_type: "issues", project_path, title: "...", body: "..." }
 4. GetItem { item_type: "issues", project_path, item_id: <returned id> }

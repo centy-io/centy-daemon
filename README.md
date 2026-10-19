@@ -36,13 +36,13 @@ cargo build --release
 centy-daemon
 
 # Custom address
-centy-daemon --addr 127.0.0.1:50052
+centy-daemon --addr 127.0.0.1:50061
 
 # Allow additional CORS origins
 centy-daemon --cors-origins=http://localhost:5180
 
 # Using environment variables
-CENTY_DAEMON_ADDR=127.0.0.1:50052 centy-daemon
+CENTY_DAEMON_ADDR=127.0.0.1:50061 centy-daemon
 ```
 
 ### Built-in MCP endpoint
