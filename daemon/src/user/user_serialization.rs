@@ -52,8 +52,10 @@ fn test_sync_users_result_default() {
     assert_eq!(result.created.len(), 0);
     assert_eq!(result.skipped.len(), 0);
     assert_eq!(result.errors.len(), 0);
+    assert_eq!(result.updated.len(), 0);
     assert!(result.would_create.is_empty());
     assert!(result.would_skip.is_empty());
+    assert!(result.would_update.is_empty());
 }
 #[test]
 fn test_user_error_display() {
