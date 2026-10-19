@@ -7,7 +7,7 @@ mod types;
 
 pub use defaults::{
     default_archived_config, default_comment_config, default_doc_config, default_epic_config,
-    default_issue_config,
+    default_issue_config, default_user_story_config,
 };
 pub use io::{
     discover_item_types, discover_item_types_map, read_item_type_config,
