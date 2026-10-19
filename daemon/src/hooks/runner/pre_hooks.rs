@@ -1,8 +1,8 @@
 use super::super::config::{HookOperation, Phase};
 use super::super::context::HookContext;
 use super::super::error::HookError;
-use super::super::executor::execute_hook;
 use super::common::{find_matching_hooks, load_hooks_config};
+use super::record::run_recorded;
 use std::path::Path;
 use tracing::debug;
 /// Run pre-hooks for the given `item_type` and operation.
@@ -25,14 +25,7 @@ pub async fn run_pre_hooks(
         operation.as_str()
     );
     for hook in matching {
-        let result = execute_hook(
-            &hook.command,
-            context,
-            project_path,
-            hook.timeout,
-            &hook.pattern,
-        )
-        .await?;
+        let result = run_recorded(hook, context, project_path, true).await?;
         if result.exit_code != 0i32 {
             return Err(HookError::PreHookFailed {
                 pattern: hook.pattern.clone(),

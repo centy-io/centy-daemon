@@ -425,4 +425,16 @@ impl CentyDaemon for CentyDaemonService {
     ) -> Result<Response<ListItemsAcrossProjectsResponse>, Status> {
         handlers::item_list_global::list_items_across_projects(request.into_inner()).await
     }
+    async fn list_hook_executions(
+        &self,
+        request: Request<ListHookExecutionsRequest>,
+    ) -> Result<Response<ListHookExecutionsResponse>, Status> {
+        handlers::hook_execution_read::list_hook_executions_handler(request.into_inner()).await
+    }
+    async fn get_hook_execution(
+        &self,
+        request: Request<GetHookExecutionRequest>,
+    ) -> Result<Response<GetHookExecutionResponse>, Status> {
+        handlers::hook_execution_read::get_hook_execution_handler(request.into_inner()).await
+    }
 }
