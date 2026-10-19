@@ -39,10 +39,10 @@ pub struct Args {
     #[arg(long, env = "CENTY_LOG_DIR")]
     pub log_dir: Option<String>,
 }
-pub fn report_server_error(
+pub fn report_server_error<E: std::fmt::Debug + std::fmt::Display>(
     addr: std::net::SocketAddr,
     log_file: &std::path::Path,
-    e: &tonic::transport::Error,
+    e: &E,
 ) {
     let err_string = format!("{e:?}");
     if err_string.contains("AddrInUse") {
