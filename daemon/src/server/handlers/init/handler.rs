@@ -1,6 +1,7 @@
 use super::post_init::post_reconcile;
 use crate::reconciliation::{execute_reconciliation, ReconciliationDecisions};
 use crate::registry::{track_project, track_project_async};
+use crate::server::assert_service::assert_absolute_path;
 use crate::server::proto::{
     InitRequest, InitResponse, IsInitializedRequest, IsInitializedResponse,
 };
@@ -9,6 +10,18 @@ use crate::utils::get_centy_path;
 use std::path::Path;
 use tonic::{Response, Status};
 pub async fn init(mut req: InitRequest) -> Result<Response<InitResponse>, Status> {
+    if let Err(e) = assert_absolute_path(Path::new(&req.project_path)) {
+        return Ok(Response::new(InitResponse {
+            success: false,
+            error: to_error_json(&req.project_path, &e),
+            created: vec![],
+            restored: vec![],
+            reset: vec![],
+            skipped: vec![],
+            manifest: None,
+            org_inference: None,
+        }));
+    }
     drop(track_project(&req.project_path).await);
     let project_path_str = req.project_path.clone();
     let project_path = Path::new(&project_path_str);
