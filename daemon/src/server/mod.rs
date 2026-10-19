@@ -46,6 +46,17 @@ pub struct CentyDaemonService {
 }
 
 impl CentyDaemonService {
+    /// Test-only constructor: skips the startup org-inference background task,
+    /// which reads the real project registry.
+    #[cfg(test)]
+    #[must_use]
+    pub fn new_for_tests(shutdown_tx: Arc<watch::Sender<ShutdownSignal>>) -> Self {
+        Self {
+            shutdown_tx,
+            exe_path: None,
+        }
+    }
+
     #[must_use]
     pub fn new(
         shutdown_tx: Arc<watch::Sender<ShutdownSignal>>,

@@ -46,10 +46,16 @@ pub async fn spawn(
 #[cfg(test)]
 mod tests {
     use super::router;
+    use crate::server::proto::centy_daemon_server::CentyDaemonServer;
+    use crate::server::{CentyDaemonService, ShutdownSignal};
     use std::net::SocketAddr;
+    use std::sync::Arc;
     use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+    use tokio::sync::watch;
+    use tonic::transport::Server;
 
     const BODY_TOOLS_LIST: &str = r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#;
+    const BODY_GET_DAEMON_INFO: &str = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"centy_v1_CentyDaemon_GetDaemonInfo","arguments":{}}}"#;
     const BODY_INITIALIZE: &str = r#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}"#;
 
     async fn post(addr: SocketAddr, body: &str) -> String {
@@ -64,11 +70,30 @@ mod tests {
         response
     }
 
+    /// Starts a real daemon gRPC server on 127.0.0.1:0 and returns its address.
+    async fn spawn_grpc() -> SocketAddr {
+        let probe = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = probe.local_addr().unwrap();
+        drop(probe);
+        let (tx, _rx) = watch::channel(ShutdownSignal::None);
+        let service = CentyDaemonService::new_for_tests(Arc::new(tx));
+        tokio::spawn(async move {
+            Server::builder()
+                .add_service(CentyDaemonServer::new(service))
+                .serve(addr)
+                .await
+        });
+        // Give the server a moment to bind before the first call.
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        addr
+    }
+
     #[tokio::test]
     async fn stateless_post_works_without_session_header() {
+        let grpc_addr = spawn_grpc().await;
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let app = router("127.0.0.1:50051".parse().unwrap()).unwrap();
+        let app = router(grpc_addr).unwrap();
         tokio::spawn(async move { axum::serve(listener, app).await });
 
         let init = post(addr, BODY_INITIALIZE).await;
@@ -87,5 +112,18 @@ mod tests {
             );
             assert!(list.contains("\"tools\""), "no tools in response: {list}");
         }
+
+        // tools/call goes through the real gRPC server and must not hang.
+        let call = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            post(addr, BODY_GET_DAEMON_INFO),
+        )
+        .await
+        .expect("tools/call timed out");
+        assert!(
+            call.starts_with("HTTP/1.1 200"),
+            "tools/call failed: {call}"
+        );
+        assert!(call.contains("\"version\""), "no version in result: {call}");
     }
 }

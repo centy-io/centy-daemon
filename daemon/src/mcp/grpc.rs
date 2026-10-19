@@ -28,15 +28,18 @@ pub async fn unary(
         .connect()
         .await
         .wrap_err("failed to connect to daemon gRPC endpoint")?;
-    tonic::client::Grpc::new(channel)
-        .unary(
-            tonic::Request::new(request),
-            path,
-            DynamicCodec { response },
-        )
+    let mut grpc = tonic::client::Grpc::new(channel);
+    grpc.ready()
         .await
-        .map(tonic::Response::into_inner)
-        .map_err(color_eyre::Report::from)
+        .wrap_err("daemon gRPC channel not ready")?;
+    grpc.unary(
+        tonic::Request::new(request),
+        path,
+        DynamicCodec { response },
+    )
+    .await
+    .map(tonic::Response::into_inner)
+    .map_err(color_eyre::Report::from)
 }
 
 #[derive(Clone)]
