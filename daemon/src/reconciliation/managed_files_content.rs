@@ -20,6 +20,9 @@ Use the CLI commands below to interact with the centy system.
 
 - `issues/` - Project issues
 - `docs/` - Project documentation
+- `epics/` - Epics grouping related work
+- `user_stories/` - User stories
+- `comments/` - Comments on items
 - `assets/` - Shared assets
 - `archived/` - Archived items from any type
 - `templates/` - Custom templates for issues and docs
