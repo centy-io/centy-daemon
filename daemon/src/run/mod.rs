@@ -34,6 +34,12 @@ pub async fn run(args: app::Args) -> Result<()> {
     let web_process = core::launch_web(args.serve_web, &args.web_addr)?;
     let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(tx_raw);
+    let signal_tx = Arc::clone(&shutdown_tx);
+    tokio::spawn(async move {
+        termination_signal().await;
+        info!("Received termination signal, stopping server...");
+        let _res = signal_tx.send(ShutdownSignal::Shutdown);
+    });
     let mcp_task = crate::mcp::spawn(&args.mcp_addr, addr, shutdown_tx.subscribe()).await?;
     let exe_path = std::env::current_exe().ok();
     crate::cleanup::spawn_cleanup_task();
@@ -87,4 +93,21 @@ pub async fn run(args: app::Args) -> Result<()> {
     }
     info!("Centy daemon stopped");
     Ok(())
+}
+
+/// Resolves on the first SIGINT (ctrl-c) or, on unix, SIGTERM.
+async fn termination_signal() {
+    let ctrl_c = Box::pin(tokio::signal::ctrl_c());
+    #[cfg(unix)]
+    {
+        let Ok(mut term) =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        else {
+            drop(ctrl_c.await);
+            return;
+        };
+        drop(futures::future::select(ctrl_c, Box::pin(term.recv())).await);
+    }
+    #[cfg(not(unix))]
+    drop(ctrl_c.await);
 }
