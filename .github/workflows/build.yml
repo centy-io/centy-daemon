@@ -143,6 +143,9 @@ jobs:
         run: pnpm test
         working-directory: daemon/e2e
 
+      - name: MCP tools/call smoke test
+        run: daemon/scripts/mcp-smoke.sh target/release/centy-daemon
+
   web-localhost:
     name: Web localhost contract
     runs-on: ubuntu-latest
