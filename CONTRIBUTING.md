@@ -69,8 +69,9 @@ VS Code users can use the pre-configured tasks via `Cmd/Ctrl+Shift+B`:
 3. Run tests: `cargo test --all-targets`
 4. Run checks: `cargo check --all-targets`
 5. Build release: `cargo build --release`
-6. Commit with a descriptive message
-7. Open a pull request
+6. If you changed MCP code (`daemon/src/mcp/`), run `daemon/scripts/mcp-smoke.sh target/release/centy-daemon`. It starts the built daemon on spare ports and checks a real session-less `tools/call`; CI runs the same check
+7. Commit with a descriptive message
+8. Open a pull request
 
 ### Commit Messages
 
