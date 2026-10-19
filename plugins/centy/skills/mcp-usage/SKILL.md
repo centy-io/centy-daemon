@@ -10,7 +10,7 @@ Reference guide for working with the Centy MCP server from within Claude Code. U
 
 ## Daemon lifecycle
 
-The MCP server (`centy-mcp`) exposes two lifecycle tools that do not require the daemon to already be running:
+The Centy MCP endpoint (`http://127.0.0.1:50052/mcp`, served by `centy-daemon`) exposes two lifecycle tools that do not require the daemon to already be running:
 
 | Tool | Description |
 |------|-------------|

@@ -47,7 +47,7 @@ CENTY_DAEMON_ADDR=127.0.0.1:50052 centy-daemon
 
 ### Built-in MCP endpoint
 
-Every installed daemon also starts a loopback-only MCP Streamable HTTP endpoint at `http://127.0.0.1:50052/mcp`. Configure an MCP client with that URL; no separate `centy-mcp` package is required. Use `--mcp-addr` or `CENTY_MCP_ADDR` to select a different **loopback** address.
+Every installed daemon also starts a loopback-only MCP Streamable HTTP endpoint at `http://127.0.0.1:50052/mcp`. Configure an MCP client with that URL; no separate `centy-mcp` package is required. For Claude Code, run `claude mcp add --transport http centy http://127.0.0.1:50052/mcp`. Use `--mcp-addr` or `CENTY_MCP_ADDR` to select a different **loopback** address.
 
 ### gRPC API
 
