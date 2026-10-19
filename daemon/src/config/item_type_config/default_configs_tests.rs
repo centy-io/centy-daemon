@@ -100,3 +100,61 @@ fn test_default_archived_config() {
     assert!(archived.features.move_item);
     assert!(!archived.features.duplicate);
 }
+
+#[test]
+fn test_default_user_story_config_maps_fields() {
+    let config = CentyConfig {
+        priority_levels: 4,
+        ..CentyConfig::default()
+    };
+    let story = defaults::default_user_story_config(&config);
+
+    assert_eq!(story.name, "User Story");
+    assert_eq!(story.icon, Some("person".to_string()));
+    assert_eq!(story.identifier, IdStrategy::Uuid);
+    assert!(story.statuses.is_empty(), "user stories must be statusless");
+    assert_eq!(story.priority_levels, Some(4));
+    assert!(story.custom_fields.is_empty());
+    assert_eq!(story.template, Some("template.md".to_string()));
+    assert!(story.listed);
+    assert!(story.features.display_number);
+    assert!(story.features.priority);
+    assert!(story.features.soft_delete);
+    assert!(story.features.assets);
+    assert!(story.features.org_sync);
+    assert!(story.features.move_item);
+    assert!(story.features.duplicate);
+}
+
+#[test]
+fn test_default_comment_config() {
+    let comment = default_comment_config();
+
+    assert_eq!(comment.name, "Comment");
+    assert_eq!(comment.icon, Some("chat-bubble".to_string()));
+    assert_eq!(comment.identifier, IdStrategy::Uuid);
+    assert!(comment.statuses.is_empty(), "comments must be statusless");
+    assert!(comment.priority_levels.is_none());
+    assert!(comment.template.is_none());
+    assert!(!comment.listed, "comments must not show in item lists");
+    let fields: Vec<(&str, &str)> = comment
+        .custom_fields
+        .iter()
+        .map(|f| (f.name.as_str(), f.field_type.as_str()))
+        .collect();
+    assert_eq!(
+        fields,
+        vec![
+            ("item_id", "string"),
+            ("item_type", "string"),
+            ("author", "string")
+        ]
+    );
+    assert!(!comment.features.display_number);
+    assert!(!comment.features.priority);
+    assert!(!comment.features.soft_delete);
+    assert!(!comment.features.assets);
+    assert!(!comment.features.org_sync);
+    assert!(!comment.features.move_item);
+    assert!(!comment.features.duplicate);
+}
