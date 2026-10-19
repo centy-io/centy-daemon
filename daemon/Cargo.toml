@@ -116,6 +116,9 @@ axum = { version = "0.8", features = ["http1", "tokio"] }
 prost-reflect = { version = "0.14.7", features = ["serde"] }
 bytes = "1"
 
+# HTTP client for GitHub releases API
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
 
 [build-dependencies]
 tonic-build = "0.12"
