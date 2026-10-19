@@ -1,5 +1,5 @@
 {
   "name": "centy",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Install and use centy-daemon — the local-first, file-based project management engine for Claude Code"
 }

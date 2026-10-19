@@ -8,7 +8,7 @@ allowed-tools: mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_
 
 Reference guide for working with the Centy MCP server from within Claude Code. Use this skill when the user asks how to manage issues, start/stop the daemon, or perform any Centy operation via Claude.
 
-The tables below use the short method name. The full MCP tool name is `centy_v1_CentyDaemon_<Method>` (Claude Code shows it as `mcp__centy__centy_v1_CentyDaemon_<Method>`). Tool arguments use protobuf JSON field names (camelCase).
+The tables below use the short method name. The full MCP tool name is `centy_v1_CentyDaemon_<Method>` (Claude Code shows it as `mcp__centy__centy_v1_CentyDaemon_<Method>`). Tool arguments use protobuf JSON field names (camelCase). Tools that take `projectPath` need an absolute path. The daemon does not resolve relative paths against its own working directory, so it rejects them with `INVALID_PATH`.
 
 ## Daemon lifecycle
 
