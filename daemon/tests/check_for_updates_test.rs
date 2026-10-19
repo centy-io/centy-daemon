@@ -78,4 +78,23 @@ async fn test_check_for_updates_against_mock_github() {
     assert!(!resp.success);
     assert!(resp.error.contains("GITHUB_API_ERROR"), "{}", resp.error);
     assert!(!resp.update_available);
+
+    // Server accepts but never responds: the request times out, not hangs.
+    let silent = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let silent_url = format!("http://{}/releases", silent.local_addr().unwrap());
+    let _held = tokio::spawn(async move {
+        let (sock, _) = silent.accept().await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+        drop(sock);
+    });
+    std::env::set_var("CENTY_RELEASES_URL", silent_url);
+    std::env::set_var("CENTY_RELEASES_TIMEOUT_MS", "300");
+    let started = std::time::Instant::now();
+    let resp = check_for_updates(CheckForUpdatesRequest {})
+        .await
+        .unwrap()
+        .into_inner();
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    assert!(!resp.success);
+    assert!(resp.error.contains("GITHUB_API_ERROR"), "{}", resp.error);
 }

@@ -2,12 +2,18 @@ use crate::server::proto::{CheckForUpdatesRequest, CheckForUpdatesResponse, GitH
 use crate::server::structured_error::StructuredError;
 use crate::utils::CENTY_VERSION;
 use serde::Deserialize;
+use std::time::Duration;
 use tonic::{Response, Status};
 
 const DEFAULT_RELEASES_URL: &str = "https://api.github.com/repos/centy-io/centy-daemon/releases";
 
 /// Env var that overrides the releases endpoint (used by tests).
 const RELEASES_URL_ENV: &str = "CENTY_RELEASES_URL";
+
+/// Env var that overrides the total request timeout in milliseconds (used by tests).
+const TIMEOUT_MS_ENV: &str = "CENTY_RELEASES_TIMEOUT_MS";
+const DEFAULT_TIMEOUT_MS: u64 = 10_000;
+const CONNECT_TIMEOUT_MS: u64 = 5_000;
 
 #[derive(Deserialize)]
 struct Release {
@@ -20,7 +26,15 @@ struct Release {
 
 async fn fetch_releases() -> Result<Vec<Release>, reqwest::Error> {
     let url = std::env::var(RELEASES_URL_ENV).unwrap_or_else(|_| DEFAULT_RELEASES_URL.to_string());
-    let mut request = reqwest::Client::new()
+    let timeout_ms = std::env::var(TIMEOUT_MS_ENV)
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_TIMEOUT_MS);
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(timeout_ms))
+        .connect_timeout(Duration::from_millis(CONNECT_TIMEOUT_MS.min(timeout_ms)))
+        .build()?;
+    let mut request = client
         .get(url)
         .header("User-Agent", "centy-daemon")
         .header("Accept", "application/vnd.github+json");
