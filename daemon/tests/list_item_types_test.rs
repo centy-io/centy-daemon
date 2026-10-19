@@ -148,9 +148,11 @@ async fn test_list_item_types_empty_project() {
     .unwrap()
     .into_inner();
 
+    // Missing built-in configs fall back to defaults; the listed ones are
+    // issues, docs, user_stories and epics (archived and comments are unlisted).
     assert!(resp.success, "list failed: {}", resp.error);
-    assert_eq!(resp.total_count, 0i32);
-    assert_eq!(resp.item_types.len(), 0);
+    assert_eq!(resp.total_count, 4i32);
+    assert_eq!(resp.item_types.len(), 4);
 }
 
 // ─── ItemTypeConfigProto fields are populated ────────────────────────────────
