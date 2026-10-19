@@ -8,6 +8,8 @@ allowed-tools: mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_
 
 Reference guide for working with the Centy MCP server from within Claude Code. Use this skill when the user asks how to manage issues, start/stop the daemon, or perform any Centy operation via Claude.
 
+The tables below use the short method name. The full MCP tool name is `centy_v1_CentyDaemon_<Method>` (Claude Code shows it as `mcp__centy__centy_v1_CentyDaemon_<Method>`). Arguments use protobuf JSON field names (camelCase), for example `projectPath` and `itemType`.
+
 ## Daemon lifecycle
 
 The Centy MCP endpoint is served by `centy-daemon` at `http://127.0.0.1:50052/mcp`. No tool works while the daemon is down. Start the daemon first:
@@ -24,50 +26,50 @@ The endpoint has no start or status tools. If the `centy` server is not connecte
 
 | Tool | Key inputs | Notes |
 |------|-----------|-------|
-| `InitializeProject` | `project_path` | Creates the `.centy/` directory and initial config |
-| `IsInitialized` | `project_path` | Check before any project-scoped operation |
-| `GetProjectConfig` | `project_path` | Read schema, field definitions, defaults |
-| `UpdateProjectConfig` | `project_path`, config fields | Update field definitions |
+| `Init` | `projectPath` | Creates the `.centy/` directory and initial config |
+| `IsInitialized` | `projectPath` | Check before any project-scoped operation |
+| `GetConfig` | `projectPath` | Read schema, field definitions, defaults |
+| `UpdateConfig` | `projectPath`, `config` | Update field definitions |
 
 ### Issues
 
 | Tool | Key inputs |
 |------|-----------|
-| `CreateItem` (type `issues`) | `project_path`, `title`, optional `status`, `priority`, `body` |
-| `GetItem` (type `issues`) | `project_path`, `item_id` |
-| `UpdateItem` (type `issues`) | `project_path`, `item_id`, fields to change |
-| `DeleteItem` (type `issues`) | `project_path`, `item_id` |
-| `ListItems` (type `issues`) | `project_path`, optional `query` |
-| `SearchItems` (type `issues`) | `project_path`, `query` |
+| `CreateItem` (`itemType` `issues`) | `projectPath`, `title`, optional `status`, `priority`, `body` |
+| `GetItem` (`itemType` `issues`) | `projectPath`, `itemId` |
+| `UpdateItem` (`itemType` `issues`) | `projectPath`, `itemId`, fields to change |
+| `DeleteItem` (`itemType` `issues`) | `projectPath`, `itemId`, optional `force` |
+| `ListItems` (`itemType` `issues`) | `projectPath`, optional `filter` |
+| `SearchItems` (`itemType` `issues`) | `itemId` (finds the item across all tracked projects) |
 
-> **Important**: pass `item_type` as `"issues"` (plural), not `"issue"`.
+> **Important**: pass `itemType` as `"issues"` (plural), not `"issue"`.
 
 ### Query language
 
-Use the `query` parameter on `ListItems` / `SearchItems` with Centy's query syntax:
+Pass a JSON-encoded query in the `filter` field of `ListItems`. Examples:
 
 ```
-status = "open"
-status = "open" AND priority >= 2
-title ~ "auth*"          # wildcard
-body ~ /grpc/i           # regex
-status != "closed"
+{"status": "open"}
+{"status": {"$in": ["open", "in-progress"]}}
+{"status": "open", "priority": {"$gte": 2}}
 ```
+
+Supported operators include `$eq`, `$in`, `$all`, `$exists`, `$lt`, `$lte`, `$gt` and `$gte`.
 
 ### Links
 
 | Tool | Description |
 |------|-------------|
 | `CreateLink` | Create a bidirectional relationship between two items |
-| `GetLinks` | List all links for an item |
-| `DeleteLink` | Remove a specific link |
+| `ListLinks` | List all links for an item (`entityId`, `entityItemType`) |
+| `DeleteLink` | Remove a specific link (`linkId`) |
 
 ### Registry (multi-project)
 
 | Tool | Description |
 |------|-------------|
 | `RegisterProject` | Add a project to the daemon's global registry |
-| `UnregisterProject` | Remove a project from the registry |
+| `UntrackProject` | Remove a project from the registry |
 | `ListProjects` | List all registered projects |
 
 ### Workspaces
@@ -76,9 +78,9 @@ Workspaces are temporary scoped environments used by Claude Code sessions.
 
 | Tool | Description |
 |------|-------------|
-| `CreateWorkspace` | Open a workspace for the current session |
-| `GetWorkspace` | Retrieve an existing workspace |
-| `DeleteWorkspace` | Close and clean up a workspace |
+| `OpenStandaloneWorkspace` | Open a standalone workspace for the current session (not tied to an issue) |
+| `ListTempWorkspaces` | List temp workspaces, optionally filtered by `sourceProjectPath` |
+| `CloseTempWorkspace` | Close and clean up a temp workspace (`workspacePath`) |
 
 ## Common workflows
 
@@ -86,33 +88,33 @@ Workspaces are temporary scoped environments used by Claude Code sessions.
 
 ```
 1. Confirm `centy-daemon` is running (`centy-daemon &` if not)
-2. IsInitialized { project_path } (init if needed)
-3. CreateItem { item_type: "issues", project_path, title: "...", body: "..." }
-4. GetItem { item_type: "issues", project_path, item_id: <returned id> }
+2. IsInitialized { projectPath } (run Init { projectPath } if needed)
+3. CreateItem { itemType: "issues", projectPath, title: "...", body: "..." }
+4. GetItem { itemType: "issues", projectPath, itemId: <returned id> }
 ```
 
 ### Close an issue
 
 ```
-UpdateItem { item_type: "issues", project_path, item_id, status: "closed" }
+UpdateItem { itemType: "issues", projectPath, itemId, status: "closed" }
 ```
 
 ### List open high-priority issues
 
 ```
-ListItems { item_type: "issues", project_path, query: "status = \"open\" AND priority >= 2" }
+ListItems { itemType: "issues", projectPath, filter: "{\"status\": \"open\", \"priority\": {\"$gte\": 2}}" }
 ```
 
 ### Link two issues
 
 ```
-CreateLink { project_path, source_id: "abc", target_id: "xyz", link_type: "blocks" }
+CreateLink { projectPath, sourceId: "abc", targetId: "xyz", linkType: "blocks", sourceItemType: "issue", targetItemType: "issue" }
 ```
 
 ## Configuration tips
 
 - The `.centy/config.json` file holds item type definitions and field schemas.
-- Use `GetProjectConfig` to inspect the current schema before creating custom fields.
+- Use `GetConfig` to inspect the current schema before creating custom fields.
 - Custom statuses and priorities are defined per-project in `config.json`.
 
 ## Getting help

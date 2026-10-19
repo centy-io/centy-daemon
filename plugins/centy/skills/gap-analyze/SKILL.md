@@ -41,7 +41,7 @@ After confirming the daemon is reachable, run `pnpm dlx centy config` (or `GetDa
 Do not proceed past step 0 until versions match.
 
 **c. Start the daemon if needed.**
-If the daemon is not running, start it with `centy-daemon &`. Resolve `project_path` from the current working directory. Confirm `IsInitialized` before continuing.
+If the daemon is not running, start it with `centy-daemon &`. Resolve `projectPath` from the current working directory. Confirm `IsInitialized` before continuing.
 
 ---
 
@@ -49,7 +49,7 @@ If the daemon is not running, start it with `centy-daemon &`. Resolve `project_p
 
 Launch a **read-only sub-agent**. It must not create, update, or delete anything. Hand it:
 - `epic_id` or `epic_display_number` if one was provided; otherwise `"discover"`
-- `project_path`
+- `projectPath`
 - `mcp_available`: true or false (from step 0a above)
 
 **Sub-agent prompt template:**
@@ -58,7 +58,7 @@ Launch a **read-only sub-agent**. It must not create, update, or delete anything
 You are performing the research phase of a "gap-analyze" workflow.
 Do NOT create, update, or delete any items — read only.
 
-project_path: <project_path>
+projectPath: <projectPath>
 Epic to analyze: <epic_id | epic_display_number | "discover">
 MCP available: <true | false>
 
@@ -67,15 +67,15 @@ If MCP is not available, use `pnpm dlx centy` CLI commands for all reads.
 Steps:
 
 0. RESOLVE THE EPIC(S)
-   If an ID or display number was given, fetch it with GetItem (item_type: "epics").
-   If "discover" was given, call ListItems (item_type: "epics") and select all epics
+   If an ID or display number was given, fetch it with GetItem (itemType: "epics").
+   If "discover" was given, call ListItems (itemType: "epics") and select all epics
    whose status is "open" or "in-progress". Return one REPORT block per epic.
    If no open/in-progress epics exist, select ALL epics regardless of status.
    Process each epic independently through steps 1–4 below.
 
 1. READ THE EPIC FULLY
    Capture:
-   - id, display_number, title, body, status, tags, custom_fields
+   - id, displayNumber, title, body, status, tags, customFields
 
 2. EXTRACT INTENDED SCOPE FROM THE EPIC BODY
    If the epic body contains explicit "Done" / "Pending" (or "Complete" / "Remaining",
@@ -104,7 +104,7 @@ Steps:
         - linkType  = "child-of"   AND  sourceType = "story"   (story → epic)
       Do NOT classify items of other targetTypes (e.g. "issue", "doc") as stories,
       even if they appear in a parent-of link.
-   c. For each qualifying story link, fetch the story with GetItem (item_type: "stories")
+   c. For each qualifying story link, fetch the story with GetItem (itemType: "stories")
       using the story's identifier (UUID or slug, whichever the targetId contains).
       Record: id, title, body, status (empty status = "draft").
    d. Classify each story:
@@ -181,15 +181,15 @@ Covers: <verbatim scope item text, or list of grouped items>
 ```
 
 Steps:
-1. `CreateItem` with `item_type: "stories"`, `title`, `body` (filled from template), `status: "ready"`.
+1. `CreateItem` with `itemType: "stories"`, `title`, `body` (filled from template), `status: "ready"`.
    - Via CLI fallback: `pnpm dlx centy create story --title "..." --status ready --body "..."`
 2. `CreateLink` from the epic to the new story:
-   - `source_id`: epic UUID
-   - `target_id`: new story id (UUID or slug)
-   - `link_type`: `"parent-of"`
-   - `source_item_type`: `"epic"`
-   - `target_item_type`: `"story"`
-   - Via CLI fallback: `pnpm dlx centy update epic <display_number> --link parent-of:story:<slug>`
+   - `sourceId`: epic UUID
+   - `targetId`: new story id (UUID or slug)
+   - `linkType`: `"parent-of"`
+   - `sourceItemType`: `"epic"`
+   - `targetItemType`: `"story"`
+   - Via CLI fallback: `pnpm dlx centy update epic <displayNumber> --link parent-of:story:<slug>`
 3. **Verify the link was actually created.** Fetch the story's links and confirm the epic appears. If the link is absent, log a warning: "Link creation reported success but link was not found — story `<id>` is unlinked." Do not raise an issue for this; it is an infrastructure bug, not a story quality failure.
 4. Verify the story passes all four criteria. If it does, mark it `result: "pass"`.
 
@@ -205,7 +205,7 @@ Merge in any missing content:
 - If status is `"draft"` or empty → set `status: "ready"`.
 
 Steps:
-1. `UpdateItem` with `item_type: "stories"`, the story id, and the revised `body` and/or `status`.
+1. `UpdateItem` with `itemType: "stories"`, the story id, and the revised `body` and/or `status`.
    - Via CLI fallback: `pnpm dlx centy update story <slug> --status ready --body "..."`
 2. Re-evaluate the story against the four passing criteria.
 3. If the story now passes, mark `result: "pass"`. If it still fails, mark `result: "fail"` and record the remaining fail reasons.
@@ -247,13 +247,13 @@ Review and update the story so it satisfies all failing criteria above.
 ```
 
 Steps:
-1. `CreateItem` with `item_type: "issues"`, `title`, `body`, `status: "open"`, `priority: 2`.
+1. `CreateItem` with `itemType: "issues"`, `title`, `body`, `status: "open"`, `priority: 2`.
 2. `CreateLink` from the new issue to the story:
-   - `source_id`: issue UUID
-   - `target_id`: story id
-   - `link_type`: `"blocks"`
-   - `source_item_type`: `"issue"`
-   - `target_item_type`: `"story"`
+   - `sourceId`: issue UUID
+   - `targetId`: story id
+   - `linkType`: `"blocks"`
+   - `sourceItemType`: `"issue"`
+   - `targetItemType`: `"story"`
 
 ---
 
@@ -300,6 +300,6 @@ Surface any `warnings` from the sub-agent and any link-verification failures fro
 | A story passes after update | Do not raise an issue for it |
 | A scope item maps to multiple stories | Mark as COVERED; no new story needed |
 | Link verification fails after create/update | Log as warning; do not raise a quality issue |
-| Story type not available in project | Fall back to `item_type: "issues"` and note the fallback in the report |
+| Story type not available in project | Fall back to `itemType: "issues"` and note the fallback in the report |
 | Epic not found | Report the error and stop |
 | Stories use slug identifiers (not UUIDs) | Use the slug wherever an id is required; verify link creation explicitly (slugs may not resolve in all daemon versions) |

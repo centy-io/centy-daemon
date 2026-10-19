@@ -37,24 +37,24 @@ New ideas are created with status `raw`. The team promotes ideas as they gain co
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running (start it with `centy-daemon &` if not) and the project is initialized. Resolve `project_path` from the current working directory.
+Ensure the daemon is running (start it with `centy-daemon &` if not) and the project is initialized. Resolve `projectPath` from the current working directory.
 
 ---
 
 ### 1 — Ensure the `ideas` item type exists
 
-Call `ListItemTypes` with `project_path`.
+Call `ListItemTypes` with `projectPath`.
 
 If a type with `plural: "ideas"` is **not** present, create it now:
 
 ```
 CreateItemType:
-  project_path: <project_path>
+  projectPath: <projectPath>
   name: "Idea"
   plural: "ideas"
   identifier: "uuid"
   features:
-    display_number: true
+    displayNumber: true
     status: true
     priority: true
     assets: false
@@ -62,7 +62,7 @@ CreateItemType:
   statuses: ["raw", "promising", "validated", "shelved"]
   default_status: "raw"
   priority_levels: 3
-  custom_fields:
+  customFields:
     - name: "category"
       field_type: "enum"
       required: false
@@ -87,7 +87,7 @@ If `plural: "ideas"` already exists, skip creation and continue with the existin
 ### 2–3 — Research phase (run in a sub-agent)
 
 Launch a **read-only sub-agent**. It must not create, update, or delete anything. Hand it:
-- `project_path`
+- `projectPath`
 - `idea_count` (default 7, or the user-specified count)
 
 **Sub-agent prompt template:**
@@ -96,7 +96,7 @@ Launch a **read-only sub-agent**. It must not create, update, or delete anything
 You are performing the research phase of a "future-man" workflow.
 Do NOT create, update, or delete anything — read only.
 
-project_path: <project_path>
+projectPath: <projectPath>
 Ideas to generate: <idea_count>
 
 Steps:
@@ -124,9 +124,9 @@ Steps:
    - technical_observations: interesting design patterns, notable absences, or architectural choices
 
 3. READ EXISTING CENTY ITEMS
-   a. Call ListItems (item_type: "epics") — up to 20 items
-   b. Call ListItems (item_type: "issues") with no status filter — up to 30 items
-   c. Call ListItems (item_type: "ideas") — read ALL existing ideas to avoid duplicates
+   a. Call ListItems (itemType: "epics") — up to 20 items
+   b. Call ListItems (itemType: "issues") with no status filter — up to 30 items
+   c. Call ListItems (itemType: "ideas") — read ALL existing ideas to avoid duplicates
 
    Extract:
    - current_focus: summarize the 3-5 most prominent open epics or issues in plain language
@@ -226,20 +226,20 @@ Idea <N>:
 For each generated idea, in order:
 
 1. Call `CreateItem`:
-   - `project_path`: `<project_path>`
-   - `item_type`: `"ideas"`
+   - `projectPath`: `<projectPath>`
+   - `itemType`: `"ideas"`
    - `title`: the idea title
    - `body`: the idea body (filled from template)
    - `status`: `"raw"`
    - `priority`: the idea priority
-   - `custom_fields`:
+   - `customFields`:
      - `"category"`: `"\"<category>\""` (JSON-encoded string)
      - `"horizon"`: `"\"<horizon>\""` (JSON-encoded string)
      - `"impact"`: `"\"<impact>\""` (JSON-encoded string)
      - `"inspiration"`: `"\"<inspiration text>\""` (JSON-encoded string — escape inner quotes)
    - `tags`: the idea's tags array
 
-2. Record the created item's `id` and `display_number`.
+2. Record the created item's `id` and `displayNumber`.
 
 Continue to the next idea even if one creation fails — record failures as warnings.
 

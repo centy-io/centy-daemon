@@ -25,7 +25,7 @@ When called with no arguments, the skill discovers which issues to compact on it
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running and the project is initialized. Resolve `project_path` from the current working directory or ask the user if ambiguous.
+Ensure the daemon is running and the project is initialized. Resolve `projectPath` from the current working directory or ask the user if ambiguous.
 
 ---
 
@@ -33,7 +33,7 @@ Ensure the daemon is running and the project is initialized. Resolve `project_pa
 
 Launch a **sub-agent** whose sole job is to research and synthesize — it must not write anything. Hand it:
 - The list of issue IDs or display numbers **if the user provided any**, otherwise an empty list meaning "discover everything"
-- `project_path`
+- `projectPath`
 
 **Sub-agent prompt template:**
 
@@ -41,13 +41,13 @@ Launch a **sub-agent** whose sole job is to research and synthesize — it must 
 You are performing the research phase of a "compact" workflow.
 Do NOT create, update, or delete any items — read only.
 
-project_path: <project_path>
+projectPath: <projectPath>
 Issues to research: <id or display number list, or "discover" if none given>
 
 Steps:
 
 0. DISCOVER ISSUES (only when "Issues to research" is "discover")
-   List ALL issues in the project (item_type: "issues").
+   List ALL issues in the project (itemType: "issues").
    From that full list, select candidates for compacting:
    - Prefer issues that are "closed", "done", or "resolved" — these are prime
      candidates to be rolled up and soft-deleted.
@@ -110,7 +110,7 @@ REPORT:
   existing_feature_title: <string | null>
   issues:
     - id: <UUID>
-      display_number: <N>
+      displayNumber: <N>
       title: <string>
       classification: <"done" | "active">
       already_linked_to_feature: <bool>
@@ -172,7 +172,7 @@ For each Done issue, soft-delete it (`force: false`). This sets `deleted_at` wit
 ### 8 — Report to the user
 
 ```
-Feature item: #<display_number> — <title> [created | updated]
+Feature item: #<displayNumber> — <title> [created | updated]
 Linked (active): #N1 <title>, #N2 <title>, …
 Soft-deleted (done): #N3 <title>, #N4 <title>, …
 ```
