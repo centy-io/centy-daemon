@@ -35,3 +35,28 @@ async fn test_list_includes_builtin_type_with_missing_config() {
         assert_eq!(count, 1, "{plural} listed {count} times");
     }
 }
+
+/// A built-in type whose whole folder was removed must stay unlisted.
+#[tokio::test]
+async fn test_list_omits_builtin_type_with_removed_folder() {
+    let temp = create_test_dir();
+    let path = temp.path();
+    init_centy_project(path).await;
+    fs::remove_dir_all(path.join(".centy").join("user_stories"))
+        .await
+        .expect("Should delete user_stories folder");
+
+    let resp = list_item_types(ListItemTypesRequest {
+        project_path: path.to_str().unwrap().to_string(),
+    })
+    .await
+    .unwrap()
+    .into_inner();
+
+    assert!(resp.success, "list failed: {}", resp.error);
+    let plurals: Vec<&str> = resp.item_types.iter().map(|t| t.plural.as_str()).collect();
+    assert!(
+        !plurals.contains(&"user_stories"),
+        "user_stories should not be listed, got {plurals:?}"
+    );
+}

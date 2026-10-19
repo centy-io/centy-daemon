@@ -9,6 +9,7 @@ use crate::registry::track_project_async;
 use crate::server::convert_entity::config_to_proto;
 use crate::server::proto::{ListItemTypesRequest, ListItemTypesResponse};
 use crate::server::structured_error::to_error_json;
+use crate::utils::get_centy_path;
 use tonic::{Response, Status};
 
 /// Built-in defaults for the six types `init` creates. Same source as the
@@ -37,9 +38,14 @@ pub async fn list_item_types(
 
     match ItemTypeRegistry::build(project_path).await {
         Ok(registry) => {
+            // Only a folder that exists without config.yaml gets a default;
+            // a folder the user removed stays unlisted.
+            let centy_path = get_centy_path(project_path);
             let mut types = registry.all().clone();
             for (folder, config) in builtin_item_types(project_path).await {
-                types.entry(folder.to_string()).or_insert(config);
+                if centy_path.join(folder).is_dir() {
+                    types.entry(folder.to_string()).or_insert(config);
+                }
             }
             let item_types: Vec<_> = types
                 .iter()
