@@ -20,13 +20,13 @@ async fn test_create_link_file_returns_record() {
     .await
     .unwrap();
 
-    assert!(!record.id.is_empty());
+    assert_ne!(record.id.len(), 0);
     assert_eq!(record.source_id, "src-uuid");
     assert_eq!(record.source_type, TargetType::issue());
     assert_eq!(record.target_id, "tgt-uuid");
     assert_eq!(record.target_type, TargetType::new("doc"));
     assert_eq!(record.link_type, "blocks");
-    assert!(!record.created_at.is_empty());
+    assert_ne!(record.created_at.len(), 0);
 }
 
 #[tokio::test]

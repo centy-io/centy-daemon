@@ -19,7 +19,7 @@ async fn test_execute_reconciliation_creates_managed_files() {
     let result = execute_reconciliation(temp_dir.path(), decisions, false)
         .await
         .expect("Should execute reconciliation");
-    assert!(!result.created.is_empty());
+    assert_ne!(result.created.len(), 0);
     let centy_path = temp_dir.path().join(".centy");
     assert!(centy_path.join("issues").is_dir());
     assert!(centy_path.join("docs").is_dir());
@@ -41,7 +41,7 @@ async fn test_execute_reconciliation_writes_manifest() {
     let manifest_path = temp_dir.path().join(".centy").join(".centy-manifest.json");
     assert!(manifest_path.exists());
     assert_eq!(result.manifest.schema_version, 1);
-    assert!(!result.manifest.centy_version.is_empty());
+    assert_ne!(result.manifest.centy_version.len(), 0);
 }
 
 #[tokio::test]
@@ -56,8 +56,8 @@ async fn test_execute_reconciliation_idempotent() {
         execute_reconciliation(temp_dir.path(), ReconciliationDecisions::default(), false)
             .await
             .expect("Should execute second time");
-    assert!(!result1.created.is_empty());
-    assert!(result2.created.is_empty());
+    assert_ne!(result1.created.len(), 0);
+    assert_eq!(result2.created.len(), 0);
 }
 
 #[tokio::test]
@@ -68,7 +68,7 @@ async fn test_execute_reconciliation_force_mode() {
     let result = execute_reconciliation(temp_dir.path(), decisions, true)
         .await
         .expect("Should execute with force");
-    assert!(!result.created.is_empty());
+    assert_ne!(result.created.len(), 0);
 }
 
 #[tokio::test]

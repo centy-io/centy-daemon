@@ -6,7 +6,7 @@ fn test_create_manifest() {
 
     assert_eq!(manifest.schema_version, 1);
     assert_eq!(manifest.centy_version, CENTY_VERSION);
-    assert!(!manifest.created_at.is_empty());
+    assert_ne!(manifest.created_at.len(), 0);
 }
 
 #[test]

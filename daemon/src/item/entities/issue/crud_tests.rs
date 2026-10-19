@@ -220,7 +220,7 @@ async fn test_get_issues_by_uuid_skips_uninitialized_projects() {
         .await
         .expect("Should succeed");
     assert!(result.issues.is_empty());
-    assert!(result.errors.is_empty());
+    assert_eq!(result.errors.len(), 0);
 }
 
 #[tokio::test]
@@ -312,7 +312,7 @@ async fn test_get_issues_by_uuid_project_name_from_path_when_none() {
         .expect("Should succeed");
     assert_eq!(result.issues.len(), 1);
     // project_name should be derived from path since name is None
-    assert!(!result.issues[0].project_name.is_empty());
+    assert_ne!(result.issues[0].project_name.len(), 0);
 }
 
 // --- update_helpers.rs tests ---

@@ -42,77 +42,63 @@ jobs:
             python3 -c "import json, sys; json.load(open('$manifest'))"
             echo "  $manifest is valid JSON"
 
-            python3 - <<'EOF'
-import json, sys
+            python3 - "$manifest" <<'EOF'
+          import json, sys
 
-manifest_path = "$manifest"
-data = json.load(open(manifest_path))
+          manifest_path = sys.argv[1]
+          data = json.load(open(manifest_path))
 
-required = ["name", "version", "description", "skills"]
-for field in required:
-    if field not in data:
-        print(f"ERROR: missing required field '{field}' in {manifest_path}")
-        sys.exit(1)
+          required = ["name", "version", "description"]
+          for field in required:
+              if field not in data:
+                  print(f"ERROR: missing required field '{field}' in {manifest_path}")
+                  sys.exit(1)
 
-for skill in data["skills"]:
-    for sf in ["name", "path"]:
-        if sf not in skill:
-            print(f"ERROR: skill entry missing '{sf}' in {manifest_path}")
-            sys.exit(1)
-
-print(f"  plugin.json fields OK: {list(data.keys())}")
-EOF
+          print(f"  plugin.json fields OK: {list(data.keys())}")
+          EOF
           done
 
       - name: Validate skill SKILL.md files
         run: |
           for plugin_dir in plugins/*/; do
-            manifest="$plugin_dir.claude-plugin/plugin.json"
-            if [ ! -f "$manifest" ]; then
-              continue
-            fi
+            python3 - "$plugin_dir" <<'EOF'
+          import glob, os, sys
 
-            python3 - "$plugin_dir" "$manifest" <<'EOF'
-import json, sys, os
+          plugin_dir = sys.argv[1]
+          skill_files = sorted(glob.glob(os.path.join(plugin_dir, "skills", "*", "SKILL.md")))
+          if not skill_files:
+              print(f"ERROR: no skills/*/SKILL.md found in {plugin_dir}")
+              sys.exit(1)
+          for skill_path in skill_files:
+              size = os.path.getsize(skill_path)
+              if size == 0:
+                  print(f"ERROR: SKILL.md is empty at {skill_path}")
+                  sys.exit(1)
+              print(f"  skill SKILL.md present ({size} bytes): {skill_path}")
 
-plugin_dir = sys.argv[1]
-manifest_path = sys.argv[2]
-data = json.load(open(manifest_path))
-
-for skill in data["skills"]:
-    skill_path = os.path.join(plugin_dir, skill["path"].lstrip("./"), "SKILL.md")
-    if not os.path.isfile(skill_path):
-        print(f"ERROR: SKILL.md not found at {skill_path}")
-        sys.exit(1)
-    size = os.path.getsize(skill_path)
-    if size == 0:
-        print(f"ERROR: SKILL.md is empty at {skill_path}")
-        sys.exit(1)
-    print(f"  skill '{skill['name']}': SKILL.md present ({size} bytes)")
-
-print("All skills valid")
-EOF
+          print("All skills valid")
+          EOF
           done
 
       - name: Verify marketplace entries match plugin directories
         run: |
           python3 - <<'EOF'
-import json, os, sys
+          import json, os, sys
 
-marketplace = json.load(open(".claude-plugin/marketplace.json"))
-errors = []
+          marketplace = json.load(open(".claude-plugin/marketplace.json"))
+          errors = []
 
-for entry in marketplace["plugins"]:
-    plugin_path = entry.get("path", "")
-    resolved = plugin_path.lstrip("./")
-    manifest = os.path.join(resolved, ".claude-plugin", "plugin.json")
-    if not os.path.isfile(manifest):
-        errors.append(f"marketplace.json references '{plugin_path}' but {manifest} not found")
+          for entry in marketplace["plugins"]:
+              plugin_path = entry.get("source") or entry.get("path", "")
+              resolved = plugin_path.lstrip("./")
+              manifest = os.path.join(resolved, ".claude-plugin", "plugin.json")
+              if not os.path.isfile(manifest):
+                  errors.append(f"marketplace.json references '{plugin_path}' but {manifest} not found")
 
-if errors:
-    for e in errors:
-        print(f"ERROR: {e}")
-    sys.exit(1)
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
 
-print(f"All {len(marketplace['plugins'])} marketplace entries are consistent")
-EOF
+          print(f"All {len(marketplace['plugins'])} marketplace entries are consistent")
+          EOF

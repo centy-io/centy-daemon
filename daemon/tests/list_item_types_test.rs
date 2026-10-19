@@ -150,7 +150,7 @@ async fn test_list_item_types_empty_project() {
 
     assert!(resp.success, "list failed: {}", resp.error);
     assert_eq!(resp.total_count, 0i32);
-    assert!(resp.item_types.is_empty());
+    assert_eq!(resp.item_types.len(), 0);
 }
 
 // ─── ItemTypeConfigProto fields are populated ────────────────────────────────

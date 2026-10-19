@@ -891,7 +891,7 @@ async fn test_link_record_has_id_for_deletion() {
     .unwrap();
 
     // The record has a UUID that can be used for deletion
-    assert!(!record.id.is_empty());
+    assert_ne!(record.id.len(), 0);
 
     // The same id appears in the list result
     let links = list_links(project_path, &issue1.id, TargetType::issue())

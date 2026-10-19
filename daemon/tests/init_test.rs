@@ -777,7 +777,7 @@ async fn test_init_creates_docs_config_yaml() {
     assert_eq!(config.identifier, IdStrategy::Slug);
     assert!(!config.features.display_number);
     assert!(!config.features.priority);
-    assert!(config.statuses.is_empty());
+    assert_eq!(config.statuses.len(), 0);
     assert!(config.priority_levels.is_none());
 }
 

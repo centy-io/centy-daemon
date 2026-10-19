@@ -181,7 +181,7 @@ fn test_config_enum_field_has_values() {
         default_value: None,
         enum_values: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
     };
-    assert!(!valid_enum_field.enum_values.is_empty());
+    assert_ne!(valid_enum_field.enum_values.len(), 0);
 
     let invalid_enum_field = CustomFieldDef {
         name: "empty_enum".to_string(),
@@ -345,7 +345,7 @@ async fn test_issue_metadata_timestamps() {
     let issue = get_issue(project_path, &result.id).await.unwrap();
 
     // created_at should be set
-    assert!(!issue.metadata.created_at.is_empty());
+    assert_ne!(issue.metadata.created_at.len(), 0);
 
     update_issue(
         project_path,
