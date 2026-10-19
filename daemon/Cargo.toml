@@ -37,7 +37,6 @@ http = "1"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
