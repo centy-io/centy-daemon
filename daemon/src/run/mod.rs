@@ -1,9 +1,11 @@
 use crate::app::{self, report_server_error};
 use crate::server::proto::centy_daemon_server::CentyDaemonServer;
 use crate::server::{CentyDaemonService, ShutdownSignal};
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result, WrapErr as _};
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::watch;
+use tonic::transport::server::TcpIncoming;
 use tonic::transport::Server;
 use tonic_health::server::health_reporter;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
@@ -18,7 +20,16 @@ pub async fn run(args: app::Args) -> Result<()> {
         crate::user_config::UserConfig::default()
     });
     crate::registry::init_ignore_paths(&user_cfg.registry.ignore_paths);
-    let addr = args.addr.parse()?;
+    let addr: SocketAddr = args.addr.parse()?;
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            report_server_error(addr, &e);
+            return Err(e).wrap_err_with(|| format!("failed to bind gRPC endpoint on {addr}"));
+        }
+    };
+    let incoming = TcpIncoming::from_listener(listener, true, None)
+        .map_err(|e| eyre!("failed to set up gRPC listener on {addr}: {e}"))?;
     let cors = core::build_cors(&args.cors_origins);
     let web_process = core::launch_web(args.serve_web, &args.web_addr)?;
     let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
@@ -44,7 +55,7 @@ pub async fn run(args: app::Args) -> Result<()> {
         .add_service(reflection_service)
         .add_service(health_service)
         .add_service(CentyDaemonServer::new(service))
-        .serve_with_shutdown(addr, async move {
+        .serve_with_incoming_shutdown(incoming, async move {
             loop {
                 drop(shutdown_rx.changed().await);
                 let signal = *shutdown_rx.borrow();

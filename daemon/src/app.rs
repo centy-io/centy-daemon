@@ -48,7 +48,10 @@ pub fn print_log_hint() {
         eprintln!();
     }
 }
-pub fn report_server_error(addr: std::net::SocketAddr, e: &tonic::transport::Error) {
+pub fn report_server_error<E: std::fmt::Debug + std::fmt::Display>(
+    addr: std::net::SocketAddr,
+    e: &E,
+) {
     let err_string = format!("{e:?}");
     if err_string.contains("AddrInUse") {
         eprintln!();

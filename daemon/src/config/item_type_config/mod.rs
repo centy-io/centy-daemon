@@ -1,3 +1,4 @@
+mod builtin;
 mod convert;
 mod defaults;
 mod io;
@@ -5,6 +6,7 @@ mod migrate;
 mod registry;
 mod types;
 
+pub use builtin::BUILTIN_ITEM_TYPE_FOLDERS;
 pub use defaults::{
     default_archived_config, default_comment_config, default_doc_config, default_epic_config,
     default_issue_config, default_user_story_config,
