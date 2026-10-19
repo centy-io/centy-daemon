@@ -10,96 +10,51 @@ Guide the user step-by-step through setting up `centy-daemon` locally and wiring
 
 ## Prerequisites check
 
-Before starting, verify the user has the required tools:
+Before starting, verify the user has the required tools: a Rust toolchain at version 1.85 or newer, the cargo build tool, and git.
 
-```bash
-rustc --version   # needs 1.85+
-cargo --version
-git --version
-```
-
-If Rust is missing, direct them to https://rustup.rs and wait for confirmation.
+If Rust is missing, direct the user to the rustup site and wait for confirmation.
 
 ## Step 1 — Clone the repository
 
-```bash
-git clone https://github.com/centy-io/centy-daemon.git
-cd centy-daemon
-```
+Clone the `centy-io/centy-daemon` repository from GitHub and enter its directory.
 
 ## Step 2 — Build the daemon binary
 
-```bash
-cargo build --release
-```
-
-This places the binary at `target/release/centy-daemon`. The build takes a few minutes on first run.
+Build the daemon in release mode. The binary lands in the release output folder of the build target. The first build takes a few minutes.
 
 ## Step 3 — Install the binary (optional but recommended)
 
-Make the daemon available system-wide by copying it to a directory on `$PATH`:
+Copy the release binary to a directory on the user's `PATH`, such as a per-user bin folder or a system-wide bin folder (the latter may need elevated rights on macOS or Linux).
 
-```bash
-# macOS / Linux
-cp target/release/centy-daemon ~/.local/bin/centy-daemon
-# or
-sudo cp target/release/centy-daemon /usr/local/bin/centy-daemon
-```
-
-Alternatively, set `CENTY_DAEMON_PATH` to the absolute path of the binary and skip this step.
+Alternatively, set the `CENTY_DAEMON_PATH` environment variable to the absolute path of the binary and skip this step.
 
 ## Step 4 — Start the daemon
 
-```bash
-# Runs in the foreground on 127.0.0.1:50051
-centy-daemon
+Start the daemon. By default it listens for gRPC on the loopback address on port 50051 and runs in the foreground. For a persistent setup, run it under a process manager that starts it on login. For a quick test, run it in a separate terminal.
 
-# Run as a background process on login (launchd / systemd / any process manager)
-# For a quick test, just run it in a separate terminal tab
-```
-
-Verify it is running:
-
-```bash
-grpcurl -plaintext 127.0.0.1:50051 list   # should print centy.CentyDaemon
-```
+Verify it is running by listing the gRPC services on the loopback address. The output should name the `centy.CentyDaemon` service.
 
 ## Step 5 — Register the MCP server in Claude Code
 
-The daemon serves MCP over HTTP at `http://127.0.0.1:50052/mcp`. Claude Code connects to that URL. Do not spawn a process for it. Make sure `centy-daemon` is running first.
+The daemon serves MCP over HTTP on the loopback address at port 50052, path `/mcp`. Claude Code connects to that URL; do not spawn a process for it. Make sure the daemon is running first.
 
-Add the following block to the project's `.mcp.json` (or run the command for global access):
+Register a server named `centy` with HTTP transport and that URL. Do this in the project's MCP configuration file, or through the Claude Code MCP add command for global access.
 
-```json
-{
-  "mcpServers": {
-    "centy": {
-      "type": "http",
-      "url": "http://127.0.0.1:50052/mcp"
-    }
-  }
-}
-```
-
-```bash
-claude mcp add --transport http centy http://127.0.0.1:50052/mcp
-```
-
-If the daemon uses a different MCP port, start it with `centy-daemon --mcp-addr 127.0.0.1:PORT` (or set `CENTY_MCP_ADDR`), then use that URL. The address must be loopback.
+If the daemon uses a different MCP port, start it with that address set through its MCP address flag or the `CENTY_MCP_ADDR` environment variable, then use the matching URL. The address must be loopback.
 
 ## Step 6 — Verify the integration
 
-Restart Claude Code (or reload the MCP servers) then confirm the tools are available:
+Restart Claude Code, or reload the MCP servers, then confirm the tools are available:
 
-- Run `/mcp` in Claude Code — you should see the `centy` server listed.
-- Ask Claude to call `centy_v1_CentyDaemon_GetDaemonInfo` — it should return the daemon version.
+- Open the MCP status view in Claude Code and check that the `centy` server is listed.
+- Ask Claude to call the `GetDaemonInfo` tool (full name `centy_v1_CentyDaemon_GetDaemonInfo`); it should return the daemon version.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| MCP connection refused on `127.0.0.1:50052` | Make sure `centy-daemon` is running (`centy-daemon &`) |
-| Wrong MCP port | Use the URL matching `--mcp-addr` / `CENTY_MCP_ADDR` on the daemon |
-| `rustc --version` too old | Run `rustup update stable` |
+| MCP connection refused on `127.0.0.1:50052` | Make sure the daemon is running |
+| Wrong MCP port | Use the URL matching the daemon's MCP address setting |
+| Rust toolchain too old | Update the stable toolchain through rustup |
 
 Once complete, tell the user they are ready to use Centy. Suggest running the `mcp-usage` skill to learn about available tools.

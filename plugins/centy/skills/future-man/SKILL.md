@@ -8,7 +8,7 @@ allowed-tools: mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_
 
 Become the visionary of any project. Future Man analyzes what exists — codebase structure, documentation, existing Centy items — and imagines what could exist next. It seeds a custom **`ideas`** item type and fills it with forward-thinking, context-grounded ideas that span quick wins to moonshots.
 
-When called with a count (e.g. `/future-man 5`), generate that many ideas. When called with no arguments, generate **7 ideas** by default.
+When the user gives a count, generate that many ideas. When the user gives no count, generate **7 ideas** by default.
 
 ---
 
@@ -29,7 +29,7 @@ When called with a count (e.g. `/future-man 5`), generate that many ideas. When 
 
 `raw` → `promising` → `validated` → `shelved`
 
-New ideas are created with status `raw`. The team promotes ideas as they gain confidence.
+New ideas start as `raw`. The team promotes ideas as they gain confidence.
 
 ---
 
@@ -37,160 +37,61 @@ New ideas are created with status `raw`. The team promotes ideas as they gain co
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running (start it with `centy-daemon &` if not) and the project is initialized. Resolve `project_path` from the current working directory.
+Ensure the daemon is running (start it if it is not) and the project is initialized. Resolve the project path from the current working directory.
 
 ---
 
 ### 1 — Ensure the `ideas` item type exists
 
-Call `ListItemTypes` with `project_path`.
+List the item types for the project.
 
-If a type with `plural: "ideas"` is **not** present, create it now:
+If no type with plural `"ideas"` exists, create it with these settings:
 
-```
-CreateItemType:
-  project_path: <project_path>
-  name: "Idea"
-  plural: "ideas"
-  identifier: "uuid"
-  features:
-    display_number: true
-    status: true
-    priority: true
-    assets: false
-    soft_delete: true
-  statuses: ["raw", "promising", "validated", "shelved"]
-  default_status: "raw"
-  priority_levels: 3
-  custom_fields:
-    - name: "category"
-      field_type: "enum"
-      required: false
-      enum_values: ["feature", "improvement", "architecture", "integration", "ux", "performance", "security", "ecosystem"]
-    - name: "horizon"
-      field_type: "enum"
-      required: false
-      enum_values: ["quick-win", "mid-term", "long-term", "moonshot"]
-    - name: "impact"
-      field_type: "enum"
-      required: false
-      enum_values: ["low", "medium", "high", "transformative"]
-    - name: "inspiration"
-      field_type: "string"
-      required: false
-```
+- Name `"Idea"`, plural `"ideas"`, identifier kind `"uuid"`.
+- Features: display number on, status on, priority on, assets off, soft delete on.
+- Statuses: `raw`, `promising`, `validated`, `shelved`; default status `raw`.
+- Three priority levels.
+- Four custom fields, all optional:
+  - `category` (enum, values listed above)
+  - `horizon` (enum, values listed above)
+  - `impact` (enum, values listed above)
+  - `inspiration` (string)
 
-If `plural: "ideas"` already exists, skip creation and continue with the existing type.
+If the `ideas` type already exists, skip creation and continue with the existing type. If listing types fails, try creating the type anyway and continue if that succeeds.
 
 ---
 
 ### 2–3 — Research phase (run in a sub-agent)
 
-Launch a **read-only sub-agent**. It must not create, update, or delete anything. Hand it:
-- `project_path`
-- `idea_count` (default 7, or the user-specified count)
+Launch a **read-only sub-agent**. It must not create, update, or delete anything. Hand it the project path and the idea count (default 7, or the user's count).
 
-**Sub-agent prompt template:**
+The sub-agent researches in four steps and returns one research summary:
 
-```
-You are performing the research phase of a "future-man" workflow.
-Do NOT create, update, or delete anything — read only.
+1. **Identify the project.** Read, in priority order, the README, the package manifest for the project's language (whichever exists), the changelog, and any top-level docs index. Extract the project name, a 2–4 sentence summary, the tech stack, and the likely user personas.
+2. **Read the codebase structure.** List top-level files and directories, then one or two levels into the main source directories. Identify the architecture style, 3–6 key modules, and notable design patterns or absences.
+3. **Read existing Centy items.** List the epics (up to 20), the issues with no status filter (up to 30), and all existing ideas. Extract the 3–5 most prominent open epics or issues as the current focus, the recurring themes, and the titles of all existing ideas so no duplicates are created.
+4. **Synthesize opportunities.** Identify gaps no current epic or issue covers, leverage points, user pain points, emerging patterns in the tech landscape, and quick wins.
 
-project_path: <project_path>
-Ideas to generate: <idea_count>
+The research summary must contain every field above, as lists where the field is a list.
 
-Steps:
-
-1. IDENTIFY PROJECT IDENTITY
-   Search for and read (in order of priority):
-   - README.md or README
-   - package.json, Cargo.toml, pyproject.toml, go.mod, composer.json (whichever exists)
-   - CHANGELOG.md or CHANGELOG
-   - Any top-level docs/ or documentation/ index files
-
-   Extract:
-   - project_name: the name of the project
-   - project_summary: 2-4 sentences on what it does and who it is for
-   - tech_stack: languages, frameworks, key dependencies
-   - user_personas: inferred types of users (e.g., "developer building CLI tools", "team lead managing epics")
-
-2. READ CODEBASE STRUCTURE
-   Use Glob to list top-level files and directories, then 1-2 levels deep into
-   the main source directories (e.g., src/, lib/, app/, daemon/, cli/, etc.).
-
-   Identify:
-   - architecture_style: e.g., "gRPC daemon + MCP plugin", "REST API + React SPA", "CLI tool"
-   - key_modules: notable subsystems or areas of the codebase (list 3-6)
-   - technical_observations: interesting design patterns, notable absences, or architectural choices
-
-3. READ EXISTING CENTY ITEMS
-   a. Call ListItems (item_type: "epics") — up to 20 items
-   b. Call ListItems (item_type: "issues") with no status filter — up to 30 items
-   c. Call ListItems (item_type: "ideas") — read ALL existing ideas to avoid duplicates
-
-   Extract:
-   - current_focus: summarize the 3-5 most prominent open epics or issues in plain language
-   - recurring_themes: patterns that appear across multiple items (e.g., "performance", "auth", "CLI UX")
-   - existing_idea_titles: list titles of ALL existing ideas — you must not create duplicates
-
-4. SYNTHESIZE OPPORTUNITIES
-   Based on everything above, identify the richest opportunities for the project:
-   - gaps: areas the project could logically expand into that no current epic or issue covers
-   - leverage_points: existing strengths that could be amplified further
-   - user_pain_points: problems the user personas likely face that the project does not yet solve
-   - emerging_patterns: trends in the tech landscape relevant to this project's domain
-   - quick_wins: small, high-leverage improvements that could have outsized impact
-
-Return a single RESEARCH block:
-
-RESEARCH:
-  project_name: <string>
-  project_summary: <string>
-  tech_stack: [<string>, …]
-  user_personas: [<string>, …]
-  architecture_style: <string>
-  key_modules: [<string>, …]
-  current_focus: [<string>, …]
-  recurring_themes: [<string>, …]
-  existing_idea_titles: [<string>, …]
-  opportunities:
-    gaps: [<string>, …]
-    leverage_points: [<string>, …]
-    user_pain_points: [<string>, …]
-    emerging_patterns: [<string>, …]
-    quick_wins: [<string>, …]
-```
-
-Wait for the RESEARCH block before continuing.
+Wait for the research summary before continuing.
 
 ---
 
 ### 4 — Generate ideas
 
-Using the RESEARCH block, generate exactly `<idea_count>` ideas.
+Using the research summary, generate exactly the requested number of ideas.
 
 **Rules for idea generation:**
 
-1. **Be specific and grounded** — every idea must reference something concrete from the RESEARCH (a gap, a leverage point, a pain point, a module, a recurring theme). Generic ideas like "improve performance" are not acceptable — name *which* component, *which* bottleneck, and *why* it matters for this project specifically.
-2. **Diversify** — the full set must span at least 3 different `category` values and at least 2 different `horizon` values.
-3. **No duplicates** — check `existing_idea_titles`; do not generate any idea that substantially overlaps in title or concept with an existing one.
-4. **Clear value proposition** — every idea must answer: *why would a user or developer care about this?* Either "what problem does this solve?" or "what new capability does this unlock?"
-5. **Moonshot balance** — include at least 1 `moonshot` idea that is ambitious but coherent with the project's trajectory.
-6. **Quick-win balance** — include at least 1 `quick-win` idea that could realistically be shipped in a day or two.
+1. **Be specific and grounded** — every idea must reference something concrete from the research (a gap, a leverage point, a pain point, a module, a recurring theme). Generic ideas like "improve performance" are not acceptable — name *which* component, *which* bottleneck, and *why* it matters for this project specifically.
+2. **Diversify** — the full set must span at least 3 different categories and at least 2 different horizons.
+3. **No duplicates** — check the existing idea titles; do not generate any idea that substantially overlaps in title or concept with an existing one.
+4. **Clear value proposition** — every idea must answer: *why would a user or developer care about this?*
+5. **Moonshot balance** — include at least 1 moonshot idea that is ambitious but coherent with the project's trajectory.
+6. **Quick-win balance** — include at least 1 quick-win idea that could realistically ship in a day or two.
 
-**For each idea, define:**
-
-```
-Idea <N>:
-  title: <concise, action-oriented, 5–10 words>
-  category: <feature | improvement | architecture | integration | ux | performance | security | ecosystem>
-  horizon: <quick-win | mid-term | long-term | moonshot>
-  impact: <low | medium | high | transformative>
-  inspiration: <1-2 sentences: what in the RESEARCH prompted this idea>
-  priority: <1 = high, 2 = medium, 3 = low>
-  tags: [<1-3 lowercase tags derived from the idea's themes>]
-  body: <see template below>
-```
+**For each idea, define:** a concise action-oriented title (5–10 words), category, horizon, impact, a 1–2 sentence inspiration note naming what in the research prompted it, a priority (1 high, 2 medium, 3 low), 1–3 lowercase tags derived from the idea's themes, and a body that follows the template below.
 
 **Idea body template:**
 
@@ -201,7 +102,7 @@ Idea <N>:
 
 ## Why this project
 
-<2-3 sentences grounded in the RESEARCH — name the specific gap, leverage point, pain point, or pattern that makes this idea right for *this* project right now>
+<2-3 sentences grounded in the research — name the specific gap, leverage point, pain point, or pattern that makes this idea right for *this* project right now>
 
 ## Potential impact
 
@@ -223,25 +124,13 @@ Idea <N>:
 
 ### 5 — Create idea items
 
-For each generated idea, in order:
+For each generated idea, in order, create an item of type `"ideas"` with:
+- the idea title and body
+- status `raw`
+- the idea's priority and tags
+- the four custom fields set to the idea's category, horizon, impact and inspiration text. Custom field values are JSON-encoded strings, so quote them and escape any inner quotes.
 
-1. Call `CreateItem`:
-   - `project_path`: `<project_path>`
-   - `item_type`: `"ideas"`
-   - `title`: the idea title
-   - `body`: the idea body (filled from template)
-   - `status`: `"raw"`
-   - `priority`: the idea priority
-   - `custom_fields`:
-     - `"category"`: `"\"<category>\""` (JSON-encoded string)
-     - `"horizon"`: `"\"<horizon>\""` (JSON-encoded string)
-     - `"impact"`: `"\"<impact>\""` (JSON-encoded string)
-     - `"inspiration"`: `"\"<inspiration text>\""` (JSON-encoded string — escape inner quotes)
-   - `tags`: the idea's tags array
-
-2. Record the created item's `id` and `display_number`.
-
-Continue to the next idea even if one creation fails — record failures as warnings.
+Record the created item's ID and display number. Continue to the next idea even if one creation fails; record failures as warnings.
 
 ---
 
@@ -254,14 +143,14 @@ Future Man — <project_name>
 
 Seeded <idea_count> ideas into the ideas backlog.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #<N>  <title>
         <horizon> · <category> · impact: <impact>
         <one-line teaser from the Vision section>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #<N>  <title>
         …
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Ideas start at status "raw". Promote any idea to "promising" when you're ready to
 explore it, "validated" when you're committed to building it, or "shelved" if it
@@ -276,13 +165,13 @@ Surface any creation failures as warnings below the summary.
 
 | Situation | Handling |
 |-----------|----------|
-| `ideas` type already exists | Skip `CreateItemType`; use the existing type as-is |
-| Existing ideas are present | Read their titles from `ListItems`; avoid generating any duplicate |
+| `ideas` type already exists | Skip type creation; use the existing type as-is |
+| Existing ideas are present | Read their titles from the item listing; avoid generating any duplicate |
 | README or project files are missing | Rely on Centy items and codebase structure for research; note the absence |
 | No open epics or issues in Centy | Base ideas entirely on codebase structure and files; note the lack of structured context |
 | User specifies count < 3 | Generate at least 3 ideas; warn that fewer ideas limits diversity |
 | User specifies count > 20 | Cap at 20; warn the user |
 | Idea creation fails | Log as a warning; continue with remaining ideas |
-| `ListItemTypes` fails | Attempt `CreateItemType` anyway; continue if it succeeds |
+| Listing item types fails | Attempt type creation anyway; continue if it succeeds |
 | `ideas` type exists but is missing custom fields | Proceed without setting missing fields; note which fields were skipped |
 | All requested ideas would duplicate existing ones | Generate the closest non-duplicate alternatives and note the substitution |

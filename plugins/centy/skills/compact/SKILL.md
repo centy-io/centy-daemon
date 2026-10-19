@@ -25,7 +25,7 @@ When called with no arguments, the skill discovers which issues to compact on it
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running and the project is initialized. Resolve `project_path` from the current working directory or ask the user if ambiguous.
+Ensure the daemon is running and the project is initialized. Resolve `projectPath` from the current working directory or ask the user if ambiguous.
 
 ---
 
@@ -33,89 +33,23 @@ Ensure the daemon is running and the project is initialized. Resolve `project_pa
 
 Launch a **sub-agent** whose sole job is to research and synthesize — it must not write anything. Hand it:
 - The list of issue IDs or display numbers **if the user provided any**, otherwise an empty list meaning "discover everything"
-- `project_path`
+- `projectPath`
 
-**Sub-agent prompt template:**
+The sub-agent must be read-only. It must not create, update or delete any item. Its steps:
 
-```
-You are performing the research phase of a "compact" workflow.
-Do NOT create, update, or delete any items — read only.
+0. **Discover issues** (only when no issues were given). List all issues of type `"issues"` in the project. Prefer issues whose status is closed, done or resolved, since they are the prime candidates for roll-up. Also include open or in-progress issues that clearly belong to the same feature domain. Exclude issues that already have a parent link to a feature item. Group the candidates into one or more feature clusters by subject matter; each cluster becomes one report. If no candidates exist, return one report with an empty issue list and a warning that says why.
+1. **Read every issue.** Fetch each issue's full content and existing links. If a display number was given instead of an ID, resolve it to an ID first. Classify each issue as done (status closed, done or resolved) or active (any other non-terminal status).
+2. **Infer the feature domain.** From the collected issues, synthesize a feature name (80 characters or fewer), a 2–4 sentence summary, the done work, the pending work, cross-cutting implementation notes, the deduplicated union of all tags, and the highest priority value seen.
+3. **Discover the feature item type.** List the item types for the project. Pick the first available type from: epics, features, stories, issues. The issues type is always available as a fallback.
+4. **Check for an existing feature item.** Search for a feature item whose title matches the feature name's key terms. Follow any child or parent link from step 1 to find a candidate and read it. If a candidate's domain clearly matches, record its ID and title. If a candidate exists but its domain clearly differs, record no match and add a warning about the mismatch. If no candidate exists, record no match.
 
-project_path: <project_path>
-Issues to research: <id or display number list, or "discover" if none given>
-
-Steps:
-
-0. DISCOVER ISSUES (only when "Issues to research" is "discover")
-   List ALL issues in the project (item_type: "issues").
-   From that full list, select candidates for compacting:
-   - Prefer issues that are "closed", "done", or "resolved" — these are prime
-     candidates to be rolled up and soft-deleted.
-   - Also include any open/in-progress issues that clearly belong to the same
-     feature domain as the closed ones.
-   - Exclude issues that already have a parent link to an existing feature item
-     (they were already compacted).
-   - Group the candidates into one or more feature clusters based on subject
-     matter. Each cluster will become one report. If there are multiple distinct
-     clusters, return a separate REPORT block for each.
-   - If no candidates are found, return a single report with
-     issues: [] and a warning explaining why.
-
-1. READ EVERY ISSUE
-   Fetch the full content and existing links for each issue in the cluster.
-   If a display number was given instead of a UUID, resolve it to a UUID first.
-   Classify each issue:
-   - Done   → status is "closed", "done", or "resolved"
-   - Active → status is "open", "in-progress", or any other non-terminal status
-
-2. INFER THE FEATURE DOMAIN
-   From the collected issues, synthesize:
-   - feature_name        Short, precise title (≤ 80 chars)
-   - feature_summary     2–4 sentences: what the feature does, why it exists
-   - done_items          Bullet list of completed work (from Done issues)
-   - pending_items       Bullet list of remaining work (from Active issues)
-   - implementation_notes  Cross-cutting design decisions, constraints, gotchas
-   - tags                Deduplicated union of all tags across every issue
-   - highest_priority    Numerically highest priority value seen across all issues
-
-3. DISCOVER THE FEATURE ITEM TYPE
-   List the available item types for this project.
-   Pick the first available type from: epics → features → stories → issues.
-   feature_type will always be set — there is always an "issues" fallback.
-
-4. CHECK FOR AN EXISTING FEATURE ITEM
-   a. Search for a feature item whose title matches key terms from feature_name.
-   b. Inspect the links from step 1 — follow any "child" or "parent" link to find
-      a candidate feature item and read its content.
-   Decision:
-   - If a candidate's domain clearly matches → set existing_feature_id to its ID
-     and existing_feature_title to its title
-   - If a candidate exists but domain clearly differs → set existing_feature_id
-     to null and note the mismatch as a warning
-   - If no candidate found → set existing_feature_id to null
-
-Return one REPORT block per feature cluster. Each block must contain ALL of the
-following fields — no fields omitted:
-
-REPORT:
-  feature_type: <"epics" | "features" | "stories" | "issues">
-  feature_name: <string>
-  feature_summary: <string>
-  done_items: [<string>, …]
-  pending_items: [<string>, …]
-  implementation_notes: <string>
-  tags: [<string>, …]
-  highest_priority: <int>
-  existing_feature_id: <UUID | null>
-  existing_feature_title: <string | null>
-  issues:
-    - id: <UUID>
-      display_number: <N>
-      title: <string>
-      classification: <"done" | "active">
-      already_linked_to_feature: <bool>
-  warnings: [<string>, …]   # not-found issues, domain mismatches, etc.
-```
+Return one report per feature cluster. Each report contains every field below, with none omitted:
+- feature type, feature name, feature summary
+- done items list, pending items list, implementation notes
+- tags list, highest priority
+- existing feature ID and title (or none)
+- the issue list, where each entry has ID, display number, title, classification (done or active), and whether it is already linked to the feature
+- warnings list (not-found issues, domain mismatches and similar)
 
 Wait for the agent to return its report(s) before continuing.
 
@@ -123,15 +57,15 @@ Wait for the agent to return its report(s) before continuing.
 
 ### 5–8 — Execute one cluster at a time
 
-If the sub-agent returned multiple REPORT blocks, process them one at a time: complete steps 5–8 for the first cluster, report the result to the user, then move on to the next cluster. Do not start a new cluster until the previous one is fully done.
+If the sub-agent returned multiple reports, process them one at a time: complete steps 5–8 for the first cluster, report the result to the user, then move on to the next cluster. Do not start a new cluster until the previous one is fully done.
 
 ### 5 — Create or update the feature item
 
 Use the report to build the feature body using the template below, then:
-- If `existing_feature_id` is set — update that item with the synthesized content, and refine the title only if it clearly improves on the existing one.
-- If `existing_feature_id` is null — create a new item of `feature_type`.
+- If an existing feature ID is set — update that item with the synthesized content, and refine the title only if it clearly improves on the existing one.
+- If no existing feature ID is set — create a new item of the reported feature type.
 
-Set status to `"in-progress"` if any Active issues remain, or `"closed"` if all issues are Done.
+Set status to `"in-progress"` if any active issues remain, or `"closed"` if all issues are done.
 
 **Feature body template:**
 
@@ -153,26 +87,26 @@ Set status to `"in-progress"` if any Active issues remain, or `"closed"` if all 
 <implementation_notes>
 ```
 
-Omit `## Done` if `done_items` is empty. Omit `## Pending` if `pending_items` is empty.
+Omit `## Done` if the done list is empty. Omit `## Pending` if the pending list is empty.
 
 ---
 
 ### 6 — Link active issues to the feature item
 
-For each Active issue that isn't already linked to the feature item, create a `"child"` link from the feature item to the issue.
+For each active issue that isn't already linked to the feature item, create a `"child"` link from the feature item to the issue.
 
 ---
 
 ### 7 — Soft-delete completed issues
 
-For each Done issue, soft-delete it (`force: false`). This sets `deleted_at` without removing the file — the issue is hidden from normal queries but remains recoverable. Never soft-delete Active issues.
+For each done issue, soft-delete it without a forced hard delete. This sets the deleted-at marker without removing the file — the issue is hidden from normal queries but remains recoverable. Never soft-delete active issues.
 
 ---
 
 ### 8 — Report to the user
 
 ```
-Feature item: #<display_number> — <title> [created | updated]
+Feature item: #<displayNumber> — <title> [created | updated]
 Linked (active): #N1 <title>, #N2 <title>, …
 Soft-deleted (done): #N3 <title>, #N4 <title>, …
 ```
