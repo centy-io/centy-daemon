@@ -10,7 +10,7 @@ pub fn setup_logging(
     log_dir_opt: Option<String>,
     log_json: bool,
     log_rotation: &str,
-) -> Result<PathBuf> {
+) -> Result<()> {
     let log_dir = log_dir_opt.map_or_else(
         || {
             dirs::home_dir()
@@ -29,10 +29,10 @@ pub fn setup_logging(
         ..Default::default()
     };
     if let Err(error) = init_logging(log_config) {
-        eprintln!("\nError: Failed to initialize logging: {error}\n\nNote: Logging could not be set up.\nLogs: {}\n", log_file.display());
+        eprintln!("\nError: Failed to initialize logging: {error}\n\nNote: Logging could not be set up.\n");
         return Err(error);
     }
-    Ok(log_file)
+    Ok(())
 }
 
 pub fn build_cors(origins: &[String]) -> CorsLayer {
