@@ -95,19 +95,38 @@ pub async fn run(args: app::Args) -> Result<()> {
     Ok(())
 }
 
+/// Waits for SIGINT (ctrl-c). A failed listener logs a warning and waits forever.
+async fn wait_ctrl_c() {
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => {}
+        Err(e) => {
+            warn!("Failed to listen for SIGINT, ignoring it: {e}");
+            std::future::pending::<()>().await;
+        }
+    }
+}
+
+/// Waits for SIGTERM. A failed listener logs a warning and waits forever.
+#[cfg(unix)]
+async fn wait_sigterm() {
+    match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+        Ok(mut term) => {
+            if term.recv().await.is_none() {
+                warn!("SIGTERM listener closed, ignoring it");
+                std::future::pending::<()>().await;
+            }
+        }
+        Err(e) => {
+            warn!("Failed to listen for SIGTERM, ignoring it: {e}");
+            std::future::pending::<()>().await;
+        }
+    }
+}
+
 /// Resolves on the first SIGINT (ctrl-c) or, on unix, SIGTERM.
 async fn termination_signal() {
-    let ctrl_c = Box::pin(tokio::signal::ctrl_c());
     #[cfg(unix)]
-    {
-        let Ok(mut term) =
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-        else {
-            drop(ctrl_c.await);
-            return;
-        };
-        drop(futures::future::select(ctrl_c, Box::pin(term.recv())).await);
-    }
+    drop(futures::future::select(Box::pin(wait_ctrl_c()), Box::pin(wait_sigterm())).await);
     #[cfg(not(unix))]
-    drop(ctrl_c.await);
+    wait_ctrl_c().await;
 }
