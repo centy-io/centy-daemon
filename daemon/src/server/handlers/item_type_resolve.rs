@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use crate::config::item_type_config::{
-    default_archived_config, default_comment_config, default_epic_config, default_issue_config,
-    read_item_type_config, ItemTypeRegistry,
+    default_archived_config, default_comment_config, default_doc_config, default_epic_config,
+    default_issue_config, default_user_story_config, read_item_type_config, ItemTypeRegistry,
 };
 use crate::config::read_config;
 use crate::item::core::error::ItemError;
@@ -15,7 +15,7 @@ use mdstore::TypeConfig;
 /// 1. Build the `ItemTypeRegistry` and use `resolve()` (handles exact folder,
 ///    case-insensitive name, and case-insensitive plural matching).
 /// 2. If registry lookup fails, try `read_item_type_config` for legacy projects.
-/// 3. Fall back to built-in default for "issues"/"issue".
+/// 3. Fall back to the built-in default for any of the six types init creates.
 /// 4. Otherwise return `ItemError::ItemTypeNotFound`.
 ///
 /// Returns `TypeConfig` (mdstore's type) for use with storage operations.
@@ -51,6 +51,18 @@ pub async fn resolve_item_type_config(
             Ok((
                 "issues".to_string(),
                 TypeConfig::from(&default_issue_config(&config)),
+            ))
+        }
+        "docs" | "doc" => Ok(("docs".to_string(), TypeConfig::from(&default_doc_config()))),
+        "user_stories" | "user_story" => {
+            let config = read_config(project_path)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_default();
+            Ok((
+                "user_stories".to_string(),
+                TypeConfig::from(&default_user_story_config(&config)),
             ))
         }
         "archived" | "archive" => Ok((
