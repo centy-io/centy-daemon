@@ -171,3 +171,60 @@ async fn test_hook_history_empty_and_uninitialized() {
         .into_inner();
     assert!(r.success && r.executions.is_empty());
 }
+
+#[tokio::test]
+async fn test_hook_log_is_gitignored_and_bounded() {
+    use centy_daemon::hooks::history::{
+        append_hook_execution, HookExecutionRecord, HOOK_EXECUTIONS_FILE,
+    };
+
+    // Managed .centy/.gitignore ignores `*.local.*`; the log name must match it.
+    assert!(
+        HOOK_EXECUTIONS_FILE.contains(".local."),
+        "{HOOK_EXECUTIONS_FILE}"
+    );
+    init_dir_has_local_pattern().await;
+
+    let dir = create_test_dir();
+    let p = dir.path();
+    init_centy_project(p).await;
+    let record = |n: usize| HookExecutionRecord {
+        id: n.to_string(),
+        timestamp: chrono::Utc::now(),
+        hook_pattern: "issue.created".to_string(),
+        command: "true".to_string(),
+        exit_code: Some(0i32),
+        stdout: String::new(),
+        stderr: String::new(),
+        duration_ms: 1,
+        blocked_operation: false,
+        phase: "post".to_string(),
+        item_type: "issue".to_string(),
+        operation: "create".to_string(),
+        item_id: None,
+        timed_out: false,
+    };
+    for n in 0..1003 {
+        append_hook_execution(p, &record(n)).await;
+    }
+    let text = tokio::fs::read_to_string(p.join(".centy").join(HOOK_EXECUTIONS_FILE))
+        .await
+        .unwrap();
+    let ids: Vec<String> = text
+        .lines()
+        .map(|l| serde_json::from_str::<HookExecutionRecord>(l).unwrap().id)
+        .collect();
+    assert_eq!(ids.len(), 1000);
+    assert_eq!(ids[0], "3");
+    assert_eq!(ids[999], "1002");
+}
+
+/// The gitignore the daemon writes into `.centy` must contain `*.local.*`.
+async fn init_dir_has_local_pattern() {
+    let dir = create_test_dir();
+    init_centy_project(dir.path()).await;
+    let gi = tokio::fs::read_to_string(dir.path().join(".centy").join(".gitignore"))
+        .await
+        .unwrap();
+    assert!(gi.lines().any(|l| l.trim() == "*.local.*"), "{gi}");
+}

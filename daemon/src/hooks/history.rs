@@ -6,7 +6,12 @@ use tokio::io::AsyncWriteExt as _;
 
 use crate::utils::get_centy_path;
 
-const HOOK_EXECUTIONS_FILE: &str = "hook_executions.jsonl";
+/// The `.local.` infix matches the managed `.centy/.gitignore` pattern `*.local.*`, so hook
+/// output (which may hold secrets) is never committed.
+pub const HOOK_EXECUTIONS_FILE: &str = "hook_executions.local.jsonl";
+
+/// The log keeps only the newest this-many records.
+const MAX_RECORDS: usize = 1000;
 
 /// A single hook execution record, persisted as one JSON line.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,7 +59,7 @@ fn log_path(project_path: &Path) -> PathBuf {
     get_centy_path(project_path).join(HOOK_EXECUTIONS_FILE)
 }
 
-/// Append a record to `<project>/.centy/hook_executions.jsonl`. Failures are logged, never raised:
+/// Append a record to `<project>/.centy/hook_executions.local.jsonl`. Failures are logged, never raised:
 /// history must not break a hook run.
 pub async fn append_hook_execution(project_path: &Path, record: &HookExecutionRecord) {
     let Ok(mut line) = serde_json::to_string(record) else {
@@ -68,12 +73,34 @@ pub async fn append_hook_execution(project_path: &Path, record: &HookExecutionRe
             .append(true)
             .open(log_path(project_path))
             .await?;
-        file.write_all(line.as_bytes()).await
+        file.write_all(line.as_bytes()).await?;
+        drop(file);
+        trim_to_newest(&log_path(project_path)).await
     }
     .await;
     if let Err(e) = result {
         tracing::warn!("Failed to write hook execution log: {e}");
     }
+}
+
+/// Keep only the newest `MAX_RECORDS` lines.
+// ponytail: re-reads the whole file on every append (bounded by MAX_RECORDS lines of capped
+// output) and a concurrent append during the rewrite can be lost; add a size check or a lock
+// if hook volume makes either matter.
+async fn trim_to_newest(path: &Path) -> std::io::Result<()> {
+    let content = tokio::fs::read_to_string(path).await?;
+    let lines: Vec<&str> = content.lines().collect();
+    let Some(excess) = lines.len().checked_sub(MAX_RECORDS).filter(|n| *n > 0) else {
+        return Ok(());
+    };
+    let kept = lines.iter().skip(excess).fold(String::new(), |mut acc, l| {
+        acc.push_str(l);
+        acc.push('\n');
+        acc
+    });
+    let tmp = path.with_extension("jsonl.tmp");
+    tokio::fs::write(&tmp, kept).await?;
+    tokio::fs::rename(&tmp, path).await
 }
 
 async fn read_all(project_path: &Path) -> Vec<HookExecutionRecord> {
