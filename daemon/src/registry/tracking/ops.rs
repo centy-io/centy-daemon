@@ -3,6 +3,7 @@ use super::super::storage::{get_lock, read_registry, write_registry_unlocked};
 use super::super::types::TrackedProject;
 use super::super::RegistryError;
 pub use super::enrich_fn::enrich_project;
+use super::slug_check::warn_on_slug_conflict;
 use crate::utils::now_iso;
 use std::path::Path;
 use tracing::warn;
@@ -40,6 +41,7 @@ pub async fn track_project(project_path: &str) -> Result<(), RegistryError> {
         }
         registry.updated_at = now;
         write_registry_unlocked(&registry).await?;
+        warn_on_slug_conflict(&registry, &canonical_path);
     }
     if needs_org_inference {
         let path_for_inference = canonical_path;
