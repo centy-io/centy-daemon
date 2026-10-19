@@ -15,7 +15,9 @@ use mdstore::TypeConfig;
 /// 1. Build the `ItemTypeRegistry` and use `resolve()` (handles exact folder,
 ///    case-insensitive name, and case-insensitive plural matching).
 /// 2. If registry lookup fails, try `read_item_type_config` for legacy projects.
-/// 3. Fall back to the built-in default for any of the six types init creates.
+/// 3. Fall back to the built-in default for any of the six types init creates
+///    (issues, docs, archived, comments, `user_stories`, epics), matched
+///    case-insensitively by plural, singular, or display name (e.g. "User Story").
 /// 4. Otherwise return `ItemError::ItemTypeNotFound`.
 ///
 /// Returns `TypeConfig` (mdstore's type) for use with storage operations.
@@ -54,7 +56,7 @@ pub async fn resolve_item_type_config(
             ))
         }
         "docs" | "doc" => Ok(("docs".to_string(), TypeConfig::from(&default_doc_config()))),
-        "user_stories" | "user_story" => {
+        "user_stories" | "user_story" | "user story" => {
             let config = read_config(project_path)
                 .await
                 .ok()

@@ -28,7 +28,8 @@ pub async fn migrate_strip_status_feature(project_path: &Path) -> Result<(), mds
     }
     Ok(())
 }
-/// Create `config.yaml` for issues, docs, and archived if they don't already exist.
+/// Create `config.yaml` for the six built-in types (issues, docs, archived, comments,
+/// `user_stories`, epics) if they do not already exist.
 ///
 /// Returns the list of relative paths that were created.
 /// `legacy_statuses` is read from `allowedStates` in `config.json` before migration.
