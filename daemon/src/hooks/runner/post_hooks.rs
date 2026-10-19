@@ -1,18 +1,17 @@
 use super::super::config::{HookDefinition, HookOperation, Phase};
 use super::super::context::HookContext;
-use super::super::executor::execute_hook;
 use super::common::{find_matching_hooks, load_hooks_config};
+use super::record::run_recorded;
 use std::path::Path;
 use tracing::{debug, warn};
 
 fn spawn_async_hook(hook: &HookDefinition, context: &HookContext, project_path: &Path) {
-    let command = hook.command.clone();
+    let owned = hook.clone();
     let ctx = context.clone();
     let path = project_path.to_path_buf();
-    let timeout = hook.timeout;
-    let pattern = hook.pattern.clone();
     tokio::spawn(async move {
-        match execute_hook(&command, &ctx, &path, timeout, &pattern).await {
+        let pattern = &owned.pattern;
+        match run_recorded(&owned, &ctx, &path, false).await {
             Ok(result) if result.exit_code != 0i32 => {
                 debug!(
                     "Async post-hook '{}' exited with code {}: {}",
@@ -26,15 +25,7 @@ fn spawn_async_hook(hook: &HookDefinition, context: &HookContext, project_path: 
 }
 
 async fn run_sync_hook(hook: &HookDefinition, context: &HookContext, project_path: &Path) {
-    match execute_hook(
-        &hook.command,
-        context,
-        project_path,
-        hook.timeout,
-        &hook.pattern,
-    )
-    .await
-    {
+    match run_recorded(hook, context, project_path, false).await {
         Ok(result) if result.exit_code != 0i32 => {
             warn!(
                 "Post-hook '{}' exited with code {}: {}",
