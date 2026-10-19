@@ -64,8 +64,8 @@ fn test_default_doc_config() {
     assert_eq!(doc.name, "Doc");
     assert_eq!(doc.icon, Some("document".to_string()));
     assert_eq!(doc.identifier, IdStrategy::Slug);
-    assert!(doc.statuses.is_empty());
-    assert!(doc.statuses.is_empty());
+    assert_eq!(doc.statuses.len(), 0);
+    assert_eq!(doc.statuses.len(), 0);
     assert!(doc.priority_levels.is_none());
     assert!(doc.custom_fields.is_empty());
     assert!(doc.template.is_none());
@@ -85,8 +85,8 @@ fn test_default_archived_config() {
     assert_eq!(archived.name, "Archived");
     assert!(archived.icon.is_none());
     assert_eq!(archived.identifier, IdStrategy::Uuid);
-    assert!(archived.statuses.is_empty());
-    assert!(archived.statuses.is_empty());
+    assert_eq!(archived.statuses.len(), 0);
+    assert_eq!(archived.statuses.len(), 0);
     assert!(archived.priority_levels.is_none());
     assert!(archived.template.is_none());
     assert_eq!(archived.custom_fields.len(), 1);

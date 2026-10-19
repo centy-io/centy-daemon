@@ -4,8 +4,8 @@ use super::*;
 fn test_centy_manifest_default() {
     let manifest = CentyManifest::default();
     assert_eq!(manifest.schema_version, 0);
-    assert!(manifest.centy_version.is_empty());
-    assert!(manifest.created_at.is_empty());
+    assert_eq!(manifest.centy_version.len(), 0);
+    assert_eq!(manifest.created_at.len(), 0);
 }
 
 #[test]

@@ -3,7 +3,7 @@ use super::*;
 fn test_project_registry_new() {
     let reg = ProjectRegistry::new();
     assert_eq!(reg.schema_version, CURRENT_SCHEMA_VERSION);
-    assert!(!reg.updated_at.is_empty());
+    assert_ne!(reg.updated_at.len(), 0);
     assert!(reg.organizations.is_empty());
     assert!(reg.projects.is_empty());
 }

@@ -98,7 +98,7 @@ fn test_ignore_paths_explicit() {
 fn test_ignore_paths_empty_overrides_default() {
     let toml_str = "[registry]\nignore_paths = []\n";
     let cfg: UserConfig = toml::from_str(toml_str).expect("Should parse empty ignore_paths");
-    assert!(cfg.registry.ignore_paths.is_empty());
+    assert_eq!(cfg.registry.ignore_paths.len(), 0);
 }
 
 #[test]

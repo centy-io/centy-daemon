@@ -146,7 +146,7 @@ fn test_issues_readme_content() {
         .get("issues/README.md")
         .expect("Should have issues/README.md");
     let content = issues_readme.content.as_ref().expect("Should have content");
-    assert!(!content.is_empty());
+    assert_ne!(content.len(), 0);
 }
 
 #[test]
@@ -159,5 +159,5 @@ fn test_templates_readme_content() {
         .content
         .as_ref()
         .expect("Should have content");
-    assert!(!content.is_empty());
+    assert_ne!(content.len(), 0);
 }

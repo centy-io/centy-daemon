@@ -30,7 +30,7 @@ mod tests {
         let migrated = apply_migrations(&mut registry);
         assert!(migrated, "Should return true when migration occurred");
         assert_eq!(registry.schema_version, 2);
-        assert!(!registry.updated_at.is_empty());
+        assert_ne!(registry.updated_at.len(), 0);
     }
 
     #[test]

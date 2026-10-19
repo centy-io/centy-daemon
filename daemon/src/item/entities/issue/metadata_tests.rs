@@ -77,7 +77,7 @@ fn test_issue_frontmatter_missing_projects_defaults_to_empty() {
     use mdstore::parse_frontmatter;
     let yaml = "---\ndisplayNumber: 1\nstatus: open\npriority: 1\ncreatedAt: 2024-01-01T00:00:00Z\nupdatedAt: 2024-01-01T00:00:00Z\n---\n# Title\n\nBody";
     let (fm, _, _): (IssueFrontmatter, String, String) = parse_frontmatter(yaml).unwrap();
-    assert!(fm.projects.is_empty());
+    assert_eq!(fm.projects.len(), 0);
 }
 
 #[test]

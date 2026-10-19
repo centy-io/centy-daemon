@@ -33,7 +33,7 @@ fn test_project_registry_new() {
     assert_eq!(registry.schema_version, CURRENT_SCHEMA_VERSION);
     assert!(registry.projects.is_empty());
     assert!(registry.organizations.is_empty());
-    assert!(!registry.updated_at.is_empty());
+    assert_ne!(registry.updated_at.len(), 0);
 }
 
 #[test]
