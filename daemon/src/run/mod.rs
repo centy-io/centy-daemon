@@ -34,6 +34,12 @@ pub async fn run(args: app::Args) -> Result<()> {
     let web_process = core::launch_web(args.serve_web, &args.web_addr)?;
     let (tx_raw, mut shutdown_rx) = watch::channel(ShutdownSignal::None);
     let shutdown_tx = Arc::new(tx_raw);
+    let signal_tx = Arc::clone(&shutdown_tx);
+    tokio::spawn(async move {
+        termination_signal().await;
+        info!("Received termination signal, stopping server...");
+        let _res = signal_tx.send(ShutdownSignal::Shutdown);
+    });
     let mcp_task = crate::mcp::spawn(&args.mcp_addr, addr, shutdown_tx.subscribe()).await?;
     let exe_path = std::env::current_exe().ok();
     crate::cleanup::spawn_cleanup_task();
@@ -87,4 +93,40 @@ pub async fn run(args: app::Args) -> Result<()> {
     }
     info!("Centy daemon stopped");
     Ok(())
+}
+
+/// Waits for SIGINT (ctrl-c). A failed listener logs a warning and waits forever.
+async fn wait_ctrl_c() {
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => {}
+        Err(e) => {
+            warn!("Failed to listen for SIGINT, ignoring it: {e}");
+            std::future::pending::<()>().await;
+        }
+    }
+}
+
+/// Waits for SIGTERM. A failed listener logs a warning and waits forever.
+#[cfg(unix)]
+async fn wait_sigterm() {
+    match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+        Ok(mut term) => {
+            if term.recv().await.is_none() {
+                warn!("SIGTERM listener closed, ignoring it");
+                std::future::pending::<()>().await;
+            }
+        }
+        Err(e) => {
+            warn!("Failed to listen for SIGTERM, ignoring it: {e}");
+            std::future::pending::<()>().await;
+        }
+    }
+}
+
+/// Resolves on the first SIGINT (ctrl-c) or, on unix, SIGTERM.
+async fn termination_signal() {
+    #[cfg(unix)]
+    drop(futures::future::select(Box::pin(wait_ctrl_c()), Box::pin(wait_sigterm())).await);
+    #[cfg(not(unix))]
+    wait_ctrl_c().await;
 }
