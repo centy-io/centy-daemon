@@ -133,7 +133,7 @@ fn test_default_comment_config() {
     assert_eq!(comment.name, "Comment");
     assert_eq!(comment.icon, Some("chat-bubble".to_string()));
     assert_eq!(comment.identifier, IdStrategy::Uuid);
-    assert!(comment.statuses.is_empty());
+    assert!(comment.statuses.is_empty(), "comments must be statusless");
     assert!(comment.priority_levels.is_none());
     assert!(comment.template.is_none());
     assert!(!comment.listed, "comments must not show in item lists");
