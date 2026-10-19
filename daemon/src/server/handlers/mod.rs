@@ -1,6 +1,7 @@
 pub mod asset_add;
 pub mod asset_delete;
 pub mod asset_read;
+pub mod check_for_updates;
 pub mod config;
 pub mod config_update;
 pub mod daemon;
