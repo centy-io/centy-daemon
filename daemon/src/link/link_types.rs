@@ -9,6 +9,8 @@ pub const BUILTIN_LINK_TYPES: &[&str] = &[
     "related-from",
     "duplicates",
     "duplicated-by",
+    "mentions",
+    "mentioned-by",
 ];
 /// Check if a link type is valid (either built-in or custom).
 #[must_use]
