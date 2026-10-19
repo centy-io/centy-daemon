@@ -15,7 +15,7 @@ use centy_daemon::server::handlers::item_type_create::create_item_type;
 use centy_daemon::server::proto::{
     CreateItemRequest, CreateItemTypeRequest, ItemTypeFeatures as ProtoFeatures,
 };
-use common::create_test_dir;
+use common::{create_test_dir, init_centy_project};
 use std::collections::HashMap;
 use tokio::fs;
 
@@ -255,4 +255,48 @@ async fn test_create_item_type_slug_identifier() {
     assert_eq!(config.statuses.len(), 0);
     assert_eq!(config.default_status.len(), 0);
     assert_eq!(config.priority_levels, 0);
+}
+
+// ─── Built-in plural names created by init ───────────────────────────────────
+
+#[tokio::test]
+async fn test_create_item_type_recreates_removed_builtin_user_stories() {
+    let temp = create_test_dir();
+    let path = temp.path();
+    init_centy_project(path).await;
+    let pp = path.to_str().unwrap();
+
+    // Simulate a user who removed the built-in user stories type.
+    fs::remove_dir_all(path.join(".centy").join("user_stories"))
+        .await
+        .unwrap();
+
+    let mut req = make_request(pp);
+    req.name = "User Story".to_string();
+    req.plural = "user_stories".to_string();
+
+    let resp = create_item_type(req).await.unwrap().into_inner();
+    assert!(resp.success, "create failed: {}", resp.error);
+    assert_eq!(resp.config.unwrap().plural, "user_stories");
+    assert!(path
+        .join(".centy")
+        .join("user_stories")
+        .join("config.yaml")
+        .exists());
+}
+
+#[tokio::test]
+async fn test_create_item_type_rejects_invalid_plural() {
+    let temp = create_test_dir();
+    let path = temp.path();
+    init_centy_project(path).await;
+    let pp = path.to_str().unwrap();
+
+    let mut req = make_request(pp);
+    req.name = "My Bug".to_string();
+    req.plural = "My_Bugs".to_string();
+
+    let resp = create_item_type(req).await.unwrap().into_inner();
+    assert!(!resp.success);
+    assert!(resp.error.contains("VALIDATION_ERROR"));
 }
