@@ -63,7 +63,7 @@ async fn test_list_shared_assets_with_files() {
     assert_eq!(assets.len(), 2);
     for asset in &assets {
         assert!(asset.is_shared);
-        assert!(!asset.hash.is_empty());
+        assert_ne!(asset.hash.len(), 0);
         assert!(asset.size > 0);
     }
 }

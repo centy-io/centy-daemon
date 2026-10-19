@@ -234,8 +234,8 @@ async fn test_get_project_info_found() {
         .expect("Should find project");
 
     assert_eq!(info.path, path);
-    assert!(!info.first_accessed.is_empty());
-    assert!(!info.last_accessed.is_empty());
+    assert_ne!(info.first_accessed.len(), 0);
+    assert_ne!(info.last_accessed.len(), 0);
 
     drop(untrack_project(&path).await);
     remove_non_temp_project_dir(&path);

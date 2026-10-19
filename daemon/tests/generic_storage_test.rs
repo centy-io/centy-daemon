@@ -440,7 +440,7 @@ async fn test_soft_delete_restore_hard_delete() {
     let items = generic_list(path, "issues", Filters::default())
         .await
         .unwrap();
-    assert!(items.is_empty());
+    assert_eq!(items.len(), 0);
 
     // Should appear with include_deleted
     let items = generic_list(path, "issues", Filters::new().include_deleted())

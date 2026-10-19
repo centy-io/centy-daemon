@@ -123,8 +123,8 @@ async fn test_custom_config_json_maps_to_issues_config_yaml() {
         .await
         .expect("Should read")
         .expect("Should exist");
-    assert!(doc_config.statuses.is_empty());
-    assert!(doc_config.statuses.is_empty());
+    assert_eq!(doc_config.statuses.len(), 0);
+    assert_eq!(doc_config.statuses.len(), 0);
     assert!(doc_config.priority_levels.is_none());
 }
 

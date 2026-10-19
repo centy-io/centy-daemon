@@ -238,5 +238,5 @@ async fn test_create_file_using_managed_templates() {
     let content = fs::read_to_string(temp.path().join("README.md"))
         .await
         .unwrap();
-    assert!(!content.is_empty());
+    assert_ne!(content.len(), 0);
 }

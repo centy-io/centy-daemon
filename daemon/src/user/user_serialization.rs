@@ -49,9 +49,9 @@ fn test_git_contributor_debug() {
 #[test]
 fn test_sync_users_result_default() {
     let result = SyncUsersResult::default();
-    assert!(result.created.is_empty());
-    assert!(result.skipped.is_empty());
-    assert!(result.errors.is_empty());
+    assert_eq!(result.created.len(), 0);
+    assert_eq!(result.skipped.len(), 0);
+    assert_eq!(result.errors.len(), 0);
     assert!(result.would_create.is_empty());
     assert!(result.would_skip.is_empty());
 }

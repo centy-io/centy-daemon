@@ -95,7 +95,7 @@ async fn test_list_empty() {
     let items = generic_list(temp.path(), "issues", Filters::default())
         .await
         .unwrap();
-    assert!(items.is_empty());
+    assert_eq!(items.len(), 0);
 }
 #[tokio::test]
 async fn test_get_by_display_number_success() {

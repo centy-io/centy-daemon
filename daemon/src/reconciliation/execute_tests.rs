@@ -36,10 +36,10 @@ fn test_reconciliation_decisions_debug() {
 #[test]
 fn test_reconciliation_result_default() {
     let result = ReconciliationResult::default();
-    assert!(result.created.is_empty());
-    assert!(result.restored.is_empty());
-    assert!(result.reset.is_empty());
-    assert!(result.skipped.is_empty());
+    assert_eq!(result.created.len(), 0);
+    assert_eq!(result.restored.len(), 0);
+    assert_eq!(result.reset.len(), 0);
+    assert_eq!(result.skipped.len(), 0);
 }
 
 #[test]
