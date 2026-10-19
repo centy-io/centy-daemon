@@ -59,3 +59,23 @@ fn test_managed_file_template_hooks_yaml_content() {
     assert!(content.contains("issue.created"));
     assert!(content.contains("$CENTY_ITEM_TITLE"));
 }
+
+#[test]
+fn test_managed_file_root_readme_lists_all_default_types() {
+    let files = get_managed_files();
+    let readme = files.get("README.md").expect("Should have README.md");
+    let content = readme.content.as_ref().expect("README should have content");
+    for folder in [
+        "issues",
+        "docs",
+        "archived",
+        "comments",
+        "user_stories",
+        "epics",
+    ] {
+        assert!(
+            content.contains(&format!("`{folder}/`")),
+            "README.md should list {folder}/"
+        );
+    }
+}
