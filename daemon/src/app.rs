@@ -39,11 +39,16 @@ pub struct Args {
     #[arg(long, env = "CENTY_LOG_DIR")]
     pub log_dir: Option<String>,
 }
-pub fn report_server_error(
-    addr: std::net::SocketAddr,
-    log_file: &std::path::Path,
-    e: &tonic::transport::Error,
-) {
+/// Print where the daemon log lives. `main` calls this for every startup failure.
+pub fn print_log_hint() {
+    let log_file = crate::logging::get_log_file_path();
+    if !log_file.is_empty() {
+        eprintln!();
+        eprintln!("Logs: {log_file}");
+        eprintln!();
+    }
+}
+pub fn report_server_error(addr: std::net::SocketAddr, e: &tonic::transport::Error) {
     let err_string = format!("{e:?}");
     if err_string.contains("AddrInUse") {
         eprintln!();
@@ -55,13 +60,7 @@ pub fn report_server_error(
         eprintln!("  1. Kill the existing process:   pkill centy-daemon");
         eprintln!("  2. Use a different port:        centy-daemon --addr 127.0.0.1:50052");
         eprintln!("  3. Check what's using the port: lsof -i :{}", addr.port());
-        eprintln!();
-        eprintln!("Logs: {}", log_file.display());
-        eprintln!();
     }
     eprintln!();
     eprintln!("Error: Failed to start server: {e}");
-    eprintln!();
-    eprintln!("Logs: {}", log_file.display());
-    eprintln!();
 }

@@ -52,4 +52,5 @@ fn main() -> Result<()> {
         .build()
         .map_err(color_eyre::eyre::Report::from)?
         .block_on(run::run(app::Args::parse()))
+        .inspect_err(|_| app::print_log_hint())
 }
