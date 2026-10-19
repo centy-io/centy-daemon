@@ -23,12 +23,13 @@ pub async fn unary(
     request: DynamicMessage,
     response: MessageDescriptor,
 ) -> Result<DynamicMessage> {
-    let channel = Endpoint::from_shared(endpoint.to_owned())
-        .wrap_err("invalid daemon gRPC endpoint")?
-        .connect()
-        .await
-        .wrap_err("failed to connect to daemon gRPC endpoint")?;
-    let mut grpc = tonic::client::Grpc::new(channel);
+    let mut grpc = tonic::client::Grpc::new(
+        Endpoint::from_shared(endpoint.to_owned())
+            .wrap_err("invalid daemon gRPC endpoint")?
+            .connect()
+            .await
+            .wrap_err("failed to connect to daemon gRPC endpoint")?,
+    );
     grpc.ready()
         .await
         .wrap_err("daemon gRPC channel not ready")?;
