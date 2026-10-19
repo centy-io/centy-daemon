@@ -1,7 +1,7 @@
 ---
 name: gap-analyze
 description: This skill should be used when the user asks to "analyze gaps in an epic", "check user story coverage", "gap analyze epic", "make sure an epic has user stories", "validate stories for an epic", or wants to ensure an epic's goals are fully covered by well-formed user stories.
-allowed-tools: mcp__centy__IsRunning mcp__centy__StartDaemon mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItems mcp__centy__centy_v1_CentyDaemon_GetItem mcp__centy__centy_v1_CentyDaemon_ListLinks mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_CreateItem mcp__centy__centy_v1_CentyDaemon_UpdateItem mcp__centy__centy_v1_CentyDaemon_CreateLink
+allowed-tools: mcp__centy__centy_v1_CentyDaemon_GetDaemonInfo mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItems mcp__centy__centy_v1_CentyDaemon_GetItem mcp__centy__centy_v1_CentyDaemon_ListLinks mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_CreateItem mcp__centy__centy_v1_CentyDaemon_UpdateItem mcp__centy__centy_v1_CentyDaemon_CreateLink
 ---
 
 # gap-analyze
@@ -30,7 +30,7 @@ A story **fails** if it violates ANY of the above.
 ### 0 — Prerequisites
 
 **a. Check for MCP tools.**
-Try to call `IsRunning`. If the `mcp__centy__*` tools are not available (not in the tool list / return a tool-not-found error), fall back to the CLI for all operations: use `pnpm dlx centy` for every read and write action throughout this workflow. Note the degraded mode in the final report. Do not abort — continue with the CLI fallback.
+Try to call `centy_v1_CentyDaemon_GetDaemonInfo`. If the `mcp__centy__*` tools are not available (not in the tool list / return a tool-not-found error), fall back to the CLI for all operations: use `pnpm dlx centy` for every read and write action throughout this workflow. Note the degraded mode in the final report. Do not abort — continue with the CLI fallback.
 
 **b. Check version compatibility.**
 After confirming the daemon is reachable, run `pnpm dlx centy config` (or `GetDaemonInfo` via MCP) and compare the project version against the daemon version. If they differ, stop and tell the user:
@@ -41,7 +41,7 @@ After confirming the daemon is reachable, run `pnpm dlx centy config` (or `GetDa
 Do not proceed past step 0 until versions match.
 
 **c. Start the daemon if needed.**
-If `IsRunning` returns false, call `StartDaemon`. Resolve `project_path` from the current working directory. Confirm `IsInitialized` before continuing.
+If the daemon is not running, start it with `centy-daemon &`. Resolve `project_path` from the current working directory. Confirm `IsInitialized` before continuing.
 
 ---
 

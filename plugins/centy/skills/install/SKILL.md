@@ -66,51 +66,40 @@ grpcurl -plaintext 127.0.0.1:50051 list   # should print centy.CentyDaemon
 
 ## Step 5 — Register the MCP server in Claude Code
 
-Add the following block to the project's `.mcp.json` (or to `~/.claude/mcp.json` for global access):
+The daemon serves MCP over HTTP at `http://127.0.0.1:50052/mcp`. Claude Code connects to that URL. Do not spawn a process for it. Make sure `centy-daemon` is running first.
+
+Add the following block to the project's `.mcp.json` (or run the command for global access):
 
 ```json
 {
   "mcpServers": {
     "centy": {
-      "command": "npx",
-      "args": ["-y", "centy-mcp"]
+      "type": "http",
+      "url": "http://127.0.0.1:50052/mcp"
     }
   }
 }
 ```
 
-`centy-mcp` is the official MCP bridge. It connects to the running daemon at `127.0.0.1:50051` and exposes every daemon RPC as a Claude Code tool.
-
-If the daemon listens on a non-default address, set the environment variable:
-
-```json
-{
-  "mcpServers": {
-    "centy": {
-      "command": "npx",
-      "args": ["-y", "centy-mcp"],
-      "env": {
-        "CENTY_DAEMON_ADDR": "127.0.0.1:9090"
-      }
-    }
-  }
-}
+```bash
+claude mcp add --transport http centy http://127.0.0.1:50052/mcp
 ```
+
+If the daemon uses a different MCP port, start it with `centy-daemon --mcp-addr 127.0.0.1:PORT` (or set `CENTY_MCP_ADDR`), then use that URL. The address must be loopback.
 
 ## Step 6 — Verify the integration
 
 Restart Claude Code (or reload the MCP servers) then confirm the tools are available:
 
 - Run `/mcp` in Claude Code — you should see the `centy` server listed.
-- Ask Claude to call `IsRunning` — it should report the daemon address.
+- Ask Claude to call `centy_v1_CentyDaemon_GetDaemonInfo` — it should return the daemon version.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| `centy-mcp` connection refused | Make sure `centy-daemon` is running (`centy-daemon &`) |
-| Binary not found | Set `CENTY_DAEMON_PATH=/absolute/path/to/centy-daemon` in the MCP env block |
-| Version mismatch error in MCP logs | Run `cargo build --release` again; rebuild `centy-mcp` if you changed the proto |
+| MCP connection refused on `127.0.0.1:50052` | Make sure `centy-daemon` is running (`centy-daemon &`) |
+| Wrong MCP port | Use the URL matching `--mcp-addr` / `CENTY_MCP_ADDR` on the daemon |
 | `rustc --version` too old | Run `rustup update stable` |
 
 Once complete, tell the user they are ready to use Centy. Suggest running the `mcp-usage` skill to learn about available tools.

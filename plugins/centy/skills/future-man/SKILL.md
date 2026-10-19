@@ -1,7 +1,7 @@
 ---
 name: future-man
 description: This skill should be used when the user asks to "future-man this project", "envision the future of this project", "generate ideas for this project", "what could this project become", "vision this project", "seed ideas", "be the future man", or wants an AI agent to deeply analyze the project and generate forward-thinking ideas as Centy items.
-allowed-tools: mcp__centy__IsRunning mcp__centy__StartDaemon mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_CreateItemType mcp__centy__centy_v1_CentyDaemon_ListItems mcp__centy__centy_v1_CentyDaemon_GetItem mcp__centy__centy_v1_CentyDaemon_CreateItem mcp__centy__centy_v1_CentyDaemon_CreateLink
+allowed-tools: mcp__centy__centy_v1_CentyDaemon_IsInitialized mcp__centy__centy_v1_CentyDaemon_ListItemTypes mcp__centy__centy_v1_CentyDaemon_CreateItemType mcp__centy__centy_v1_CentyDaemon_ListItems mcp__centy__centy_v1_CentyDaemon_GetItem mcp__centy__centy_v1_CentyDaemon_CreateItem mcp__centy__centy_v1_CentyDaemon_CreateLink
 ---
 
 # future-man
@@ -37,7 +37,7 @@ New ideas are created with status `raw`. The team promotes ideas as they gain co
 
 ### 0 — Prerequisites
 
-Ensure the daemon is running and the project is initialized. Resolve `project_path` from the current working directory. Start the daemon with `StartDaemon` if `IsRunning` returns false.
+Ensure the daemon is running (start it with `centy-daemon &` if not) and the project is initialized. Resolve `project_path` from the current working directory.
 
 ---
 

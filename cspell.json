@@ -255,6 +255,7 @@
     "getsize",
     "promisified",
     "statusless",
-    "Statusless"
+    "Statusless",
+    "Streamable"
   ]
 }
