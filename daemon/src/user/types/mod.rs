@@ -36,9 +36,11 @@ pub struct GitContributor {
 pub struct SyncUsersResult {
     pub created: Vec<String>,
     pub skipped: Vec<String>,
+    pub updated: Vec<String>,
     pub errors: Vec<String>,
     pub would_create: Vec<GitContributor>,
     pub would_skip: Vec<GitContributor>,
+    pub would_update: Vec<GitContributor>,
 }
 /// User-related errors
 #[derive(Error, Debug)]

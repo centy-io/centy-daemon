@@ -1,7 +1,7 @@
 use super::super::git::{get_git_contributors, is_git_repository};
 use super::super::storage::{find_user_by_email, read_users};
 use super::super::types::{SyncUsersResult, UserError};
-use super::helpers::create_user_from_contributor;
+use super::helpers::{create_user_from_contributor, update_user_git_usernames};
 use crate::manifest::{read_manifest, update_manifest, write_manifest, CentyManifest};
 use std::path::Path;
 use tracing::info;
@@ -26,8 +26,10 @@ pub async fn sync_users(
     let existing_users = read_users(project_path).await?;
     let mut result = SyncUsersResult::default();
     for contributor in contributors {
-        if find_user_by_email(&existing_users, &contributor.email).is_some() {
-            if dry_run {
+        if let Some(user) = find_user_by_email(&existing_users, &contributor.email) {
+            if user.git_usernames.is_empty() {
+                handle_update(dry_run, project_path, user, &contributor, &mut result).await;
+            } else if dry_run {
                 result.would_skip.push(contributor);
             } else {
                 result.skipped.push(contributor.email);
@@ -40,15 +42,30 @@ pub async fn sync_users(
             create_user_from_contributor(project_path, &contributor, &mut result).await;
         }
     }
-    if !dry_run && !result.created.is_empty() {
+    let changed = !result.created.is_empty() || !result.updated.is_empty();
+    if !dry_run && changed {
         update_manifest(&mut manifest);
         write_manifest(project_path, &manifest).await?;
     }
     info!(
-        "Synced users from git: {} created, {} skipped, {} errors",
+        "Synced users from git: {} created, {} updated, {} skipped, {} errors",
         result.created.len(),
+        result.updated.len(),
         result.skipped.len(),
         result.errors.len()
     );
     Ok(SyncUsersFullResult { result, manifest })
+}
+async fn handle_update(
+    dry_run: bool,
+    project_path: &Path,
+    user: &super::super::types::User,
+    contributor: &super::super::types::GitContributor,
+    result: &mut SyncUsersResult,
+) {
+    if dry_run {
+        result.would_update.push(contributor.clone());
+    } else {
+        update_user_git_usernames(project_path, &user.id, contributor, result).await;
+    }
 }
