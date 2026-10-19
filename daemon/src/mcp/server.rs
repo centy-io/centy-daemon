@@ -6,7 +6,7 @@ use rmcp::model::{
     ServerCapabilities, ServerInfo,
 };
 use rmcp::transport::streamable_http_server::{
-    session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
+    session::never::NeverSessionManager, StreamableHttpServerConfig, StreamableHttpService,
 };
 use rmcp::ErrorData;
 use rmcp::ServerHandler;
@@ -27,11 +27,14 @@ impl McpServer {
         })
     }
 
-    pub fn into_service(self) -> StreamableHttpService<Self, LocalSessionManager> {
+    /// Stateless: no session ids, no session store. Each POST is self-contained.
+    pub fn into_service(self) -> StreamableHttpService<Self, NeverSessionManager> {
         StreamableHttpService::new(
             move || Ok(self.clone()),
-            Arc::default(),
-            StreamableHttpServerConfig::default(),
+            Arc::new(NeverSessionManager::default()),
+            StreamableHttpServerConfig::default()
+                .with_legacy_session_mode(false)
+                .with_json_response(true),
         )
     }
 }
