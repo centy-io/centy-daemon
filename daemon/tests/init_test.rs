@@ -263,31 +263,32 @@ async fn test_init_creates_item_type_config_yaml() {
 
     let centy_path = project_path.join(".centy");
 
-    // All config.yaml files should be created
-    assert!(
-        centy_path.join("issues").join("config.yaml").exists(),
-        "issues/config.yaml should be created on init"
-    );
-    assert!(
-        centy_path.join("docs").join("config.yaml").exists(),
-        "docs/config.yaml should be created on init"
-    );
-    assert!(
-        centy_path.join("archived").join("config.yaml").exists(),
-        "archived/config.yaml should be created on init"
-    );
-    assert!(
-        result.created.contains(&"issues/config.yaml".to_string()),
-        "Should report issues/config.yaml as created"
-    );
-    assert!(
-        result.created.contains(&"docs/config.yaml".to_string()),
-        "Should report docs/config.yaml as created"
-    );
-    assert!(
-        result.created.contains(&"archived/config.yaml".to_string()),
-        "Should report archived/config.yaml as created"
-    );
+    // All default item type config.yaml files should be created and parse
+    for folder in [
+        "issues",
+        "docs",
+        "archived",
+        "comments",
+        "user_stories",
+        "epics",
+    ] {
+        let rel = format!("{folder}/config.yaml");
+        assert!(
+            centy_path.join(&rel).exists(),
+            "{rel} should be created on init"
+        );
+        assert!(
+            result.created.contains(&rel),
+            "Should report {rel} as created"
+        );
+        assert!(
+            read_item_type_config(project_path, folder)
+                .await
+                .expect("Should parse config.yaml")
+                .is_some(),
+            "{rel} should parse"
+        );
+    }
 
     // Verify issues config has expected defaults
     let issues_content = fs::read_to_string(centy_path.join("issues").join("config.yaml"))
