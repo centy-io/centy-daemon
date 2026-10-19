@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::config::item_type_config::{
     default_archived_config, default_comment_config, default_doc_config, default_epic_config,
     default_issue_config, default_user_story_config, ItemTypeConfig, ItemTypeRegistry,
+    BUILTIN_ITEM_TYPE_FOLDERS,
 };
 use crate::config::read_config;
 use crate::registry::track_project_async;
@@ -30,6 +31,14 @@ async fn builtin_item_types(project_path: &Path) -> Vec<(&'static str, ItemTypeC
     ]
 }
 
+/// Position in `BUILTIN_ITEM_TYPE_FOLDERS`, or `usize::MAX` for a custom type.
+fn builtin_rank(folder: &str) -> usize {
+    BUILTIN_ITEM_TYPE_FOLDERS
+        .iter()
+        .position(|b| *b == folder)
+        .unwrap_or(usize::MAX)
+}
+
 pub async fn list_item_types(
     req: ListItemTypesRequest,
 ) -> Result<Response<ListItemTypesResponse>, Status> {
@@ -47,9 +56,13 @@ pub async fn list_item_types(
                     types.entry(folder.to_string()).or_insert(config);
                 }
             }
-            let item_types: Vec<_> = types
-                .iter()
-                .filter(|(_, config)| config.listed)
+            // Built-ins first in const order, then custom types by folder name.
+            let mut listed: Vec<_> = types.iter().filter(|(_, c)| c.listed).collect();
+            listed.sort_by(|(a, _), (b, _)| {
+                builtin_rank(a).cmp(&builtin_rank(b)).then_with(|| a.cmp(b))
+            });
+            let item_types: Vec<_> = listed
+                .into_iter()
                 .map(|(folder, config)| config_to_proto(folder, config))
                 .collect();
             let total_count = item_types.len().try_into().unwrap_or(i32::MAX);
