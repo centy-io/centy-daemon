@@ -46,6 +46,6 @@ fn test_get_available_link_types_multiple_custom() {
         },
     ];
     let types = get_available_link_types(&custom);
-    // 8 builtin + 2 custom = 10
-    assert_eq!(types.len(), 10);
+    // 10 builtin + 2 custom = 12
+    assert_eq!(types.len(), 12);
 }

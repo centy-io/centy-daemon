@@ -534,8 +534,8 @@ async fn test_list_links_nonexistent_entity_returns_empty() {
 async fn test_get_available_link_types_builtin() {
     let types = get_available_link_types(&[]);
 
-    // All 8 builtin link type names
-    assert_eq!(types.len(), 8);
+    // All 10 builtin link type names
+    assert_eq!(types.len(), 10);
     assert!(types.iter().all(|t| t.is_builtin));
 
     let names: Vec<&str> = types.iter().map(|t| t.name.as_str()).collect();
@@ -547,6 +547,8 @@ async fn test_get_available_link_types_builtin() {
     assert!(names.contains(&"related-from"));
     assert!(names.contains(&"duplicates"));
     assert!(names.contains(&"duplicated-by"));
+    assert!(names.contains(&"mentions"));
+    assert!(names.contains(&"mentioned-by"));
 }
 
 #[tokio::test]
@@ -558,7 +560,7 @@ async fn test_get_available_link_types_with_custom() {
 
     let types = get_available_link_types(&custom);
 
-    assert_eq!(types.len(), 9); // 8 builtin + 1 custom
+    assert_eq!(types.len(), 11); // 10 builtin + 1 custom
 
     let custom_type = types.iter().find(|t| !t.is_builtin).unwrap();
     assert_eq!(custom_type.name, "depends-on");
@@ -631,6 +633,8 @@ async fn test_all_builtin_link_types_are_valid() {
         "related-from",
         "duplicates",
         "duplicated-by",
+        "mentions",
+        "mentioned-by",
     ];
 
     for (i, link_type) in builtin_types.iter().enumerate() {
@@ -1169,4 +1173,48 @@ async fn test_link_same_display_number_across_types_is_not_self_link() {
     // The display numbers must resolve to the two distinct underlying UUIDs.
     assert_eq!(resp.created_link.unwrap().target_id, epic.id);
     assert_eq!(resp.inverse_link.unwrap().target_id, issue.id);
+}
+
+#[tokio::test]
+async fn test_create_link_mentions_on_fresh_project() {
+    let temp_dir = create_test_dir();
+    let project_path = temp_dir.path();
+    init_centy_project(project_path).await;
+
+    let a = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "A".into(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let b = create_issue(
+        project_path,
+        CreateIssueOptions {
+            title: "B".into(),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    create_link(
+        project_path,
+        CreateLinkOptions {
+            source_id: a.id.clone(),
+            source_type: TargetType::issue(),
+            target_id: b.id.clone(),
+            target_type: TargetType::issue(),
+            link_type: "mentions".to_string(),
+        },
+        &[],
+    )
+    .await
+    .expect("mentions must be a built-in link type");
+
+    assert!(get_available_link_types(&[])
+        .iter()
+        .any(|t| t.name == "mentions"));
 }

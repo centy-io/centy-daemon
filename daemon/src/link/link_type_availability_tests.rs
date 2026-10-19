@@ -3,8 +3,8 @@ use super::*;
 fn test_get_available_link_types_builtin() {
     let custom: Vec<CustomLinkTypeDefinition> = vec![];
     let types = get_available_link_types(&custom);
-    // 8 built-in link type names (all are valid from source's perspective)
-    assert_eq!(types.len(), 8);
+    // 10 built-in link type names (all are valid from source's perspective)
+    assert_eq!(types.len(), 10);
     assert!(types.iter().all(|t| t.is_builtin));
 }
 #[test]
@@ -14,7 +14,7 @@ fn test_get_available_link_types_with_custom() {
         description: Some("Dependency relationship".to_string()),
     }];
     let types = get_available_link_types(&custom);
-    assert_eq!(types.len(), 9);
+    assert_eq!(types.len(), 11);
     let custom_type = types.iter().find(|t| !t.is_builtin).unwrap();
     assert_eq!(custom_type.name, "depends-on");
     assert_eq!(

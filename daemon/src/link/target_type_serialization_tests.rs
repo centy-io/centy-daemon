@@ -40,5 +40,5 @@ fn test_builtin_link_types_all_valid() {
 
 #[test]
 fn test_builtin_link_types_count() {
-    assert_eq!(BUILTIN_LINK_TYPES.len(), 8);
+    assert_eq!(BUILTIN_LINK_TYPES.len(), 10);
 }

@@ -35,7 +35,7 @@ fn test_custom_link_type_definition_without_description() {
 
 #[test]
 fn test_builtin_link_types_count() {
-    assert_eq!(BUILTIN_LINK_TYPES.len(), 8);
+    assert_eq!(BUILTIN_LINK_TYPES.len(), 10);
 }
 
 #[test]
