@@ -14,7 +14,7 @@ use tracing::{info, warn, Level};
 mod core;
 
 pub async fn run(args: app::Args) -> Result<()> {
-    let log_file = core::setup_logging(args.log_dir, args.log_json, &args.log_rotation)?;
+    core::setup_logging(args.log_dir, args.log_json, &args.log_rotation)?;
     let user_cfg = crate::user_config::load_user_config().unwrap_or_else(|e| {
         warn!("Failed to load user config, using defaults: {e}");
         crate::user_config::UserConfig::default()
@@ -24,7 +24,7 @@ pub async fn run(args: app::Args) -> Result<()> {
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(listener) => listener,
         Err(e) => {
-            report_server_error(addr, &log_file, &e);
+            report_server_error(addr, &e);
             return Err(e).wrap_err_with(|| format!("failed to bind gRPC endpoint on {addr}"));
         }
     };
@@ -82,7 +82,7 @@ pub async fn run(args: app::Args) -> Result<()> {
     mcp_task.await.map_err(color_eyre::eyre::Report::from)??;
     core::stop_web(web_process);
     if let Err(e) = server_result {
-        report_server_error(addr, &log_file, &e);
+        report_server_error(addr, &e);
         return Err(e.into());
     }
     info!("Centy daemon stopped");

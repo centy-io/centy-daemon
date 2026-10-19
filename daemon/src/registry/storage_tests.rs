@@ -111,6 +111,25 @@ async fn test_write_and_read_registry() {
 }
 
 #[tokio::test]
+async fn test_concurrent_writes_leave_no_temp_files() {
+    let _lock = acquire_lock();
+    let registry = read_registry().await.expect("read");
+    let writes = std::iter::repeat_n(&registry, 16).map(write_registry_unlocked);
+    for result in futures::future::join_all(writes).await {
+        result.expect("concurrent write should succeed");
+    }
+    let dir = get_centy_config_dir().expect("config dir");
+    let leftovers: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.contains(".tmp"))
+        .collect();
+    assert_eq!(leftovers.len(), 0, "stale temp files: {leftovers:?}");
+    read_registry().await.expect("registry still parses");
+}
+
+#[tokio::test]
 async fn test_read_registry_applies_migration() {
     let _lock = acquire_lock();
     use tokio::fs;

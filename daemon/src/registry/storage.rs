@@ -57,22 +57,22 @@ pub async fn write_registry_unlocked(registry: &ProjectRegistry) -> Result<(), R
         fs::create_dir_all(parent).await?;
     }
 
-    // Write atomically using a per-call unique temp file + rename.
-    // Using a unique suffix avoids races when multiple processes write concurrently
-    // (e.g. parallel integration-test binaries), which would otherwise cause one
-    // process to rename a temp file written by another.
-    let unique_id = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    let temp_name = format!("projects.{unique_id}.json.tmp");
-    let temp_path = path
+    // Write atomically: a uniquely named temp file in the same directory, then
+    // rename over the target. `NamedTempFile` removes the temp file on any
+    // failure, so no stale `*.tmp` files are left behind.
+    let content = serde_json::to_string_pretty(registry)?;
+    let dir = path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."))
-        .join(temp_name);
-    let content = serde_json::to_string_pretty(registry)?;
-    fs::write(&temp_path, &content).await?;
-    fs::rename(&temp_path, &path).await?;
+        .to_path_buf();
+    tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        use std::io::Write as _;
+        let mut temp = tempfile::NamedTempFile::new_in(&dir)?;
+        temp.write_all(content.as_bytes())?;
+        temp.persist(&path).map(drop).map_err(|e| e.error)
+    })
+    .await
+    .map_err(std::io::Error::other)??;
     Ok(())
 }
 

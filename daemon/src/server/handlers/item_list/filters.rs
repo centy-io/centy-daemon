@@ -28,7 +28,7 @@ pub(super) fn parse_custom_field_filters(filter_json: &str) -> HashMap<String, S
 }
 
 /// Build a `Filters` from a JSON-encoded MQL query string and pagination params.
-pub(super) fn build_filters_from_mql(filter_json: &str, limit: u32, offset: u32) -> Filters {
+pub fn build_filters_from_mql(filter_json: &str, limit: u32, offset: u32) -> Filters {
     let mut filters = Filters::new();
     if limit > 0 {
         filters = filters.with_limit(limit as usize);

@@ -415,8 +415,8 @@ impl CentyDaemon for CentyDaemonService {
     }
     async fn list_items_across_projects(
         &self,
-        _request: Request<ListItemsAcrossProjectsRequest>,
+        request: Request<ListItemsAcrossProjectsRequest>,
     ) -> Result<Response<ListItemsAcrossProjectsResponse>, Status> {
-        Err(Status::unimplemented("not yet implemented"))
+        handlers::item_list_global::list_items_across_projects(request.into_inner()).await
     }
 }
