@@ -30,3 +30,28 @@ async fn test_resolve_falls_back_for_all_default_types() {
         assert_eq!(resolved, folder);
     }
 }
+
+/// Every built-in display name must resolve to its folder when config.yaml is gone.
+#[tokio::test]
+async fn test_resolve_falls_back_by_display_name() {
+    for (folder, name) in [
+        ("issues", "Issue"),
+        ("docs", "doc"),
+        ("archived", "ARCHIVED"),
+        ("comments", "Comment"),
+        ("user_stories", "User Story"),
+        ("epics", "epic"),
+    ] {
+        let temp = create_test_dir();
+        let path = temp.path();
+        init_centy_project(path).await;
+        fs::remove_file(path.join(".centy").join(folder).join("config.yaml"))
+            .await
+            .expect("Should delete config.yaml");
+
+        let (resolved, _) = resolve_item_type_config(path, name)
+            .await
+            .unwrap_or_else(|e| panic!("{name} should resolve via fallback: {e}"));
+        assert_eq!(resolved, folder);
+    }
+}
