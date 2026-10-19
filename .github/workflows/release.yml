@@ -476,6 +476,11 @@ jobs:
           GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-darwin-aarch64 .
           GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o ../centy-cli-windows-x86_64.exe .
 
+      - name: Generate checksums
+        run: |
+          sha256sum centy-cli-* > checksums-cli-sha256.txt
+          cat checksums-cli-sha256.txt
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
@@ -485,5 +490,6 @@ jobs:
             centy-cli-darwin-x86_64
             centy-cli-darwin-aarch64
             centy-cli-windows-x86_64.exe
+            checksums-cli-sha256.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
