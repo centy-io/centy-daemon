@@ -68,3 +68,7 @@ pub async fn list_item_types(
         })),
     }
 }
+
+#[cfg(test)]
+#[path = "item_type_list_tests.rs"]
+mod tests;
