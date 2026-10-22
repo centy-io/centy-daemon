@@ -2,14 +2,7 @@ use super::UserError;
 /// Convert a name to a URL-friendly slug (kebab-case)
 #[must_use]
 pub fn slugify(name: &str) -> String {
-    name.to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
+    slug::slugify(name)
 }
 /// Validate a user ID (must be non-empty, lowercase alphanumeric with hyphens)
 pub fn validate_user_id(id: &str) -> Result<(), UserError> {

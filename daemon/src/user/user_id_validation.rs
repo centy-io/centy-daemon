@@ -18,6 +18,13 @@ fn test_slugify_special_chars() {
     assert_eq!(slugify("first.last"), "first-last");
 }
 #[test]
+fn test_slugify_non_ascii_produces_valid_id() {
+    // cspell:ignore jose garcia
+    assert_eq!(slugify("José García"), "jose-garcia");
+    assert!(validate_user_id(&slugify("José García")).is_ok());
+    assert!(validate_user_id(&slugify("Zoë Ångström")).is_ok());
+}
+#[test]
 fn test_validate_user_id() {
     assert!(validate_user_id("john-doe").is_ok());
     assert!(validate_user_id("jane-smith-123").is_ok());
