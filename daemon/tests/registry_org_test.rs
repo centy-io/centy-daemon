@@ -143,7 +143,7 @@ async fn test_list_organizations_empty() {
     let _lock = acquire_lock();
     let orgs = list_organizations().await.expect("Should list orgs");
     // Just verify it returns without error - orgs is a valid vec
-    let _ = orgs.len();
+    let _: usize = orgs.len();
 }
 
 #[tokio::test]

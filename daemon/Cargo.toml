@@ -1063,6 +1063,11 @@ ref_patterns = "deny"
 # Avoid needless allocations from `.iter().cloned()` where a borrowing
 # iterator adapter would do (e.g. `.iter().cloned().any(..)`)
 redundant_iter_cloned = "deny"
+# Require a type annotation on `let _ = expr;` so the discarded value's type is
+# explicit (e.g. `let _: bool = ...`). An untyped `let _` silently drops
+# whatever the expression returns, which can hide an unawaited future, an
+# ignored `Result`, or a value whose type changed under a refactor.
+let_underscore_untyped = "deny"
 
 [[bin]]
 name = "centy-daemon"

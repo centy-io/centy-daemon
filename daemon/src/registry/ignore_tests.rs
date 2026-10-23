@@ -121,7 +121,7 @@ fn test_is_ignored_path_home_not_ignored() {
         // A normal projects path should NOT be ignored
         // (only true when IGNORE_PREFIXES is not initialized or set correctly)
         // We can't guarantee IGNORE_PREFIXES state in tests, so just check no panic
-        let _ = is_ignored_path(&normal);
+        is_ignored_path(&normal);
     }
 }
 
@@ -130,5 +130,5 @@ fn test_is_ignored_path_with_nonexistent_path() {
     // Path that doesn't exist — canonicalize falls back to itself
     let path = std::path::Path::new("/nonexistent/path/for/centy/test");
     // Just verify no panic
-    let _ = is_ignored_path(path);
+    is_ignored_path(path);
 }
