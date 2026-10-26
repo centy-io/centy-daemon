@@ -58,7 +58,7 @@ The daemon supports both **native gRPC** (HTTP/2) and **gRPC-Web** (HTTP/1.1), m
 
 #### Core Operations
 
-See [`proto/centy.proto`](proto/centy.proto) for the full API specification (70+ RPCs).
+See [`proto/centy/v1/centy.proto`](proto/centy/v1/centy.proto) for the full API specification (70+ RPCs).
 
 ### CORS Configuration
 
@@ -89,7 +89,7 @@ grpcurl -plaintext -d '{"project_path": "/path/to/project"}' \
 ## E2E Tests
 
 ```bash
-cd e2e
+cd daemon/e2e
 pnpm install
 pnpm daemon:build
 pnpm daemon:start   # in another terminal
