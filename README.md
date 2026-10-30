@@ -100,6 +100,10 @@ pnpm test
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and contribution guidelines.
 
+## Related projects
+
+- [moadim](https://moadim.io/) — loop engineering: build, schedule & run agent loops.
+
 ## License
 
 MIT
